@@ -1,3 +1,4 @@
+using PropertyChanged;
 ﻿using Typedown.Core.Models;
 using Typedown.Core.Models.ExportConfigModels;
 using Avalonia;
@@ -7,12 +8,13 @@ using Avalonia.Controls.Primitives;
 
 namespace Typedown.Core.Controls.SettingControls.SettingItems.ExportConfigItems
 {
-    public sealed partial class HTMLConfig : UserControl
+[DoNotNotify]
+        public sealed partial class HTMLConfig : UserControl
     {
-        public static StyledProperty ExportConfigProperty { get; } = AvaloniaProperty.Register<HTMLConfig, ExportConfig>(nameof(ExportConfig), null);
+        public static StyledProperty<ExportConfig> ExportConfigProperty { get; } = AvaloniaProperty.Register<HTMLConfig, ExportConfig>(nameof(ExportConfig), null);
         public ExportConfig ExportConfig { get => (ExportConfig)GetValue(ExportConfigProperty); set => SetValue(ExportConfigProperty, value); }
 
-        public static StyledProperty HTMLConfigModelProperty { get; } = AvaloniaProperty.Register<HTMLConfig, HTMLConfigModel>(nameof(HTMLConfigModel), null);
+        public static StyledProperty<HTMLConfigModel> HTMLConfigModelProperty { get; } = AvaloniaProperty.Register<HTMLConfig, HTMLConfigModel>(nameof(HTMLConfigModel), null);
         public HTMLConfigModel HTMLConfigModel { get => (HTMLConfigModel)GetValue(HTMLConfigModelProperty); set => SetValue(HTMLConfigModelProperty, value); }
 
         public HTMLConfig()
@@ -28,7 +30,6 @@ namespace Typedown.Core.Controls.SettingControls.SettingItems.ExportConfigItems
         private void OnUnloaded(object sender, RoutedEventArgs e)
         {
             ExportConfig.StoreExportConfig(HTMLConfigModel);
-            Bindings?.StopTracking();
         }
     }
 }

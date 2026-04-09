@@ -1,0 +1,37 @@
+<UserControl
+    x:Class="Typedown.Core.Controls.SettingControls.SettingItems.ExportConfigItems.HTMLConfig"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="clr-namespace:Typedown.Core.Controls.SettingControls.SettingItems.ExportConfigItems" 
+    xmlns:controls="clr-namespace:Typedown.Core.Controls"
+    Loaded="OnLoaded"
+    Unloaded="OnUnloaded"
+>
+    <StackPanel Spacing="4">
+        <controls:NormalSettingItem HorizontalActionAlignment="Stretch">
+            <StackPanel Margin="-16,0,0,0" Spacing="8">
+                <TextBlock>Extra Head</TextBlock>
+                <TextBox 
+                    Grid.Row="0" 
+                    Grid.Column="1" 
+                    Text="{x:Bind HTMLConfigModel.ExtraHead, Mode=TwoWay}" 
+                    AcceptsReturn="True" 
+                    TextWrapping="Wrap" 
+                    MinHeight="200"/>
+            </StackPanel>
+        </controls:NormalSettingItem>
+        <controls:NormalSettingItem HorizontalActionAlignment="Stretch">
+            <StackPanel Margin="-16,0,0,0" Spacing="8">
+                <TextBlock>Extra Body</TextBlock>
+                <TextBox 
+                    Grid.Row="0" 
+                    Grid.Column="1" 
+                    Text="{x:Bind HTMLConfigModel.ExtraBody, Mode=TwoWay}" 
+                    AcceptsReturn="True" 
+                    TextWrapping="Wrap" 
+                    MinHeight="200"/>
+            </StackPanel>
+        </controls:NormalSettingItem>
+    </StackPanel>
+    
+</UserControl>

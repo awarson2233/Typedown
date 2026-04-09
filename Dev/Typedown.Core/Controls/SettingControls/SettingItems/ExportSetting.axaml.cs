@@ -1,3 +1,4 @@
+using PropertyChanged;
 ﻿using System;
 using Avalonia.Input;
 using Avalonia.Metadata;
@@ -19,7 +20,8 @@ using Avalonia.Controls.Primitives;
 
 namespace Typedown.Core.Controls.SettingControls.SettingItems
 {
-    public sealed partial class ExportSetting : UserControl
+[DoNotNotify]
+        public sealed partial class ExportSetting : UserControl
     {
         public AppViewModel ViewModel => DataContext as AppViewModel;
 
@@ -39,7 +41,7 @@ namespace Typedown.Core.Controls.SettingControls.SettingItems
 
         private async void AddConfigItem()
         {
-            var result = await AddExportConfigDialog.OpenAddExportConfigDialog(XamlRoot);
+            var result = await AddExportConfigDialog.OpenAddExportConfigDialog(this);
             if (result == null)
                 return;
             await FileExport.AddExportConfig(result.ConfigName, result.ExportType);
@@ -70,15 +72,15 @@ namespace Typedown.Core.Controls.SettingControls.SettingItems
             return string.Join(", ", list);
         }
 
-        public Visibility ConfigItemsTitleVisibility(ObservableCollection<ExportConfig> configs)
+        public bool ConfigItemsTitleVisibility(ObservableCollection<ExportConfig> configs)
         {
-            return configs.Any() ? true : false;
+            return configs.Any();
         }
 
         private void OnUnloaded(object sender, RoutedEventArgs e)
         {
-            Bindings?.StopTracking();
-            ConfigItemMenuFlyout.Items.Clear();
+            // TODO: MenuFlyout is not a Control, can't use FindControl
+            // ConfigItemMenuFlyout.Items.Clear();
         }
     }
 }

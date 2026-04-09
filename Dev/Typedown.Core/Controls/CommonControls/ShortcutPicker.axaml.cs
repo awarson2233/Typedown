@@ -1,3 +1,4 @@
+using PropertyChanged;
 using Avalonia.Interactivity;
 using System.Collections.Generic;
 using System.Linq;
@@ -14,12 +15,13 @@ using Avalonia.Controls;
 
 namespace Typedown.Core.Controls
 {
-    public sealed partial class ShortcutPicker : UserControl
+[DoNotNotify]
+        public sealed partial class ShortcutPicker : UserControl
     {
-        public static AvaloniaProperty ShortcutKeyProperty = AvaloniaProperty.Register<ShortcutPicker, ShortcutKey>(nameof(ShortcutKey), null);
+        public static readonly StyledProperty<ShortcutKey> ShortcutKeyProperty = AvaloniaProperty.Register<ShortcutPicker, ShortcutKey>(nameof(ShortcutKey), null);
         public ShortcutKey ShortcutKey { get => (ShortcutKey)GetValue(ShortcutKeyProperty); set => SetValue(ShortcutKeyProperty, value); }
 
-        public static AvaloniaProperty VerifiedProperty = AvaloniaProperty.Register<ShortcutPicker, bool>(nameof(Verified), true);
+        public static readonly StyledProperty<bool> VerifiedProperty = AvaloniaProperty.Register<ShortcutPicker, bool>(nameof(Verified), true);
         public bool Verified { get => (bool)GetValue(VerifiedProperty); set => SetValue(VerifiedProperty, value); }
 
         private readonly CompositeDisposable disposables = new();

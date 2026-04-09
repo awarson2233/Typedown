@@ -56,6 +56,20 @@ public class AvaloniaMarkdownEditor : IMarkdownEditor
         _webView = webView;
     }
 
+    
+    public Avalonia.Controls.Control GetDummyRectangle(Avalonia.Rect rect)
+    {
+        return new Avalonia.Controls.Border
+        {
+            Width = rect.Width,
+            Height = rect.Height,
+            Margin = new Avalonia.Thickness(rect.X, rect.Y, 0, 0),
+            HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Left,
+            VerticalAlignment = Avalonia.Layout.VerticalAlignment.Top,
+            IsHitTestVisible = false
+        };
+    }
+
     public bool PostMessage(string name, object? arg)
     {
         if (_webView == null) return false;

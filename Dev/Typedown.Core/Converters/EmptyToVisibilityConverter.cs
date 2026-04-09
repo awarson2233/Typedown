@@ -1,30 +1,27 @@
-﻿using System;
-using System.Collections.ObjectModel;
-using Avalonia.Controls.Primitives;
-using Avalonia.Input;
-using Avalonia.Metadata;
+using System;
+using System.Globalization;
 using Avalonia.Data.Converters;
-using Avalonia.Interactivity;
-using Avalonia.Controls;
-using Avalonia.Controls;
 
 namespace Typedown.Core.Converters
 {
+    /// <summary>
+    /// Converts empty/null string to visibility (bool).
+    /// In Avalonia: true = visible, false = collapsed.
+    /// </summary>
     public class EmptyToVisibilityConverter : IValueConverter
     {
         public bool IsReverse { get; set; }
 
-        public object Convert(object value, Type targetType, object parameter, string language)
+        public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
         {
             var res = string.IsNullOrEmpty(value as string);
             if (IsReverse) res = !res;
-            return res ? Visibility.Visible : Visibility.Collapsed;
+            return res;
         }
 
-        public object ConvertBack(object value, Type targetType, object parameter, string language)
+        public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
         {
-            var res = (Visibility)value;
-            return IsReverse ? res == Visibility.Collapsed : res == Visibility.Visible;
+            throw new NotImplementedException();
         }
     }
 }

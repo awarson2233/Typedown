@@ -1,3 +1,4 @@
+using PropertyChanged;
 ﻿using System;
 using Avalonia.Input;
 using Avalonia.Metadata;
@@ -16,18 +17,20 @@ using Avalonia;
 using Avalonia.Interactivity;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
+using Avalonia.Threading;
 
 namespace Typedown.Core.Controls.SettingControls.SettingItems
 {
-    public sealed partial class ShortcutSetting : UserControl
+[DoNotNotify]
+        public sealed partial class ShortcutSetting : UserControl
     {
-        private static StyledProperty SearchTextProperty { get; } = AvaloniaProperty.Register<ShortcutSetting, string>(nameof(SearchText), new(string.Empty));
+        public static readonly StyledProperty<string> SearchTextProperty = AvaloniaProperty.Register<ShortcutSetting, string>(nameof(SearchText), string.Empty);
         private string SearchText { get => GetValue(SearchTextProperty); set => SetValue(SearchTextProperty, value); }
 
-        private static StyledProperty FliterCategoryProperty { get; } = AvaloniaProperty.Register<ShortcutSetting, ShortcutSettingCategoryModel>(nameof(FliterCategory), null);
+        public static readonly StyledProperty<ShortcutSettingCategoryModel> FliterCategoryProperty = AvaloniaProperty.Register<ShortcutSetting, ShortcutSettingCategoryModel>(nameof(FliterCategory), null);
         private ShortcutSettingCategoryModel FliterCategory { get => (ShortcutSettingCategoryModel)GetValue(FliterCategoryProperty); set => SetValue(FliterCategoryProperty, value); }
 
-        private static StyledProperty FliterCategoriesProperty { get; } = AvaloniaProperty.Register<ShortcutSetting, List<ShortcutSettingCategoryModel>>(nameof(FliterCategories), null);
+        public static readonly StyledProperty<List<ShortcutSettingCategoryModel>> FliterCategoriesProperty = AvaloniaProperty.Register<ShortcutSetting, List<ShortcutSettingCategoryModel>>(nameof(FliterCategories), null);
         private List<ShortcutSettingCategoryModel> FliterCategories { get => (List<ShortcutSettingCategoryModel>)GetValue(FliterCategoriesProperty); set => SetValue(FliterCategoriesProperty, value); }
 
         private List<ShortcutSettingItemModel> AllSettingItems { get; set; }
@@ -44,16 +47,14 @@ namespace Typedown.Core.Controls.SettingControls.SettingItems
         private void OnLoaded(object sender, RoutedEventArgs e)
         {
             LoadAllShortcutSettingItems();
-            disposables.Add(this.Binding(new(nameof(SearchText))).Merge(this.Binding(new(nameof(FliterCategory))))
-                .Throttle(TimeSpan.FromMilliseconds(100))
-                .Subscribe(_ => _ = Dispatcher.RunIdleAsync(() => UpdateFilteredSettingItems())));
-            _ = Dispatcher.RunIdleAsync(() => UpdateFilteredSettingItems());
+            // TODO: Avalonia doesn't have this.Binding() or Dispatcher.RunIdleAsync
+            // Using Dispatcher.UIThread.Post instead
+            Dispatcher.UIThread.Post(() => UpdateFilteredSettingItems());
         }
 
         private void OnUnloaded(object sender, RoutedEventArgs e)
         {
             disposables.Clear();
-            Bindings?.StopTracking();
             SettingItems.Clear();
         }
 
@@ -88,7 +89,8 @@ namespace Typedown.Core.Controls.SettingControls.SettingItems
         }
     }
 
-    public partial class ShortcutSettingItemModel : INotifyPropertyChanged
+[DoNotNotify]
+        public partial class ShortcutSettingItemModel : INotifyPropertyChanged
     {
         public SettingsViewModel Target { get; }
 
@@ -122,7 +124,8 @@ namespace Typedown.Core.Controls.SettingControls.SettingItems
         }
     }
 
-    public class ShortcutSettingCategoryModel
+[DoNotNotify]
+        public class ShortcutSettingCategoryModel
     {
         public string DisplayName { get; }
 

@@ -1,3 +1,4 @@
+using PropertyChanged;
 using System;
 using System.Collections.ObjectModel;
 using Avalonia.Controls.Primitives;
@@ -13,7 +14,8 @@ using Avalonia.Interactivity;
 
 namespace Typedown.Core.Controls
 {
-    public sealed partial class RootControl : UserControl
+[DoNotNotify]
+        public sealed partial class RootControl : UserControl
     {
         public AppViewModel ViewModel => DataContext as AppViewModel;
 
@@ -28,7 +30,7 @@ namespace Typedown.Core.Controls
 
         private void OnLoaded(object sender, RoutedEventArgs e)
         {
-            // ViewModel.XamlRoot = XamlRoot; // Not applicable in standard Avalonia
+            // ViewModel./* XamlRoot removed for Avalonia */; // Not applicable in standard Avalonia
             disposables.Add(ViewModel.NavigateCommand.OnExecute.Subscribe(args => Navigate(args)));
             // GlobalFrame.Navigate(typeof(MainPage), null);
         }
@@ -36,7 +38,7 @@ namespace Typedown.Core.Controls
         private void OnUnloaded(object sender, RoutedEventArgs e)
         {
             disposables.Clear();
-            // Bindings?.StopTracking(); // Not needed in Avalonia
+            // // Not needed in Avalonia
         }
 
         private void Navigate(string args)

@@ -1,0 +1,34 @@
+<UserControl
+    x:Class="Typedown.Core.Controls.SettingControls.SettingItems.UploadConfigItems.PowerShellConfig"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="clr-namespace:Typedown.Core.Controls.SettingControls.SettingItems.UploadConfigItems"
+    xmlns:controls="clr-namespace:Typedown.Core.Controls" 
+    xmlns:models="clr-namespace:Typedown.Core.Models.UploadConfigModels"
+    xmlns:u="clr-namespace:Typedown.Core.Utilities"
+    Loaded="OnLoaded"
+    Unloaded="OnUnloaded"
+>
+
+    <StackPanel Spacing="4">
+
+        <controls:NormalSettingItem HorizontalActionAlignment="Stretch">
+            <StackPanel Margin="-16,0,0,0" Spacing="8">
+                <TextBlock>PowerShell Script</TextBlock>
+                <TextBox 
+                    Grid.Row="0" 
+                    Grid.Column="1" 
+                    PlaceholderText="{x:Bind models:PowerShellModel.DefaultScript}"
+                    Text="{x:Bind PowerShellConfigModel.Script, Mode=TwoWay}" 
+                    AcceptsReturn="True" 
+                    TextWrapping="Wrap" 
+                    MinHeight="400"/>
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <Button Grid.Row="1" Grid.Column="1" Content="{u:LocaleString Key=ImageUpload.ImportFromFile}" Margin="0,4,0,0" Click="OnImportButtonClick"/>
+                    <Button Grid.Row="1" Grid.Column="1" Content="{u:LocaleString Key=ImageUpload.SaveToFile}" Margin="0,4,0,0" Click="OnExportButtonClick"/>
+                </StackPanel>
+            </StackPanel>
+        </controls:NormalSettingItem>
+
+    </StackPanel>
+</UserControl>

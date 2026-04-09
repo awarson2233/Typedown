@@ -1,4 +1,4 @@
-﻿using PropertyChanged;
+using PropertyChanged;
 using System;
 using System.Collections.ObjectModel;
 using Avalonia.Input;
@@ -18,12 +18,13 @@ using Avalonia.Media;
 
 namespace Typedown.Core.Controls
 {
-    public sealed partial class MainContent : UserControl, INotifyPropertyChanged
+[DoNotNotify]
+        public sealed partial class MainContent : UserControl, INotifyPropertyChanged
     {
-        private static StyledProperty IsLeftPaneLoadProperty = AvaloniaProperty.Register<MainContent, bool>(nameof(IsLeftPaneLoad), new(false));
+        public static readonly StyledProperty<bool> IsLeftPaneLoadProperty = AvaloniaProperty.Register<MainContent, bool>(nameof(IsLeftPaneLoad), false);
         private bool IsLeftPaneLoad { get => GetValue(IsLeftPaneLoadProperty); set => SetValue(IsLeftPaneLoadProperty, value); }
 
-        private static StyledProperty LeftPaneMaxWidthProperty = AvaloniaProperty.Register<MainContent, double>(nameof(LeftPaneMaxWidth), new(0d));
+        public static readonly StyledProperty<double> LeftPaneMaxWidthProperty = AvaloniaProperty.Register<MainContent, double>(nameof(LeftPaneMaxWidth), 0d);
         private double LeftPaneMaxWidth { get => GetValue(LeftPaneMaxWidthProperty); set => SetValue(LeftPaneMaxWidthProperty, value); }
 
         public AppViewModel ViewModel => DataContext as AppViewModel;
@@ -40,30 +41,32 @@ namespace Typedown.Core.Controls
         private void OnLoaded(object sender, RoutedEventArgs e)
         {
             disposables.Add(Settings.WhenPropertyChanged(nameof(Settings.SidePaneOpen)).Cast<bool>().Subscribe(x => UpdateSidePaneState(x, true)));
-            disposables.Add(Settings.WhenPropertyChanged(nameof(Settings.UseEditorMicaEffect)).Cast<bool>().StartWith(Settings.UseEditorMicaEffect).Subscribe(x => UpdateBackground(x)));
+            // TODO: Requires SettingsViewModel.UseEditorMicaEffect (not yet available)
+            // disposables.Add(Settings.WhenPropertyChanged(nameof(Settings.UseEditorMicaEffect)).Cast<bool>().StartWith(Settings.UseEditorMicaEffect).Subscribe(x => UpdateBackground(x)));
             UpdateSidePaneState(Settings.SidePaneOpen, false);
         }
 
         private void UpdateSidePaneState(bool sidePaneOpen, bool useTransitions = true)
         {
-            VisualStateManager.GoToState(this, sidePaneOpen ? "SidePaneExpand" : "SidePaneCollapse", useTransitions && Settings.AnimationEnable);
+            // TODO: VisualStateManager.GoToState not available in Avalonia
+            // VisualStateManager.GoToState(this, sidePaneOpen ? "SidePaneExpand" : "SidePaneCollapse", useTransitions && Settings.AnimationEnable);
         }
 
         private void UpdateBackground(bool useMica)
         {
-            MainContentGrid.Background = Resources[useMica ? "MicaContentBackgroundBrush" : "SolidContentBackgroundBrush"] as Brush;
+            var mainContentGrid = this.FindControl<Grid>("MainContentGrid");
+            if (mainContentGrid != null) mainContentGrid.Background = Resources[useMica ? "MicaContentBackgroundBrush" : "SolidContentBackgroundBrush"] as Brush;
         }
 
         [SuppressPropertyChangedWarnings]
         private void OnSizeChanged(object sender, SizeChangedEventArgs e)
         {
-            LeftPaneMaxWidth = ActualWidth - 40;
+            LeftPaneMaxWidth = Bounds.Width - 40;
         }
 
         private void OnUnloaded(object sender, RoutedEventArgs e)
         {
             disposables.Clear();
-            Bindings?.StopTracking();
         }
 
         public static double GetColumnWidthNegative(GridLength length)

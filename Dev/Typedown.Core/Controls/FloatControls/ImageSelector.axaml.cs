@@ -1,3 +1,4 @@
+using PropertyChanged;
 using Avalonia.Controls.Primitives;
 using Avalonia.Interactivity;
 using Newtonsoft.Json.Linq;
@@ -20,7 +21,8 @@ using Avalonia.Controls;
 
 namespace Typedown.Core.Controls.FloatControls
 {
-    public sealed partial class ImageSelector : UserControl
+[DoNotNotify]
+        public sealed partial class ImageSelector : UserControl
     {
         private AppViewModel ViewModel { get; }
 
@@ -32,12 +34,16 @@ namespace Typedown.Core.Controls.FloatControls
 
         private Rect rect;
 
-        public ImageSelector(AppViewModel viewModel, IMarkdownEditor markdownEditor)
+        public ImageSelector()
+        {
+            InitializeComponent();
+        }
+
+        public ImageSelector(AppViewModel viewModel, IMarkdownEditor markdownEditor) : this()
         {
             ViewModel = viewModel;
             MarkdownEditor = markdownEditor;
             flyout.Closing += OnFlyoutClosing;
-            InitializeComponent();
         }
 
         public void Open(Rect rect, JToken imageInfo)

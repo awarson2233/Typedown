@@ -1,0 +1,14 @@
+<UserControl
+    x:Class="Typedown.Core.Controls.InsertTableDialog"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="clr-namespace:Typedown.Core.Controls" 
+    xmlns:muxc="clr-namespace:Avalonia.Controls;assembly=Avalonia.Controls"
+    xmlns:u="clr-namespace:Typedown.Core.Utilities"
+    Unloaded="OnUnloaded"
+>
+    <StackPanel Spacing="8">
+        <muxc:NumberBox Header="{u:LocaleString Key=Rows}" x:Name="rows" Value="4" Minimum="1" SpinButtonPlacementMode="Inline"/>
+        <muxc:NumberBox Header="{u:LocaleString Key=Columns}" x:Name="columns" Value="3" Minimum="1" SpinButtonPlacementMode="Inline"/>
+    </StackPanel>
+</UserControl>

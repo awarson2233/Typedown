@@ -1,3 +1,4 @@
+using PropertyChanged;
 ﻿using System;
 using System.Collections.ObjectModel;
 using Avalonia.Input;
@@ -12,7 +13,8 @@ using Avalonia.Controls.Primitives;
 
 namespace Typedown.Core.Controls
 {
-    public sealed partial class StatusBar : UserControl
+[DoNotNotify]
+        public sealed partial class StatusBar : UserControl
     {
         public AppViewModel ViewModel => DataContext as AppViewModel;
 
@@ -31,7 +33,6 @@ namespace Typedown.Core.Controls
 
         private void OnUnloaded(object sender, RoutedEventArgs e)
         {
-            Bindings?.StopTracking();
         }
     }
 }

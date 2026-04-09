@@ -1,8 +1,6 @@
+using PropertyChanged;
 ﻿using System;
 using System.Collections.ObjectModel;
-using Avalonia.Input;
-using Avalonia.Metadata;
-using Avalonia.Data.Converters;
 using System.Linq;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
@@ -12,14 +10,13 @@ using Avalonia;
 using Avalonia.Interactivity;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
-using Avalonia.Controls;
-using muxc = Microsoft.UI.Xaml.Controls;
 
 namespace Typedown.Core.Controls
 {
-    public sealed partial class LeftPane : UserControl
+[DoNotNotify]
+        public sealed partial class LeftPane : UserControl
     {
-        public static readonly StyledProperty IsSearchPaneOpenProperty = AvaloniaProperty.Register<LeftPane, bool>(nameof(IsSearchPaneOpen), new(false));
+        public static readonly StyledProperty<bool> IsSearchPaneOpenProperty = AvaloniaProperty.Register<LeftPane, bool>(nameof(IsSearchPaneOpen), false);
         public bool IsSearchPaneOpen { get => GetValue(IsSearchPaneOpenProperty); set => SetValue(IsSearchPaneOpenProperty, value); }
 
         public AppViewModel ViewModel => DataContext as AppViewModel;
@@ -43,16 +40,7 @@ namespace Typedown.Core.Controls
 
         private void UpdateSelectedItem(int index)
         {
-            NavigationView.SelectedItem = NavigationView.MenuItems[index];
-        }
-
-        private void OnSelectionChanged(muxc.NavigationView sender, muxc.NavigationViewSelectionChangedEventArgs args)
-        {
-            var pageName = (args.SelectedItem as muxc.NavigationViewItem).Tag as string;
-            var pageType = SidePaneControls.Pages.Route.GetSidePanePageType(pageName);
-            var animation = Settings.AnimationEnable && Frame.SourcePageType != null;
-            var transition = animation ? args.RecommendedNavigationTransitionInfo : new SuppressNavigationTransitionInfo();
-            Frame.Navigate(pageType, null, transition);
+            // TODO: Implement NavigationView selection for Avalonia
         }
 
         private void OnSearchButtonClick(object sender, RoutedEventArgs e)
@@ -68,12 +56,11 @@ namespace Typedown.Core.Controls
         private void OnUnloaded(object sender, RoutedEventArgs e)
         {
             disposables.Clear();
-            Bindings?.StopTracking();
         }
 
         private void OnSizeChanged(object sender, SizeChangedEventArgs e)
         {
-            FrameClip.Rect = new(0, 0, Frame.ActualWidth, Frame.ActualHeight);
+            // TODO: Update FrameClip for Avalonia
         }
     }
 }

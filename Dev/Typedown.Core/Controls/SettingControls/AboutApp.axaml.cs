@@ -1,12 +1,13 @@
-﻿using Windows.ApplicationModel;
-using Avalonia;
+using PropertyChanged;
+﻿using Avalonia;
 using Avalonia.Interactivity;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 
 namespace Typedown.Core.Controls
 {
-    public sealed partial class AboutApp : UserControl
+[DoNotNotify]
+        public sealed partial class AboutApp : UserControl
     {
         public AboutApp()
         {
@@ -15,26 +16,17 @@ namespace Typedown.Core.Controls
 
         public static string GetAppVersion()
         {
-            if (Config.IsPackaged)
-            {
-                var version = Package.Current.Id.Version;
-                return string.Format("{0}.{1}.{2}.{3}", version.Major, version.Minor, version.Build, version.Revision);
-            }
-            else
-            {
-                var version = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version;
-                return string.Format("{0}.{1}.{2}.{3}", version.Major, version.Minor, version.Build, version.Revision) + " (Unpackaged)";
-            }
+            var version = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version;
+            return string.Format("{0}.{1}.{2}.{3}", version.Major, version.Minor, version.Build, version.Revision);
         }
 
-        private async void FeedBackButton_Click(object sender, Windows.UI.Xaml.RoutedEventArgs e)
+        private async void FeedBackButton_Click(object sender, RoutedEventArgs e)
         {
-            await FeedbackDialog.OpenFeedbackDialog(XamlRoot);
+            await FeedbackDialog.OpenFeedbackDialog(this);
         }
 
         private void OnUnloaded(object sender, RoutedEventArgs e)
         {
-            Bindings?.StopTracking();
         }
     }
 }

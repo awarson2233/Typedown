@@ -1,3 +1,4 @@
+using PropertyChanged;
 ﻿using System;
 using Avalonia.Input;
 using Avalonia.Metadata;
@@ -19,7 +20,8 @@ using Avalonia.Controls.Primitives;
 
 namespace Typedown.Core.Controls.SettingControls.SettingItems
 {
-    public sealed partial class ImageSetting : UserControl, INotifyPropertyChanged
+[DoNotNotify]
+        public sealed partial class ImageSetting : UserControl, INotifyPropertyChanged
     {
         public AppViewModel ViewModel => DataContext as AppViewModel;
 
@@ -48,14 +50,14 @@ namespace Typedown.Core.Controls.SettingControls.SettingItems
             UpdateUploadConfigOptions();
         }
 
-        public Visibility IsCopyImagePathSettingItemVisibility(InsertImageAction action)
+        public bool IsCopyImagePathSettingItemVisibility(InsertImageAction action)
         {
-            return action == InsertImageAction.CopyToPath ? true : false;
+            return action == InsertImageAction.CopyToPath;
         }
 
-        public Visibility IsSelectUploadConfigSettingItemVisibility(InsertImageAction action)
+        public bool IsSelectUploadConfigSettingItemVisibility(InsertImageAction action)
         {
-            return action == InsertImageAction.Upload ? true : false;
+            return action == InsertImageAction.Upload;
         }
 
         private readonly CompositeDisposable ImageUploadConfigsDisposables = new();
@@ -84,7 +86,6 @@ namespace Typedown.Core.Controls.SettingControls.SettingItems
         {
             disposables.Clear();
             ImageUploadConfigsDisposables.Clear();
-            Bindings?.StopTracking();
         }
     }
 

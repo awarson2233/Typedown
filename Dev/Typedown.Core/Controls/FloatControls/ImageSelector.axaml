@@ -1,16 +1,13 @@
-﻿<UserControl
+<UserControl
     x:Class="Typedown.Core.Controls.FloatControls.ImageSelector"
     xmlns="https://github.com/avaloniaui"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    xmlns:local="using:Typedown.Core.Controls.FloatControls"
-    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
-    xmlns:controls="using:Typedown.Core.Controls"
-    xmlns:u="using:Typedown.Core.Utilities"
+    xmlns:local="clr-namespace:Typedown.Core.Controls.FloatControls" 
+    xmlns:controls="clr-namespace:Typedown.Core.Controls"
+    xmlns:u="clr-namespace:Typedown.Core.Utilities"
+    x:CompileBindings="False"
     Unloaded="OnUnloaded"
-    mc:Ignorable="d"
-    d:DesignHeight="300"
-    d:DesignWidth="400">
+>
 
     <Grid Width="400" RowSpacing="24">
         <Grid.RowDefinitions>
@@ -27,7 +24,7 @@
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
                 <TextBox x:Name="TextBoxSrc"/>
-                <controls:PathPickerButton Picked="OnImagePickerButtonPicked" Path="{Binding TextBoxSrc.Text, Mode=TwoWay}" x:Name="ImagePickerButton" MinWidth="80" Grid.Column="1" FileTypeFilter="{Binding u:FileTypeHelper.Image}" Content="{u:LocaleString Key=Browse}"/>
+                <controls:PathPickerButton Picked="OnImagePickerButtonPicked" Path="{Binding #TextBoxSrc.Text, Mode=TwoWay}" x:Name="ImagePickerButton" MinWidth="80" Grid.Column="1" FileTypeFilter="{x:Static u:FileTypeHelper.Image}" Content="{u:LocaleString Key=Browse}"/>
             </Grid>
             <Grid Margin="0,8,0,0" RowSpacing="8" ColumnSpacing="8">
                 <Grid.RowDefinitions>
@@ -50,14 +47,12 @@
                 <ColumnDefinition Width="Auto"/>
                 <ColumnDefinition Width="Auto"/>
             </Grid.ColumnDefinitions>
-            <Button Margin="0,0,4,0" Style="{ThemeResource EllipsisIconButtonStyle}" Command="{Binding ViewModel.NavigateCommand}" CommandParameter="Settings/Image" controls:ToolTip.TextResource="Settings">
-                <PathIcon Data="M20.5 13.9241C20.5 13.5659 20.4682 13.2144 20.4074 12.8727C21.4398 12.28 21.7824 10.9632 21.1711 9.94073L19.4627 7.0805C18.847 6.05051 17.5255 5.71966 16.4965 6.32626C15.9329 5.86438 15.2974 5.48512 14.6074 5.20593C14.3986 4.02049 13.3712 3.1416 ..."/>
+            <Button Margin="0,0,4,0" Theme="{DynamicResource EllipsisIconButtonStyle}" Command="{Binding ViewModel.NavigateCommand}" CommandParameter="Settings/Image" controls:ToolTip.TextResource="Settings">
+                <PathIcon Data="M20.5 13.9241C20.5 13.5659 20.4682 13.2144 20.4074 12.8727C21.4398 12.28 21.7824 10.9632 21.1711 9.94073L19.4627 7.0805C18.847 6.05051 17.5255 5.71966 16.4965 6.32626C15.9329 5.86438 15.2974 5.48512 14.6074 5.20593C14.3986 4.02049 13.3712 3.1416 12 3.1416C10.6288 3.1416 9.60136 4.02051 9.39263 5.20596C8.70258 5.48513 8.06716 5.8644 7.50355 6.32629C6.47447 5.71969 5.15298 6.05054 4.53733 7.08055L2.82894 9.94077C2.21764 10.9633 2.56019 12.28 3.59265 12.8727C3.53177 13.2144 3.5 13.5659 3.5 13.9241C3.5 14.2824 3.53179 14.6339 3.59268 14.9755C2.5602 15.5683 2.21766 16.885 2.82898 17.9075L4.53738 20.7677C5.15303 21.7977 6.47455 22.1286 7.50363 21.522C8.06725 21.9839 8.70268 22.3631 9.39274 22.6423C9.60149 23.8278 10.6289 24.7067 12 24.7067C13.3712 24.7067 14.3986 23.8277 14.6074 22.6423C15.2975 22.3631 15.9329 21.9838 16.4965 21.5219C17.5256 22.1286 18.8471 21.7977 19.4627 20.7677L21.1711 17.9075C21.7824 16.885 21.4398 15.5682 20.4074 14.9755C20.4682 14.6339 20.5 14.2824 20.5 13.9241ZM12 18.069C9.71116 18.069 7.85573 16.2136 7.85573 13.9248C7.85573 11.6359 9.71116 9.78051 12 9.78051C14.2888 9.78051 16.1442 11.6359 16.1442 13.9248C16.1442 16.2136 14.2888 18.069 12 18.069Z"/>
             </Button>
-            <controls:ProgressButton x:Name="SaveButton" Content="{u:LocaleString Key=Ok}" Grid.Column="1" MinWidth="100" Click="OnSaveButtonClick" Style="{ThemeResource AccentButtonStyle}"/>
+            <controls:ProgressButton x:Name="SaveButton" Content="{u:LocaleString Key=Ok}" Grid.Column="1" MinWidth="100" Click="OnSaveButtonClick" Theme="{DynamicResource AccentButtonStyle}"/>
             <Button Grid.Column="2" Content="{u:LocaleString Key=Cancel}" MinWidth="100" Click="OnCancelButtonClick"/>
         </Grid>
     </Grid>
+
 </UserControl>
-
-
-

@@ -1,0 +1,9 @@
+<UserControl
+    x:Class="Typedown.Core.Pages.SettingPages.EditorPage"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="clr-namespace:Typedown.Core.Pages.SettingPages"
+    xmlns:settingitems="clr-namespace:Typedown.Core.Controls.SettingControls.SettingItems"
+>
+    <settingitems:EditorSetting/>
+</UserControl>

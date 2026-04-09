@@ -1,3 +1,4 @@
+using PropertyChanged;
 ﻿using Typedown.Core.Models;
 using Typedown.Core.Models.UploadConfigModels;
 using Typedown.Core.Pages.SettingPages;
@@ -10,14 +11,14 @@ using Avalonia.Markup.Xaml;
 
 namespace Typedown.Core.Controls.SettingControls.SettingItems.ExportConfigItems
 {
-    [Content(Name = nameof(Detail))]
-    public sealed partial class CommonConfig : UserControl
+    [DoNotNotify]
+        public sealed partial class CommonConfig : UserControl
     {
-        public static StyledProperty ExportConfigProperty { get; } = AvaloniaProperty.Register<CommonConfig, ExportConfig>(nameof(ExportConfig), null);
+        public static StyledProperty<ExportConfig> ExportConfigProperty { get; } = AvaloniaProperty.Register<CommonConfig, ExportConfig>(nameof(ExportConfig), null);
         public ExportConfig ExportConfig { get => (ExportConfig)GetValue(ExportConfigProperty); set => SetValue(ExportConfigProperty, value); }
 
-        public static StyledProperty DetailProperty { get; } = AvaloniaProperty.Register<CommonConfig, UIElement>(nameof(Detail), null);
-        public UIElement Detail { get => (UIElement)GetValue(DetailProperty); set => SetValue(DetailProperty, value); }
+        public static StyledProperty<Control> DetailProperty { get; } = AvaloniaProperty.Register<CommonConfig, Control>(nameof(Detail), null);
+        public Control Detail { get => (Control)GetValue(DetailProperty); set => SetValue(DetailProperty, value); }
 
         public CommonConfig()
         {
@@ -31,7 +32,6 @@ namespace Typedown.Core.Controls.SettingControls.SettingItems.ExportConfigItems
 
         private void OnUnloaded(object sender, RoutedEventArgs e)
         {
-            Bindings?.StopTracking();
         }
     }
 }

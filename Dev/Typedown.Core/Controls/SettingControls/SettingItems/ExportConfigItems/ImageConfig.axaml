@@ -1,0 +1,19 @@
+<UserControl
+    x:Class="Typedown.Core.Controls.SettingControls.SettingItems.ExportConfigItems.ImageConfig"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="clr-namespace:Typedown.Core.Controls.SettingControls.SettingItems.ExportConfigItems" 
+    xmlns:controls="clr-namespace:Typedown.Core.Controls" 
+    xmlns:muxc="clr-namespace:Avalonia.Controls;assembly=Avalonia.Controls"
+    Loaded="OnLoaded"
+    Unloaded="OnUnloaded"
+>
+
+    <StackPanel Spacing="4">
+        
+        <controls:NormalSettingItem Title="DPI">
+            <muxc:NumberBox MinWidth="200" Value="{x:Bind ImageConfigModel.DPI, Mode=TwoWay}"/>
+        </controls:NormalSettingItem>
+        
+    </StackPanel>
+</UserControl>

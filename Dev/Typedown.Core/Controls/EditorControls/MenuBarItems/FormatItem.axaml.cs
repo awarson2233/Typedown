@@ -1,8 +1,12 @@
+using PropertyChanged;
 ﻿using Typedown.Core.ViewModels;
+using Avalonia.Interactivity;
+using Avalonia.Controls;
 
 namespace Typedown.Core.Controls.EditorControls.MenuBarItems
 {
-    public sealed partial class FormatItem : MenuBarItemBase
+[DoNotNotify]
+        public sealed partial class FormatItem : MenuBarItemBase
     {
         public FormatViewModel Format => ViewModel?.FormatViewModel;
 
@@ -15,21 +19,20 @@ namespace Typedown.Core.Controls.EditorControls.MenuBarItems
 
         protected override void OnRegisterShortcut()
         {
-            RegisterEditorShortcut(Settings.ShortcutStrong, StrongItem);
-            RegisterEditorShortcut(Settings.ShortcutEmphasis, EmphasisItem);
-            RegisterEditorShortcut(Settings.ShortcutUnderline, UnderlineItem);
-            RegisterEditorShortcut(Settings.ShortcutInlineCode, InlineCodeItem);
-            RegisterEditorShortcut(Settings.ShortcutInlineMath, InlineMathItem);
-            RegisterEditorShortcut(Settings.ShortcutStrikethrough, StrikethroughItem);
-            RegisterEditorShortcut(Settings.ShortcutHighlight, HighlightItem);
-            RegisterEditorShortcut(Settings.ShortcutHyperlink, HyperlinkItem);
-            RegisterEditorShortcut(Settings.ShortcutImage, ImageItem);
-            RegisterEditorShortcut(Settings.ShortcutClearFormat, ClearFormatItem);
+            RegisterEditorShortcut(Settings.ShortcutStrong, this.FindControl<MenuItem>("StrongItem"));
+            RegisterEditorShortcut(Settings.ShortcutEmphasis, this.FindControl<MenuItem>("EmphasisItem"));
+            RegisterEditorShortcut(Settings.ShortcutUnderline, this.FindControl<MenuItem>("UnderlineItem"));
+            RegisterEditorShortcut(Settings.ShortcutInlineCode, this.FindControl<MenuItem>("InlineCodeItem"));
+            RegisterEditorShortcut(Settings.ShortcutInlineMath, this.FindControl<MenuItem>("InlineMathItem"));
+            RegisterEditorShortcut(Settings.ShortcutStrikethrough, this.FindControl<MenuItem>("StrikethroughItem"));
+            RegisterEditorShortcut(Settings.ShortcutHighlight, this.FindControl<MenuItem>("HighlightItem"));
+            RegisterEditorShortcut(Settings.ShortcutHyperlink, this.FindControl<MenuItem>("HyperlinkItem"));
+            RegisterEditorShortcut(Settings.ShortcutImage, this.FindControl<MenuItem>("ImageItem"));
+            RegisterEditorShortcut(Settings.ShortcutClearFormat, this.FindControl<MenuItem>("ClearFormatItem"));
         }
 
-        private void OnUnloaded(object sender, Windows.UI.Xaml.RoutedEventArgs e)
+        private void OnUnloaded(object sender, RoutedEventArgs e)
         {
-            Bindings?.StopTracking();
         }
     }
 }

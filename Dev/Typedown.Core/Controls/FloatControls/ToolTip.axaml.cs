@@ -1,3 +1,4 @@
+using PropertyChanged;
 using Avalonia.Interactivity;
 using System;
 using System.Collections.ObjectModel;
@@ -14,7 +15,8 @@ using Avalonia.Controls.Primitives;
 
 namespace Typedown.Core.Controls.FloatControls
 {
-    public sealed partial class ToolTip : UserControl
+[DoNotNotify]
+        public sealed partial class ToolTip : UserControl
     {
         public static readonly StyledProperty<double> FlyoutOpacityProperty = AvaloniaProperty.Register<ToolTip, double>(nameof(FlyoutOpacity), 0d);
         public double FlyoutOpacity { get => GetValue(FlyoutOpacityProperty); set => SetValue(FlyoutOpacityProperty, value); }
@@ -89,7 +91,7 @@ namespace Typedown.Core.Controls.FloatControls
 
         private void OnUnloaded(object sender, RoutedEventArgs e)
         {
-             // Bindings?.StopTracking();
+             //
         }
     }
 }

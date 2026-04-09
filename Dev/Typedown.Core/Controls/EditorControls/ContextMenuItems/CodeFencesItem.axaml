@@ -1,0 +1,9 @@
+<controls:MenuItemCollection
+    xmlns:controls="clr-namespace:Typedown.Core.Controls"
+    x:Class="Typedown.Core.Controls.EditorControls.ContextMenuItems.CodeFencesItem"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="clr-namespace:Typedown.Core.Controls.EditorControls.ContextMenuItems"
+    xmlns:u="clr-namespace:Typedown.Core.Utilities">
+    <MenuFlyoutItem Text="{u:LocaleString Key=FormatCode}"/>
+</controls:MenuItemCollection>

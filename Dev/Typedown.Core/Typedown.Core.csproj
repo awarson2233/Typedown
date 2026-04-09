@@ -9,14 +9,6 @@
 
 	<!-- Phase 1: Exclude WinUI-dependent code — will be rewritten as Avalonia Views (Phase 3) -->
 	<ItemGroup>
-		<!-- UI code → Phase 3 Avalonia rewrite -->
-		<Compile Remove="Controls\CaptionControls\**" />
-		<Compile Remove="Controls\DialogControls\**" />
-		<Compile Remove="Controls\EditorControls\**" />
-		<Compile Remove="Controls\SettingControls\**" />
-		<Compile Remove="Controls\SidePaneControls\**" />
-		<Compile Remove="Pages\**" />
-		<Compile Remove="Converters\**" />
 		<!-- WinUI-only utilities → replaced with Avalonia equivalents -->
 		<Compile Remove="Utilities\CoreDispatcherExtensions.cs" />
 		<Compile Remove="Utilities\ComboBoxPatch.cs" />
@@ -27,14 +19,6 @@
 		<Compile Remove="Models\RuntimeModels\ExportPdfSettings.cs" />
 		<!-- WinUI ResourceDictionary → Avalonia Styles (Phase 3) -->
 		<Compile Remove="Resources.cs" />
-		<!-- Strip XAML residue -->
-		<None Remove="Controls\CaptionControls\**" />
-		<None Remove="Controls\DialogControls\**" />
-		<None Remove="Controls\EditorControls\**" />
-		<None Remove="Controls\SettingControls\**" />
-		<None Remove="Controls\SidePaneControls\**" />
-		<None Remove="Pages\**" />
-		<None Remove="Converters\**" />
 	</ItemGroup>
 
 	<ItemGroup>

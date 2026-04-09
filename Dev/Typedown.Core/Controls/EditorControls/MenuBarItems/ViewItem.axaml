@@ -1,0 +1,16 @@
+<local:MenuBarItemBase
+    Title="{u:LocaleString Key=View}"
+    x:Class="Typedown.Core.Controls.EditorControls.MenuBarItems.ViewItem"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="clr-namespace:Typedown.Core.Controls.EditorControls.MenuBarItems"
+    xmlns:u="clr-namespace:Typedown.Core.Utilities"
+    Unloaded="OnUnloaded">
+    <ToggleMenuFlyoutItem x:Name="SidePaneItem" Text="{u:LocaleString Key=SidePane}" IsChecked="{x:Bind Settings.SidePaneOpen, Mode=TwoWay}"/>
+    <MenuFlyoutSeparator/>
+    <ToggleMenuFlyoutItem x:Name="SourceCodeModeItem" Text="{u:LocaleString Key=SourceCodeMode}" IsChecked="{x:Bind Settings.SourceCode, Mode=TwoWay}"/>
+    <ToggleMenuFlyoutItem x:Name="FocusModeItem" Text="{u:LocaleString Key=FocusMode}" IsChecked="{x:Bind Settings.FocusMode, Mode=TwoWay}"/>
+    <ToggleMenuFlyoutItem x:Name="TypewriterModeItem" Text="{u:LocaleString Key=TypewriterMode}" IsChecked="{x:Bind Settings.Typewriter, Mode=TwoWay}"/>
+    <MenuFlyoutSeparator/>
+    <ToggleMenuFlyoutItem x:Name="StatusBarItem" Text="{u:LocaleString Key=StatusBar}" IsChecked="{x:Bind Settings.StatusBarOpen, Mode=TwoWay}"/>
+</local:MenuBarItemBase>

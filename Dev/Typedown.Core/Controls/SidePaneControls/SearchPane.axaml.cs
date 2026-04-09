@@ -1,3 +1,4 @@
+using PropertyChanged;
 ﻿using System;
 using System.Collections.ObjectModel;
 using Avalonia.Input;
@@ -8,10 +9,12 @@ using Avalonia;
 using Avalonia.Interactivity;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
+using Avalonia.Threading;
 
 namespace Typedown.Core.Controls
 {
-    public sealed partial class SearchPane : UserControl
+[DoNotNotify]
+        public sealed partial class SearchPane : UserControl
     {
         public event EventHandler Close;
 
@@ -22,7 +25,8 @@ namespace Typedown.Core.Controls
 
         private void OnLoaded(object sender, RoutedEventArgs e)
         {
-            _ = Dispatcher.RunIdleAsync(() => SearchTextBox.Focus(FocusState.Programmatic));
+            var searchTextBox = this.FindControl<TextBox>("SearchTextBox");
+            Dispatcher.UIThread.Post(() => searchTextBox?.Focus());
         }
 
         private void OnUnloaded(object sender, RoutedEventArgs e)
@@ -32,7 +36,8 @@ namespace Typedown.Core.Controls
 
         private void OnSearchTextBoxLostFocus(object sender, RoutedEventArgs e)
         {
-            if (string.IsNullOrEmpty(SearchTextBox.Text))
+            var searchTextBox = this.FindControl<TextBox>("SearchTextBox");
+            if (string.IsNullOrEmpty(searchTextBox?.Text))
                 Close?.Invoke(this, EventArgs.Empty);
         }
 

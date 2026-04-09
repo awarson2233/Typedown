@@ -1,3 +1,4 @@
+using PropertyChanged;
 using Avalonia.Controls.Primitives;
 using System.Collections.Generic;
 using Typedown.Core.ViewModels;
@@ -7,17 +8,22 @@ using Avalonia.Controls;
 
 namespace Typedown.Core.Controls.FloatControls
 {
-    public sealed partial class FrontMenu : MenuFlyout
+[DoNotNotify]
+        public sealed partial class FrontMenu : MenuFlyout
     {
         public AppViewModel ViewModel { get; }
 
-        public FrontMenu(AppViewModel viewModel)
+        public FrontMenu()
         {
-            ViewModel = viewModel;
             Avalonia.Markup.Xaml.AvaloniaXamlLoader.Load(this);
         }
 
-        private void OnClosed(object sender, object e)
+        public FrontMenu(AppViewModel viewModel) : this()
+        {
+            ViewModel = viewModel;
+        }
+
+        private void OnClosed(object sender, System.EventArgs e)
         {
             ViewModel.MarkdownEditor.PostMessage("FrontMenuClosed", null);
         }

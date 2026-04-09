@@ -1,5 +1,5 @@
+using PropertyChanged;
 ﻿using Typedown.Core.ViewModels;
-using Windows.Globalization.NumberFormatting;
 using Avalonia;
 using Avalonia.Interactivity;
 using Avalonia.Controls;
@@ -7,17 +7,19 @@ using Avalonia.Controls.Primitives;
 
 namespace Typedown.Core.Controls.SettingControls.SettingItems
 {
-    public sealed partial class EditorSetting : UserControl
+[DoNotNotify]
+        public sealed partial class EditorSetting : UserControl
     {
         public AppViewModel ViewModel => DataContext as AppViewModel;
 
         public SettingsViewModel Settings => ViewModel?.SettingsViewModel;
 
-        public DecimalFormatter FontSizeFormatter { get; } = new() { FractionDigits = 0, NumberRounder = new IncrementNumberRounder { Increment = 0.1, RoundingAlgorithm = RoundingAlgorithm.RoundHalfUp } };
-
-        public DecimalFormatter LineHeightFormatter { get; } = new() { FractionDigits = 1, NumberRounder = new IncrementNumberRounder { Increment = 0.01, RoundingAlgorithm = RoundingAlgorithm.RoundHalfUp } };
-
-        public DecimalFormatter IntegerFormatter { get; } = new() { FractionDigits = 0, NumberRounder = new IncrementNumberRounder { Increment = 1, RoundingAlgorithm = RoundingAlgorithm.RoundHalfUp } };
+        // DecimalFormatter is WinUI-only (Windows.Globalization.NumberFormatting).
+        // In Avalonia, NumericUpDown handles formatting directly via FormatString property.
+        // These are kept as simple format string hints for the XAML side.
+        public string FontSizeFormat => "F0";
+        public string LineHeightFormat => "F1";
+        public string IntegerFormat => "F0";
 
         public EditorSetting()
         {
@@ -26,7 +28,6 @@ namespace Typedown.Core.Controls.SettingControls.SettingItems
 
         private void OnUnloaded(object sender, RoutedEventArgs e)
         {
-             Bindings?.StopTracking();
         }
     }
 }

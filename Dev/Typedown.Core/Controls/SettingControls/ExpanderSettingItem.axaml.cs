@@ -1,30 +1,32 @@
+using PropertyChanged;
 ﻿using Avalonia.Controls;
 using Avalonia;
 using Avalonia.Interactivity;
-using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
+using Avalonia.Controls.Presenters;
 using Avalonia.Markup.Xaml;
 using Avalonia.Media;
 
 namespace Typedown.Core.Controls
 {
-    [Content(Name = nameof(Action))]
-    public sealed partial class ExpanderSettingItem : UserControl
+    [DoNotNotify]
+        public sealed partial class ExpanderSettingItem : UserControl
     {
-        public static readonly StyledProperty TitleProperty = AvaloniaProperty.Register<ExpanderSettingItem, object>(nameof(Title), null);
+        public static readonly StyledProperty<object> TitleProperty = AvaloniaProperty.Register<ExpanderSettingItem, object>(nameof(Title), null);
         public object Title { get => GetValue(TitleProperty); set => SetValue(TitleProperty, value); }
 
-        public static readonly StyledProperty DescriptionProperty = AvaloniaProperty.Register<ExpanderSettingItem, object>(nameof(Description), null);
+        public static readonly StyledProperty<object> DescriptionProperty = AvaloniaProperty.Register<ExpanderSettingItem, object>(nameof(Description), null);
         public object Description { get => GetValue(DescriptionProperty); set => SetValue(DescriptionProperty, value); }
 
-        public static readonly StyledProperty StateProperty = AvaloniaProperty.Register<ExpanderSettingItem, object>(nameof(Action), null);
+        public static readonly StyledProperty<object> StateProperty = AvaloniaProperty.Register<ExpanderSettingItem, object>(nameof(State), null);
         public object State { get => GetValue(StateProperty); set => SetValue(StateProperty, value); }
 
-        public static readonly StyledProperty ActionProperty = AvaloniaProperty.Register<ExpanderSettingItem, object>(nameof(Action), null);
+        public static readonly StyledProperty<object> ActionProperty = AvaloniaProperty.Register<ExpanderSettingItem, object>(nameof(Action), null);
         public object Action { get => GetValue(ActionProperty); set => SetValue(ActionProperty, value); }
 
-        public static readonly StyledProperty IconProperty = AvaloniaProperty.Register<ExpanderSettingItem, IconElement>(nameof(Icon), null);
-        public IconElement Icon { get => (IconElement)GetValue(IconProperty); set => SetValue(IconProperty, value); }
+        // TODO: IconElement doesn't exist in Avalonia - use object or IImage
+        public static readonly StyledProperty<object> IconProperty = AvaloniaProperty.Register<ExpanderSettingItem, object>(nameof(Icon), null);
+        public object Icon { get => GetValue(IconProperty); set => SetValue(IconProperty, value); }
 
         public ExpanderSettingItem()
         {
@@ -33,16 +35,17 @@ namespace Typedown.Core.Controls
 
         private void OnSizeChanged(object sender, SizeChangedEventArgs e)
         {
-            if (VisualTreeHelper.GetParent(ContentPresenter_Expander) is FrameworkElement parent)
+            // TODO: Re-implement for Avalonia - ActualWidth/ActualOffset/FrameworkElement don't exist
+            // Original code adjusted ContentPresenter_Expander margin/width based on parent offset
+            var contentPresenter = this.FindControl<ContentPresenter>("ContentPresenter_Expander");
+            if (contentPresenter != null && sender is Expander expander)
             {
-                ContentPresenter_Expander.Margin = new Thickness(-parent.ActualOffset.X, -parent.ActualOffset.Y, -parent.ActualOffset.X, -parent.ActualOffset.Y);
-                ContentPresenter_Expander.Width = (sender as Expander).ActualWidth;
+                contentPresenter.Width = expander.Bounds.Width;
             }
         }
 
         private void OnUnloaded(object sender, RoutedEventArgs e)
         {
-            Bindings?.StopTracking();
         }
     }
 }

@@ -1,3 +1,4 @@
+using PropertyChanged;
 ﻿using System;
 using System.Collections.ObjectModel;
 using Avalonia.Metadata;
@@ -9,14 +10,15 @@ using Avalonia.Input;
 
 namespace Typedown.Core.Controls.EditorControls.ContextMenuItems
 {
-    public sealed partial class FormatItem : MenuItem
+[DoNotNotify]
+        public sealed partial class FormatItem : MenuItem
     {
         public event EventHandler ItemClick;
 
         public FormatItem()
         {
             InitializeComponent();
-            AddHandler(PointerReleasedEvent, new PointerEventHandler(OnMenuItemPointerReleased), true);
+            AddHandler(PointerReleasedEvent, new EventHandler<PointerReleasedEventArgs>(OnMenuItemPointerReleased), Avalonia.Interactivity.RoutingStrategies.Tunnel);
         }
 
         private void OnMenuItemPointerReleased(object sender, PointerEventArgs e)

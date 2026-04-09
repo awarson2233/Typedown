@@ -2,15 +2,12 @@
     x:Class="Typedown.Core.Controls.ProgressButton"
     xmlns="https://github.com/avaloniaui"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    xmlns:local="using:Typedown.Core.Controls.CommonControls"
-    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-    xmlns:muxc="using:Microsoft.UI.Xaml.Controls" 
-    Unloaded="OnUnloaded"
-    mc:Ignorable="d">
+    xmlns:local="clr-namespace:Typedown.Core.Controls"
+    xmlns:muxc="clr-namespace:Avalonia.Controls;assembly=Avalonia.Controls" 
+    Unloaded="OnUnloaded">
     <Grid>
-        <ContentPresenter x:Name="ButtonContent" Content="{Binding Content, Mode=OneWay}" x:Load="{Binding IsLoading, Mode=OneWay, Converter={StaticResource BoolReverseConverter}}"/>
-        <muxc:ProgressRing IsActive="{Binding IsLoading, Mode=OneWay}" Height="16" Width="16" VerticalAlignment="Center"/>
+        <ContentPresenter x:Name="ButtonContent" Content="{Binding Content, RelativeSource={RelativeSource AncestorType=local:ProgressButton}}" IsVisible="{Binding !IsLoading, RelativeSource={RelativeSource AncestorType=local:ProgressButton}}"/>
+        <ProgressBar IsIndeterminate="{Binding IsLoading, RelativeSource={RelativeSource AncestorType=local:ProgressButton}}" IsVisible="{Binding IsLoading, RelativeSource={RelativeSource AncestorType=local:ProgressButton}}" Height="16" Width="16" VerticalAlignment="Center"/>
     </Grid>
 </Button>
 

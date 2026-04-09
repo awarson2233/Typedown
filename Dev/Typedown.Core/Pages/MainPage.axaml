@@ -1,0 +1,18 @@
+<UserControl
+    x:Class="Typedown.Core.Pages.MainPage"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="clr-namespace:Typedown.Core.Pages" 
+    xmlns:controls="clr-namespace:Typedown.Core.Controls"
+    Unloaded="OnUnloaded">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+        <controls:MenuBar/>
+        <controls:MainContent Grid.Row="1"/>
+        <controls:StatusBar x:Name="StatusBar" Grid.Row="2" x:Load="{x:Bind AppViewModel.SettingsViewModel.StatusBarOpen, Mode=OneWay}"/>
+    </Grid>
+</UserControl>

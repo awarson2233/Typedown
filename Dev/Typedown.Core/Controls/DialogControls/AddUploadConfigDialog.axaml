@@ -1,0 +1,29 @@
+<controls:AppContentDialog
+    x:Class="Typedown.Core.Controls.DialogControls.AddUploadConfigDialog"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="clr-namespace:Typedown.Core.Controls.DialogControls" 
+    xmlns:enums="clr-namespace:Typedown.Core.Enums" 
+    xmlns:u="clr-namespace:Typedown.Core.Utilities"
+    xmlns:controls="clr-namespace:Typedown.Core.Controls"
+    Style="{StaticResource DefaultAppContentDialogStyle}"
+    x:Name="ThisControl"
+    Title="{u:LocaleString Key=ImageUpload.AddConfig.Title}"
+    PrimaryButtonText="{u:LocaleString Key=Add}"
+    SecondaryButtonText="{u:LocaleString Key=Cancel}"
+    DefaultButton="Primary"
+    Unloaded="OnUnloaded">
+    <StackPanel>
+        <TextBlock Text="{u:LocaleString Key=Name}"/>
+        <TextBox Margin="0,8,0,0" Text="{x:Bind ConfigName, Mode=TwoWay}"/>
+        <TextBlock Margin="0,8,0,0" Foreground="{ThemeResource SystemFillColorCriticalBrush}" Text="{x:Bind ErrMsg, Mode=OneWay}" Visibility="{x:Bind ErrMsg, Converter={StaticResource EmptyToVisibilityReverseConverter}, Mode=OneWay}"/>
+        <TextBlock Margin="0,12,0,0" Text="{u:LocaleString Key=ImageUpload.Method}"/>
+        <ComboBox Margin="0,8,0,0" HorizontalAlignment="Stretch" ItemsSource="{x:Bind enums:Enumerable.AvailableImageUploadMethods}" SelectedItem="{Binding UploadMethod, ElementName=ThisControl, Mode=TwoWay}">
+            <ComboBox.ItemTemplate>
+                <DataTemplate>
+                    <controls:EnumNameBlock Value="{Binding}"/>
+                </DataTemplate>
+            </ComboBox.ItemTemplate>
+        </ComboBox>
+    </StackPanel>
+</controls:AppContentDialog>

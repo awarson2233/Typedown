@@ -1,3 +1,4 @@
+using PropertyChanged;
 using Avalonia.Interactivity;
 using System;
 using System.Collections.ObjectModel;
@@ -25,6 +26,7 @@ using Avalonia.VisualTree;
 
 namespace Typedown.Core.Controls
 {
+    [DoNotNotify]
     public class AppContentDialog : ContentControl
     {
         public static AvaloniaProperty TitleTemplateProperty { get; } = AvaloniaProperty.Register<AppContentDialog, DataTemplate>(nameof(TitleTemplate), null);
@@ -281,7 +283,7 @@ namespace Typedown.Core.Controls
 
         public async Task<ContentDialogResult> ShowAsync(Control xamlRoot)
         {
-            XamlRoot = xamlRoot;
+            /* XamlRoot removed for Avalonia */;
             return await ShowAsync();
         }
 

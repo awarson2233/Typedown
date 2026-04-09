@@ -1,11 +1,4 @@
-﻿using System;
-using System.Collections.ObjectModel;
-using Avalonia.Controls.Primitives;
-using Avalonia.Input;
-using Avalonia.Metadata;
-using Avalonia.Data.Converters;
-using Avalonia.Interactivity;
-using System.Linq;
+using System;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
 using System.Threading.Tasks;
@@ -15,17 +8,18 @@ using Typedown.Core.Interfaces;
 using Typedown.Core.Models;
 using Typedown.Core.Utilities;
 using Typedown.Core.ViewModels;
-using Avalonia.Controls;
-using Avalonia.Controls;
+using Avalonia;
+using Avalonia.Interactivity;
 using Avalonia.Controls;
 
 namespace Typedown.Core.Pages.SettingPages
 {
     [Locale("ExportConfig.Title")]
-    public sealed partial class ExportConfigPage : Page
+    public sealed partial class ExportConfigPage : UserControl
     {
-        private static DependencyProperty ExportConfigProperty { get; } = DependencyProperty.Register(nameof(ExportConfig), typeof(ExportConfig), typeof(ExportConfigPage), null);
-        private ExportConfig ExportConfig { get => (ExportConfig)GetValue(ExportConfigProperty); set => SetValue(ExportConfigProperty, value); }
+        public static readonly StyledProperty<ExportConfig> ExportConfigProperty =
+            AvaloniaProperty.Register<ExportConfigPage, ExportConfig>(nameof(ExportConfig), null);
+        private ExportConfig ExportConfig { get => GetValue(ExportConfigProperty); set => SetValue(ExportConfigProperty, value); }
 
         public AppViewModel ViewModel => DataContext as AppViewModel;
 
@@ -41,10 +35,13 @@ namespace Typedown.Core.Pages.SettingPages
             InitializeComponent();
         }
 
-        protected override void OnNavigatedTo(NavigationEventArgs e)
+        /// <summary>
+        /// Call this to initialize the page with a config ID parameter.
+        /// Replaces WinUI OnNavigatedTo(NavigationEventArgs e).
+        /// </summary>
+        public void Initialize(string parameter)
         {
-            base.OnNavigatedTo(e);
-            int.TryParse(e.Parameter.ToString(), out configId);
+            int.TryParse(parameter, out configId);
         }
 
         private async void OnLoaded(object sender, RoutedEventArgs e)
@@ -56,13 +53,13 @@ namespace Typedown.Core.Pages.SettingPages
 
         private void OnUnloaded(object sender, RoutedEventArgs e)
         {
-            _ = Dispatcher.RunIdleAsync(async () =>
+            if (ExportConfig != null)
             {
-                if (ExportConfig != null)
-                    await ExportService.Value.SaveExportConfig(ExportConfig);
-            });
+                var config = ExportConfig;
+                var service = ExportService.Value;
+                _ = Task.Run(async () => await service.SaveExportConfig(config));
+            }
             disposables.Clear();
-            Bindings?.StopTracking();
         }
 
         private void UpdateTitle(string title)
@@ -70,7 +67,7 @@ namespace Typedown.Core.Pages.SettingPages
             this.GetAncestor<SettingsPage>()?.SetPageTitle(this, title);
         }
 
-        public FrameworkElement GetExportConfigItem(ExportType type)
+        public Control GetExportConfigItem(ExportType type)
         {
             return type switch
             {
@@ -88,7 +85,7 @@ namespace Typedown.Core.Pages.SettingPages
                 var service = this.GetService<IFileExport>();
                 await service.RemoveExportConfig(ExportConfig.Id);
                 ExportConfig = null;
-                Frame.GoBack();
+                // TODO: Navigate back in Avalonia
             }
         }
     }

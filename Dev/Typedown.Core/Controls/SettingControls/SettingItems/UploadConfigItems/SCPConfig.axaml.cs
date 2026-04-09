@@ -1,3 +1,4 @@
+using PropertyChanged;
 ﻿using Typedown.Core.Models;
 using Typedown.Core.Models.UploadConfigModels;
 using Avalonia;
@@ -7,12 +8,13 @@ using Avalonia.Controls.Primitives;
 
 namespace Typedown.Core.Controls.SettingControls.SettingItems.UploadConfigItems
 {
-    public sealed partial class SCPConfig : UserControl
+[DoNotNotify]
+        public sealed partial class SCPConfig : UserControl
     {
-        public static StyledProperty ImageUploadConfigProperty { get; } = AvaloniaProperty.Register<SCPConfig, ImageUploadConfig>(nameof(ImageUploadConfig), null);
+        public static StyledProperty<ImageUploadConfig> ImageUploadConfigProperty { get; } = AvaloniaProperty.Register<SCPConfig, ImageUploadConfig>(nameof(ImageUploadConfig), null);
         public ImageUploadConfig ImageUploadConfig { get => (ImageUploadConfig)GetValue(ImageUploadConfigProperty); set => SetValue(ImageUploadConfigProperty, value); }
 
-        public static StyledProperty SCPConfigModelProperty { get; } = AvaloniaProperty.Register<SCPConfig, SCPConfigModel>(nameof(SCPConfigModel), null);
+        public static StyledProperty<SCPConfigModel> SCPConfigModelProperty { get; } = AvaloniaProperty.Register<SCPConfig, SCPConfigModel>(nameof(SCPConfigModel), null);
         public SCPConfigModel SCPConfigModel { get => (SCPConfigModel)GetValue(SCPConfigModelProperty); set => SetValue(SCPConfigModelProperty, value); }
 
 
@@ -29,7 +31,6 @@ namespace Typedown.Core.Controls.SettingControls.SettingItems.UploadConfigItems
         private void OnUnloaded(object sender, RoutedEventArgs e)
         {
             ImageUploadConfig.StoreUploadConfig(SCPConfigModel);
-             Bindings?.StopTracking();
         }
     }
 }

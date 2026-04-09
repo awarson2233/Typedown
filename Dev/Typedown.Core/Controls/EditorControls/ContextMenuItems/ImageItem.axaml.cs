@@ -1,3 +1,4 @@
+using PropertyChanged;
 ﻿using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json.Linq;
 using System;
@@ -17,7 +18,6 @@ using Typedown.Core.Models.RuntimeModels;
 using Typedown.Core.Services;
 using Typedown.Core.Utilities;
 using Typedown.Core.ViewModels;
-using Avalonia.Platform.Storage;
 using Avalonia;
 using Avalonia.Interactivity;
 using Avalonia.Controls;
@@ -25,7 +25,8 @@ using Avalonia.Controls.Primitives;
 
 namespace Typedown.Core.Controls.EditorControls.ContextMenuItems
 {
-    public sealed partial class ImageItem : MenuItemCollection, INotifyPropertyChanged
+[DoNotNotify]
+        public sealed partial class ImageItem : MenuItemCollection, INotifyPropertyChanged
     {
         public AppViewModel ViewModel { get; private set; }
 
@@ -45,37 +46,46 @@ namespace Typedown.Core.Controls.EditorControls.ContextMenuItems
 
         public ImageItem()
         {
-            this.InitializeComponent();
+            // TODO: ImageItem.InitializeComponent not generated - needs AXAML fixes
+            // this.InitializeComponent();
         }
 
         private void OnOpenImageLocationItemLoaded(object sender, RoutedEventArgs e)
         {
-            ViewModel = (sender as FrameworkElement).GetService<AppViewModel>();
+            ViewModel = (sender as Control)?.GetService<AppViewModel>();
             SelectedImage = ViewModel.EditorViewModel.Selection["selectedImage"];
             UpdateMenuItemState();
             UpdateImageUploadConfigItem();
         }
 
+        private MenuItem FindItem(string name) => Items?.OfType<MenuItem>().FirstOrDefault(i => i.Name == name);
+
         private void UpdateMenuItemState()
         {
             var isLocalImage = UriHelper.TryGetLocalPath(ImageSrc, out _);
-            OpenImageLocationItem.IsEnabled = isLocalImage;
-            MoveImageItem.IsEnabled = isLocalImage;
-            DeleteImageItem.IsEnabled = isLocalImage;
+            var openImageLocationItem = FindItem("OpenImageLocationItem");
+            var moveImageItem = FindItem("MoveImageItem");
+            var deleteImageItem = FindItem("DeleteImageItem");
+            if (openImageLocationItem != null) openImageLocationItem.IsEnabled = isLocalImage;
+            if (moveImageItem != null) moveImageItem.IsEnabled = isLocalImage;
+            if (deleteImageItem != null) deleteImageItem.IsEnabled = isLocalImage;
         }
 
         private void UpdateImageUploadConfigItem()
         {
+            var uploadSubMenu = FindItem("UploadSubMenu");
+            var noUploadConfigItem = FindItem("NoUploadConfigItem");
+            if (uploadSubMenu == null) return;
             var configs = ImageUpload.ImageUploadConfigs.Where(x => x.IsEnable).ToList();
-            while (UploadSubMenu.Items[1] is not Separator)
-                UploadSubMenu.Items.RemoveAt(1);
+            while (uploadSubMenu.Items.Count > 2 && uploadSubMenu.Items[1] is not Separator)
+                ((ItemsControl)uploadSubMenu).Items.Remove(uploadSubMenu.Items[1]);
             foreach (var config in configs.Reverse<ImageUploadConfig>())
             {
-                var item = new MenuItem() { Text = config.Name, Tag = config };
+                var item = new MenuItem() { Header = config.Name, Tag = config };
                 item.Click += (s, e) => OnUploadImageClick(config);
-                UploadSubMenu.Items.Insert(1, item);
+                ((ItemsControl)uploadSubMenu).Items.Insert(1, item);
             }
-            NoUploadConfigItem.Visibility = configs.Any() ? false : true;
+            if (noUploadConfigItem != null) noUploadConfigItem.IsVisible = !configs.Any();
         }
 
         private void OnOpenImageLocationClick(object sender, RoutedEventArgs e)
@@ -150,7 +160,8 @@ namespace Typedown.Core.Controls.EditorControls.ContextMenuItems
             }
             catch (Exception ex)
             {
-                await AppContentDialog.Create(Locale.GetDialogString("UploadFailedTitle"), ex.Message, "Ok").ShowAsync(ViewModel.XamlRoot);
+                // TODO: Re-implement dialog with Avalonia ShowAsync
+                // await AppContentDialog.Create(Locale.GetDialogString("UploadFailedTitle"), ex.Message, "Ok").ShowAsync(ViewModel.XamlRoot);
             }
         }
 
@@ -209,13 +220,15 @@ namespace Typedown.Core.Controls.EditorControls.ContextMenuItems
 
         private async Task<string> PickImageSavePath(byte[] bytes)
         {
-            var filePicker = new FileSavePicker();
-            var type = ImageAction.GetImageType(bytes, "png");
-            filePicker.FileTypeChoices.Add(type, new List<string>() { $".{type}" });
-            filePicker.SuggestedFileName = ImageAlt;
-            filePicker.SetOwnerWindow(ViewModel.MainWindow);
-            var file = await filePicker.PickSaveFileAsync();
-            return file?.Path;
+            // TODO: Re-implement file picker with Avalonia StorageProvider API
+            // var filePicker = new FileSavePicker();
+            // var type = ImageAction.GetImageType(bytes, "png");
+            // filePicker.FileTypeChoices.Add(type, new List<string>() { $".{type}" });
+            // filePicker.SuggestedFileName = ImageAlt;
+            // filePicker.SetOwnerWindow(ViewModel.MainWindow);
+            // var file = await filePicker.PickSaveFileAsync();
+            // return file?.Path;
+            return null;
         }
 
         private async Task<byte[]> GetImageBytes()

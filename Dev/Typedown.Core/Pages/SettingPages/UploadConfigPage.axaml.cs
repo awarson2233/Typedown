@@ -1,11 +1,4 @@
-﻿using System;
-using System.Collections.ObjectModel;
-using Avalonia.Controls.Primitives;
-using Avalonia.Input;
-using Avalonia.Metadata;
-using Avalonia.Data.Converters;
-using Avalonia.Interactivity;
-using System.Linq;
+using System;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
 using System.Threading.Tasks;
@@ -15,16 +8,17 @@ using Typedown.Core.Models;
 using Typedown.Core.Services;
 using Typedown.Core.Utilities;
 using Typedown.Core.ViewModels;
-using Avalonia.Controls;
-using Avalonia.Controls;
+using Avalonia;
+using Avalonia.Interactivity;
 using Avalonia.Controls;
 
 namespace Typedown.Core.Pages.SettingPages
 {
-    public sealed partial class UploadConfigPage : Page
+    public sealed partial class UploadConfigPage : UserControl
     {
-        private static DependencyProperty ImageUploadConfigProperty { get; } = DependencyProperty.Register(nameof(ImageUploadConfig), typeof(ImageUploadConfig), typeof(UploadConfigPage), null);
-        private ImageUploadConfig ImageUploadConfig { get => (ImageUploadConfig)GetValue(ImageUploadConfigProperty); set => SetValue(ImageUploadConfigProperty, value); }
+        public static readonly StyledProperty<ImageUploadConfig> ImageUploadConfigProperty =
+            AvaloniaProperty.Register<UploadConfigPage, ImageUploadConfig>(nameof(ImageUploadConfig), null);
+        private ImageUploadConfig ImageUploadConfig { get => GetValue(ImageUploadConfigProperty); set => SetValue(ImageUploadConfigProperty, value); }
 
         public AppViewModel ViewModel => DataContext as AppViewModel;
 
@@ -40,10 +34,13 @@ namespace Typedown.Core.Pages.SettingPages
             InitializeComponent();
         }
 
-        protected override void OnNavigatedTo(NavigationEventArgs e)
+        /// <summary>
+        /// Call this to initialize the page with a config ID parameter.
+        /// Replaces WinUI OnNavigatedTo(NavigationEventArgs e).
+        /// </summary>
+        public void Initialize(string parameter)
         {
-            base.OnNavigatedTo(e);
-            int.TryParse(e.Parameter.ToString(), out configId);
+            int.TryParse(parameter, out configId);
         }
 
         private async void OnLoaded(object sender, RoutedEventArgs e)
@@ -55,13 +52,13 @@ namespace Typedown.Core.Pages.SettingPages
 
         private void OnUnloaded(object sender, RoutedEventArgs e)
         {
-            _ = Dispatcher.RunIdleAsync(async () =>
+            if (ImageUploadConfig != null)
             {
-                if (ImageUploadConfig != null)
-                    await UploadService.Value.SaveImageUploadConfig(ImageUploadConfig);
-            });
+                var config = ImageUploadConfig;
+                var service = UploadService.Value;
+                _ = Task.Run(async () => await service.SaveImageUploadConfig(config));
+            }
             disposables.Clear();
-            Bindings?.StopTracking();
         }
 
         private void UpdateTitle(string title)
@@ -69,7 +66,7 @@ namespace Typedown.Core.Pages.SettingPages
             this.GetAncestor<SettingsPage>()?.SetPageTitle(this, title);
         }
 
-        public FrameworkElement GetUploadConfigItem(ImageUploadMethod method)
+        public Control GetUploadConfigItem(ImageUploadMethod method)
         {
             return method switch
             {
@@ -89,7 +86,7 @@ namespace Typedown.Core.Pages.SettingPages
                 var service = this.GetService<ImageUpload>();
                 await service.RemoveImageUploadConfig(ImageUploadConfig.Id);
                 ImageUploadConfig = null;
-                Frame.GoBack();
+                // TODO: Navigate back in Avalonia
             }
         }
     }

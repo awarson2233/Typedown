@@ -1,3 +1,4 @@
+using PropertyChanged;
 using Avalonia.Interactivity;
 using Newtonsoft.Json.Linq;
 using System;
@@ -18,7 +19,8 @@ using Avalonia.Controls;
 
 namespace Typedown.Core.Controls.FloatControls
 {
-    public sealed partial class ImageToolbar : Flyout
+[DoNotNotify]
+        public sealed partial class ImageToolbar : Flyout
     {
         public AppViewModel ViewModel { get; }
 

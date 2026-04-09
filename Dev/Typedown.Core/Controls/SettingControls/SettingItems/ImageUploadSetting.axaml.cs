@@ -1,3 +1,4 @@
+using PropertyChanged;
 ﻿using System;
 using Avalonia.Input;
 using Avalonia.Metadata;
@@ -19,7 +20,8 @@ using Avalonia.Controls.Primitives;
 
 namespace Typedown.Core.Controls.SettingControls.SettingItems
 {
-    public sealed partial class ImageUploadSetting : UserControl
+[DoNotNotify]
+        public sealed partial class ImageUploadSetting : UserControl
     {
         public AppViewModel ViewModel => DataContext as AppViewModel;
 
@@ -39,7 +41,7 @@ namespace Typedown.Core.Controls.SettingControls.SettingItems
 
         private async void AddConfigItem()
         {
-            var result = await AddUploadConfigDialog.OpenAddUploadConfigDialog(XamlRoot);
+            var result = await AddUploadConfigDialog.OpenAddUploadConfigDialog(this);
             if (result == null)
                 return;
             await ImageUpload.AddImageUploadConfig(result.ConfigName, result.UploadMethod);
@@ -71,15 +73,15 @@ namespace Typedown.Core.Controls.SettingControls.SettingItems
             return string.Join(", ", list);
         }
 
-        public Visibility ConfigItemsTitleVisibility(ObservableCollection<ImageUploadConfig> configs)
+        public bool ConfigItemsTitleVisibility(ObservableCollection<ImageUploadConfig> configs)
         {
-            return configs.Any() ? true : false;
+            return configs.Any();
         }
 
         private void OnUnloaded(object sender, RoutedEventArgs e)
         {
-            Bindings?.StopTracking();
-            ConfigItemMenuFlyout.Items.Clear();
+            // TODO: MenuFlyout is not a Control, can't use FindControl
+            // ConfigItemMenuFlyout.Items.Clear();
         }
     }
 }

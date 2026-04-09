@@ -1,25 +1,20 @@
-﻿<UserControl
+<UserControl
     x:Class="Typedown.Core.Controls.ShortcutPicker"
     xmlns="https://github.com/avaloniaui"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    xmlns:local="using:Typedown.Core.Controls"
-    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
-    xmlns:utils="using:Typedown.Core.Utilities"
+    xmlns:local="clr-namespace:Typedown.Core.Controls" 
+    xmlns:utils="clr-namespace:Typedown.Core.Utilities"
     Loaded="OnLoaded"
     Unloaded="OnUnloaded"
-    mc:Ignorable="d"
-    d:DesignHeight="300"
-    d:DesignWidth="400">
+>
     <UserControl.Resources>
-        <Style TargetType="Border" x:Key="KeyBorderStyle">
-            <Setter Property="BackgroundSizing" Value="OuterBorderEdge"/>
-            <Setter Property="Background" Value="{ThemeResource AccentFillColorDefaultBrush}"/>
-            <Setter Property="BorderBrush" Value="{ThemeResource AccentControlElevationBorderBrush}"/>
-            <Setter Property="CornerRadius" Value="{ThemeResource ControlCornerRadius}"/>
+        <ControlTheme x:Key="KeyBorderStyle" TargetType="Border">
+            <Setter Property="Background" Value="{DynamicResource AccentFillColorDefaultBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource AccentControlElevationBorderBrush}"/>
+            <Setter Property="CornerRadius" Value="{DynamicResource ControlCornerRadius}"/>
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="Padding" Value="12,8,12,8"/>
-        </Style>
+        </ControlTheme>
     </UserControl.Resources>
     <StackPanel MinWidth="360">
         <TextBlock Text="{utils:LocaleString Key=PleasePressTheKeyCombination}"/>
@@ -27,8 +22,8 @@
             <ItemsControl 
                 x:Name="ShortcutKeys" 
                 IsTabStop="False"
-                x:Load="{Binding local:ShortcutPickerButton.HasShortcutKey(ShortcutKey), Mode=OneWay}" 
-                ItemsSource="{Binding utils:Common.GetShortcutKeyTextList(ShortcutKey), Mode=OneWay}">
+                IsVisible="{Binding ShortcutKey, RelativeSource={RelativeSource AncestorType=local:ShortcutPicker}, Converter={x:Static local:ShortcutKeyConverters.HasShortcutKey}}" 
+                ItemsSource="{Binding ShortcutKey, RelativeSource={RelativeSource AncestorType=local:ShortcutPicker}, Converter={x:Static local:ShortcutKeyConverters.GetShortcutKeyTextList}}">
                 <ItemsControl.ItemsPanel>
                     <ItemsPanelTemplate>
                         <StackPanel Orientation="Horizontal" VerticalAlignment="Center"  Spacing="4"/>
@@ -36,24 +31,26 @@
                 </ItemsControl.ItemsPanel>
                 <ItemsControl.ItemTemplate>
                     <DataTemplate x:DataType="x:String">
-                        <Border Style="{ThemeResource KeyBorderStyle}">
-                            <TextBlock Text="{x:Bind}" Foreground="{ThemeResource TextOnAccentFillColorPrimaryBrush}"/>
+                        <Border Theme="{DynamicResource KeyBorderStyle}">
+                            <TextBlock Text="{Binding}" Foreground="{DynamicResource TextOnAccentFillColorPrimaryBrush}"/>
                         </Border>
                     </DataTemplate>
                 </ItemsControl.ItemTemplate>
             </ItemsControl>
             <TextBlock 
                 x:Name="NoShortcutKey"
-                x:Load="{Binding local:ShortcutPickerButton.HasShortcutKeyReverse(ShortcutKey), Mode=OneWay}" 
+                IsVisible="{Binding ShortcutKey, RelativeSource={RelativeSource AncestorType=local:ShortcutPicker}, Converter={x:Static local:ShortcutKeyConverters.HasShortcutKey}}" 
                 VerticalAlignment="Center" 
                 Text="{utils:LocaleString Key=NotSet}"/>
         </Grid>
         <StackPanel Name="ErrorMsgPanel" Orientation="Horizontal" Spacing="8" Margin="0,16,0,0" IsVisible="False" VerticalAlignment="Bottom">
-            <TextBlock Foreground="{ThemeResource SystemFillColorCriticalBrush}" Text="{utils:LocaleString Key=ShortcutKeyIsOccupied}"/>
-            <TextBlock x:Name="ExistOwnerTextBlock" Foreground="{ThemeResource SystemFillColorCriticalBrush}"/>
+            <TextBlock Foreground="{DynamicResource SystemFillColorCriticalBrush}" Text="{utils:LocaleString Key=ShortcutKeyIsOccupied}"/>
+            <TextBlock x:Name="ExistOwnerTextBlock" Foreground="{DynamicResource SystemFillColorCriticalBrush}"/>
         </StackPanel>
     </StackPanel>
 </UserControl>
+
+
 
 
 

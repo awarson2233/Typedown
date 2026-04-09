@@ -1,3 +1,4 @@
+using PropertyChanged;
 using Avalonia.Interactivity;
 using System;
 using System.Collections.ObjectModel;
@@ -14,9 +15,10 @@ using Avalonia.Controls;
 
 namespace Typedown.Core.Controls
 {
-    public sealed partial class ShortcutPickerButton : Button
+[DoNotNotify]
+        public sealed partial class ShortcutPickerButton : Button
     {
-        public static AvaloniaProperty ShortcutKeyProperty = AvaloniaProperty.Register<ShortcutPickerButton, ShortcutKey>(nameof(ShortcutKey), null);
+        public static readonly StyledProperty<ShortcutKey> ShortcutKeyProperty = AvaloniaProperty.Register<ShortcutPickerButton, ShortcutKey>(nameof(ShortcutKey), null);
         public ShortcutKey ShortcutKey { get => (ShortcutKey)GetValue(ShortcutKeyProperty); set => SetValue(ShortcutKeyProperty, value); }
 
         public ShortcutPickerButton()

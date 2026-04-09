@@ -1,0 +1,33 @@
+<UserControl
+    x:Class="Typedown.Core.Controls.SidePanelControls.Pages.TocPage"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="clr-namespace:Typedown.Core.Controls.SidePanelControls.Pages"
+    xmlns:models="clr-namespace:Typedown.Core.Models" 
+    xmlns:muxc="clr-namespace:Avalonia.Controls;assembly=Avalonia.Controls"
+>
+    <UserControl.Resources>
+        <Thickness x:Key="TreeViewItemPresenterPadding">0</Thickness>
+        
+        <DataTemplate x:Key="TocItemTemplate" x:DataType="models:TocTreeItem">
+            <muxc:TreeViewItem ItemsSource="{x:Bind Children, Mode=OneWay}" IsExpanded="{x:Bind IsExpanded, Mode=TwoWay}" IsSelected="{x:Bind TocItem.IsSelected, Mode=TwoWay}">
+                <Grid Height="32">
+                    <TextBlock Text="{x:Bind TocItem.Content, Mode=OneWay}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" Margin="0,0,0,1"/>
+                </Grid>
+            </muxc:TreeViewItem>
+        </DataTemplate>
+    </UserControl.Resources>
+    <Grid>
+        <muxc:TreeView 
+            x:Name="TreeView"
+            ItemsSource="{x:Bind Editor.Toc.Children, Mode=OneWay}" 
+            ItemTemplate="{StaticResource TocItemTemplate}" >
+            <muxc:TreeView.ItemContainerTransitions>
+                <TransitionCollection>
+                    <ContentThemeTransition/>
+                    <ReorderThemeTransition/>
+                </TransitionCollection>
+            </muxc:TreeView.ItemContainerTransitions>
+        </muxc:TreeView>
+    </Grid>
+</UserControl>

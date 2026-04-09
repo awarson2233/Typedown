@@ -1,30 +1,28 @@
-﻿using System;
-using System.Collections.ObjectModel;
-using Avalonia.Controls.Primitives;
-using Avalonia.Input;
-using Avalonia.Metadata;
+using System;
+using System.Globalization;
 using Avalonia.Data.Converters;
-using Avalonia.Interactivity;
-using Avalonia.Controls;
-using Avalonia.Controls;
 
 namespace Typedown.Core.Converters
 {
+    /// <summary>
+    /// Converts bool to IsVisible (bool) for Avalonia.
+    /// In Avalonia there is no Visibility enum; use bool (true = visible, false = collapsed).
+    /// </summary>
     public class BoolToVisibilityConverter : IValueConverter
     {
         public bool IsReverse { get; set; }
 
-        public object Convert(object value, Type targetType, object parameter, string language)
+        public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
         {
-            var res = (bool)value;
+            var res = value is bool b && b;
             if (IsReverse) res = !res;
-            return res ? Visibility.Visible : Visibility.Collapsed;
+            return res;
         }
 
-        public object ConvertBack(object value, Type targetType, object parameter, string language)
+        public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
         {
-            var res = (Visibility)value;
-            return IsReverse ? res == Visibility.Collapsed : res == Visibility.Visible;
+            var res = value is bool b && b;
+            return IsReverse ? !res : res;
         }
     }
 }

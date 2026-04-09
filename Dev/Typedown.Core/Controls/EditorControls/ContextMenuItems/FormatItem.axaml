@@ -1,0 +1,29 @@
+<MenuFlyoutItem
+    x:Class="Typedown.Core.Controls.EditorControls.ContextMenuItems.FormatItem"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="clr-namespace:Typedown.Core.Controls.EditorControls.ContextMenuItems"
+    xmlns:controls="clr-namespace:Typedown.Core.Controls"
+    xmlns:viewmodels="clr-namespace:Typedown.Core.ViewModels">
+    <MenuFlyoutItem.Template>
+        <ControlTemplate TargetType="MenuFlyoutItem">
+            <StackPanel Orientation="Horizontal" Spacing="4" Padding="4,2,4,2">
+                <Button Style="{StaticResource EllipsisIconButtonStyle}" Command="{Binding FormatViewModel.SetFormatCommand}" CommandParameter="strong" controls:ToolTip.TextResource="Strong">
+                    <FontIcon FontSize="16" Glyph="&#xE8DD;"/>
+                </Button>
+                <Button Style="{StaticResource EllipsisIconButtonStyle}" Command="{Binding FormatViewModel.SetFormatCommand}" CommandParameter="em" controls:ToolTip.TextResource="Emphasis">
+                    <FontIcon FontSize="16" Glyph="&#xE8DB;"/>
+                </Button>
+                <Button Style="{StaticResource EllipsisIconButtonStyle}" Command="{Binding FormatViewModel.SetFormatCommand}" CommandParameter="u" controls:ToolTip.TextResource="Underline">
+                    <FontIcon FontSize="16" Glyph="&#xE8DC;"/>
+                </Button>
+                <Button Style="{StaticResource EllipsisIconButtonStyle}" Command="{Binding FormatViewModel.SetFormatCommand}" CommandParameter="del" controls:ToolTip.TextResource="Strikethrough">
+                    <FontIcon FontSize="16" Glyph="&#xEDE0;"/>
+                </Button>
+                <Button Style="{StaticResource EllipsisIconButtonStyle}" Command="{Binding FormatViewModel.SetFormatCommand}" CommandParameter="clear" controls:ToolTip.TextResource="ClearFormat">
+                    <FontIcon FontSize="16" Glyph="&#xe75c;"/>
+                </Button>
+            </StackPanel>
+        </ControlTemplate>
+    </MenuFlyoutItem.Template>
+</MenuFlyoutItem>

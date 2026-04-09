@@ -1,14 +1,14 @@
-﻿<MenuFlyout
+<MenuFlyout
     x:Class="Typedown.Core.Controls.FloatControls.FrontMenu"
     xmlns="https://github.com/avaloniaui"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    xmlns:local="using:Typedown.Core.Controls.FloatControls"
-    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-    xmlns:u="using:Typedown.Core.Utilities"
+    xmlns:local="clr-namespace:Typedown.Core.Controls.FloatControls"
+    xmlns:u="clr-namespace:Typedown.Core.Utilities"
+    xmlns:m="clr-namespace:Typedown.Core.ViewModels"
+    x:DataType="m:AppViewModel"
+    x:CompileBindings="False"
     Placement="Bottom"
-    Closed="OnClosed"
-    mc:Ignorable="d">
+    Closed="OnClosed">
     <MenuItem Header="{u:LocaleString Key=Duplicate}" Command="{Binding ParagraphViewModel.DuplicateCommand}"/>
     <MenuItem Header="{u:LocaleString Key=TurnInto}">
         <MenuItem ToggleType="CheckBox" 

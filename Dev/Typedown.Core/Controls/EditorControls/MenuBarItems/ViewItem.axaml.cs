@@ -1,6 +1,11 @@
-﻿namespace Typedown.Core.Controls.EditorControls.MenuBarItems
+using PropertyChanged;
+﻿using Avalonia.Interactivity;
+using Avalonia.Controls;
+
+namespace Typedown.Core.Controls.EditorControls.MenuBarItems
 {
-    public sealed partial class ViewItem : MenuBarItemBase
+[DoNotNotify]
+        public sealed partial class ViewItem : MenuBarItemBase
     {
         public ViewItem()
         {
@@ -9,16 +14,15 @@
 
         protected override void OnRegisterShortcut()
         {
-            RegisterWindowShortcut(Settings.ShortcutSidePane, SidePaneItem);
-            RegisterWindowShortcut(Settings.ShortcutSourceCodeMode, SourceCodeModeItem);
-            RegisterWindowShortcut(Settings.ShortcutFocusMode, FocusModeItem);
-            RegisterWindowShortcut(Settings.ShortcutTypewriterMode, TypewriterModeItem);
-            RegisterWindowShortcut(Settings.ShortcutStatusBar, StatusBarItem);
+            RegisterWindowShortcut(Settings.ShortcutSidePane, this.FindControl<MenuItem>("SidePaneItem"));
+            RegisterWindowShortcut(Settings.ShortcutSourceCodeMode, this.FindControl<MenuItem>("SourceCodeModeItem"));
+            RegisterWindowShortcut(Settings.ShortcutFocusMode, this.FindControl<MenuItem>("FocusModeItem"));
+            RegisterWindowShortcut(Settings.ShortcutTypewriterMode, this.FindControl<MenuItem>("TypewriterModeItem"));
+            RegisterWindowShortcut(Settings.ShortcutStatusBar, this.FindControl<MenuItem>("StatusBarItem"));
         }
 
-        private void OnUnloaded(object sender, Windows.UI.Xaml.RoutedEventArgs e)
+        private void OnUnloaded(object sender, RoutedEventArgs e)
         {
-            Bindings?.StopTracking();
         }
     }
 }

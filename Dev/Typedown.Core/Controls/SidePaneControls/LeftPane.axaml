@@ -1,0 +1,46 @@
+<UserControl
+    x:Class="Typedown.Core.Controls.LeftPane"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="clr-namespace:Typedown.Core.Controls" 
+    xmlns:muxc="clr-namespace:Avalonia.Controls;assembly=Avalonia.Controls" 
+    xmlns:converters="clr-namespace:Typedown.Core.Converters"
+    xmlns:u="clr-namespace:Typedown.Core.Utilities"
+    Loaded="OnLoaded"
+    Unloaded="OnUnloaded"
+    SizeChanged="OnSizeChanged"
+>
+    <UserControl.Resources>
+        <converters:BoolToVisibilityConverter x:Key="BoolToVisibilityReverseConverter" IsReverse="True"/>
+        <x:Double x:Key="TopNavigationViewPaneCustomContentMinWidth">0</x:Double>
+    </UserControl.Resources>
+    <Grid>
+        <muxc:NavigationView 
+            x:Name="NavigationView"
+            Visibility="{x:Bind IsSearchPaneOpen, Mode=OneWay, Converter={StaticResource BoolToVisibilityReverseConverter}}"
+            IsBackButtonVisible="Collapsed" 
+            SelectionChanged="OnSelectionChanged"
+            IsSettingsVisible="False"
+            PaneDisplayMode="Top">
+            <muxc:NavigationView.Resources>
+                <SolidColorBrush x:Key="NavigationViewContentBackground" Color="Transparent"/>
+                <SolidColorBrush x:Key="NavigationViewContentGridBorderBrush" Color="{ThemeResource CardStrokeColorDefault}"/>
+            </muxc:NavigationView.Resources>
+            <!--<muxc:NavigationView.PaneFooter>
+                <Button Width="32" Height="32" x:Name="SeatchButton" Click="OnSearchButtonClick" Margin="0,0,4,0" Style="{ThemeResource EllipsisIconButtonStyle}" local:ToolTip.TextResource="Search">
+                    <FontIcon FontSize="14" Glyph="&#xe721;"/>
+                </Button>
+            </muxc:NavigationView.PaneFooter>-->
+            <muxc:NavigationView.MenuItems>
+                <muxc:NavigationViewItem Content="{u:LocaleString Key=Files}" Tag="Folder" Name="Folder"/>
+                <muxc:NavigationViewItem Content="{u:LocaleString Key=Outline}" Tag="Toc" Name="Toc"/>
+            </muxc:NavigationView.MenuItems>
+        </muxc:NavigationView>
+        <Frame Margin="0,50,0,0" Visibility="{x:Bind NavigationView.Visibility,Mode=OneWay}" x:Name="Frame">
+            <Frame.Clip>
+                <RectangleGeometry x:Name="FrameClip"/>
+            </Frame.Clip>
+        </Frame>
+        <local:SearchPane x:Name="SearchPane" x:Load="{x:Bind IsSearchPaneOpen, Mode=OneWay}" Close="OnSearchPaneClose"/>
+    </Grid>
+</UserControl>

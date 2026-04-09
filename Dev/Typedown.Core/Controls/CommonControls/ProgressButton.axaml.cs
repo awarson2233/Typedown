@@ -1,10 +1,12 @@
+using PropertyChanged;
 using Avalonia.Interactivity;
 using Avalonia;
 using Avalonia.Controls;
 
 namespace Typedown.Core.Controls
 {
-    public sealed partial class ProgressButton : Button
+[DoNotNotify]
+        public sealed partial class ProgressButton : Button
     {
         public static readonly StyledProperty<bool> IsLoadingProperty = AvaloniaProperty.Register<ProgressButton, bool>(nameof(IsLoading), false);
         public bool IsLoading { get => GetValue(IsLoadingProperty); set => SetValue(IsLoadingProperty, value); }
@@ -31,7 +33,7 @@ namespace Typedown.Core.Controls
 
         private void OnUnloaded(object sender, RoutedEventArgs e)
         {
-            // Bindings?.StopTracking();
+            //
         }
     }
 }

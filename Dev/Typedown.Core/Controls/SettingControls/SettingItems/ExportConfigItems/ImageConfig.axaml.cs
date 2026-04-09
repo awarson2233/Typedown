@@ -1,3 +1,4 @@
+using PropertyChanged;
 ﻿using Typedown.Core.Models;
 using Typedown.Core.Models.ExportConfigModels;
 using Avalonia;
@@ -7,12 +8,13 @@ using Avalonia.Controls.Primitives;
 
 namespace Typedown.Core.Controls.SettingControls.SettingItems.ExportConfigItems
 {
-    public sealed partial class ImageConfig : UserControl
+[DoNotNotify]
+        public sealed partial class ImageConfig : UserControl
     {
-        public static StyledProperty ExportConfigProperty { get; } = AvaloniaProperty.Register<ImageConfig, ExportConfig>(nameof(ExportConfig), null);
+        public static StyledProperty<ExportConfig> ExportConfigProperty { get; } = AvaloniaProperty.Register<ImageConfig, ExportConfig>(nameof(ExportConfig), null);
         public ExportConfig ExportConfig { get => (ExportConfig)GetValue(ExportConfigProperty); set => SetValue(ExportConfigProperty, value); }
 
-        public static StyledProperty ImageConfigModelProperty { get; } = AvaloniaProperty.Register<ImageConfig, HTMLConfigModel>(nameof(ImageConfigModel), null);
+        public static StyledProperty<ImageConfigModel> ImageConfigModelProperty { get; } = AvaloniaProperty.Register<ImageConfig, ImageConfigModel>(nameof(ImageConfigModel), null);
         public ImageConfigModel ImageConfigModel { get => (ImageConfigModel)GetValue(ImageConfigModelProperty); set => SetValue(ImageConfigModelProperty, value); }
 
         public ImageConfig()
@@ -28,7 +30,6 @@ namespace Typedown.Core.Controls.SettingControls.SettingItems.ExportConfigItems
         private void OnUnloaded(object sender, RoutedEventArgs e)
         {
             ExportConfig.StoreExportConfig(ImageConfigModel);
-            Bindings?.StopTracking();
         }
     }
 }

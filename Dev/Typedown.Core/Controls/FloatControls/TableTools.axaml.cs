@@ -1,3 +1,4 @@
+using PropertyChanged;
 using Avalonia.Interactivity;
 using Typedown.Core.Interfaces;
 using Typedown.Core.ViewModels;
@@ -7,7 +8,8 @@ using Avalonia.Controls;
 
 namespace Typedown.Core.Controls.FloatControls
 {
-    public sealed partial class TableTools : MenuFlyout
+[DoNotNotify]
+        public sealed partial class TableTools : MenuFlyout
     {
         public bool IsRow { get; private set; }
 

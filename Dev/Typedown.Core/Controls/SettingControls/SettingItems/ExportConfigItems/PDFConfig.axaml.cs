@@ -1,4 +1,4 @@
-﻿using PropertyChanged;
+using PropertyChanged;
 using System;
 using Avalonia.Input;
 using Avalonia.Metadata;
@@ -17,12 +17,13 @@ using Avalonia.Controls.Primitives;
 
 namespace Typedown.Core.Controls.SettingControls.SettingItems.ExportConfigItems
 {
-    public sealed partial class PDFConfig : UserControl, INotifyPropertyChanged
+[DoNotNotify]
+        public sealed partial class PDFConfig : UserControl, INotifyPropertyChanged
     {
-        public static StyledProperty ExportConfigProperty { get; } = AvaloniaProperty.Register<PDFConfig, ExportConfig>(nameof(ExportConfig), null);
+        public static StyledProperty<ExportConfig> ExportConfigProperty { get; } = AvaloniaProperty.Register<PDFConfig, ExportConfig>(nameof(ExportConfig), null);
         public ExportConfig ExportConfig { get => (ExportConfig)GetValue(ExportConfigProperty); set => SetValue(ExportConfigProperty, value); }
 
-        public static StyledProperty PDFConfigModelProperty { get; } = AvaloniaProperty.Register<PDFConfig, PDFConfigModel>(nameof(ImageConfigModel), null);
+        public static StyledProperty<PDFConfigModel> PDFConfigModelProperty { get; } = AvaloniaProperty.Register<PDFConfig, PDFConfigModel>(nameof(ImageConfigModel), null);
         public PDFConfigModel PDFConfigModel { get => (PDFConfigModel)GetValue(PDFConfigModelProperty); set => SetValue(PDFConfigModelProperty, value); }
 
         public ObservableCollection<PDFConfigPageSizeItem> PageSizeComboxItems { get; set; }
@@ -55,7 +56,6 @@ namespace Typedown.Core.Controls.SettingControls.SettingItems.ExportConfigItems
         {
             ExportConfig.StoreExportConfig(PDFConfigModel);
             disposables.Clear();
-            Bindings?.StopTracking();
         }
 
         [SuppressPropertyChangedWarnings]
@@ -123,14 +123,16 @@ namespace Typedown.Core.Controls.SettingControls.SettingItems.ExportConfigItems
         }
     }
 
-    public class PDFConfigPageSizeItem
+[DoNotNotify]
+        public class PDFConfigPageSizeItem
     {
         public string Name { get; set; }
 
         public PageSize PageSize { get; set; }
     }
 
-    public class PDFConfigPageMarginItem
+[DoNotNotify]
+        public class PDFConfigPageMarginItem
     {
         public string Name { get; set; }
 

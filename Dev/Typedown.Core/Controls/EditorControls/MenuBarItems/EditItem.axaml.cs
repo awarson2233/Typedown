@@ -1,3 +1,4 @@
+using PropertyChanged;
 ﻿using System.Collections.Generic;
 using System.Reactive.Disposables;
 using Typedown.Core.Interfaces;
@@ -8,12 +9,15 @@ using Typedown.Core.ViewModels;
 using Avalonia;
 using Avalonia.Interactivity;
 using Avalonia.Input;
-using Key = Avalonia.Input.Key;
-using Mod = Avalonia.Input.KeyModifiers;
+using Avalonia.Controls;
+using Typedown.Core.Enums;
+using Key = Typedown.Core.Enums.VirtualKey;
+using Mod = Typedown.Core.Enums.VirtualKeyModifiers;
 
 namespace Typedown.Core.Controls.EditorControls.MenuBarItems
 {
-    public sealed partial class EditItem : MenuBarItemBase
+[DoNotNotify]
+        public sealed partial class EditItem : MenuBarItemBase
     {
         public EditorViewModel Editor => ViewModel?.EditorViewModel;
 
@@ -51,36 +55,36 @@ namespace Typedown.Core.Controls.EditorControls.MenuBarItems
                 if (handledKey.Contains(new(e.Modifiers, e.Key)))
                 {
                     var editor = this.GetService<IMarkdownEditor>();
-                    var focused = FocusManager.GetFocusedElement(XamlRoot);
-                    if (focused == editor)
-                        e.Handled = true;
+                    // TODO: Avalonia focus check - FocusManager API is different
+                    // var focused = FocusManager.GetFocusedElement(XamlRoot);
+                    // if (focused == editor)
+                    //     e.Handled = true;
                 }
             }));
         }
 
         protected override void OnRegisterShortcut()
         {
-            RegisterEditorShortcut(Settings.ShortcutUndo, UndoItem);
-            RegisterEditorShortcut(Settings.ShortcutRedo, RedoItem);
-            RegisterEditorShortcut(Settings.ShortcutCut, CutItem);
-            RegisterEditorShortcut(Settings.ShortcutCopy, CopyItem);
-            RegisterEditorShortcut(Settings.ShortcutPaste, PasteItem);
-            RegisterEditorShortcut(Settings.ShortcutCopyAsPlainText, CopyAsPlainTextItem);
-            RegisterEditorShortcut(Settings.ShortcutCopyAsMarkdown, CopyAsMarkdownItem);
-            RegisterEditorShortcut(Settings.ShortcutCopyAsHTMLCode, CopyAsHTMLCodeItem);
-            RegisterEditorShortcut(Settings.ShortcutPasteAsPlainText, PasteAsPlainTextItem);
-            // RegisterEditorShortcut(Settings.ShortcutDelete, DeleteItem);
-            RegisterEditorShortcut(Settings.ShortcutSelectAll, SelectAllItem);
-            RegisterWindowShortcut(Settings.ShortcutFind, FindItem);
-            RegisterWindowShortcut(Settings.ShortcutFindNext, FindNextItem);
-            RegisterWindowShortcut(Settings.ShortcutFindPrevious, FindPreviousItem);
-            RegisterWindowShortcut(Settings.ShortcutReplace, ReplaceItem);
+            RegisterEditorShortcut(Settings.ShortcutUndo, this.FindControl<MenuItem>("UndoItem"));
+            RegisterEditorShortcut(Settings.ShortcutRedo, this.FindControl<MenuItem>("RedoItem"));
+            RegisterEditorShortcut(Settings.ShortcutCut, this.FindControl<MenuItem>("CutItem"));
+            RegisterEditorShortcut(Settings.ShortcutCopy, this.FindControl<MenuItem>("CopyItem"));
+            RegisterEditorShortcut(Settings.ShortcutPaste, this.FindControl<MenuItem>("PasteItem"));
+            RegisterEditorShortcut(Settings.ShortcutCopyAsPlainText, this.FindControl<MenuItem>("CopyAsPlainTextItem"));
+            RegisterEditorShortcut(Settings.ShortcutCopyAsMarkdown, this.FindControl<MenuItem>("CopyAsMarkdownItem"));
+            RegisterEditorShortcut(Settings.ShortcutCopyAsHTMLCode, this.FindControl<MenuItem>("CopyAsHTMLCodeItem"));
+            RegisterEditorShortcut(Settings.ShortcutPasteAsPlainText, this.FindControl<MenuItem>("PasteAsPlainTextItem"));
+            // RegisterEditorShortcut(Settings.ShortcutDelete, this.FindControl<MenuItem>("DeleteItem"));
+            RegisterEditorShortcut(Settings.ShortcutSelectAll, this.FindControl<MenuItem>("SelectAllItem"));
+            RegisterWindowShortcut(Settings.ShortcutFind, this.FindControl<MenuItem>("FindItem"));
+            RegisterWindowShortcut(Settings.ShortcutFindNext, this.FindControl<MenuItem>("FindNextItem"));
+            RegisterWindowShortcut(Settings.ShortcutFindPrevious, this.FindControl<MenuItem>("FindPreviousItem"));
+            RegisterWindowShortcut(Settings.ShortcutReplace, this.FindControl<MenuItem>("ReplaceItem"));
         }
 
         private void OnUnloaded(object sender, RoutedEventArgs e)
         {
             disposables.Clear();
-            Bindings?.StopTracking();
         }
     }
 }

@@ -1,3 +1,4 @@
+using PropertyChanged;
 ﻿using Typedown.Core.Models;
 using Typedown.Core.Models.UploadConfigModels;
 using Avalonia;
@@ -7,12 +8,13 @@ using Avalonia.Controls.Primitives;
 
 namespace Typedown.Core.Controls.SettingControls.SettingItems.UploadConfigItems
 {
-    public sealed partial class FTPConfig : UserControl
+[DoNotNotify]
+        public sealed partial class FTPConfig : UserControl
     {
-        public static StyledProperty ImageUploadConfigProperty { get; } = AvaloniaProperty.Register<FTPConfig, ImageUploadConfig>(nameof(ImageUploadConfig), null);
+        public static StyledProperty<ImageUploadConfig> ImageUploadConfigProperty { get; } = AvaloniaProperty.Register<FTPConfig, ImageUploadConfig>(nameof(ImageUploadConfig), null);
         public ImageUploadConfig ImageUploadConfig { get => (ImageUploadConfig)GetValue(ImageUploadConfigProperty); set => SetValue(ImageUploadConfigProperty, value); }
 
-        public static StyledProperty FTPConfigModelProperty { get; } = AvaloniaProperty.Register<FTPConfig, FTPConfigModel>(nameof(FTPConfigModel), null);
+        public static StyledProperty<FTPConfigModel> FTPConfigModelProperty { get; } = AvaloniaProperty.Register<FTPConfig, FTPConfigModel>(nameof(FTPConfigModel), null);
         public FTPConfigModel FTPConfigModel { get => (FTPConfigModel)GetValue(FTPConfigModelProperty); set => SetValue(FTPConfigModelProperty, value); }
 
         public FTPConfig()
@@ -28,7 +30,6 @@ namespace Typedown.Core.Controls.SettingControls.SettingItems.UploadConfigItems
         private void OnUnloaded(object sender, RoutedEventArgs e)
         {
             ImageUploadConfig.StoreUploadConfig(FTPConfigModel);
-             Bindings?.StopTracking();
         }
     }
 }

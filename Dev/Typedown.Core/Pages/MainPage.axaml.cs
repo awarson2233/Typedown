@@ -1,10 +1,14 @@
-﻿using Typedown.Core.Utilities;
+using Typedown.Core.Utilities;
 using Typedown.Core.ViewModels;
 using Avalonia.Controls;
+using Avalonia.Interactivity;
+
+using PropertyChanged;
 
 namespace Typedown.Core.Pages
 {
-    public sealed partial class MainPage : Page
+    [DoNotNotify]
+    public sealed partial class MainPage : UserControl
     {
         public AppViewModel AppViewModel => this.GetService<AppViewModel>();
 
@@ -13,9 +17,8 @@ namespace Typedown.Core.Pages
             InitializeComponent();
         }
 
-        private void OnUnloaded(object sender, Windows.UI.Xaml.RoutedEventArgs e)
+        private void OnUnloaded(object sender, RoutedEventArgs e)
         {
-             Bindings?.StopTracking();
         }
     }
 }

@@ -1,3 +1,4 @@
+using PropertyChanged;
 ﻿using Typedown.Core.Models;
 using Typedown.Core.Models.UploadConfigModels;
 using Avalonia;
@@ -7,12 +8,13 @@ using Avalonia.Controls.Primitives;
 
 namespace Typedown.Core.Controls.SettingControls.SettingItems.UploadConfigItems
 {
-    public sealed partial class GitConfig : UserControl
+[DoNotNotify]
+        public sealed partial class GitConfig : UserControl
     {
-        public static StyledProperty ImageUploadConfigProperty { get; } = AvaloniaProperty.Register<GitConfig, ImageUploadConfig>(nameof(ImageUploadConfig), null);
+        public static StyledProperty<ImageUploadConfig> ImageUploadConfigProperty { get; } = AvaloniaProperty.Register<GitConfig, ImageUploadConfig>(nameof(ImageUploadConfig), null);
         public ImageUploadConfig ImageUploadConfig { get => (ImageUploadConfig)GetValue(ImageUploadConfigProperty); set => SetValue(ImageUploadConfigProperty, value); }
 
-        public static StyledProperty GitConfigModelProperty { get; } = AvaloniaProperty.Register<GitConfig, GitConfigModel>(nameof(GitConfigModel), null);
+        public static StyledProperty<GitConfigModel> GitConfigModelProperty { get; } = AvaloniaProperty.Register<GitConfig, GitConfigModel>(nameof(GitConfigModel), null);
         public GitConfigModel GitConfigModel { get => (GitConfigModel)GetValue(GitConfigModelProperty); set => SetValue(GitConfigModelProperty, value); }
 
         public GitConfig()
@@ -28,7 +30,6 @@ namespace Typedown.Core.Controls.SettingControls.SettingItems.UploadConfigItems
         private void OnUnloaded(object sender, RoutedEventArgs e)
         {
             ImageUploadConfig.StoreUploadConfig(GitConfigModel);
-             Bindings?.StopTracking();
         }
     }
 }

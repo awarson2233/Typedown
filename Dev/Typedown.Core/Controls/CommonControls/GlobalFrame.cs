@@ -1,3 +1,4 @@
+using PropertyChanged;
 using System.Linq;
 using System.Reactive.Disposables;
 using Typedown.Core.Utilities;
@@ -7,7 +8,8 @@ using Avalonia.Interactivity;
 
 namespace Typedown.Core.Controls
 {
-    public class GlobalFrame : TransitioningContentControl
+[DoNotNotify]
+        public class GlobalFrame : TransitioningContentControl
     {
         private readonly CompositeDisposable disposables = new();
 

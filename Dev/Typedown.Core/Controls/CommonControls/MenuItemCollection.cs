@@ -1,3 +1,4 @@
+using PropertyChanged;
 using Avalonia.Controls.Primitives;
 using System;
 using Avalonia.Input;
@@ -16,7 +17,8 @@ using Avalonia.Markup.Xaml;
 
 namespace Typedown.Core.Controls
 {
-    public class MenuItemCollection : AvaloniaObject
+[DoNotNotify]
+        public class MenuItemCollection : AvaloniaObject
     {
         public static readonly AttachedProperty<MenuItemCollection> ValueProperty = AvaloniaProperty.RegisterAttached<MenuItemCollection, AvaloniaObject, MenuItemCollection>("Value");
         public static MenuItemCollection GetValue(AvaloniaObject target) => target.GetValue(ValueProperty);

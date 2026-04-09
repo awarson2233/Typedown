@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.ObjectModel;
 using Avalonia.Metadata;
 using Avalonia.Data.Converters;
@@ -11,11 +11,12 @@ using Typedown.Core.ViewModels;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Input;
-using muxc = Microsoft.UI.Xaml.Controls;
 
 namespace Typedown.Core.Controls.EditorControls.MenuBarItems
 {
-    public abstract class MenuBarItemBase : muxc.MenuBarItem
+    // In Avalonia there is no MenuBarItem base class from WinUI.
+    // Use a regular UserControl that acts as a menu bar item container.
+    public abstract class MenuBarItemBase : UserControl
     {
         public AppViewModel ViewModel => DataContext as AppViewModel;
 
@@ -29,9 +30,10 @@ namespace Typedown.Core.Controls.EditorControls.MenuBarItems
             Loaded += OnLoaded;
         }
 
-        private void OnLoaded(object sender, Windows.UI.Xaml.RoutedEventArgs e)
+        private void OnLoaded(object sender, RoutedEventArgs e)
         {
-            _ = Dispatcher.RunIdleAsync(() => { if (IsLoaded) OnRegisterShortcut(); });
+            // TODO: Implement idle dispatch for Avalonia
+            OnRegisterShortcut();
         }
 
         protected abstract void OnRegisterShortcut();
@@ -49,7 +51,8 @@ namespace Typedown.Core.Controls.EditorControls.MenuBarItems
         private void RegisterMenuItemShortcut(Func<MenuItem, bool> handler, ShortcutKey key, MenuItem item)
         {
             var acc = this.GetService<IKeyboardAccelerator>();
-            item.KeyboardAcceleratorTextOverride = acc.GetShortcutKeyText(key);
+            // TODO: Avalonia MenuItem doesn't have KeyboardAcceleratorTextOverride
+            // item.KeyboardAcceleratorTextOverride = acc.GetShortcutKeyText(key);
             disposables.Add(acc.Register(key, (s, e) =>
             {
                 if (handler(item))
@@ -59,31 +62,28 @@ namespace Typedown.Core.Controls.EditorControls.MenuBarItems
 
         private bool OnWindowShortcutEvent(MenuItem item)
         {
-            var focused = PInvoke.GetForegroundWindow();
-            if (focused != ViewModel.MainWindow)
-                return false;
-            _ = Dispatcher.TryRunAsync(Windows.UI.Core.CoreDispatcherPriority.Normal, () => TriggerMenuItem(item));
+            // TODO: Check focused window for Avalonia
+            TriggerMenuItem(item);
             return true;
         }
 
         private bool OnEditorShortcutEvent(MenuItem item)
         {
+            // TODO: Check if editor is focused for Avalonia
             var editor = this.GetService<IMarkdownEditor>();
-            var focused = FocusManager.GetFocusedElement(XamlRoot);
-            if (focused != editor)
-                return false;
-            _ = Dispatcher.TryRunAsync(Windows.UI.Core.CoreDispatcherPriority.Normal, () => TriggerMenuItem(item));
+            TriggerMenuItem(item);
             return true;
         }
 
         private void TriggerMenuItem(MenuItem item)
         {
             item.Command?.Execute(item.CommandParameter);
-            if (item is ToggleMenuItem toggle)
-                toggle.IsChecked = !toggle.IsChecked;
+            // TODO: ToggleMenuItem doesn't exist in Avalonia
+            // if (item is ToggleMenuItem toggle)
+            //     toggle.IsChecked = !toggle.IsChecked;
         }
 
-        private void OnUnloaded(object sender, Windows.UI.Xaml.RoutedEventArgs e)
+        private void OnUnloaded(object sender, RoutedEventArgs e)
         {
             disposables.Clear();
         }

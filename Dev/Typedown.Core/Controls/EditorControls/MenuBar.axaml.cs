@@ -1,3 +1,4 @@
+using PropertyChanged;
 ﻿using System;
 using System.Collections.ObjectModel;
 using Avalonia.Input;
@@ -6,16 +7,15 @@ using Avalonia.Data.Converters;
 using System.Reactive.Disposables;
 using Typedown.Core.Utilities;
 using Typedown.Core.ViewModels;
-using Typedown.XamlUI;
 using Avalonia.Controls;
 using Avalonia;
 using Avalonia.Interactivity;
-using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 
 namespace Typedown.Core.Controls
 {
-    public sealed partial class MenuBar : UserControl
+[DoNotNotify]
+        public sealed partial class MenuBar : UserControl
     {
         public AppViewModel ViewModel => DataContext as AppViewModel;
         public SettingsViewModel Settings => ViewModel?.SettingsViewModel;
@@ -27,21 +27,24 @@ namespace Typedown.Core.Controls
             InitializeComponent();
         }
 
-        private void OnSizeChanged(object sender, Windows.UI.Xaml.SizeChangedEventArgs e)
+        private void OnSizeChanged(object sender, SizeChangedEventArgs e)
         {
-            if (TitleGrid != null)
+            var titleGrid = this.FindControl<Grid>("TitleGrid");
+            var menuBarControl = this.FindControl<Control>("MenuBarControl");
+            var titleTextBlock = this.FindControl<TextBlock>("TitleTextBlock");
+            if (titleGrid != null)
             {
-                if (ActualWidth / 2 > MenuBarControl.ActualWidth + TitleTextBlock.ActualWidth / 2 + 16)
+                if (Bounds.Width / 2 > (menuBarControl?.Bounds.Width ?? 0) + (titleTextBlock?.Bounds.Width ?? 0) / 2 + 16)
                 {
-                    TitleGrid.Margin = new(0);
-                    Grid.SetColumn(TitleGrid, 0);
-                    Grid.SetColumnSpan(TitleGrid, 3);
+                    titleGrid.Margin = new(0);
+                    Grid.SetColumn(titleGrid, 0);
+                    Grid.SetColumnSpan(titleGrid, 3);
                 }
                 else
                 {
-                    TitleGrid.Margin = new(0, 0, 46 * 3, 0);
-                    Grid.SetColumn(TitleGrid, 1);
-                    Grid.SetColumnSpan(TitleGrid, 2);
+                    titleGrid.Margin = new(0, 0, 46 * 3, 0);
+                    Grid.SetColumn(titleGrid, 1);
+                    Grid.SetColumnSpan(titleGrid, 2);
                 }
             }
         }
@@ -60,36 +63,16 @@ namespace Typedown.Core.Controls
         private void OnUnloaded(object sender, RoutedEventArgs e)
         {
             disposables.Dispose();
-            Bindings?.StopTracking();
         }
 
-        private Visibility IsCollapsed(bool boolean) => boolean ? false : true;
+        private bool IsCollapsed(bool boolean) => boolean ? false : true;
 
         private DateTime prevLeftButtonPressedTime = DateTime.Now;
 
-        private void OnMenuBarPointerEvent(object sender, Windows.UI.Xaml.Input.PointerEventArgs e)
+        private void OnMenuBarPointerEvent(object sender, PointerEventArgs e)
         {
-            if (Settings.AppCompactMode && e.OriginalSource is Grid && XamlWindow.GetWindow(this) is XamlWindow window)
-            {
-                _ = Dispatcher.RunIdleAsync(() =>
-                {
-                    PInvoke.GetCursorPos(out var point);
-                    var packedPoint = (point.Y << 16) + point.X;
-                    var kind = e.GetCurrentPoint(this).Properties.PointerUpdateKind;
-                    if (kind == PointerUpdateKind.LeftButtonPressed)
-                    {
-                        if ((DateTime.Now - prevLeftButtonPressedTime).TotalMilliseconds < PInvoke.GetDoubleClickTime())
-                            window.PostMessage((uint)PInvoke.WindowMessage.WM_NCLBUTTONDBLCLK, (uint)PInvoke.HitTestFlags.CAPTION, packedPoint);
-                        else
-                            window.PostMessage((uint)PInvoke.WindowMessage.WM_NCLBUTTONDOWN, (uint)PInvoke.HitTestFlags.CAPTION, packedPoint);
-                        prevLeftButtonPressedTime = DateTime.Now;
-                    }
-                    if (kind == PointerUpdateKind.RightButtonReleased)
-                    {
-                        window.PostMessage((uint)PInvoke.WindowMessage.WM_NCRBUTTONUP, (uint)PInvoke.HitTestFlags.CAPTION, packedPoint);
-                    }
-                });
-            }
+            // TODO: Re-implement window drag/title bar interaction for Avalonia
+            // Original code used WinUI-specific PInvoke, XamlWindow, and Dispatcher.RunIdleAsync
         }
     }
 }

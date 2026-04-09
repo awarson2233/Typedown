@@ -1,3 +1,4 @@
+using PropertyChanged;
 using System;
 using System.Collections.ObjectModel;
 using Avalonia.Controls.Primitives;
@@ -13,6 +14,7 @@ using Avalonia.Controls;
 
 namespace Typedown.Core.Controls
 {
+    [DoNotNotify]
     public class EnumNameBlock : ContentControl
     {
         public static AvaloniaProperty ValueProperty = AvaloniaProperty.Register<EnumNameBlock, object>(nameof(Value), null);

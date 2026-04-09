@@ -1,3 +1,4 @@
+using PropertyChanged;
 ﻿using System;
 using System.Collections.ObjectModel;
 using Avalonia.Input;
@@ -12,15 +13,16 @@ using Avalonia.Controls.Primitives;
 
 namespace Typedown.Core.Controls
 {
-    public sealed partial class FeedbackDialog : UserControl
+[DoNotNotify]
+        public sealed partial class FeedbackDialog : UserControl
     {
-        public static readonly StyledProperty RantingProperty = AvaloniaProperty.Register<FeedbackDialog, int>(nameof(Ranting), new PropertyMetadata(-1));
+        public static readonly StyledProperty<int> RantingProperty = AvaloniaProperty.Register<FeedbackDialog, int>(nameof(Ranting), -1);
         public int Ranting { get => GetValue(RantingProperty); set => SetValue(RantingProperty, value); }
 
-        public static readonly StyledProperty FeedbackProperty = AvaloniaProperty.Register<FeedbackDialog, string>(nameof(Feedback), new PropertyMetadata(""));
+        public static readonly StyledProperty<string> FeedbackProperty = AvaloniaProperty.Register<FeedbackDialog, string>(nameof(Feedback), "");
         public string Feedback { get => GetValue(FeedbackProperty); set => SetValue(FeedbackProperty, value); }
 
-        public static readonly StyledProperty ContactProperty = AvaloniaProperty.Register<FeedbackDialog, string>(nameof(Contact), new PropertyMetadata(""));
+        public static readonly StyledProperty<string> ContactProperty = AvaloniaProperty.Register<FeedbackDialog, string>(nameof(Contact), "");
         public string Contact { get => GetValue(ContactProperty); set => SetValue(ContactProperty, value); }
 
         public FeedbackDialog()
@@ -28,7 +30,7 @@ namespace Typedown.Core.Controls
             InitializeComponent();
         }
 
-        public static async Task OpenFeedbackDialog(XamlRoot xamlRoot)
+        public static async Task OpenFeedbackDialog(Control xamlRoot)
         {
             var content = new FeedbackDialog();
             var result = await AppContentDialog.Create(Locale.GetDialogString("FeedbackTitle"), content, Locale.GetDialogString("Cancel"), Locale.GetDialogString("Submit")).ShowAsync(xamlRoot);
@@ -60,7 +62,6 @@ namespace Typedown.Core.Controls
 
         private void OnUnloaded(object sender, RoutedEventArgs e)
         {
-            Bindings?.StopTracking();
         }
     }
 }

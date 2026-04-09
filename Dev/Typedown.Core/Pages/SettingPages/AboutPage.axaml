@@ -1,0 +1,9 @@
+<UserControl
+    x:Class="Typedown.Core.Pages.SettingPages.AboutPage"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="clr-namespace:Typedown.Core.Pages.SettingPages"
+    xmlns:settingitems="clr-namespace:Typedown.Core.Controls.SettingControls.SettingItems" 
+    xmlns:controls="clr-namespace:Typedown.Core.Controls">
+    <controls:AboutApp/>
+</UserControl>

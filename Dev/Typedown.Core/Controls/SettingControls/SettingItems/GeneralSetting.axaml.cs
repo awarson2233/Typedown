@@ -1,15 +1,17 @@
+using PropertyChanged;
 ﻿using Typedown.Core.Enums;
 using Typedown.Core.Utilities;
 using Typedown.Core.ViewModels;
-using Windows.Globalization;
 using Avalonia;
 using Avalonia.Interactivity;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
+using System.Globalization;
 
 namespace Typedown.Core.Controls.SettingControls.SettingItems
 {
-    public sealed partial class GeneralSetting : UserControl
+[DoNotNotify]
+        public sealed partial class GeneralSetting : UserControl
     {
         public AppViewModel ViewModel => DataContext as AppViewModel;
 
@@ -30,7 +32,7 @@ namespace Typedown.Core.Controls.SettingControls.SettingItems
             try
             {
                 var settingLanguage = Settings.Language;
-                var currentLanguage = ApplicationLanguages.PrimaryLanguageOverride;
+                var currentLanguage = CultureInfo.CurrentUICulture.Name;
                 return Locale.SupportedLangs.ContainsKey(settingLanguage) != Locale.SupportedLangs.ContainsKey(currentLanguage) || (Locale.SupportedLangs.ContainsKey(settingLanguage) && settingLanguage != currentLanguage);
             }
             catch
@@ -41,7 +43,6 @@ namespace Typedown.Core.Controls.SettingControls.SettingItems
 
         private void OnUnloaded(object sender, RoutedEventArgs e)
         {
-            Bindings?.StopTracking();
         }
     }
 }

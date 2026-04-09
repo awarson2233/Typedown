@@ -1,10 +1,12 @@
+using PropertyChanged;
 ﻿namespace Typedown.Core.Controls.EditorControls.ContextMenuItems
 {
-    public sealed partial class CodeFencesItem : MenuItemCollection
+[DoNotNotify]
+        public sealed partial class CodeFencesItem : MenuItemCollection
     {
         public CodeFencesItem()
         {
-            this.InitializeComponent();
+            // TODO: InitializeComponent requires AXAML fixes for MenuItemCollection
         }
     }
 }

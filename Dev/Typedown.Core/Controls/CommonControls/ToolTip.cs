@@ -1,3 +1,4 @@
+using PropertyChanged;
 using System;
 using Typedown.Core.Utilities;
 using Avalonia;
@@ -5,7 +6,8 @@ using Avalonia.Controls;
 
 namespace Typedown.Core.Controls
 {
-    public class ToolTip
+[DoNotNotify]
+        public class ToolTip
     {
         public static readonly AttachedProperty<string> TextResourceProperty = AvaloniaProperty.RegisterAttached<ToolTip, Control, string>("TextResource", null);
         public static string GetTextResource(Control target) => target.GetValue(TextResourceProperty);

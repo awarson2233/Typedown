@@ -1,3 +1,4 @@
+using PropertyChanged;
 using Avalonia.Interactivity;
 using System;
 using System.Collections.ObjectModel;
@@ -13,7 +14,8 @@ using Avalonia.Controls;
 using Avalonia.Controls;
 namespace Typedown.Core.Controls
 {
-    public sealed partial class UnitNumberBox : NumericUpDown
+[DoNotNotify]
+        public sealed partial class UnitNumberBox : NumericUpDown
     {
         public static readonly StyledProperty<IReadOnlyList<NumberUnit>> UnitsProperty = AvaloniaProperty.Register<UnitNumberBox, IReadOnlyList<NumberUnit>>(nameof(Units), null);
         public IReadOnlyList<NumberUnit> Units { get => GetValue(UnitsProperty); set => SetValue(UnitsProperty, value); }
@@ -27,6 +29,16 @@ namespace Typedown.Core.Controls
         public ComboBox UnitComboBox { get; set; }
 
         public event EventHandler<NumberUnit> SelectedUnitChanged;
+
+        public static readonly StyledProperty<string> HeaderProperty = AvaloniaProperty.Register<UnitNumberBox, string>(nameof(Header));
+        public string Header { get => GetValue(HeaderProperty); set => SetValue(HeaderProperty, value); }
+        
+        public static readonly StyledProperty<object> HeaderTemplateProperty = AvaloniaProperty.Register<UnitNumberBox, object>(nameof(HeaderTemplate));
+        public object HeaderTemplate { get => GetValue(HeaderTemplateProperty); set => SetValue(HeaderTemplateProperty, value); }
+
+        public static readonly StyledProperty<string> DescriptionProperty = AvaloniaProperty.Register<UnitNumberBox, string>(nameof(Description));
+        public string Description { get => GetValue(DescriptionProperty); set => SetValue(DescriptionProperty, value); }
+
 
         public UnitNumberBox()
         {
@@ -72,7 +84,7 @@ namespace Typedown.Core.Controls
 
         private void OnUnloaded(object sender, RoutedEventArgs e)
         {
-            // Bindings?.StopTracking();
+            //
         }
     }
 }

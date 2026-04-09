@@ -1,3 +1,4 @@
+using PropertyChanged;
 using Avalonia.Interactivity;
 using System;
 using System.Collections.ObjectModel;
@@ -16,7 +17,8 @@ using Avalonia.Controls;
 
 namespace Typedown.Core.Controls
 {
-    public class PathPickerButton : Button
+[DoNotNotify]
+        public class PathPickerButton : Button
     {
         public static AvaloniaProperty PathProperty = AvaloniaProperty.Register<PathPickerButton, string>(nameof(Path), "");
         public string Path { get => (string)GetValue(PathProperty); set => SetValue(PathProperty, value.Replace("\\", "/")); }
@@ -114,7 +116,8 @@ namespace Typedown.Core.Controls
         }
     }
 
-    public class PickedEventArgs
+[DoNotNotify]
+        public class PickedEventArgs
     {
         public bool IsCancel { get; }
 

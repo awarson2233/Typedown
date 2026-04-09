@@ -1,3 +1,4 @@
+using PropertyChanged;
 ﻿using System;
 using System.Collections.ObjectModel;
 using Avalonia.Input;
@@ -10,7 +11,8 @@ using Avalonia.Controls.Primitives;
 
 namespace Typedown.Core.Controls
 {
-    public sealed partial class WebView2InstallControl : UserControl
+[DoNotNotify]
+        public sealed partial class WebView2InstallControl : UserControl
     {
         public EventHandler CloseButtonClick;
 

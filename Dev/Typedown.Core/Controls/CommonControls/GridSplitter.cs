@@ -1,3 +1,4 @@
+using PropertyChanged;
 using Avalonia.Interactivity;
 using System;
 using System.Collections.ObjectModel;
@@ -13,7 +14,8 @@ using Avalonia.Media;
 
 namespace Typedown.Core.Controls
 {
-    public class GridSplitter : UserControl
+[DoNotNotify]
+        public class GridSplitter : UserControl
     {
         public static readonly StyledProperty<double> ColumnWidthProperty = AvaloniaProperty.Register<GridSplitter, double>(nameof(ColumnWidth), 0);
         public double ColumnWidth { get => GetValue(ColumnWidthProperty); set => SetValue(ColumnWidthProperty, value); }

@@ -1,0 +1,49 @@
+<UserControl
+    x:Class="Typedown.Core.Controls.Caption"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="clr-namespace:Typedown.Core.Controls"
+    xmlns:app="clr-namespace:Typedown.Core" 
+    xmlns:ui="clr-namespace:Typedown.XamlUI"
+    Loaded="OnLoaded"
+    Unloaded="OnUnloaded">
+    <Grid Height="32" x:Name="CaptionWrapper">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="Auto"/>
+            <ColumnDefinition Width="*"/>
+            <ColumnDefinition Width="Auto"/>
+        </Grid.ColumnDefinitions>
+        <Button 
+            VerticalAlignment="Center" 
+            Grid.Column="0" 
+            Margin="4,0,0,0" 
+            Padding="6" 
+            x:Name="BackButton"
+            IsVisible="False">
+            <PathIcon Width="16" Height="16" Data="M 15 8 L 3 8 M 3 8 L 8.5 2.5 M 3 8 L 8.5 13.5"/>
+        </Button>
+        <Grid x:Name="TitlePanel" Grid.Column="1" Grid.ColumnSpan="2" VerticalAlignment="Center" Margin="12,0,0,0">
+            <Grid.RenderTransform>
+                <TranslateTransform x:Name="TitlePanelTranslation" />
+            </Grid.RenderTransform>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="142"/>
+            </Grid.ColumnDefinitions>
+            <!-- TODO: Replace with Avalonia-compatible icon loading -->
+            <!-- <Image Grid.Column="0" Source="/Images/logo.ico" Width="16" Height="16" VerticalAlignment="Center"/> -->
+            <TextBlock 
+                TextWrapping="NoWrap"
+                TextTrimming="CharacterEllipsis"
+                Grid.Column="1"
+                Text="{Binding UIViewModel.MainWindowTitle}" 
+                FontSize="12"
+                HorizontalAlignment="Left"
+                VerticalAlignment="Center"/>
+        </Grid>
+        <Grid Grid.Column="1">
+            <!-- Drag region placeholder - implement via Avalonia window drag API -->
+        </Grid>
+    </Grid>
+</UserControl>

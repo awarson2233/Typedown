@@ -1,3 +1,4 @@
+using PropertyChanged;
 using Avalonia.Interactivity;
 using System;
 using System.Collections.ObjectModel;
@@ -17,7 +18,8 @@ using Avalonia.Input;
 
 namespace Typedown.Core.Controls.FloatControls
 {
-    public sealed partial class FindReplace : UserControl
+[DoNotNotify]
+        public sealed partial class FindReplace : UserControl
     {
         public AppViewModel ViewModel => DataContext as AppViewModel;
 

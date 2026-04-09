@@ -1,3 +1,4 @@
+using PropertyChanged;
 ﻿using System;
 using System.Collections.ObjectModel;
 using Avalonia.Input;
@@ -16,7 +17,8 @@ using Avalonia.Controls.Primitives;
 
 namespace Typedown.Core.Controls.EditorControls.MenuBarItems
 {
-    public sealed partial class FileItem : MenuBarItemBase
+[DoNotNotify]
+        public sealed partial class FileItem : MenuBarItemBase
     {
         public FileViewModel File => ViewModel?.FileViewModel;
 
@@ -37,28 +39,32 @@ namespace Typedown.Core.Controls.EditorControls.MenuBarItems
 
         protected override void OnRegisterShortcut()
         {
-            RegisterWindowShortcut(Settings.ShortcutNewFile, NewFileItem);
-            RegisterWindowShortcut(Settings.ShortcutNewWindow, NewWindowItem);
-            RegisterWindowShortcut(Settings.ShortcutOpenFile, OpenFileItem);
-            RegisterWindowShortcut(Settings.ShortcutOpenFolder, OpenFolderItem);
-            RegisterWindowShortcut(Settings.ShortcutClearRecentFiles, ClearRecentFilesItem);
-            RegisterWindowShortcut(Settings.ShortcutSave, SaveItem);
-            RegisterWindowShortcut(Settings.ShortcutSaveAs, SaveAsItem);
-            RegisterWindowShortcut(Settings.ShortcutExportSettings, ExportSettingsItem);
-            RegisterWindowShortcut(Settings.ShortcutPrint, PrintItem);
-            RegisterWindowShortcut(Settings.ShortcutSettings, SettingItem);
-            RegisterWindowShortcut(Settings.ShortcutClose, CloseItem);
+            RegisterWindowShortcut(Settings.ShortcutNewFile, this.FindControl<MenuItem>("NewFileItem"));
+            RegisterWindowShortcut(Settings.ShortcutNewWindow, this.FindControl<MenuItem>("NewWindowItem"));
+            RegisterWindowShortcut(Settings.ShortcutOpenFile, this.FindControl<MenuItem>("OpenFileItem"));
+            RegisterWindowShortcut(Settings.ShortcutOpenFolder, this.FindControl<MenuItem>("OpenFolderItem"));
+            RegisterWindowShortcut(Settings.ShortcutClearRecentFiles, this.FindControl<MenuItem>("ClearRecentFilesItem"));
+            RegisterWindowShortcut(Settings.ShortcutSave, this.FindControl<MenuItem>("SaveItem"));
+            RegisterWindowShortcut(Settings.ShortcutSaveAs, this.FindControl<MenuItem>("SaveAsItem"));
+            RegisterWindowShortcut(Settings.ShortcutExportSettings, this.FindControl<MenuItem>("ExportSettingsItem"));
+            RegisterWindowShortcut(Settings.ShortcutPrint, this.FindControl<MenuItem>("PrintItem"));
+            RegisterWindowShortcut(Settings.ShortcutSettings, this.FindControl<MenuItem>("SettingItem"));
+            RegisterWindowShortcut(Settings.ShortcutClose, this.FindControl<MenuItem>("CloseItem"));
         }
 
         private void UpdateOpenRecentItem()
         {
+            var openRecentSubMenu = this.FindControl<MenuItem>("OpenRecentSubMenu");
+            var noRecentFilesItem = this.FindControl<MenuItem>("NoRecentFilesItem");
+            var clearRecentFilesItem = this.FindControl<MenuItem>("ClearRecentFilesItem");
+            if (openRecentSubMenu == null) return;
             var files = FileHistory.FileRecentlyOpened.ToList();
-            while (OpenRecentSubMenu.Items[1] is not Separator)
-                OpenRecentSubMenu.Items.RemoveAt(1);
+            while (openRecentSubMenu.Items.Count > 2 && openRecentSubMenu.Items[1] is not Separator)
+                ((ItemsControl)openRecentSubMenu).Items.Remove(openRecentSubMenu.Items[1]);
             foreach (var file in files.Reverse<string>())
-                OpenRecentSubMenu.Items.Insert(1, new MenuItem() { Text = file, Command = File.OpenFileCommand, CommandParameter = file });
-            NoRecentFilesItem.Visibility = files.Any() ? false : true;
-            ClearRecentFilesItem.IsEnabled = files.Any();
+                ((ItemsControl)openRecentSubMenu).Items.Insert(1, new MenuItem() { Header = file, Command = File.OpenFileCommand, CommandParameter = file });
+            if (noRecentFilesItem != null) noRecentFilesItem.IsVisible = !files.Any();
+            if (clearRecentFilesItem != null) clearRecentFilesItem.IsEnabled = files.Any();
         }
 
         private void OnOpenRecentSubMenuLoaded(object sender, RoutedEventArgs e)
@@ -68,12 +74,15 @@ namespace Typedown.Core.Controls.EditorControls.MenuBarItems
 
         private void UpdateExportItem()
         {
+            var exportSubMenu = this.FindControl<MenuItem>("ExportSubMenu");
+            var noExportConfigItem = this.FindControl<MenuItem>("NoExportConfigItem");
+            if (exportSubMenu == null) return;
             var configs = FileExport.ExportConfigs.ToList();
-            while (ExportSubMenu.Items[1] is not Separator)
-                ExportSubMenu.Items.RemoveAt(1);
+            while (exportSubMenu.Items.Count > 2 && exportSubMenu.Items[1] is not Separator)
+                ((ItemsControl)exportSubMenu).Items.Remove(exportSubMenu.Items[1]);
             foreach (var config in configs.Reverse<ExportConfig>())
-                ExportSubMenu.Items.Insert(1, new MenuItem() { Text = config.Name, Command = File.ExportCommand, CommandParameter = config });
-            NoExportConfigItem.Visibility = configs.Any() ? false : true;
+                ((ItemsControl)exportSubMenu).Items.Insert(1, new MenuItem() { Header = config.Name, Command = File.ExportCommand, CommandParameter = config });
+            if (noExportConfigItem != null) noExportConfigItem.IsVisible = !configs.Any();
         }
 
         private void OnExportSubMenuLoaded(object sender, RoutedEventArgs e)
@@ -83,7 +92,6 @@ namespace Typedown.Core.Controls.EditorControls.MenuBarItems
 
         private void OnUnloaded(object sender, RoutedEventArgs e)
         {
-            Bindings?.StopTracking();
         }
     }
 }
