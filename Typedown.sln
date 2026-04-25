@@ -1,9 +1,12 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 17
-VisualStudioVersion = 17.3.32929.385
+# Visual Studio Version 18
+VisualStudioVersion = 18.4.11620.152 stable
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Typedown", "Dev\Typedown\Typedown.csproj", "{59805442-1FD1-476C-A783-C2E3EB7D4478}"
+	ProjectSection(ProjectDependencies) = postProject
+		{55C179BF-A3BD-4875-7F9F-AF11BDCF63FA} = {55C179BF-A3BD-4875-7F9F-AF11BDCF63FA}
+	EndProjectSection
 EndProject
 Project("{C7167F0D-BC9F-4E6E-AFE1-012C56B48DB5}") = "Typedown.Package", "Tools\Typedown.Package\Typedown.Package.wapproj", "{01EEE687-39B7-4A6C-B094-D398BF49E8D9}"
 EndProject
@@ -22,10 +25,15 @@ EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Typedown.UITest", "Tests\Typedown.UITest\Typedown.UITest.csproj", "{9A59F339-E01E-4ED2-863E-110EC7DED0E1}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Typedown.Core", "Dev\Typedown.Core\Typedown.Core.csproj", "{3538AD79-BD49-4081-B10B-090E4F75F6FB}"
+	ProjectSection(ProjectDependencies) = postProject
+		{55C179BF-A3BD-4875-7F9F-AF11BDCF63FA} = {55C179BF-A3BD-4875-7F9F-AF11BDCF63FA}
+	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "XamlDesignApp", "Tools\XamlDesignApp\XamlDesignApp.csproj", "{7E4518ED-AE38-4099-963B-3D8BE111ED58}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TranslationTool", "Tools\TranslationTool\TranslationTool.csproj", "{20B6A129-40EE-4483-BF97-D4F4CE682231}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Typedown.XamlUI", "..\Typedown.XamlUI\Typedown.XamlUI\Typedown.XamlUI.csproj", "{55C179BF-A3BD-4875-7F9F-AF11BDCF63FA}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -235,6 +243,24 @@ Global
 		{20B6A129-40EE-4483-BF97-D4F4CE682231}.Release|x64.Build.0 = Release|Any CPU
 		{20B6A129-40EE-4483-BF97-D4F4CE682231}.Release|x86.ActiveCfg = Release|Any CPU
 		{20B6A129-40EE-4483-BF97-D4F4CE682231}.Release|x86.Build.0 = Release|Any CPU
+		{55C179BF-A3BD-4875-7F9F-AF11BDCF63FA}.Debug_Local|ARM64.ActiveCfg = Debug_Local|ARM64
+		{55C179BF-A3BD-4875-7F9F-AF11BDCF63FA}.Debug_Local|ARM64.Build.0 = Debug_Local|ARM64
+		{55C179BF-A3BD-4875-7F9F-AF11BDCF63FA}.Debug_Local|x64.ActiveCfg = Debug_Local|x64
+		{55C179BF-A3BD-4875-7F9F-AF11BDCF63FA}.Debug_Local|x64.Build.0 = Debug_Local|x64
+		{55C179BF-A3BD-4875-7F9F-AF11BDCF63FA}.Debug_Local|x86.ActiveCfg = Debug_Local|x86
+		{55C179BF-A3BD-4875-7F9F-AF11BDCF63FA}.Debug_Local|x86.Build.0 = Debug_Local|x86
+		{55C179BF-A3BD-4875-7F9F-AF11BDCF63FA}.Debug|ARM64.ActiveCfg = Debug|ARM64
+		{55C179BF-A3BD-4875-7F9F-AF11BDCF63FA}.Debug|ARM64.Build.0 = Debug|ARM64
+		{55C179BF-A3BD-4875-7F9F-AF11BDCF63FA}.Debug|x64.ActiveCfg = Debug|x64
+		{55C179BF-A3BD-4875-7F9F-AF11BDCF63FA}.Debug|x64.Build.0 = Debug|x64
+		{55C179BF-A3BD-4875-7F9F-AF11BDCF63FA}.Debug|x86.ActiveCfg = Debug|x86
+		{55C179BF-A3BD-4875-7F9F-AF11BDCF63FA}.Debug|x86.Build.0 = Debug|x86
+		{55C179BF-A3BD-4875-7F9F-AF11BDCF63FA}.Release|ARM64.ActiveCfg = Release|ARM64
+		{55C179BF-A3BD-4875-7F9F-AF11BDCF63FA}.Release|ARM64.Build.0 = Release|ARM64
+		{55C179BF-A3BD-4875-7F9F-AF11BDCF63FA}.Release|x64.ActiveCfg = Release|x64
+		{55C179BF-A3BD-4875-7F9F-AF11BDCF63FA}.Release|x64.Build.0 = Release|x64
+		{55C179BF-A3BD-4875-7F9F-AF11BDCF63FA}.Release|x86.ActiveCfg = Release|x86
+		{55C179BF-A3BD-4875-7F9F-AF11BDCF63FA}.Release|x86.Build.0 = Release|x86
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
