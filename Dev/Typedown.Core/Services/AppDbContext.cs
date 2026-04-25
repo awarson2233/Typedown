@@ -1,5 +1,6 @@
 ﻿using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using System.IO;
 using System.Threading.Tasks;
 using Typedown.Core.Models;
@@ -26,14 +27,62 @@ namespace Typedown.Core.Services
         protected override void OnConfiguring(DbContextOptionsBuilder options)
         {
             var builder = new SqliteConnectionStringBuilder() { DataSource = dbPath };
-            options.UseSqlite(builder.ConnectionString);
+            options
+                .UseSqlite(builder.ConnectionString)
+                .ConfigureWarnings(warnings => warnings.Ignore(RelationalEventId.PendingModelChangesWarning));
         }
 
         public async Task EnsureMigrateAsync()
         {
             lock (lockMigrateTask)
-                migrateTask ??= Database.MigrateAsync();
+                migrateTask ??= EnsureMigrateCoreAsync();
             await migrateTask;
+        }
+
+        private async Task EnsureMigrateCoreAsync()
+        {
+            await BootstrapLegacyMigrationHistoryAsync();
+            await Database.MigrateAsync();
+        }
+
+        private async Task BootstrapLegacyMigrationHistoryAsync()
+        {
+            if (!File.Exists(dbPath))
+                return;
+
+            var builder = new SqliteConnectionStringBuilder() { DataSource = dbPath };
+            await using var connection = new SqliteConnection(builder.ConnectionString);
+            await connection.OpenAsync();
+
+            var initialTables = new[] { "ExportConfig", "FileAccessHistory", "FolderAccessHistory", "ImageUploadConfig" };
+            foreach (var tableName in initialTables)
+            {
+                if (!await TableExistsAsync(connection, tableName))
+                    return;
+            }
+
+            await using var createHistory = connection.CreateCommand();
+            createHistory.CommandText =
+                "CREATE TABLE IF NOT EXISTS \"__EFMigrationsHistory\" (" +
+                "\"MigrationId\" TEXT NOT NULL CONSTRAINT \"PK___EFMigrationsHistory\" PRIMARY KEY, " +
+                "\"ProductVersion\" TEXT NOT NULL);";
+            await createHistory.ExecuteNonQueryAsync();
+
+            await using var insertInitialMigration = connection.CreateCommand();
+            insertInitialMigration.CommandText =
+                "INSERT OR IGNORE INTO \"__EFMigrationsHistory\" (\"MigrationId\", \"ProductVersion\") " +
+                "VALUES ('20230226122314_InitialCreate', '3.1.30');";
+            await insertInitialMigration.ExecuteNonQueryAsync();
+        }
+
+        private static async Task<bool> TableExistsAsync(SqliteConnection connection, string tableName)
+        {
+            await using var command = connection.CreateCommand();
+            command.CommandText = "SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name = $tableName;";
+            command.Parameters.AddWithValue("$tableName", tableName);
+
+            var result = await command.ExecuteScalarAsync();
+            return result is long count && count > 0;
         }
 
         public static Task<AppDbContext> Create()

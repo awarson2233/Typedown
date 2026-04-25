@@ -2,7 +2,6 @@
 using System.Reactive.Disposables;
 using Typedown.Core.Utilities;
 using Typedown.Core.ViewModels;
-using Typedown.XamlUI;
 using Windows.UI.Input;
 using Windows.UI.Xaml;
 using Windows.UI.Xaml.Controls;
@@ -63,7 +62,7 @@ namespace Typedown.Core.Controls
 
         private void OnMenuBarPointerEvent(object sender, Windows.UI.Xaml.Input.PointerRoutedEventArgs e)
         {
-            if (Settings.AppCompactMode && e.OriginalSource is Grid && XamlWindow.GetWindow(this) is XamlWindow window)
+            if (Settings.AppCompactMode && e.OriginalSource is Grid && ViewModel?.MainWindow != IntPtr.Zero)
             {
                 _ = Dispatcher.RunIdleAsync(() =>
                 {
@@ -73,14 +72,14 @@ namespace Typedown.Core.Controls
                     if (kind == PointerUpdateKind.LeftButtonPressed)
                     {
                         if ((DateTime.Now - prevLeftButtonPressedTime).TotalMilliseconds < PInvoke.GetDoubleClickTime())
-                            window.PostMessage((uint)PInvoke.WindowMessage.WM_NCLBUTTONDBLCLK, (uint)PInvoke.HitTestFlags.CAPTION, packedPoint);
+                            PInvoke.PostMessage(ViewModel.MainWindow, (uint)PInvoke.WindowMessage.WM_NCLBUTTONDBLCLK, (nint)PInvoke.HitTestFlags.CAPTION, packedPoint);
                         else
-                            window.PostMessage((uint)PInvoke.WindowMessage.WM_NCLBUTTONDOWN, (uint)PInvoke.HitTestFlags.CAPTION, packedPoint);
+                            PInvoke.PostMessage(ViewModel.MainWindow, (uint)PInvoke.WindowMessage.WM_NCLBUTTONDOWN, (nint)PInvoke.HitTestFlags.CAPTION, packedPoint);
                         prevLeftButtonPressedTime = DateTime.Now;
                     }
                     if (kind == PointerUpdateKind.RightButtonReleased)
                     {
-                        window.PostMessage((uint)PInvoke.WindowMessage.WM_NCRBUTTONUP, (uint)PInvoke.HitTestFlags.CAPTION, packedPoint);
+                        PInvoke.PostMessage(ViewModel.MainWindow, (uint)PInvoke.WindowMessage.WM_NCRBUTTONUP, (nint)PInvoke.HitTestFlags.CAPTION, packedPoint);
                     }
                 });
             }

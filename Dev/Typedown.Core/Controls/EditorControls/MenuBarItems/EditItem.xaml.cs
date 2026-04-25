@@ -34,7 +34,7 @@ namespace Typedown.Core.Controls.EditorControls.MenuBarItems
 
         private void OnLoaded(object sender, RoutedEventArgs e)
         {
-            var acc = this.GetService<IKeyboardAccelerator>();
+            var acc = this.GetService<Typedown.Core.Interfaces.IKeyboardAccelerator>();
             disposables.Add(acc.RegisterGlobal((s, e) =>
             {
                 handledKey ??= new()

@@ -43,7 +43,7 @@ namespace Typedown.Core.Controls.EditorControls.MenuBarItems
 
         private void RegisterMenuItemShortcut(Func<MenuFlyoutItem, bool> handler, ShortcutKey key, MenuFlyoutItem item)
         {
-            var acc = this.GetService<IKeyboardAccelerator>();
+            var acc = this.GetService<Typedown.Core.Interfaces.IKeyboardAccelerator>();
             item.KeyboardAcceleratorTextOverride = acc.GetShortcutKeyText(key);
             disposables.Add(acc.Register(key, (s, e) =>
             {

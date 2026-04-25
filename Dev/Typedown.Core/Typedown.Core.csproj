@@ -12,6 +12,13 @@
 		<DisableRuntimeMarshalling>true</DisableRuntimeMarshalling>
 		<EnableMsixTooling>true</EnableMsixTooling>
 		<GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+		<CsWinRTIncludes>
+			Microsoft.UI.Xaml;
+			Microsoft.UI.Xaml.CustomAttributes;
+			Microsoft.UI.Xaml.Controls;
+			Microsoft.UI.Xaml.Controls.AnimatedVisuals;
+			Microsoft.UI.Xaml.Controls.Primitives;
+		</CsWinRTIncludes>
 	</PropertyGroup>
 
 	<PropertyGroup Condition="'$(Platform)' == 'x64'">
@@ -31,10 +38,15 @@
 
 	<ItemGroup>
 		<PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="9.0.8" />
+		<PackageReference Include="Microsoft.Web.WebView2" Version="1.0.2849.39" />
 		<PackageReference Include="Microsoft.Windows.CsWinRT" Version="2.2.0" />
 		<PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
 		<PackageReference Include="PropertyChanged.Fody" Version="4.1.0" />
 		<PackageReference Include="System.Reactive" Version="6.0.2" />
-		<PackageReference Include="Typedown.XamlUI" Version="1.0.1" />
 	</ItemGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\..\..\Typedown.XamlUI\Typedown.XamlUI\Typedown.XamlUI.csproj" />
+	</ItemGroup>
+
 </Project>
