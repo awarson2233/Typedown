@@ -266,3 +266,9 @@ Debug_Local Resources\Statics\index.html: True
 
 - Worker A 抽取 legacy runtime UI state 为 `Dev\Typedown.Core.Contracts\EditorRuntime` 平台中立 DTO：`EditorFormatState`、`EditorMenuItemState`、`EditorMenuState`、`EditorParagraphState`、`EditorContentState`、`EditorTocItem`、`EditorWordCount`。
 - `EditorParagraphState.FromMenuState` 保留 legacy checked/enabled 计算路径，用于后续 1:1 UI 还原时脱离 `Typedown.Core`、WinUI/XAML host 复用菜单状态语义。
+- `EditorRuntime` DTO 显式锁定 legacy JSON bridge 字段名：`wordCount`、`toc`、`cur`、`word`、`character`、`slug`、`lvl`、`content`、`isSelected`，并覆盖 CodeMirror fallback 的数字 `slug` 到字符串兼容。
+
+## Phase 13 第二批: legacy 文本资源读取层
+
+第二批在 `Typedown.UI.Resources` 增加平台中立 legacy `.resw` 读取/索引层，当前只覆盖 `en`、`zh-Hans`、`zh-Hant` 的 `CommonResources`、`DialogResources`、`Resources`、`SettingsResources`。读取策略是运行时解析现有 `Dev/Typedown.Core/Resources/Strings` 下的 `.resw`，不复制 75 语言资源，不迁移 XAML `ResourceDictionary`、Style 或 Converter；索引过滤 `.resw` 模板样例 key，并支持未知 culture 与缺失 localized key 回退到 `en`。当前三种 culture 的四个目标 group key 集合一致，没有发现无法 1:1 承载的文本 key。
+补强测试覆盖 `en` / `zh-Hans` / `zh-Hant` 与四个资源 group 的 key count、key shape、模板 key 排除、DialogResources 真实 key、zh-Hant 差异文本、未知 culture fallback 和未知 key 返回 `null`。
