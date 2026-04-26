@@ -275,3 +275,18 @@ Debug_Local Resources\Statics\index.html: True
 
 第二批在 `Typedown.UI.Resources` 增加平台中立 legacy `.resw` 读取/索引层，当前只覆盖 `en`、`zh-Hans`、`zh-Hant` 的 `CommonResources`、`DialogResources`、`Resources`、`SettingsResources`。读取策略是运行时解析现有 `Dev/Typedown.Core/Resources/Strings` 下的 `.resw`，不复制 75 语言资源，不迁移 XAML `ResourceDictionary`、Style 或 Converter；索引过滤 `.resw` 模板样例 key，并支持未知 culture 与缺失 localized key 回退到 `en`。当前三种 culture 的四个目标 group key 集合一致，没有发现无法 1:1 承载的文本 key。
 补强测试覆盖 `en` / `zh-Hans` / `zh-Hant` 与四个资源 group 的 key count、key shape、模板 key 排除、DialogResources 真实 key、zh-Hant 差异文本、未知 culture fallback 和未知 key 返回 `null`。
+
+## Phase 13 file/shell visible state contract 状态
+
+本批新增 `Typedown.Core.Contracts.Shell` 平台中立 DTO：`FileUiState`、`ShellChromeState`、`ShellDocumentState`。范围只覆盖 legacy `FileViewModel` / app shell 可见状态快照，不接入文件系统、picker、dialog、navigation stack 或 XAML root。
+
+`FileUiState.FromValues` 保留 legacy `FileViewModel` 的派生语义：`FileName` 使用 `Path.GetFileName(filePath)`，因此 `null` 仍为 `null`、空字符串仍为空字符串；`ImageBasePath` 在 `filePath` 为 `null` 或空字符串时使用调用方传入的 default image path，有路径时使用 `Path.GetDirectoryName(filePath)`，不读取 `Config` 或设置服务。
+
+`ShellChromeState` 只记录低风险可见字段：`title`、`isSaved`、`displaySaved`、`isTopmost`、`captionHeight`、`compactMode`、`currentPageName`。JSON 字段名显式锁定为 legacy camelCase。
+
+验证记录：
+
+```text
+dotnet test .\Tests\Typedown.ArchitectureTests\Typedown.ArchitectureTests.csproj -c Debug /nologo /v:minimal: 58 passed
+dotnet build .\Dev\Typedown.Core.Contracts\Typedown.Core.Contracts.csproj -c Debug /nologo /v:minimal /m:1 /nodeReuse:false: 0 warnings, 0 errors
+```
