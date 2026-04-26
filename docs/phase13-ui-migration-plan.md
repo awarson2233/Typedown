@@ -261,3 +261,8 @@ Debug_Local Resources\Statics\index.html: True
 - `Typedown.WinUI` 仍拥有 WebView2 host、platform services、launch profiles 和 package manifest。
 - `Debug_Local|x64 + Unpackaged` 和 `Debug|x64` 构建路径均保持可用。
 - Phase 13 不改变 UI 布局，不删除 legacy `Typedown.XamlUI`，不处理 ARM64。
+
+## 第二批 runtime contract 状态
+
+- Worker A 抽取 legacy runtime UI state 为 `Dev\Typedown.Core.Contracts\EditorRuntime` 平台中立 DTO：`EditorFormatState`、`EditorMenuItemState`、`EditorMenuState`、`EditorParagraphState`、`EditorContentState`、`EditorTocItem`、`EditorWordCount`。
+- `EditorParagraphState.FromMenuState` 保留 legacy checked/enabled 计算路径，用于后续 1:1 UI 还原时脱离 `Typedown.Core`、WinUI/XAML host 复用菜单状态语义。
