@@ -110,6 +110,20 @@ public class Phase10CoreContractsBoundaryTests
     }
 
     [TestMethod]
+    public void WinUIDebugLocal_DisablesMsixDeploymentManagerAutoInitialization()
+    {
+        var projectSource = File.ReadAllText(Path.Combine(RepoRoot, "Dev", "Typedown.WinUI", "Typedown.WinUI.csproj"));
+        var debugLocalPropertyGroup = Regex.Match(
+            projectSource,
+            @"<PropertyGroup\s+Condition=""'\$\(Configuration\)'=='Debug_Local'"">(?<body>.*?)</PropertyGroup>",
+            RegexOptions.Singleline);
+
+        Assert.IsTrue(debugLocalPropertyGroup.Success, "Expected Debug_Local-specific WinUI project properties.");
+        AssertHasTypeReference(debugLocalPropertyGroup.Groups["body"].Value, "<WindowsPackageType>None</WindowsPackageType>");
+        AssertHasTypeReference(debugLocalPropertyGroup.Groups["body"].Value, "<AppxPackageSigningEnabled>false</AppxPackageSigningEnabled>");
+    }
+
+    [TestMethod]
     public void XamlDesignApp_DebugLocalMappingsPointToExistingDebugConfigurations()
     {
         var solutionSource = File.ReadAllText(Path.Combine(RepoRoot, "Typedown.sln"));

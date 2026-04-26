@@ -1,7 +1,7 @@
 [CmdletBinding()]
 param(
     [ValidateSet("CurrentUser", "LocalMachine", "All")]
-    [string]$Scope = "All"
+    [string]$Scope = "CurrentUser"
 )
 
 $ErrorActionPreference = "Stop"

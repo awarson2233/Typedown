@@ -29,6 +29,11 @@
         <RuntimeIdentifiers Condition="$([MSBuild]::GetTargetFrameworkVersion('$(TargetFramework)')) &lt; 8">win10-x64</RuntimeIdentifiers>
     </PropertyGroup>
 
+    <PropertyGroup Condition="'$(Configuration)'=='Debug_Local'">
+        <WindowsPackageType>None</WindowsPackageType>
+        <AppxPackageSigningEnabled>false</AppxPackageSigningEnabled>
+    </PropertyGroup>
+
     <ItemGroup>
         <Content Include="Assets\SplashScreen.scale-200.png" />
         <Content Include="Assets\LockScreenLogo.scale-200.png" />
