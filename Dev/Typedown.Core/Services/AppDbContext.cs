@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using System.IO;
 using System.Threading.Tasks;
+using Typedown.Core.Interfaces;
 using Typedown.Core.Models;
 
 namespace Typedown.Core.Services
@@ -18,11 +19,21 @@ namespace Typedown.Core.Services
         public DbSet<ImageUploadConfig> ImageUploadConfigs { get; set; }
 
 
-        private readonly string dbPath = Path.Combine(Config.GetLocalFolderPath(), "Storage.db");
+        private readonly string dbPath;
 
         private static readonly object lockMigrateTask = new();
 
         private static Task migrateTask;
+
+        public AppDbContext()
+            : this(null)
+        {
+        }
+
+        public AppDbContext(IAppDataPathProvider appDataPathProvider)
+        {
+            dbPath = (appDataPathProvider ?? Config.GetAppDataPathProvider()).GetDatabaseFilePath();
+        }
 
         protected override void OnConfiguring(DbContextOptionsBuilder options)
         {
@@ -85,11 +96,11 @@ namespace Typedown.Core.Services
             return result is long count && count > 0;
         }
 
-        public static Task<AppDbContext> Create()
+        public static Task<AppDbContext> Create(IAppDataPathProvider appDataPathProvider = null)
         {
             return Task.Run(async () =>
             {
-                var ctx = new AppDbContext();
+                var ctx = new AppDbContext(appDataPathProvider);
                 await ctx.EnsureMigrateAsync();
                 return ctx;
             });
