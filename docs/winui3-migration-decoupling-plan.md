@@ -10,6 +10,20 @@
 
 ---
 
+## 当前阶段状态
+
+- Phase 0：已完成。构建/运行基线、仓库检查脚本和 `Debug_Local|x64` 验证入口已建立。
+- Phase 1：已完成。XamlUI 相邻仓库依赖已文档化，主项目和 Core 项目已支持正常仓库路径与 worktree 路径解析。
+- Phase 2：已完成。AppData、settings、database、backup 路径已通过 `IAppDataPathProvider` 进入迁移期兼容边界。
+- Phase 3：待执行。抽出 dialog/file picker 服务。
+- Phase 4：待执行。抽出 UI dispatcher/window context。
+- Phase 5：已完成。编辑器 bridge 协议已文档化并从 `MarkdownEditor` 中收束到独立 bridge。
+- Phase 6：待执行。抽出单实例与激活服务。
+- Phase 7：待执行。只记录构建矩阵和 ARM64 风险，不做 ARM64 适配。
+- Phase 8：待执行。最小 WinUI3 shell spike，必须在 Phase 3/4/6 稳定后开始。
+
+Phase 3、Phase 4、Phase 6 必须串行推进。它们都会触碰 `Dev\Typedown\Injection.cs`，并且 Phase 4/6 会依赖前面已经稳定的 shell service 注册边界；不得并行创建实现分支。
+
 ## 当前基线
 
 - 主仓库：`D:\source\repos\Typedown`
@@ -129,7 +143,7 @@ git add docs\build-baseline.md docs\winui3-migration-decoupling-plan.md scripts\
 git commit -m "docs: freeze winui3 migration baseline"
 ```
 
-## Phase 1：治理 XamlUI 依赖
+## Phase 1：治理 XamlUI 依赖（已完成）
 
 **目标：** 不再让相邻 XamlUI 仓库成为隐式知识。
 
@@ -162,7 +176,7 @@ git add docs Dev\Typedown\Typedown.csproj Dev\Typedown.Core\Typedown.Core.csproj
 git commit -m "build: document xamlui dependency boundary"
 ```
 
-## Phase 2：抽出 AppData 与设置路径边界
+## Phase 2：抽出 AppData 与设置路径边界（已完成）
 
 **目标：** 让数据库、设置、备份路径不再直接依赖 UWP storage API。
 
@@ -274,7 +288,7 @@ dotnet test Tests\Typedown.Test\Typedown.Test.csproj --configuration Debug --no-
 未保存关闭
 ```
 
-## Phase 5：稳定编辑器 Bridge 协议
+## Phase 5：稳定编辑器 Bridge 协议（已完成）
 
 **目标：** 让 WebView 编辑器协议能被未来 WinUI3 shell 复用。
 
@@ -407,10 +421,10 @@ settings/db path 指向预期迁移位置
 
 ## 可并行工作流
 
-Phase 0 提交后，可以按以下工作流分配 subagent 或 worktree：
+Phase 0 提交后，可以按以下工作流分配 subagent 或 worktree。当前 Phase 1、Phase 2、Phase 5 已完成，后续应从 Phase 3 开始串行推进：
 
 - 构建/仓库治理：Phase 0、Phase 1、Phase 7。
-- 平台服务：Phase 2、Phase 3、Phase 4、Phase 6。
+- 平台服务：Phase 2 已完成；Phase 3、Phase 4、Phase 6 必须串行。
 - 编辑器 bridge：Phase 5。
 - WinUI3 spike：Phase 8，仅在平台服务和编辑器 bridge 稳定后开始。
 
@@ -423,7 +437,7 @@ Phase 0 提交后，可以按以下工作流分配 subagent 或 worktree：
 
 ## 推荐立即执行
 
-先执行 Phase 0。它风险低、范围小，并能给后续所有重构提供重复验证的 pass/fail gate。不要在基线脚本存在前开始 Phase 3 或 Phase 5，因为这两个阶段都可能破坏当前只能靠启动发现的行为。
+下一步执行 Phase 3。Phase 3 合并并通过 `Debug_Local|x64` 基线验证后，再创建 Phase 4 worktree；Phase 4 合并验证后，再创建 Phase 6 worktree。
 
 ## 正式 WinUI3 迁移前的完成标准
 
