@@ -1,6 +1,8 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 	<PropertyGroup>
-		<TypedownXamlUIProjectDir>..\..\..\Typedown.XamlUI\Typedown.XamlUI\</TypedownXamlUIProjectDir>
+		<TypedownXamlUIProjectDir Condition="'$(TypedownXamlUIProjectDir)' == '' and Exists('$(MSBuildProjectDirectory)\..\..\..\Typedown.XamlUI\Typedown.XamlUI\Typedown.XamlUI.csproj')">$(MSBuildProjectDirectory)\..\..\..\Typedown.XamlUI\Typedown.XamlUI\</TypedownXamlUIProjectDir>
+		<TypedownXamlUIProjectDir Condition="'$(TypedownXamlUIProjectDir)' == '' and Exists('$(MSBuildProjectDirectory)\..\..\..\..\Typedown.XamlUI\Typedown.XamlUI\Typedown.XamlUI.csproj')">$(MSBuildProjectDirectory)\..\..\..\..\Typedown.XamlUI\Typedown.XamlUI\</TypedownXamlUIProjectDir>
+		<TypedownXamlUIProjectDir Condition="'$(TypedownXamlUIProjectDir)' == ''">$(MSBuildProjectDirectory)\..\..\..\Typedown.XamlUI\Typedown.XamlUI\</TypedownXamlUIProjectDir>
 		<TypedownXamlUIProject>$(TypedownXamlUIProjectDir)Typedown.XamlUI.csproj</TypedownXamlUIProject>
 		<OutputType>Library</OutputType>
 		<TargetFramework>net9.0-windows10.0.26100.0</TargetFramework>

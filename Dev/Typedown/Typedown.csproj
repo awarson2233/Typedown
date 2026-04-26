@@ -1,7 +1,9 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk.WindowsDesktop">
 
 	<PropertyGroup>
-		<TypedownXamlUIProjectDir>..\..\..\Typedown.XamlUI\Typedown.XamlUI\</TypedownXamlUIProjectDir>
+		<TypedownXamlUIProjectDir Condition="'$(TypedownXamlUIProjectDir)' == '' and Exists('$(MSBuildProjectDirectory)\..\..\..\Typedown.XamlUI\Typedown.XamlUI\Typedown.XamlUI.csproj')">$(MSBuildProjectDirectory)\..\..\..\Typedown.XamlUI\Typedown.XamlUI\</TypedownXamlUIProjectDir>
+		<TypedownXamlUIProjectDir Condition="'$(TypedownXamlUIProjectDir)' == '' and Exists('$(MSBuildProjectDirectory)\..\..\..\..\Typedown.XamlUI\Typedown.XamlUI\Typedown.XamlUI.csproj')">$(MSBuildProjectDirectory)\..\..\..\..\Typedown.XamlUI\Typedown.XamlUI\</TypedownXamlUIProjectDir>
+		<TypedownXamlUIProjectDir Condition="'$(TypedownXamlUIProjectDir)' == ''">$(MSBuildProjectDirectory)\..\..\..\Typedown.XamlUI\Typedown.XamlUI\</TypedownXamlUIProjectDir>
 		<TypedownXamlUIProject>$(TypedownXamlUIProjectDir)Typedown.XamlUI.csproj</TypedownXamlUIProject>
 		<ManifestTool>C:\Program Files (x86)\Windows Kits\10\bin\10.0.26100.0\x86\mt.exe</ManifestTool>
 		<MakePri>C:\Program Files (x86)\Windows Kits\10\bin\10.0.26100.0\x86\makepri.exe</MakePri>
