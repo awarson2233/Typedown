@@ -2,6 +2,7 @@
 param(
     [string]$MainRepo = "D:\source\repos\Typedown",
     [string]$XamlUIRepo = "D:\source\repos\Typedown.XamlUI",
+    [string]$XamlUIProject,
     [string]$ExpectedBranch = "winui3-migration",
     [string]$ExpectedMainBranch,
     [string]$ExpectedXamlUIBranch,
@@ -77,6 +78,17 @@ function Test-Repo {
 }
 
 Test-Repo -Repo $MainRepo -Name "Typedown" -ExpectedRepoBranch $ExpectedMainBranch -AllowDirty:$AllowMainDirty.IsPresent
-Test-Repo -Repo $XamlUIRepo -Name "Typedown.XamlUI" -ExpectedRepoBranch $ExpectedXamlUIBranch -AllowDirty:$AllowXamlUIDirty.IsPresent
+
+if (-not $XamlUIProject) {
+    $XamlUIProject = Join-Path $MainRepo "Dev\Typedown.XamlUI\Typedown.XamlUI.csproj"
+}
+
+if (-not (Test-Path -LiteralPath $XamlUIProject)) {
+    throw "In-repo Typedown.XamlUI project not found: $XamlUIProject"
+}
+
+Write-Host "Typedown.XamlUI OK"
+Write-Host "  Project: $XamlUIProject"
+Write-Host "  Source: in-repo legacy XAML host"
 
 Write-Host "Repository verification completed."

@@ -191,7 +191,7 @@ namespace Typedown.Core.Models
             ContentChange(content);
         }
 #pragma warning disable CS0067
-        public event PropertyChangedEventHandler PropertyChanged;
+        public event PropertyChangedEventHandler? PropertyChanged;
 #pragma warning restore CS0067
     }
 

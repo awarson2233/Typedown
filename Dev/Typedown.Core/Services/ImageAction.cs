@@ -2,7 +2,7 @@
 using System;
 using System.IO;
 using System.Linq;
-using System.Net;
+using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
 using Typedown.Core.Interfaces;
@@ -15,11 +15,11 @@ namespace Typedown.Core.Services
     {
         public SettingsViewModel Settings { get; }
 
-        public AppViewModel AppViewModel => ServiceProvider.GetService<AppViewModel>();
+        public AppViewModel AppViewModel => ServiceProvider.GetRequiredService<AppViewModel>();
 
-        public FileViewModel FileViewModel => ServiceProvider.GetService<FileViewModel>();
+        public FileViewModel FileViewModel => ServiceProvider.GetRequiredService<FileViewModel>();
 
-        public IDialogService DialogService => ServiceProvider.GetService<IDialogService>();
+        public IDialogService DialogService => ServiceProvider.GetRequiredService<IDialogService>();
 
         private IServiceProvider ServiceProvider { get; }
 
@@ -158,7 +158,8 @@ namespace Typedown.Core.Services
 
         public async Task<byte[]> GetWebImage(Uri uri)
         {
-            return await Task.Run(() => new WebClient().DownloadData(uri));
+            using var client = new HttpClient();
+            return await client.GetByteArrayAsync(uri);
         }
 
         public string GetDefaultDestFolder(InsertImageSource source)

@@ -17,7 +17,7 @@ namespace Typedown.Core.Models
             Shift = shift;
         }
 
-        public override bool Equals(object obj) => obj is NumberUnit other && Equals(other);
+        public override bool Equals(object? obj) => obj is NumberUnit other && Equals(other);
 
         public bool Equals(NumberUnit unit) => unit.Name == Name && unit.Scale == Scale && unit.Shift == Shift;
 

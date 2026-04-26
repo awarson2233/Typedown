@@ -10,8 +10,13 @@ namespace Typedown.Services
 {
     public class AppActivationService : IAppActivationService, IDisposable
     {
-        private const string MutexName = "Typedown.App.Mutex";
-        private const string PipeName = "Typedown.App.PiPe";
+#if DEBUG_LOCAL
+        private const string ActivationScope = ".DebugLocal";
+#else
+        private const string ActivationScope = "";
+#endif
+        private const string MutexName = "Typedown.App.Mutex" + ActivationScope;
+        private const string PipeName = "Typedown.App.PiPe" + ActivationScope;
 
         private readonly Mutex mutex = new(false, MutexName);
         private readonly object syncRoot = new();

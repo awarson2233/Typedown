@@ -9,7 +9,7 @@
 - 当前主工作区位于 `D:\source\repos\Typedown`。
 - 当前分支为 `winui3-migration`。
 - Phase 0 文档和脚本已提交，作为所有 worktree 的共同起点。
-- `D:\source\repos\Typedown.XamlUI` 位于 `winui3-migration`，且工作区干净。
+- `Dev\Typedown.XamlUI` 随主仓库存在；不再要求相邻 `D:\source\repos\Typedown.XamlUI` 作为构建前置仓库。
 - `.\scripts\verify-baseline.ps1` 在主工作区通过。
 
 建议先提交 Phase 0：
@@ -41,9 +41,10 @@ worktrees/
 ## 当前执行状态
 
 - 已完成并合入 `winui3-migration`：`work/phase1-xamlui-dependency`、`work/phase2-appdata-paths`、`work/phase3-dialog-picker`、`work/phase4-dispatcher-window-context`、`work/phase5-editor-bridge`。
-- 当前串行阶段：`work/phase6-app-activation` 已完成实现并待主工作区 review/merge；下一步创建 `work/phase7-build-matrix`。
-- `work/phase7-build-matrix` 只记录构建矩阵和 ARM64 风险，不做 ARM64 适配。
-- `work/phase8-winui3-shell-spike` 只能在 Phase 3/4/6 稳定后开始。
+- 当前串行阶段：`work/phase6-app-activation` 已完成实现并待主工作区 review/merge；`work/phase7-build-matrix` 已在当前分支完成文档更新，下一步创建 `work/phase8-ui-winui-boundary`。
+- `work/phase7-build-matrix` 已记录构建矩阵和 ARM64 风险，不做 ARM64 适配。
+- `work/phase8-ui-winui-boundary` 固化 `Typedown.UI`、`Typedown.WinUI` 和 legacy XAML host 的职责，不迁移控件。
+- `work/phase9-winui3-shell-spike` 只能在 Phase 3/4/6/8 稳定后开始。
 
 Phase 6 会继续修改 `Dev\Typedown\Injection.cs` 和 shell service 注册。不得同时启动其他会触碰同一边界的实现 subagent。
 
@@ -75,7 +76,7 @@ git worktree add D:\source\repos\Typedown.worktrees\phase6-app-activation -b wor
 
 第一批已完成：
 
-- `work/phase1-xamlui-dependency`：治理 XamlUI 相邻仓库依赖。
+- `work/phase1-xamlui-dependency`：治理 XamlUI legacy host 依赖。
 - `work/phase2-appdata-paths`：抽出 AppData / settings / database path provider。
 - `work/phase3-dialog-picker`：抽出 dialog 和 picker 服务。
 - `work/phase4-dispatcher-window-context`：抽出 dispatcher 和 window context。
@@ -84,11 +85,12 @@ git worktree add D:\source\repos\Typedown.worktrees\phase6-app-activation -b wor
 第二批在第一批合并后串行推进：
 
 - `work/phase6-app-activation`：抽出单实例和激活服务。Phase 4 合并验证后执行。
-- `work/phase7-build-matrix`：只记录构建矩阵和 ARM64 风险，不适配 ARM64。
+- `work/phase7-build-matrix`：已记录构建矩阵和 ARM64 风险，不适配 ARM64。
+- `work/phase8-ui-winui-boundary`：固化 UI / WinUI / legacy host 模块边界。
 
 第三批最后推进：
 
-- `work/phase8-winui3-shell-spike`：创建最小 WinUI3 shell spike。
+- `work/phase9-winui3-shell-spike`：创建最小 WinUI3 shell spike。
 
 ## 文件所有权
 
@@ -201,7 +203,7 @@ git worktree add D:\source\repos\Typedown.worktrees\phase6-app-activation -b wor
 负责文件：
 
 - `docs/build-matrix.md`
-- 可选：`scripts/inspect-build-matrix.ps1`
+- `scripts/inspect-build-matrix.ps1`
 
 禁止修改：
 
@@ -217,6 +219,25 @@ git worktree add D:\source\repos\Typedown.worktrees\phase6-app-activation -b wor
 - ARM64 适配必须推迟到 WinUI3 shell 切换后。
 - 当前阶段只记录 solution/package 配置风险。
 
+### Phase 8: UI / WinUI / Legacy Host Boundary
+
+负责文件：
+
+- `docs\winui3-migration-decoupling-plan.md`
+- `docs\subagent-worktree-execution-plan.md`
+- `docs\xamlui-dependency.md`
+- 可选：`docs\winui3-target-architecture.md`
+
+约束：
+
+- 不把当前 `Typedown.XamlUI` 重命名为 `Typedown.UI`。
+- 当前 `Typedown.XamlUI` 只定位为 legacy XAML host / 旧 XAML 宿主层。
+- `Typedown.UI` 是未来 WinUI3 迁移后的页面、控件、资源、UI ViewModel 和 UI 编排模块。
+- `Typedown.WinUI` 是未来 WinUI3 壳层，负责 App/Window、DI composition root、平台服务实现、WebView2 host 和打包。
+- 不移动旧 UWP XAML 控件到 `Typedown.UI`，避免把 `Windows.UI.Xaml` 污染到目标模块。
+- 不做 ARM64 适配。
+- 不升级 React、CRA、TypeScript 或前端依赖。
+
 ## Subagent 分工
 
 每个 worktree 使用一个实现 subagent。实现 subagent 必须只在自己的 worktree 内修改文件，不得回到主工作区写文件。
@@ -225,7 +246,7 @@ git worktree add D:\source\repos\Typedown.worktrees\phase6-app-activation -b wor
 
 ```text
 Subagent A: Phase 1 XamlUI dependency governance
-目标：文档化并显式检查相邻 XamlUI 依赖。
+目标：文档化并显式检查 XamlUI legacy host 依赖。
 Worktree: D:\source\repos\Typedown.worktrees\phase1-xamlui-dependency
 Branch: work/phase1-xamlui-dependency
 验证：.\scripts\verify-repos.ps1 ; .\scripts\verify-baseline.ps1 -SkipEditorBuild
@@ -275,7 +296,8 @@ review 可以用新的 subagent 完成，但 reviewer 只能只读扫描，不�
 5. `work/phase4-dispatcher-window-context`
 6. `work/phase6-app-activation`
 7. `work/phase7-build-matrix`
-8. `work/phase8-winui3-shell-spike`
+8. `work/phase8-ui-winui-boundary`
+9. `work/phase9-winui3-shell-spike`
 
 原因：
 
@@ -283,7 +305,8 @@ review 可以用新的 subagent 完成，但 reviewer 只能只读扫描，不�
 - Phase 2 会先动 `Injection.cs` 和路径基础设施，应早于 dialog/picker。
 - Phase 5 与 Phase 2 基本独立，但会动 `MarkdownEditor` 和 bridge，不应和 UI dispatcher/window context 同时合并。
 - Phase 3、4、6 都会碰服务注册和窗口/平台接口，必须串行。当前 Phase 4 已完成，下一步从 Phase 6 开始。
-- Phase 7 不做 ARM64 适配，只在 WinUI3 前记录风险，因此可以放到服务边界稳定后再补。
+- Phase 7 不做 ARM64 适配，只在 WinUI3 前记录风险；当前已作为文档阶段完成。
+- Phase 8 是架构命名和依赖方向治理，应先于任何 WinUI3 shell 项目创建。
 
 ## 集成流程
 
@@ -337,5 +360,5 @@ git branch -d work/phase1-xamlui-dependency
 
 1. 主工作区 review 并合并 `work/phase6-app-activation`。
 2. 在主工作区运行基线验证并补做单实例/激活 smoke。
-3. 从当前 `winui3-migration` 创建 `work/phase7-build-matrix`。
-4. 只记录构建矩阵与 ARM64 风险，不做 ARM64 适配。
+3. 从当前 `winui3-migration` 创建 `work/phase8-ui-winui-boundary`。
+4. Phase 8 只固化 `Typedown.UI` / `Typedown.WinUI` / legacy host 边界，不移动旧控件。

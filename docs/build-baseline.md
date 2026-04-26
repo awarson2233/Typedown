@@ -12,16 +12,14 @@
 - 当前基线提交：`a4aef049af87a972a036822e10d758ecf9c78820`
 - 提交说明：`Fix VS solution build ordering for XamlUI`
 
-XamlUI 仓库：
+XamlUI legacy host：
 
-- 路径：`D:\source\repos\Typedown.XamlUI`
-- 分支：`winui3-migration`
-- fork remote：`awarson2233 https://github.com/awarson2233/Typedown.XamlUI`
-- 当前基线提交：`e137473c5c7a1b2650fc9ce2a13ab98ad5de520d`
-- 提交说明：`Restore net9 XamlUI host compatibility`
+- 路径：`D:\source\repos\Typedown\Dev\Typedown.XamlUI`
+- 来源：`D:\source\repos\Typedown.XamlUI` 的 `work/vs-debug-build-fixes` 状态
+- 纳入方式：源码纳入主仓库，不保留外部 `.git`，不提交 `bin` / `obj`
 
-当前主项目不是自包含构建。`Dev\Typedown\Typedown.csproj` 和 `Dev\Typedown.Core\Typedown.Core.csproj` 都依赖相邻目录 `D:\source\repos\Typedown.XamlUI`。
-该依赖的边界、预期路径/分支/commit、props/targets 与运行时复制文件请见 [xamlui-dependency.md](./xamlui-dependency.md)。
+当前主项目已经把 `Typedown.XamlUI` 纳入仓库内 legacy host 路径。`Dev\Typedown\Typedown.csproj` 和 `Dev\Typedown.Core\Typedown.Core.csproj` 都引用 `Dev\Typedown.XamlUI\Typedown.XamlUI.csproj`。
+该依赖的边界、props/targets 与运行时复制文件请见 [xamlui-dependency.md](./xamlui-dependency.md)。
 
 ## 配置含义
 
@@ -88,29 +86,29 @@ D:\source\repos\Typedown\Dev\Typedown\bin\x64\Debug_Local\net9.0-windows10.0.261
 .\scripts\verify-repos.ps1 -AllowMainDirty
 ```
 
-在支线 worktree 中检查时，应分别指定主仓库分支和 XamlUI 分支：
+在支线 worktree 中检查时，只需要指定主仓库分支；XamlUI 已随 worktree 存在于仓库内：
 
 ```powershell
-.\scripts\verify-repos.ps1 -MainRepo D:\source\repos\Typedown.worktrees\phase1-xamlui-dependency -ExpectedMainBranch work/phase1-xamlui-dependency -ExpectedXamlUIBranch winui3-migration
+.\scripts\verify-repos.ps1 -MainRepo D:\source\repos\Typedown.worktrees\phase8-ui-winui-boundary -ExpectedMainBranch work/phase8-ui-winui-boundary
 ```
 
 支线 worktree 中运行基线构建时同样需要指定分支：
 
 ```powershell
-.\scripts\verify-baseline.ps1 -RepoRoot D:\source\repos\Typedown.worktrees\phase1-xamlui-dependency -ExpectedMainBranch work/phase1-xamlui-dependency -ExpectedXamlUIBranch winui3-migration -SkipEditorBuild
+.\scripts\verify-baseline.ps1 -RepoRoot D:\source\repos\Typedown.worktrees\phase8-ui-winui-boundary -ExpectedMainBranch work/phase8-ui-winui-boundary -SkipEditorBuild
 ```
 
 严格模式要求：
 
 - 主仓库在 `winui3-migration`。
-- XamlUI 仓库在 `winui3-migration`。
-- 两个仓库均存在 git metadata。
-- 两个仓库均有 `awarson2233` remote。
-- 默认要求两个工作区干净。
+- 主仓库存在 git metadata。
+- 主仓库有 `awarson2233` remote。
+- `Dev\Typedown.XamlUI\Typedown.XamlUI.csproj` 存在。
+- 默认要求主工作区干净。
 
 ## 当前风险
 
-- XamlUI 仍是相邻仓库依赖，不是 submodule/subtree，也不是固定 NuGet。
+- XamlUI 已纳入主仓库，但仍是 legacy XAML host，不是长期 `Typedown.UI` 模块。
 - `Debug|x64` 依赖前端 dev server，不能作为稳定基线。
 - `Debug_Local|x64` 依赖 `Resources\Statics` 已存在且可加载。
 - ARM64 配置不能从 solution 下拉框推断；正式 ARM64 适配推迟到 WinUI3 shell 切换后。
@@ -131,7 +129,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\verify-baseline.ps
 
 - `verify-repos.ps1 -AllowMainDirty` 返回 exit 0。
 - 主仓库位于 `winui3-migration`，HEAD 为 `a4aef049af87a972a036822e10d758ecf9c78820`。
-- XamlUI 仓库位于 `winui3-migration`，HEAD 为 `e137473c5c7a1b2650fc9ce2a13ab98ad5de520d`。
+- XamlUI legacy host 位于 `Dev\Typedown.XamlUI`，由 `verify-repos.ps1` 检查项目文件存在。
 - `yarn build` 返回 exit 0，并重新生成 `Dev\Typedown\Resources\Statics`。
 - `Debug_Local|x64` MSBuild 返回 exit 0。
 - 生成的可执行文件存在：`Dev\Typedown\bin\x64\Debug_Local\net9.0-windows10.0.26100.0\win-x64\Typedown.exe`。

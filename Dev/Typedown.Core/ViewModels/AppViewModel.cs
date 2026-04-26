@@ -16,19 +16,19 @@ namespace Typedown.Core.ViewModels
     {
         public IServiceProvider ServiceProvider { get; }
 
-        public EditorViewModel EditorViewModel => ServiceProvider.GetService<EditorViewModel>();
+        public EditorViewModel EditorViewModel => ServiceProvider.GetRequiredService<EditorViewModel>();
 
-        public FileViewModel FileViewModel => ServiceProvider.GetService<FileViewModel>();
+        public FileViewModel FileViewModel => ServiceProvider.GetRequiredService<FileViewModel>();
 
-        public FloatViewModel FloatViewModel => ServiceProvider.GetService<FloatViewModel>();
+        public FloatViewModel FloatViewModel => ServiceProvider.GetRequiredService<FloatViewModel>();
 
-        public FormatViewModel FormatViewModel => ServiceProvider.GetService<FormatViewModel>();
+        public FormatViewModel FormatViewModel => ServiceProvider.GetRequiredService<FormatViewModel>();
 
-        public ParagraphViewModel ParagraphViewModel => ServiceProvider.GetService<ParagraphViewModel>();
+        public ParagraphViewModel ParagraphViewModel => ServiceProvider.GetRequiredService<ParagraphViewModel>();
 
-        public SettingsViewModel SettingsViewModel => ServiceProvider.GetService<SettingsViewModel>();
+        public SettingsViewModel SettingsViewModel => ServiceProvider.GetRequiredService<SettingsViewModel>();
 
-        public UIViewModel UIViewModel => ServiceProvider.GetService<UIViewModel>();
+        public UIViewModel UIViewModel => ServiceProvider.GetRequiredService<UIViewModel>();
 
         public IReadOnlyList<Frame> FrameStack { get; set; } = new List<Frame>();
 
@@ -36,9 +36,9 @@ namespace Typedown.Core.ViewModels
 
         public Command<string> NavigateCommand { get; } = new();
 
-        public IMarkdownEditor MarkdownEditor => ServiceProvider.GetService<IMarkdownEditor>();
+        public IMarkdownEditor MarkdownEditor => ServiceProvider.GetRequiredService<IMarkdownEditor>();
 
-        public IWindowContext WindowContext => ServiceProvider.GetService<IWindowContext>();
+        public IWindowContext WindowContext => ServiceProvider.GetRequiredService<IWindowContext>();
 
         public string[] CommandLineArgs { get; set; } = Environment.GetCommandLineArgs();
 
@@ -54,11 +54,10 @@ namespace Typedown.Core.ViewModels
 
         public XamlRoot XamlRoot
         {
-            get => WindowContext?.ViewRoot as XamlRoot;
+            get => WindowContext.ViewRoot as XamlRoot ?? throw new InvalidOperationException("XamlRoot is not initialized.");
             set
             {
-                if (WindowContext != null)
-                    WindowContext.ViewRoot = value;
+                WindowContext.ViewRoot = value;
             }
         }
 
@@ -94,7 +93,7 @@ namespace Typedown.Core.ViewModels
         public static List<AppViewModel> GetInstances()
         {
             lock (instances)
-                return instances.Select(x => x.TryGetTarget(out var val) ? val : null).Where(x => x != null).ToList();
+                return instances.Select(x => x.TryGetTarget(out var val) ? val : null).OfType<AppViewModel>().ToList();
         }
     }
 }
