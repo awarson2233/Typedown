@@ -1,82 +1,39 @@
-using System.Text;
+using System;
+using System.Collections.Generic;
 using System.Text.Json;
+using Typedown.Core.Contracts.Editor;
 
 namespace Typedown.WinUI.Controls
 {
     internal sealed class WinUIEditorBridgeAdapter
     {
-        private readonly Dictionary<string, Func<JsonElement?, object?>> invokeHandlers;
-        private readonly Dictionary<string, string> diffCache = new(StringComparer.Ordinal);
-        private readonly string smokeMarkdown;
-        private readonly string basePath;
-
-        public WinUIEditorBridgeAdapter(string? smokeMarkdown = null, string? basePath = null)
+        private static readonly HashSet<string> SessionBackedEvents = new(StringComparer.Ordinal)
         {
-            this.smokeMarkdown = string.IsNullOrWhiteSpace(smokeMarkdown) ? GetDefaultSmokeMarkdown() : smokeMarkdown;
-            this.basePath = string.IsNullOrWhiteSpace(basePath) ? AppContext.BaseDirectory : basePath;
+            "FileLoaded",
+            "MarkdownChange",
+            "CursorChange",
+            "StateChange"
+        };
 
-            invokeHandlers = new Dictionary<string, Func<JsonElement?, object?>>(StringComparer.Ordinal)
-            {
-                ["GetCurrentTheme"] = _ => CreateThemePayload(),
-                ["ContentLoaded"] = _ =>
-                {
-                    IsContentLoaded = true;
-                    LastEventName = "ContentLoaded";
-                    return "WinUI editor content loaded.";
-                },
-                ["ExportCallback"] = args =>
-                {
-                    LastEventName = "ExportCallback";
-                    LastRawMessage = FormatArgs(args);
-                    return true;
-                },
-                ["PrintHTML"] = args =>
-                {
-                    LastEventName = "PrintHTML";
-                    LastRawMessage = FormatArgs(args);
-                    return true;
-                },
-                ["ResizeTable"] = args => CreateResizeTablePayload(args),
-                ["LoadImage"] = args => CreateLoadImagePayload(args),
-                ["GetStringResources"] = args => CreateStringResources(args),
-                ["GetSettings"] = _ => CreateSettingsPayload(),
-                ["SetClipboard"] = args =>
-                {
-                    LastEventName = "SetClipboard";
-                    LastRawMessage = FormatArgs(args);
-                    return true;
-                },
-                ["OpenNewWindow"] = args =>
-                {
-                    LastEventName = "OpenNewWindow";
-                    LastRawMessage = FormatArgs(args);
-                    return true;
-                },
-                ["UnhandledException"] = args =>
-                {
-                    LastEventName = "UnhandledException";
-                    LastRawMessage = FormatArgs(args);
-                    return null;
-                }
-            };
+        private readonly Dictionary<string, string> diffCache = new(StringComparer.Ordinal);
+        private readonly IEditorDocumentSession documentSession;
 
+        public WinUIEditorBridgeAdapter(IEditorDocumentSession documentSession)
+        {
+            this.documentSession = documentSession ?? throw new ArgumentNullException(nameof(documentSession));
             LastEventName = "Waiting";
             LastRawMessage = "No editor message received yet.";
         }
 
         public bool IsContentLoaded { get; private set; }
 
-        public bool IsFileLoaded { get; private set; }
+        public bool IsFileLoaded => documentSession.State.IsLoaded;
 
-        public int CurrentMarkdownLength { get; private set; }
+        public int CurrentMarkdownLength => documentSession.State.Text.Length;
 
         public string LastEventName { get; private set; }
 
         public string LastRawMessage { get; private set; }
-
-        public string SmokeMarkdown => smokeMarkdown;
-
-        public string BasePath => basePath;
 
         public string StatusText =>
             $"Loaded={IsContentLoaded}; FileLoaded={IsFileLoaded}; MarkdownLength={CurrentMarkdownLength}; LastEvent={LastEventName}";
@@ -84,9 +41,8 @@ namespace Typedown.WinUI.Controls
         public void ResetForNavigation()
         {
             IsContentLoaded = false;
-            IsFileLoaded = false;
-            CurrentMarkdownLength = 0;
             LastEventName = "Waiting";
+            LastRawMessage = "No editor message received yet.";
             diffCache.Clear();
         }
 
@@ -154,13 +110,12 @@ namespace Typedown.WinUI.Controls
 
             try
             {
-                if (!invokeHandlers.TryGetValue(name, out var handler))
+                var data = documentSession.HandleRemoteInvoke(name, args);
+                if (string.Equals(name, "ContentLoaded", StringComparison.Ordinal))
                 {
-                    Send(sender, id, new { code = 1, msg = $"function [{name}] does not exist" });
-                    return;
+                    IsContentLoaded = true;
                 }
 
-                var data = handler(args);
                 Send(sender, id, new { code = 0, data });
             }
             catch (Exception ex)
@@ -171,18 +126,13 @@ namespace Typedown.WinUI.Controls
 
         private void HandleMessage(JsonElement root)
         {
-            var name = root.TryGetProperty("name", out var nameElement) && nameElement.ValueKind == JsonValueKind.String
-                ? nameElement.GetString()
-                : null;
-
-            if (string.IsNullOrWhiteSpace(name))
+            var message = TryCreateEventMessage(root, "MalformedMessage");
+            if (message is null)
             {
-                LastEventName = "MalformedMessage";
                 return;
             }
 
-            var args = root.TryGetProperty("args", out var argsElement) ? argsElement.Clone() : (JsonElement?)null;
-            UpdateEventState(name, args);
+            HandleEditorEvent(message);
         }
 
         private void HandleDiffMessage(JsonElement root)
@@ -237,7 +187,7 @@ namespace Typedown.WinUI.Controls
             try
             {
                 using var argsDocument = JsonDocument.Parse(diffCache[name]);
-                UpdateEventState(name, argsDocument.RootElement.Clone());
+                HandleEditorEvent(new EditorEventMessage(name, argsDocument.RootElement.Clone()));
             }
             catch
             {
@@ -245,193 +195,36 @@ namespace Typedown.WinUI.Controls
             }
         }
 
-        private void UpdateEventState(string name, JsonElement? args)
+        private EditorEventMessage? TryCreateEventMessage(JsonElement root, string malformedName)
         {
-            LastEventName = name;
+            var name = root.TryGetProperty("name", out var nameElement) && nameElement.ValueKind == JsonValueKind.String
+                ? nameElement.GetString()
+                : null;
 
-            switch (name)
+            if (string.IsNullOrWhiteSpace(name))
             {
-                case "FileLoaded":
-                    IsFileLoaded = true;
-                    CurrentMarkdownLength = ReadMarkdownLength(args);
-                    break;
-                case "MarkdownChange":
-                    CurrentMarkdownLength = ReadMarkdownLength(args);
-                    break;
-                case "CursorChange":
-                case "StateChange":
-                    break;
-            }
-        }
-
-        private int ReadMarkdownLength(JsonElement? args)
-        {
-            if (args is not JsonElement element || element.ValueKind != JsonValueKind.Object)
-            {
-                return CurrentMarkdownLength;
-            }
-
-            if (!element.TryGetProperty("text", out var textElement) || textElement.ValueKind != JsonValueKind.String)
-            {
-                return CurrentMarkdownLength;
-            }
-
-            return textElement.GetString()?.Length ?? 0;
-        }
-
-        private object CreateSettingsPayload()
-        {
-            return new
-            {
-                markdown = smokeMarkdown,
-                basePath,
-                sourceCode = false,
-                fontSize = 16,
-                lineHeight = 1.6,
-                tabSize = 4,
-                focusMode = false,
-                typewriter = false,
-                trimUnnecessaryCodeBlockEmptyLines = false,
-                preferLooseListItem = true,
-                autoPairBracket = true,
-                autoPairMarkdownSyntax = true,
-                autoPairQuote = true,
-                bulletListMarker = "-",
-                orderListDelimiter = ".",
-                codeBlockLineNumbers = false,
-                listIndentation = 1,
-                frontmatterType = "-",
-                sequenceTheme = "simple",
-                mermaidTheme = "default",
-                vegaTheme = "latimes",
-                hideQuickInsertHint = false,
-                hideLinkPopup = false,
-                autoCheck = false,
-                spellcheckEnabled = false,
-                superSubScript = false,
-                footnote = true,
-                isGitlabCompatibilityEnabled = false,
-                disableHtml = false,
-                editorAreaWidth = "880px"
-            };
-        }
-
-        private static object CreateThemePayload()
-        {
-            return new
-            {
-                theme = "Light",
-                accentColor = new { r = 27, g = 102, b = 107, a = 1 },
-                background = new { R = 249, G = 249, B = 249, A = 1 }
-            };
-        }
-
-        private static Dictionary<string, string> CreateStringResources(JsonElement? args)
-        {
-            var resources = new Dictionary<string, string>(StringComparer.Ordinal);
-
-            if (args is not JsonElement element || element.ValueKind != JsonValueKind.Object)
-            {
-                return resources;
-            }
-
-            if (!element.TryGetProperty("names", out var namesElement) || namesElement.ValueKind != JsonValueKind.Array)
-            {
-                return resources;
-            }
-
-            foreach (var entry in namesElement.EnumerateArray())
-            {
-                if (entry.ValueKind != JsonValueKind.String)
-                {
-                    continue;
-                }
-
-                var key = entry.GetString();
-                if (!string.IsNullOrEmpty(key))
-                {
-                    resources[key] = key;
-                }
-            }
-
-            return resources;
-        }
-
-        private static object CreateResizeTablePayload(JsonElement? args)
-        {
-            var row = ReadIntProperty(args, "row");
-            var column = ReadIntProperty(args, "column");
-            var rows = ReadIntProperty(args, "rows");
-            var columns = ReadIntProperty(args, "columns");
-
-            return new
-            {
-                row = row ?? rows ?? 0,
-                column = column ?? columns ?? 0,
-                rows = rows ?? row ?? 0,
-                columns = columns ?? column ?? 0
-            };
-        }
-
-        private static object CreateLoadImagePayload(JsonElement? args)
-        {
-            return new
-            {
-                url = ReadStringProperty(args, "url") ?? string.Empty
-            };
-        }
-
-        private static int? ReadIntProperty(JsonElement? args, string propertyName)
-        {
-            if (args is not JsonElement element || element.ValueKind != JsonValueKind.Object)
-            {
+                LastEventName = malformedName;
                 return null;
             }
 
-            return element.TryGetProperty(propertyName, out var property) && property.TryGetInt32(out var value)
-                ? value
-                : null;
+            var args = root.TryGetProperty("args", out var argsElement) ? argsElement.Clone() : (JsonElement?)null;
+            return new EditorEventMessage(name, args);
         }
 
-        private static string? ReadStringProperty(JsonElement? args, string propertyName)
+        private void HandleEditorEvent(EditorEventMessage message)
         {
-            if (args is not JsonElement element || element.ValueKind != JsonValueKind.Object)
+            if (SessionBackedEvents.Contains(message.Name))
             {
-                return null;
+                documentSession.HandleEditorEvent(message);
             }
 
-            return element.TryGetProperty(propertyName, out var property) && property.ValueKind == JsonValueKind.String
-                ? property.GetString()
-                : null;
-        }
-
-        private static string FormatArgs(JsonElement? args)
-        {
-            if (args is not JsonElement element)
-            {
-                return string.Empty;
-            }
-
-            return element.GetRawText();
+            LastEventName = message.Name;
         }
 
         private static void Send(Func<string, bool> sender, string name, object args)
         {
             var payload = JsonSerializer.Serialize(new { name, args });
             _ = sender(payload);
-        }
-
-        private static string GetDefaultSmokeMarkdown()
-        {
-            var builder = new StringBuilder();
-            builder.AppendLine("# Typedown WinUI Phase 11");
-            builder.AppendLine();
-            builder.AppendLine("This smoke document proves the WinUI editor host can open and edit markdown.");
-            builder.AppendLine();
-            builder.AppendLine("- Bridge invoke handlers respond locally inside `Typedown.WinUI`.");
-            builder.AppendLine("- `LoadFile` provides an explicit open-document path after navigation.");
-            builder.AppendLine("- Real `Typedown.Core` document/save/export integration remains later work.");
-            return builder.ToString();
         }
     }
 }

@@ -19,6 +19,7 @@ public class Phase10CoreContractsBoundaryTests
         AssertNoTypeReference(source, "UseUwp");
         AssertNoTypeReference(source, "CsWinRT");
         AssertNoTypeReference(source, "Typedown.XamlUI");
+        AssertNoTypeReference(source, "WebView2");
     }
 
     [TestMethod]
@@ -30,6 +31,33 @@ public class Phase10CoreContractsBoundaryTests
         Assert.IsTrue(File.Exists(Path.Combine(RepoRoot, "Dev", "Typedown.Core.Contracts", "Interfaces", "IUiDispatcher.cs")));
         Assert.IsTrue(File.Exists(Path.Combine(RepoRoot, "Dev", "Typedown.Core.Contracts", "Interfaces", "IWindowContext.cs")));
         Assert.IsTrue(File.Exists(Path.Combine(RepoRoot, "Dev", "Typedown.Core.Contracts", "Interfaces", "IAppActivationService.cs")));
+        Assert.IsTrue(File.Exists(Path.Combine(RepoRoot, "Dev", "Typedown.Core.Contracts", "Editor", "IEditorDocumentSession.cs")));
+        Assert.IsTrue(File.Exists(Path.Combine(RepoRoot, "Dev", "Typedown.Core.Contracts", "Editor", "EditorDocumentState.cs")));
+        Assert.IsTrue(File.Exists(Path.Combine(RepoRoot, "Dev", "Typedown.Core.Contracts", "Editor", "EditorSettingsSnapshot.cs")));
+        Assert.IsTrue(File.Exists(Path.Combine(RepoRoot, "Dev", "Typedown.Core.Contracts", "Editor", "EditorSettingsPayload.cs")));
+        Assert.IsTrue(File.Exists(Path.Combine(RepoRoot, "Dev", "Typedown.Core.Contracts", "Editor", "EditorEventMessage.cs")));
+        Assert.IsTrue(File.Exists(Path.Combine(RepoRoot, "Dev", "Typedown.Core.Contracts", "Editor", "EditorHostMessage.cs")));
+    }
+
+    [TestMethod]
+    public void EditorContracts_StayPlatformNeutralAndAvoidLegacyDependencies()
+    {
+        var editorFiles = Directory
+            .EnumerateFiles(Path.Combine(RepoRoot, "Dev", "Typedown.Core.Contracts", "Editor"), "*.cs", SearchOption.TopDirectoryOnly)
+            .ToArray();
+
+        Assert.IsTrue(editorFiles.Length >= 6, "Expected the Phase 11 editor contract surface.");
+
+        foreach (var file in editorFiles)
+        {
+            var source = File.ReadAllText(file);
+
+            AssertNoTypeReference(source, "Microsoft.UI");
+            AssertNoTypeReference(source, "Windows.UI.Xaml");
+            AssertNoTypeReference(source, "WebView2");
+            AssertNoTypeReference(source, "Typedown.XamlUI");
+            AssertNoTypeReference(source, "Newtonsoft");
+        }
     }
 
     [TestMethod]
@@ -203,13 +231,16 @@ public class Phase10CoreContractsBoundaryTests
     {
         var hostPath = Path.Combine(RepoRoot, "Dev", "Typedown.WinUI", "Controls", "WinUIEditorHost.cs");
         var adapterPath = Path.Combine(RepoRoot, "Dev", "Typedown.WinUI", "Controls", "WinUIEditorBridgeAdapter.cs");
+        var sessionPath = Path.Combine(RepoRoot, "Dev", "Typedown.WinUI", "Controls", "WinUIEditorDocumentSession.cs");
         var projectSource = File.ReadAllText(Path.Combine(RepoRoot, "Dev", "Typedown.WinUI", "Typedown.WinUI.csproj"));
         var pageSource = File.ReadAllText(Path.Combine(RepoRoot, "Dev", "Typedown.WinUI", "Views", "MainPage.xaml"));
         var hostSource = File.ReadAllText(hostPath);
         var adapterSource = File.ReadAllText(adapterPath);
+        var sessionSource = File.ReadAllText(sessionPath);
 
         Assert.IsTrue(File.Exists(hostPath), "Expected the Phase 11 WinUI editor host.");
         Assert.IsTrue(File.Exists(adapterPath), "Expected the Phase 11 WinUI editor bridge adapter.");
+        Assert.IsTrue(File.Exists(sessionPath), "Expected the Phase 11 local editor document session.");
         AssertHasTypeReference(hostSource, "WebView2");
         AssertHasTypeReference(hostSource, "WebMessageReceived");
         AssertHasTypeReference(hostSource, "PostWebMessageAsString");
@@ -219,6 +250,7 @@ public class Phase10CoreContractsBoundaryTests
         AssertHasTypeReference(hostSource, "LoadFile");
         AssertHasTypeReference(hostSource, "IsContentLoaded");
         AssertHasTypeReference(hostSource, "TrySendPendingLoadFile");
+        AssertHasTypeReference(hostSource, "IEditorDocumentSession");
         AssertHasTypeReference(hostSource, "AreDefaultContextMenusEnabled = false");
         AssertHasTypeReference(hostSource, "AreBrowserAcceleratorKeysEnabled = false");
         AssertHasTypeReference(hostSource, "AreDevToolsEnabled = false");
@@ -230,26 +262,36 @@ public class Phase10CoreContractsBoundaryTests
         AssertNoTypeReference(hostSource, "Task.Delay(250)");
         AssertHasTypeReference(projectSource, @"..\Typedown\Resources\Statics\**");
         AssertHasTypeReference(pageSource, "WinUIEditorHost");
-        AssertHasTypeReference(adapterSource, "GetCurrentTheme");
-        AssertHasTypeReference(adapterSource, "ContentLoaded");
-        AssertHasTypeReference(adapterSource, "ExportCallback");
-        AssertHasTypeReference(adapterSource, "PrintHTML");
-        AssertHasTypeReference(adapterSource, "ResizeTable");
-        AssertHasTypeReference(adapterSource, "LoadImage");
-        AssertHasTypeReference(adapterSource, "GetStringResources");
-        AssertHasTypeReference(adapterSource, "GetSettings");
-        AssertHasTypeReference(adapterSource, "SetClipboard");
-        AssertHasTypeReference(adapterSource, "OpenNewWindow");
-        AssertHasTypeReference(adapterSource, "UnhandledException");
+        AssertHasTypeReference(sessionSource, "GetCurrentTheme");
+        AssertHasTypeReference(sessionSource, "ContentLoaded");
+        AssertHasTypeReference(sessionSource, "ExportCallback");
+        AssertHasTypeReference(sessionSource, "PrintHTML");
+        AssertHasTypeReference(sessionSource, "ResizeTable");
+        AssertHasTypeReference(sessionSource, "LoadImage");
+        AssertHasTypeReference(sessionSource, "GetStringResources");
+        AssertHasTypeReference(sessionSource, "GetSettings");
+        AssertHasTypeReference(sessionSource, "SetClipboard");
+        AssertHasTypeReference(sessionSource, "OpenNewWindow");
+        AssertHasTypeReference(sessionSource, "UnhandledException");
         AssertHasTypeReference(adapterSource, "FileLoaded");
         AssertHasTypeReference(adapterSource, "MarkdownChange");
         AssertHasTypeReference(adapterSource, "CursorChange");
         AssertHasTypeReference(adapterSource, "StateChange");
         AssertHasTypeReference(adapterSource, "\"diffmsg\"");
         AssertHasTypeReference(adapterSource, "JsonDocument.Parse");
+        AssertHasTypeReference(adapterSource, "IEditorDocumentSession");
+        AssertHasTypeReference(adapterSource, "HandleEditorEvent");
+        AssertHasTypeReference(adapterSource, "HandleRemoteInvoke");
         AssertNoTypeReference(adapterSource, "D:\\source\\repos\\Typedown");
+        AssertHasTypeReference(sessionSource, "IEditorDocumentSession");
+        AssertHasTypeReference(sessionSource, "EditorDocumentState");
+        AssertHasTypeReference(sessionSource, "EditorSettingsPayload");
+        AssertHasTypeReference(sessionSource, "ContentLoaded");
+        AssertHasTypeReference(sessionSource, "FileLoaded");
+        AssertHasTypeReference(sessionSource, "MarkdownChange");
         AssertNoTypeReference(hostSource, "Typedown.XamlUI");
         AssertNoTypeReference(adapterSource, "Typedown.XamlUI");
+        AssertNoTypeReference(sessionSource, "Typedown.XamlUI");
         AssertNoTypeReference(adapterSource, "Typedown.Core.Services");
         AssertNoTypeReference(hostSource, "Typedown.Core.Services");
         AssertNoTypeReference(projectSource, @"..\Typedown.Core\Typedown.Core.csproj");

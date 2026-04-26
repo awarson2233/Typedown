@@ -4,6 +4,7 @@ using System.Text.Json;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.Web.WebView2.Core;
+using Typedown.Core.Contracts.Editor;
 
 namespace Typedown.WinUI.Controls
 {
@@ -12,16 +13,20 @@ namespace Typedown.WinUI.Controls
         private readonly WebView2 webView;
         private readonly TextBlock statusText;
         private readonly TextBlock messageText;
+        private readonly IEditorHostSink hostSink;
+        private IEditorDocumentSession documentSession;
         private WinUIEditorBridgeAdapter bridgeAdapter;
         private bool coreInitialized;
         private bool isLoaded;
         private bool coreEventsAttached;
-        private string? pendingLoadFilePayload;
+        private bool pendingLoadFile;
         private int loadVersion;
 
         public WinUIEditorHost()
         {
-            bridgeAdapter = new WinUIEditorBridgeAdapter();
+            documentSession = new WinUIEditorDocumentSession();
+            hostSink = new WinUIEditorHostSink(this);
+            bridgeAdapter = new WinUIEditorBridgeAdapter(documentSession);
             webView = new WebView2
             {
                 HorizontalAlignment = HorizontalAlignment.Stretch,
@@ -115,19 +120,12 @@ namespace Typedown.WinUI.Controls
                 }
 
                 AttachCoreWebView();
-                bridgeAdapter = new WinUIEditorBridgeAdapter(basePath: ResolveBasePath(editorIndex));
+                documentSession = new WinUIEditorDocumentSession(basePath: ResolveBasePath(editorIndex));
+                bridgeAdapter = new WinUIEditorBridgeAdapter(documentSession);
                 bridgeAdapter.ResetForNavigation();
+                pendingLoadFile = true;
                 statusText.Text = bridgeAdapter.StatusText;
                 messageText.Text = bridgeAdapter.LastRawMessage;
-                pendingLoadFilePayload = JsonSerializer.Serialize(new
-                {
-                    name = "LoadFile",
-                    args = new
-                    {
-                        text = bridgeAdapter.SmokeMarkdown,
-                        basePath = bridgeAdapter.BasePath
-                    }
-                });
 
                 webView.CoreWebView2.Settings.AreDefaultContextMenusEnabled = false;
                 webView.CoreWebView2.Settings.AreBrowserAcceleratorKeysEnabled = false;
@@ -148,7 +146,7 @@ namespace Typedown.WinUI.Controls
         {
             isLoaded = false;
             loadVersion++;
-            pendingLoadFilePayload = null;
+            pendingLoadFile = false;
             DetachCoreWebView();
         }
 
@@ -225,18 +223,19 @@ namespace Typedown.WinUI.Controls
 
         private void TrySendPendingLoadFile()
         {
-            if (!isLoaded || !bridgeAdapter.IsContentLoaded || string.IsNullOrWhiteSpace(pendingLoadFilePayload))
+            if (!isLoaded || !bridgeAdapter.IsContentLoaded || !pendingLoadFile)
             {
                 return;
             }
 
-            if (SendRawMessage(pendingLoadFilePayload))
+            pendingLoadFile = !hostSink.Send(new EditorHostMessage("LoadFile", new
             {
-                pendingLoadFilePayload = null;
-            }
+                text = documentSession.State.Text,
+                basePath = documentSession.State.BasePath
+            }));
         }
 
-        private bool SendRawMessage(string payload)
+        internal bool SendRawMessage(string payload)
         {
             try
             {
