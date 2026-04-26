@@ -18,7 +18,7 @@
 - Phase 3：已完成。Dialog/file picker 已通过 Core 接口与 shell 实现隔离，close-only dialog 默认按钮语义已保留。
 - Phase 4：已完成。UI dispatcher 与 window context 已通过 Core 接口抽出，当前 shell 通过 `UiDispatcher` / `WindowContext` 适配。
 - Phase 5：已完成。编辑器 bridge 协议已文档化并从 `MarkdownEditor` 中收束到独立 bridge。
-- Phase 6：待执行。抽出单实例与激活服务。
+- Phase 6：已完成（当前 `work/phase6-app-activation` 实现，待主工作区 review/merge）。单实例与激活逻辑已通过 `IAppActivationService` 收束到 shell service。
 - Phase 7：待执行。只记录构建矩阵和 ARM64 风险，不做 ARM64 适配。
 - Phase 8：待执行。最小 WinUI3 shell spike，必须在 Phase 3/4/6 稳定后开始。
 
@@ -345,10 +345,10 @@ cd D:\source\repos\Typedown
 
 步骤：
 
-- [ ] 定义激活操作：首次启动、转发到已有实例、接收命令行打开请求。
-- [ ] 将 `Mutex`、`NamedPipeServerStream`、`NamedPipeClientStream` 从 `App.cs` 移入 `AppActivationService`。
-- [ ] 让 `App.cs` 只负责 shell 启动、WebView2 前置检查、窗口创建和 dispatcher 传递。
-- [ ] 保留转发打开文件后的 `SetForegroundWindow` 行为。
+- [x] 定义激活操作：首次启动、转发到已有实例、接收命令行打开请求。
+- [x] 将 `Mutex`、`NamedPipeServerStream`、`NamedPipeClientStream` 从 `App.cs` 移入 `AppActivationService`。
+- [x] 让 `App.cs` 只负责 shell 启动、WebView2 前置检查、窗口创建和 dispatcher 传递。
+- [x] 保留转发打开文件后的 `SetForegroundWindow` 行为。
 
 验证：
 
@@ -437,7 +437,7 @@ Phase 0 提交后，可以按以下工作流分配 subagent 或 worktree。当�
 
 ## 推荐立即执行
 
-下一步执行 Phase 6。Phase 6 合并并通过 `Debug_Local|x64` 基线验证后，再补 Phase 7 构建矩阵风险记录。
+下一步执行 Phase 7。Phase 6 在主工作区合并并复核后，补 `build-matrix` / ARM64 风险记录，但不做 ARM64 适配。
 
 ## 正式 WinUI3 迁移前的完成标准
 
