@@ -287,3 +287,18 @@ settings/shortcut worker 在 `Typedown.Core.Contracts.Settings` 增加平台中�
 - Worker phase13-editor-commands 抽取 editor/menu/paragraph/format 的 host -> editor UI command 契约到 `Dev\Typedown.Core.Contracts\Editor`，不接入 WinUI runtime，不迁移 WebView2 host。
 - `EditorUiCommandNames` 集中保存 legacy PostMessage 名称；其中 legacy delete 消息保持为实际 bridge 名称 `DeleteSelection`，由契约属性 `Delete` 暴露给上层 command 语义。
 - `EditorUiCommand` 继续使用 `{ name, args }` envelope；`Format`、`UpdateParagraph`、`InsertParagraph` 保持 legacy string payload，`Find`、`InsertTable`、`SearchOpenChange`、`ScrollTo` 等 payload DTO 显式锁定 camelCase/legacy 字段名。
+
+## Phase 13 file/shell visible state contract 状态
+
+本批新增 `Typedown.Core.Contracts.Shell` 平台中立 DTO：`FileUiState`、`ShellChromeState`、`ShellDocumentState`。范围只覆盖 legacy `FileViewModel` / app shell 可见状态快照，不接入文件系统、picker、dialog、navigation stack 或 XAML root。
+
+`FileUiState.FromValues` 保留 legacy `FileViewModel` 的派生语义：`FileName` 使用 `Path.GetFileName(filePath)`，因此 `null` 仍为 `null`、空字符串仍为空字符串；`ImageBasePath` 在 `filePath` 为 `null` 或空字符串时使用调用方传入的 default image path，有路径时使用 `Path.GetDirectoryName(filePath)`，不读取 `Config` 或设置服务。
+
+`ShellChromeState` 只记录低风险可见字段：`title`、`isSaved`、`displaySaved`、`isTopmost`、`captionHeight`、`compactMode`、`currentPageName`。JSON 字段名显式锁定为 legacy camelCase。
+
+验证记录：
+
+```text
+dotnet test .\Tests\Typedown.ArchitectureTests\Typedown.ArchitectureTests.csproj -c Debug /nologo /v:minimal: 58 passed
+dotnet build .\Dev\Typedown.Core.Contracts\Typedown.Core.Contracts.csproj -c Debug /nologo /v:minimal /m:1 /nodeReuse:false: 0 warnings, 0 errors
+```
