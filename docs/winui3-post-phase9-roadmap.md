@@ -11,7 +11,7 @@
 - `Typedown.WinUI` 先承担 WinUI3 shell、平台服务、WebView2 host 和打包入口。
 - `Typedown.UI` 后建立页面、控件、资源、UI ViewModel 和 UI 编排边界。
 - `Typedown.Core` 继续向平台中立契约收敛，不新增 `Windows.UI.Xaml` 或 `Microsoft.UI.Xaml` 依赖。
-- ARM64 适配排在 WinUI3 shell 切换完成之后，不在 legacy XamlUI 架构上适配 ARM64。
+- ARM64 适配排在 WinUI3 cutover 完成之后，不在 legacy XamlUI 架构上适配 ARM64。
 - React/CRA/TypeScript 维持冻结，只验证同一份 editor bundle 能被新 shell 加载。
 
 ## 阶段总览
@@ -22,9 +22,10 @@ Phase 10  WinUI3 平台服务闭环与启动基线（已完成）
 Phase 11  WebView2 editor host smoke 等价（已完成，真实本地文档 load/save 边界已完成）
 Phase 12  Typedown.UI 项目骨架与 UI 注册边界（已完成）
 Phase 13  低风险 UI 资源/页面/控件迁移（已完成）
-Phase 14  Debug_Local 主启动路径切换到 WinUI3
-Phase 15  legacy XamlUI 退场与构建清理
-Phase 16  ARM64 与打包验证
+Phase 14  首批 1:1 可视 UI 迁移
+Phase 15  Debug_Local 主启动路径切换到 WinUI3
+Phase 16  legacy XamlUI 退场与构建清理
+Phase 17  ARM64 与打包验证
 ```
 
 ## Phase 9：最小 WinUI3 Shell Spike
@@ -156,7 +157,7 @@ Phase 16  ARM64 与打包验证
 
 **第三批状态：已完成。** 已补齐 settings/shortcut、editor/menu command、file/shell visible state 的平台中立契约：`Typedown.Core.Contracts.Settings`、`Typedown.Core.Contracts.Editor`、`Typedown.Core.Contracts.Shell`。这些契约保留 legacy JSON/PostMessage/快捷键位值/可见状态派生语义，不引入 WinUI/XamlUI/WebView2/Window/Dialog/FilePicker/Package 配置。
 
-**Phase 13 收尾结论：已完成。** 本阶段完成低风险 UI 语义迁移与边界锁定，但没有迁移 WinUI shell、WebView2 host、Window/Dialog/FilePicker、Package/launchSettings，也没有切换默认启动路径。剩余 UI 1:1 可视布局和运行时接入应进入 Phase 14/15，而不是继续扩大 Phase 13。
+**Phase 13 收尾结论：已完成。** 本阶段完成低风险 UI 语义迁移与边界锁定，但没有迁移 WinUI shell、WebView2 host、Window/Dialog/FilePicker、Package/launchSettings，也没有切换默认启动路径。剩余 UI `1:1` 可视布局和运行时接入应进入 Phase 14/15，而不是继续扩大 Phase 13。
 
 **推荐顺序：**
 
@@ -174,7 +175,29 @@ Phase 16  ARM64 与打包验证
 
 **执行方式：** 可使用多 worktree 多 agent，但每批必须按目录分片，且同一批不能同时修改同一个 `.csproj`、`.sln` 或共享资源字典。每批完成后回到集成分支验证。
 
-## Phase 14：Debug_Local 主启动路径切换到 WinUI3
+## Phase 14：首批 1:1 可视 UI 迁移
+
+**目标：** 在不切默认启动路径的前提下，先把 WinUI3 页面上的 shell chrome、command surface、status、side panel 做成首批 `1:1` 可视骨架，并明确这些可视面的平台中立状态来源。
+
+**详细计划：** 见 [phase14-ui-visual-migration-plan.md](./phase14-ui-visual-migration-plan.md)。本阶段只锁定可视 UI 面和状态来源边界；`WinUIEditorHost` 仍留在 `Typedown.WinUI`，legacy `Typedown.XamlUI` 继续保留为对照路径。
+
+**主要任务：**
+
+- 建立首批 `1:1` 可视 UI 迁移清单，只覆盖 shell chrome、command surface、status、side panel。
+- 保持 `Typedown.UI` 只承接平台中立状态、view-model 组合和资源映射，不承接 XAML framework 或启动资产。
+- 保持 `Typedown.WinUI` 继续拥有 WinUI3 页面/XAML、`WinUIEditorHost`、Window/Dialog/FilePicker、`Package.appxmanifest`、`launchSettings.json`。
+- 核对 `Typedown.Core.Contracts` 到 `Typedown.UI` 的页面级状态来源映射，避免直接把 legacy host 或 WebView2 细节迁入 UI 层。
+- 为后续主启动路径切换准备等价核对清单，但本阶段不修改 solution 默认启动入口。
+
+**验收：**
+
+- `Typedown.UI` 仍不引用 `Microsoft.UI.Xaml`、`Windows.UI.Xaml`、`Typedown.WinUI` 或 `Typedown.XamlUI`。
+- `Typedown.WinUI` 仍拥有 `WinUIEditorHost`、`Package.appxmanifest`、`launchSettings.json`。
+- 文档明确写清：Phase 14 不是直接切默认启动，不删除 `Typedown.XamlUI`，不迁移 WebView2 host，不迁移 Window/Dialog/FilePicker/Package/`launchSettings`，不处理 ARM64。
+
+**执行方式：** 可并行做文档、清单和 architecture tests，但同一轮不要并行改 `Typedown.UI` / `Typedown.WinUI` 的共享项目文件。
+
+## Phase 15：Debug_Local 主启动路径切换到 WinUI3
 
 **目标：** 让 WinUI3 shell 成为主调试入口，legacy shell 退到对照/回滚路径。
 
@@ -193,7 +216,7 @@ Phase 16  ARM64 与打包验证
 
 **执行方式：** 串行。该阶段改变默认启动路径和验证脚本，不应并行修改。
 
-## Phase 15：Legacy XamlUI 退场与构建清理
+## Phase 16：Legacy XamlUI 退场与构建清理
 
 **目标：** 删除或归档 `Dev\Typedown.XamlUI` 依赖，清理 UWP/WinUI2 host 构建链。
 
@@ -208,12 +231,12 @@ Phase 16  ARM64 与打包验证
 **验收：**
 
 - 主线构建不再需要 `Typedown.XamlUI.pri`、legacy `Microsoft.UI.Xaml.dll` 或 HostingContract 制品。
-- WinUI3 shell 仍可完成 Phase 14 的 smoke。
+- WinUI3 shell 仍可完成 Phase 15 的 smoke。
 - 删除不影响 editor static bundle。
 
-**执行方式：** 串行。该阶段是高风险删除，需要先有 Phase 14 的稳定替代入口。
+**执行方式：** 串行。该阶段是高风险删除，需要先有 Phase 15 的稳定替代入口。
 
-## Phase 16：ARM64 与打包验证
+## Phase 17：ARM64 与打包验证
 
 **目标：** 在 WinUI3 shell 稳定后再开始 ARM64 和 MSIX/Windows App SDK 打包验证。
 
@@ -234,10 +257,10 @@ Phase 16  ARM64 与打包验证
 
 ## 串并行策略
 
-- Phase 9、10、11、14、15 必须串行，因为它们共享 shell、DI、启动路径和 WebView host。
+- Phase 9、10、11、15、16 必须串行，因为它们共享 shell、DI、启动路径和 WebView host。
 - Phase 12 可以有限并行，但必须避免多个 agent 同时修改 solution/project 文件。
-- Phase 13 最适合多 agent 多 worktree，按目录批次拆分迁移。
-- Phase 16 可先并行扫描，修复阶段串行。
+- Phase 13、14 最适合多 agent 多 worktree，按目录批次拆分迁移或补文档/测试边界。
+- Phase 17 可先并行扫描，修复阶段串行。
 
 ## 推荐分支模型
 
@@ -248,13 +271,14 @@ winui3-migration
   work/phase11-winui3-editor-host
   work/phase12-typedown-ui-skeleton
   work/phase13-ui-migration-batch-N
-  work/phase14-winui3-debug-local-cutover
-  work/phase15-retire-legacy-xamlui
-  work/phase16-arm64-packaging
+  work/phase14-ui-visual-migration
+  work/phase15-winui3-debug-local-cutover
+  work/phase16-retire-legacy-xamlui
+  work/phase17-arm64-packaging
 ```
 
 每个阶段都应通过 PR 回到 `awarson2233/winui3-migration`，不推送到原作者 remote。
 
 ## 下一步建议
 
-下一步进入 Phase 14：准备把 `Debug_Local|x64` 主调试入口切到 WinUI3。切换前应先做 WinUI3 与 legacy 的 1:1 等价核对清单，重点验证启动、打开/保存、editor bridge、settings payload、标题/保存状态、资源文本和 package/unpackaged 双路径；仍不处理 ARM64。
+下一步进入 Phase 14：先完成首批 `1:1` 可视 UI 迁移准备，明确 shell chrome、command surface、status、side panel 的可视骨架和平台中立状态来源。`WinUIEditorHost` 仍留在 `Typedown.WinUI`，默认启动路径切换顺延到 Phase 15；仍不处理 ARM64。
