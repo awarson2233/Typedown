@@ -199,6 +199,27 @@ public class Phase10CoreContractsBoundaryTests
     }
 
     [TestMethod]
+    public void WinUIPhase11_AddsEditorHostWithoutLegacyHostDependency()
+    {
+        var hostPath = Path.Combine(RepoRoot, "Dev", "Typedown.WinUI", "Controls", "WinUIEditorHost.cs");
+        var projectSource = File.ReadAllText(Path.Combine(RepoRoot, "Dev", "Typedown.WinUI", "Typedown.WinUI.csproj"));
+        var pageSource = File.ReadAllText(Path.Combine(RepoRoot, "Dev", "Typedown.WinUI", "Views", "MainPage.xaml"));
+        var hostSource = File.ReadAllText(hostPath);
+
+        Assert.IsTrue(File.Exists(hostPath), "Expected the Phase 11 WinUI editor host.");
+        AssertHasTypeReference(hostSource, "WebView2");
+        AssertHasTypeReference(hostSource, "WebMessageReceived");
+        AssertHasTypeReference(hostSource, "PostWebMessageAsString");
+        AssertHasTypeReference(hostSource, "Resources");
+        AssertHasTypeReference(hostSource, "Statics");
+        AssertHasTypeReference(projectSource, @"..\Typedown\Resources\Statics\**");
+        AssertHasTypeReference(pageSource, "WinUIEditorHost");
+        AssertNoTypeReference(hostSource, "Typedown.XamlUI");
+        AssertNoTypeReference(hostSource, "Typedown.Core.Services");
+        AssertNoTypeReference(projectSource, @"..\Typedown.Core\Typedown.Core.csproj");
+    }
+
+    [TestMethod]
     public void PickerContract_PreservesNullCancelSemantics()
     {
         var contractSource = File.ReadAllText(Path.Combine(RepoRoot, "Dev", "Typedown.Core.Contracts", "Interfaces", "IFilePickerService.cs"));

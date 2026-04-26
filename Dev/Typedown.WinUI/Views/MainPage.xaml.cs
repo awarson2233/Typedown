@@ -13,16 +13,16 @@ namespace Typedown.WinUI.Views
 
         public string[] ValidatedItems { get; } =
         {
-            "WinUI3 shell now provides minimal platform service implementations behind Typedown.Core.Contracts.",
-            "The shell still builds without referencing the legacy app core or the legacy XAML host project.",
-            "Phase 10b only proves service wiring, path resolution, dispatcher plumbing, dialogs, pickers, and an activation stub contract surface."
+            "WinUI3 shell keeps platform service implementations and the activation stub contract surface behind Typedown.Core.Contracts.",
+            "Phase 11 editor host is implemented inside Typedown.WinUI without referencing Typedown.Core or the legacy XAML host project.",
+            "The host loads the same Resources\\Statics editor bundle path used by the legacy app when the bundle exists."
         };
 
         public string[] DeferredItems { get; } =
         {
-            "Real editor hosting and page-control migration remain outside Phase 10b.",
+            "Full MarkdownEditor command parity and document workflow remain later Phase 11 work.",
             "No legacy data migration or real Typedown.Core integration is included yet.",
-            "WebView2 editor host parity belongs to Phase 11.",
+            "Legacy page/control migration belongs to Typedown.UI phases, not this host smoke slice.",
             "ARM64 validation remains out of scope for this phase."
         };
 
