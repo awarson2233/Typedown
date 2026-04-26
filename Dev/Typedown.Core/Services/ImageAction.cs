@@ -2,10 +2,9 @@
 using System;
 using System.IO;
 using System.Linq;
-using System.Net;
+using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
-using Typedown.Core.Controls;
 using Typedown.Core.Interfaces;
 using Typedown.Core.Utilities;
 using Typedown.Core.ViewModels;
@@ -16,9 +15,11 @@ namespace Typedown.Core.Services
     {
         public SettingsViewModel Settings { get; }
 
-        public AppViewModel AppViewModel => ServiceProvider.GetService<AppViewModel>();
+        public AppViewModel AppViewModel => ServiceProvider.GetRequiredService<AppViewModel>();
 
-        public FileViewModel FileViewModel => ServiceProvider.GetService<FileViewModel>();
+        public FileViewModel FileViewModel => ServiceProvider.GetRequiredService<FileViewModel>();
+
+        public IDialogService DialogService => ServiceProvider.GetRequiredService<IDialogService>();
 
         private IServiceProvider ServiceProvider { get; }
 
@@ -53,7 +54,7 @@ namespace Typedown.Core.Services
             }
             catch (Exception ex)
             {
-                await AppContentDialog.Create(Locale.GetString("Error"), ex.Message, Locale.GetString("Ok")).ShowAsync(AppViewModel.XamlRoot);
+                await ShowErrorDialog(ex.Message);
                 return src;
             }
         }
@@ -80,7 +81,7 @@ namespace Typedown.Core.Services
             }
             catch (Exception ex)
             {
-                await AppContentDialog.Create(Locale.GetString("Error"), ex.Message, Locale.GetString("Ok")).ShowAsync(AppViewModel.XamlRoot);
+                await ShowErrorDialog(ex.Message);
                 return src;
             }
         }
@@ -105,7 +106,7 @@ namespace Typedown.Core.Services
             }
             catch (Exception ex)
             {
-                await AppContentDialog.Create(Locale.GetString("Error"), ex.Message, Locale.GetString("Ok")).ShowAsync(AppViewModel.XamlRoot);
+                await ShowErrorDialog(ex.Message);
                 return string.Empty;
             }
         }
@@ -157,7 +158,8 @@ namespace Typedown.Core.Services
 
         public async Task<byte[]> GetWebImage(Uri uri)
         {
-            return await Task.Run(() => new WebClient().DownloadData(uri));
+            using var client = new HttpClient();
+            return await client.GetByteArrayAsync(uri);
         }
 
         public string GetDefaultDestFolder(InsertImageSource source)
@@ -239,6 +241,17 @@ namespace Typedown.Core.Services
                     filePath = "./" + filePath;
             }
             return filePath.Replace('\\', '/');
+        }
+
+        private Task<DialogButton> ShowErrorDialog(string message)
+        {
+            return DialogService.ShowAsync(new DialogRequest
+            {
+                Title = Locale.GetString("Error"),
+                Content = message,
+                CloseButtonText = Locale.GetString("Ok"),
+                DefaultButton = DialogDefaultButton.Close
+            });
         }
     }
 }

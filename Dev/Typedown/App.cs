@@ -1,41 +1,24 @@
-﻿using System;
 using System.Collections.Generic;
-using System.IO;
-using System.IO.Pipes;
-using System.Threading;
-using System.Threading.Tasks;
+using Microsoft.Extensions.DependencyInjection;
+using Typedown.Core.Interfaces;
 using Typedown.Core.Utilities;
 using Typedown.Windows;
 using Typedown.XamlUI;
-using Windows.UI.Core;
 using Windows.UI.Xaml.Markup;
 
 namespace Typedown
 {
     public class App : XamlApplication
     {
-        private static readonly Mutex mutex = new(true, "Typedown.App.Mutex");
-
         private App(IEnumerable<IXamlMetadataProvider> providers) : base(providers) { }
 
         public static void Launch()
         {
-            try
-            {
-                if (mutex.WaitOne(TimeSpan.Zero, true))
-                {
-                    LaunchNewApplication();
-                }
-                else
-                {
-                    OpenNewWindow();
-                }
-            }
-            catch (AbandonedMutexException)
-            {
-                mutex.ReleaseMutex();
-                Launch();
-            }
+            var activationService = Injection.ServiceProvider.GetRequiredService<IAppActivationService>();
+            var activationResult = activationService.Activate(System.Environment.GetCommandLineArgs());
+            if (activationResult.Kind == AppActivationKind.FirstLaunch
+                || activationResult.Kind == AppActivationKind.ForwardFailedStartNewInstance)
+                LaunchNewApplication();
         }
 
         public static void LaunchNewApplication()
@@ -53,57 +36,21 @@ namespace Typedown
                 Exit();
                 return;
             }
+
             var window = new MainWindow();
             window.Show(ShowWindowCommand.SW_HIDE);
-            ListenPipe(window.Dispatcher);
+
+            var activationService = Injection.ServiceProvider.GetRequiredService<IAppActivationService>();
+            // Phase 6 keeps the legacy boundary: the first window's scoped dispatcher owns pipe callbacks.
+            activationService.ActivationRequested += HandleActivationRequested;
+            activationService.StartListening(window.ServiceProvider.GetRequiredService<IUiDispatcher>());
         }
 
-        private static async void ListenPipe(CoreDispatcher dispatcher)
+        private static nint HandleActivationRequested(AppActivationRequest request)
         {
-            while (true)
-            {
-                try
-                {
-                    using var server = new NamedPipeServerStream("Typedown.App.PiPe", PipeDirection.InOut);
-                    await server.WaitForConnectionAsync();
-                    using var reader = new StreamReader(server);
-                    using var writer = new StreamWriter(server);
-                    var args = (await reader.ReadLineAsync()).Split("\0");
-                    var handle = await dispatcher.RunIdleAsync(() => Utilities.Common.OpenNewWindow(args));
-                    await writer.WriteLineAsync(handle.ToString());
-                    await writer.FlushAsync();
-                }
-                catch (Exception)
-                {
-                    await Task.Delay(1000);
-                }
-            }
-        }
-
-        internal static void OpenNewWindow()
-        {
-            try
-            {
-                using var client = new NamedPipeClientStream(".", "Typedown.App.PiPe", PipeDirection.InOut);
-                client.Connect();
-                using var reader = new StreamReader(client);
-                using var writer = new StreamWriter(client);
-                writer.WriteLine(string.Join("\0", Environment.GetCommandLineArgs()));
-                writer.Flush();
-                try
-                {
-                    if (long.TryParse(reader.ReadLine(), out var handle))
-                        PInvoke.SetForegroundWindow((nint)handle);
-                }
-                catch
-                {
-                    // Ignore
-                }
-            }
-            catch
-            {
-                LaunchNewApplication();
-            }
+            return request.Kind == AppActivationKind.OpenFileRequest
+                ? Utilities.Common.OpenNewWindow(request.CommandLineArgs)
+                : default;
         }
     }
 }

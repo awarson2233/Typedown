@@ -1,8 +1,11 @@
-﻿using Microsoft.Data.Sqlite;
+using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
+using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
+using Typedown.Core.Interfaces;
 using Typedown.Core.Models;
 
 namespace Typedown.Core.Services
@@ -17,12 +20,24 @@ namespace Typedown.Core.Services
 
         public DbSet<ImageUploadConfig> ImageUploadConfigs { get; set; }
 
+        private readonly string dbPath;
 
-        private readonly string dbPath = Path.Combine(Config.GetLocalFolderPath(), "Storage.db");
+        private readonly string migrateTaskKey;
 
         private static readonly object lockMigrateTask = new();
 
-        private static Task migrateTask;
+        private static readonly Dictionary<string, Task> migrateTasks = new(StringComparer.OrdinalIgnoreCase);
+
+        public AppDbContext()
+            : this(null)
+        {
+        }
+
+        public AppDbContext(IAppDataPathProvider appDataPathProvider)
+        {
+            dbPath = (appDataPathProvider ?? Config.GetAppDataPathProvider()).GetDatabaseFilePath();
+            migrateTaskKey = Path.GetFullPath(dbPath);
+        }
 
         protected override void OnConfiguring(DbContextOptionsBuilder options)
         {
@@ -34,8 +49,16 @@ namespace Typedown.Core.Services
 
         public async Task EnsureMigrateAsync()
         {
+            Task migrateTask;
             lock (lockMigrateTask)
-                migrateTask ??= EnsureMigrateCoreAsync();
+            {
+                if (!migrateTasks.TryGetValue(migrateTaskKey, out migrateTask) || migrateTask.IsFaulted || migrateTask.IsCanceled)
+                {
+                    migrateTask = EnsureMigrateCoreAsync();
+                    migrateTasks[migrateTaskKey] = migrateTask;
+                }
+            }
+
             await migrateTask;
         }
 
@@ -85,11 +108,11 @@ namespace Typedown.Core.Services
             return result is long count && count > 0;
         }
 
-        public static Task<AppDbContext> Create()
+        public static Task<AppDbContext> Create(IAppDataPathProvider appDataPathProvider = null)
         {
             return Task.Run(async () =>
             {
-                var ctx = new AppDbContext();
+                var ctx = new AppDbContext(appDataPathProvider);
                 await ctx.EnsureMigrateAsync();
                 return ctx;
             });

@@ -33,7 +33,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "XamlDesignApp", "Tools\Xaml
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TranslationTool", "Tools\TranslationTool\TranslationTool.csproj", "{20B6A129-40EE-4483-BF97-D4F4CE682231}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Typedown.XamlUI", "..\Typedown.XamlUI\Typedown.XamlUI\Typedown.XamlUI.csproj", "{55C179BF-A3BD-4875-7F9F-AF11BDCF63FA}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Typedown.XamlUI", "Dev\Typedown.XamlUI\Typedown.XamlUI.csproj", "{55C179BF-A3BD-4875-7F9F-AF11BDCF63FA}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

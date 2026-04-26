@@ -78,7 +78,7 @@ namespace Typedown.Core.ViewModels
 
         private readonly CompositeDisposable disposables = new();
 
-        private readonly string settingsFile = Path.Combine(Config.GetLocalFolderPath(), "Settings.json");
+        private readonly string settingsFile = Config.GetSettingsFilePath();
 
         private JToken store;
 

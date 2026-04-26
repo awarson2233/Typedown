@@ -27,8 +27,6 @@ namespace Typedown.Utilities
 
         public IntPtr ParentHWnd { get; private set; }
 
-        private static uint webView2ProcessId;
-
         private double WindowScale => PInvoke.GetDpiForWindow(ParentHWnd) / 96d;
 
         private static Task<CoreWebView2Environment> coreWebView2EnvironmentTask;
@@ -372,7 +370,7 @@ namespace Typedown.Utilities
         {
             _ = Container.Dispatcher.RunIdleAsync(() =>
             {
-                if (xamlWindow.IsActive && !webHasFocus && FocusManager.GetFocusedElement(Container.XamlRoot) == Container && CoreWebView2Controller != null)
+                if (xamlWindow.IsActive && !webHasFocus && ReferenceEquals(FocusManager.GetFocusedElement(Container.XamlRoot), Container) && CoreWebView2Controller != null)
                 {
                     MoveFocusIntoCoreWebView(CoreWebView2MoveFocusReason.Programmatic);
                 }

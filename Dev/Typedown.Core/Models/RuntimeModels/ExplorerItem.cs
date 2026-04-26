@@ -300,8 +300,15 @@ namespace Typedown.Core.Models
 
         private class DefaultComparer : Comparer<ExplorerItem>
         {
-            public override int Compare(ExplorerItem x, ExplorerItem y)
+            public override int Compare(ExplorerItem? x, ExplorerItem? y)
             {
+                if (ReferenceEquals(x, y))
+                    return 0;
+                if (x is null)
+                    return 1;
+                if (y is null)
+                    return -1;
+
                 if (x.Type != y.Type)
                 {
                     if (x.Type == ExplorerItemType.Folder)

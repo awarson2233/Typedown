@@ -1,6 +1,5 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Web.WebView2.Core;
-using Newtonsoft.Json;
 using PropertyChanged;
 using System;
 using System.Collections.Generic;
@@ -42,8 +41,6 @@ namespace Typedown.Controls
 
         public AppViewModel AppViewModel => ServiceProvider.GetService<AppViewModel>();
 
-        public Transport Transport => ServiceProvider.GetService<Transport>();
-
         public bool IsEditorLoadFailed { get; set; }
 
         public bool IsEditorLoaded { get; set; }
@@ -57,10 +54,12 @@ namespace Typedown.Controls
         private readonly UISettings uiSettings = new();
 
         private readonly CompositeDisposable disposables = new();
+        private readonly IEditorBridge editorBridge;
 
         public MarkdownEditor(IServiceProvider serviceProvider)
         {
             ServiceProvider = serviceProvider;
+            editorBridge = new EditorBridge(RemoteInvoke, ServiceProvider.GetRequiredService<Transport>(), PostRawMessage);
             Loaded += OnLoaded;
             canvas.Children.Add(dummyRectangle);
             Content = canvas;
@@ -221,9 +220,14 @@ namespace Typedown.Controls
 
         public bool PostMessage(string name, object args)
         {
+            return editorBridge.Send(name, args);
+        }
+
+        private bool PostRawMessage(string payload)
+        {
             try
             {
-                CoreWebView2?.PostWebMessageAsString(JsonConvert.SerializeObject(new { name, args }, Core.Config.EditorJsonSerializerSettings));
+                CoreWebView2?.PostWebMessageAsString(payload);
                 return true;
             }
             catch
@@ -234,7 +238,7 @@ namespace Typedown.Controls
 
         private void OnWebMessageReceived(object sender, CoreWebView2WebMessageReceivedEventArgs e)
         {
-            Transport.EmitWebViewMessage(this, e.TryGetWebMessageAsString());
+            _ = editorBridge.ReceiveAsync(e.TryGetWebMessageAsString());
         }
 
         private void OnNewWindowRequested(object sender, CoreWebView2NewWindowRequestedEventArgs args)

@@ -8,15 +8,11 @@ using System.Linq;
 using System.Reactive;
 using System.Reactive.Disposables;
 using System.Threading.Tasks;
-using Typedown.Core.Controls;
 using Typedown.Core.Interfaces;
 using Typedown.Core.Models;
 using Typedown.Core.Services;
 using Typedown.Core.Utilities;
-using Windows.ApplicationModel.Core;
-using Windows.Storage.Pickers;
 using Windows.UI.Xaml;
-using Windows.UI.Xaml.Controls;
 
 namespace Typedown.Core.ViewModels
 {
@@ -63,6 +59,14 @@ namespace Typedown.Core.ViewModels
 
         public IMarkdownEditor MarkdownEditor => ServiceProvider.GetService<IMarkdownEditor>();
 
+        public IDialogService DialogService => ServiceProvider.GetService<IDialogService>();
+
+        public IFilePickerService FilePickerService => ServiceProvider.GetService<IFilePickerService>();
+
+        public IUiDispatcher UiDispatcher => ServiceProvider.GetService<IUiDispatcher>();
+
+        public IWindowContext WindowContext => ServiceProvider.GetService<IWindowContext>();
+
         private readonly CompositeDisposable disposables = new();
 
         public FileViewModel(IServiceProvider serviceProvider)
@@ -83,7 +87,7 @@ namespace Typedown.Core.ViewModels
             saveFileTimer.Interval = TimeSpan.FromSeconds(5);
             saveFileTimer.Tick += SaveFileTimerTick;
             saveFileTimer.Start();
-            _ = CoreApplication.GetCurrentView().CoreWindow.Dispatcher.RunIdleAsync(() => OnStartup());
+            _ = UiDispatcher.RunIdleAsync(() => OnStartup());
         }
 
         private async void SaveFileTimerTick(object sender, object e)
@@ -164,7 +168,10 @@ namespace Typedown.Core.ViewModels
         {
             if (!await AskToSave())
                 return false;
-            filePath ??= await AppViewModel.MainWindow.PickMarkdownFileAsync();
+            filePath ??= await FilePickerService.PickOpenFileAsync(new OpenFileRequest
+            {
+                FileTypeFilter = FileTypeHelper.Markdown.ToList()
+            });
             if (filePath == null)
                 return false;
             return await LoadFile(filePath, true);
@@ -172,7 +179,7 @@ namespace Typedown.Core.ViewModels
 
         public async Task<bool> OpenFolder(string folderPath = null)
         {
-            folderPath ??= await AppViewModel.MainWindow.PickMarkdownFolderAsync();
+            folderPath ??= await FilePickerService.PickFolderAsync(new PickFolderRequest());
             if (folderPath == null)
                 return false;
             if (!await LoadFolder(folderPath))
@@ -186,9 +193,9 @@ namespace Typedown.Core.ViewModels
         {
             try
             {
-                if (TryGetOpenedWindow(path, out var window) && window != AppViewModel.MainWindow)
+                if (TryGetOpenedWindow(path, out var window) && window != WindowContext.WindowHandle)
                 {
-                    _ = AppViewModel.XamlRoot?.Content?.Dispatcher?.RunIdleAsync(() => PInvoke.SetForegroundWindow(window));
+                    _ = UiDispatcher.RunIdleAsync(() => PInvoke.SetForegroundWindow(window));
                     return false;
                 }
                 if (!File.Exists(path))
@@ -230,7 +237,10 @@ namespace Typedown.Core.ViewModels
             }
             catch (Exception ex)
             {
-                await AppContentDialog.Create(Locale.GetDialogString("ReadErrorTitle"), ex.Message, Locale.GetDialogString("Ok")).ShowAsync(AppViewModel.XamlRoot);
+                await ShowDialog(
+                    Locale.GetDialogString("ReadErrorTitle"),
+                    ex.Message,
+                    Locale.GetDialogString("Ok"));
                 return false;
             }
         }
@@ -250,7 +260,10 @@ namespace Typedown.Core.ViewModels
             }
             catch (Exception ex)
             {
-                await AppContentDialog.Create(Locale.GetString("Error"), ex.Message, Locale.GetDialogString("Ok")).ShowAsync(AppViewModel.XamlRoot);
+                await ShowDialog(
+                    Locale.GetString("Error"),
+                    ex.Message,
+                    Locale.GetDialogString("Ok"));
                 return false;
             }
         }
@@ -259,14 +272,15 @@ namespace Typedown.Core.ViewModels
         {
             string text = await AutoBackup.GetBackup(path);
             if (text == null || Common.SimpleHash(text) == fileHash) return null;
-            var dialog = AppContentDialog.Create();
-            dialog.Title = Locale.GetDialogString("RecoverTitle");
-            dialog.Content = Locale.GetDialogString("RecoverContent");
-            dialog.PrimaryButtonText = Locale.GetDialogString("Recover");
-            dialog.SecondaryButtonText = Locale.GetDialogString("Delete");
-            dialog.DefaultButton = ContentDialogButton.Primary;
-            var result = await dialog.ShowAsync(AppViewModel.XamlRoot);
-            if (result == ContentDialogResult.Primary)
+            var result = await DialogService.ShowAsync(new DialogRequest
+            {
+                Title = Locale.GetDialogString("RecoverTitle"),
+                Content = Locale.GetDialogString("RecoverContent"),
+                PrimaryButtonText = Locale.GetDialogString("Recover"),
+                SecondaryButtonText = Locale.GetDialogString("Delete"),
+                DefaultButton = DialogDefaultButton.Primary
+            });
+            if (result == DialogButton.Primary)
             {
                 return text;
             }
@@ -288,7 +302,10 @@ namespace Typedown.Core.ViewModels
             {
                 if (alert)
                 {
-                    await AppContentDialog.Create(Locale.GetDialogString("SaveErrorTitle"), ex.Message, Locale.GetDialogString("Ok")).ShowAsync(AppViewModel.XamlRoot);
+                    await ShowDialog(
+                        Locale.GetDialogString("SaveErrorTitle"),
+                        ex.Message,
+                        Locale.GetDialogString("Ok"));
                 }
                 return false;
             }
@@ -319,29 +336,35 @@ namespace Typedown.Core.ViewModels
         {
             try
             {
-                var filePicker = new FileSavePicker();
-                filePicker.SetOwnerWindow(AppViewModel.MainWindow);
-                filePicker.FileTypeChoices.Add("Markdown Files", FileTypeHelper.Markdown.ToList());
-                filePicker.SuggestedFileName = FileName ?? "untitled";
-                var file = await filePicker.PickSaveFileAsync();
-                if (file != null)
+                var filePath = await FilePickerService.PickSaveFileAsync(new SaveFileRequest
                 {
-                    var result = await WriteAllText(file.Path, EditorViewModel.Markdown);
+                    FileTypeChoices =
+                    {
+                        new SaveFileTypeChoice("Markdown Files", FileTypeHelper.Markdown)
+                    },
+                    SuggestedFileName = FileName ?? "untitled"
+                });
+                if (filePath != null)
+                {
+                    var result = await WriteAllText(filePath, EditorViewModel.Markdown);
                     if (result)
                     {
                         AutoBackup.DeleteBackup(FilePath);
-                        FilePath = file.Path;
+                        FilePath = filePath;
                         EditorViewModel.FileHash = EditorViewModel.CurrentHash;
                         EditorViewModel.Saved = true;
                         _ = AccessHistory.RecordFileHistory(FilePath);
-                        return file.Path;
+                        return filePath;
                     }
                 }
                 return null;
             }
             catch (Exception ex)
             {
-                await AppContentDialog.Create(Locale.GetString("Error"), ex.Message, Locale.GetString("Ok")).ShowAsync(AppViewModel.XamlRoot);
+                await ShowDialog(
+                    Locale.GetString("Error"),
+                    ex.Message,
+                    Locale.GetString("Ok"));
                 return null;
             }
         }
@@ -357,7 +380,10 @@ namespace Typedown.Core.ViewModels
             }
             catch (Exception ex)
             {
-                await AppContentDialog.Create(Locale.GetString("Error"), ex.Message, Locale.GetString("Ok")).ShowAsync(AppViewModel.XamlRoot);
+                await ShowDialog(
+                    Locale.GetString("Error"),
+                    ex.Message,
+                    Locale.GetString("Ok"));
                 return false;
             }
         }
@@ -377,7 +403,10 @@ namespace Typedown.Core.ViewModels
             }
             catch (Exception ex)
             {
-                await AppContentDialog.Create(Locale.GetString("Error"), ex.Message, Locale.GetString("Ok")).ShowAsync(AppViewModel.XamlRoot);
+                await ShowDialog(
+                    Locale.GetString("Error"),
+                    ex.Message,
+                    Locale.GetString("Ok"));
                 return false;
             }
         }
@@ -395,22 +424,25 @@ namespace Typedown.Core.ViewModels
                 return false;
             }
             askToSaveOpened = true;
-            var result = await AppContentDialog.Create(
-                Locale.GetDialogString("AsKToSaveTitle"),
-                Locale.GetDialogString("AsKToSaveContent"),
-                Locale.GetDialogString("Cancel"),
-                Locale.GetDialogString("Save"),
-                Locale.GetDialogString("Don'tSave")).ShowAsync(AppViewModel.XamlRoot);
+            var result = await DialogService.ShowAsync(new DialogRequest
+            {
+                Title = Locale.GetDialogString("AsKToSaveTitle"),
+                Content = Locale.GetDialogString("AsKToSaveContent"),
+                CloseButtonText = Locale.GetDialogString("Cancel"),
+                PrimaryButtonText = Locale.GetDialogString("Save"),
+                SecondaryButtonText = Locale.GetDialogString("Don'tSave"),
+                DefaultButton = DialogDefaultButton.Primary
+            });
             askToSaveOpened = false;
             switch (result)
             {
-                case ContentDialogResult.Primary:
+                case DialogButton.Primary:
                     var saveResult = await Save();
                     return saveResult;
-                case ContentDialogResult.Secondary:
+                case DialogButton.Secondary:
                     AutoBackup.DeleteBackup(FilePath);
                     return true;
-                case ContentDialogResult.None:
+                case DialogButton.None:
                     return false;
             }
             return false;
@@ -448,19 +480,21 @@ namespace Typedown.Core.ViewModels
 
         private async void Export(ExportConfig config)
         {
-            var filePicker = new FileSavePicker();
-            filePicker.SetOwnerWindow(AppViewModel.MainWindow);
-            config.FileExtensions.ForEach(x => filePicker.FileTypeChoices.Add(x.name, new List<string> { x.extension }));
-            var file = await filePicker.PickSaveFileAsync();
-            if (file == null) return;
+            var filePath = await FilePickerService.PickSaveFileAsync(new SaveFileRequest
+            {
+                FileTypeChoices = config.FileExtensions
+                    .Select(x => new SaveFileTypeChoice(x.name, new List<string> { x.extension }))
+                    .ToList()
+            });
+            if (filePath == null) return;
             string basePath = null;
             if (config.Type == Enums.ExportType.PDF || config.Type == Enums.ExportType.Image)
                 basePath = ImageBasePath;
             MarkdownEditor?.PostMessage("Export", new
             {
                 type = "export",
-                title = file.DisplayName,
-                context = new { configId = config.Id, filePath = file.Path },
+                title = Path.GetFileNameWithoutExtension(filePath),
+                context = new { configId = config.Id, filePath },
                 basePath,
                 options = config.LoadExportConfig()
             });
@@ -480,18 +514,22 @@ namespace Typedown.Core.ViewModels
         {
             try
             {
-                var filePicker = new FileOpenPicker() { FileTypeFilter = { ".html" } };
-                filePicker.SetOwnerWindow(AppViewModel.MainWindow);
-                var file = await filePicker.PickSingleFileAsync();
-                if (file != null)
+                var filePath = await FilePickerService.PickOpenFileAsync(new OpenFileRequest
                 {
-                    var text = await File.ReadAllTextAsync(file.Path);
-                    MarkdownEditor?.PostMessage("ImportFile", new { type = Path.GetExtension(file.Path).Substring(1), text });
+                    FileTypeFilter = { ".html" }
+                });
+                if (filePath != null)
+                {
+                    var text = await File.ReadAllTextAsync(filePath);
+                    MarkdownEditor?.PostMessage("ImportFile", new { type = Path.GetExtension(filePath).Substring(1), text });
                 }
             }
             catch (Exception ex)
             {
-                await AppContentDialog.Create(Locale.GetDialogString("ImportErrorTitle"), ex.Message, Locale.GetDialogString("Ok")).ShowAsync(AppViewModel.XamlRoot);
+                await ShowDialog(
+                    Locale.GetDialogString("ImportErrorTitle"),
+                    ex.Message,
+                    Locale.GetDialogString("Ok"));
             }
         }
 
@@ -528,7 +566,10 @@ namespace Typedown.Core.ViewModels
                 window = default;
                 return false;
             }
-            window = AppViewModel.GetInstances().Where(x => x.FileViewModel.FilePath?.ToLower() == filePath.ToLower()).FirstOrDefault()?.MainWindow ?? default;
+            window = AppViewModel.GetInstances()
+                .Where(x => x.FileViewModel.FilePath?.ToLower() == filePath.ToLower())
+                .Select(x => x.WindowContext?.WindowHandle ?? default)
+                .FirstOrDefault();
             return window != default;
         }
 
@@ -553,8 +594,18 @@ namespace Typedown.Core.ViewModels
 
         private void Exit()
         {
-            var SC_CLOSE = 0xF060;
-            PInvoke.PostMessage(AppViewModel.MainWindow, (uint)PInvoke.WindowMessage.WM_SYSCOMMAND, (nint)SC_CLOSE, IntPtr.Zero);
+            WindowContext.RequestClose();
+        }
+
+        private Task<DialogButton> ShowDialog(string title, object content, string closeButtonText)
+        {
+            return DialogService.ShowAsync(new DialogRequest
+            {
+                Title = title,
+                Content = content,
+                CloseButtonText = closeButtonText,
+                DefaultButton = DialogDefaultButton.Close
+            });
         }
     }
 }

@@ -10,13 +10,13 @@ namespace Typedown.Core.Utilities
 {
     public class Command<T> : ICommand, INotifyPropertyChanged
     {
-        public event EventHandler CanExecuteChanged;
+        public event EventHandler? CanExecuteChanged;
 
-        public event PropertyChangedEventHandler PropertyChanged;
+        public event PropertyChangedEventHandler? PropertyChanged;
 
         private readonly Subject<T> executeSubject = new();
 
-        private readonly BehaviorSubject<Func<object, bool>> canExecuteSubject;
+        private readonly BehaviorSubject<Func<object?, bool>> canExecuteSubject;
 
         public Command(bool canExecute = true)
         {
@@ -25,7 +25,7 @@ namespace Typedown.Core.Utilities
             CanExecuteChanged += (s, e) => PropertyChanged?.Invoke(this, new(nameof(IsExecutable)));
         }
 
-        public void Execute(object parameter)
+        public void Execute(object? parameter)
         {
             if (canExecuteSubject.Value(parameter))
             {
@@ -36,7 +36,7 @@ namespace Typedown.Core.Utilities
             }
         }
 
-        public bool CanExecute(object parameter = null) => canExecuteSubject.Value(parameter);
+        public bool CanExecute(object? parameter = null) => canExecuteSubject.Value(parameter);
 
         public bool IsExecutable { get => CanExecute(); set => SetCanExecute.OnNext(value); }
 
@@ -44,6 +44,6 @@ namespace Typedown.Core.Utilities
 
         public IObserver<bool> SetCanExecute => Observer.Create<bool>(b => canExecuteSubject.OnNext(_ => b));
 
-        public IObserver<Func<object, bool>> SetCanExecuteFunc => canExecuteSubject.AsObserver();
+        public IObserver<Func<object?, bool>> SetCanExecuteFunc => canExecuteSubject.AsObserver();
     }
 }

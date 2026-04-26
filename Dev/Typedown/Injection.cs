@@ -1,5 +1,6 @@
-﻿using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection;
 using Typedown.Controls;
+using Typedown.Core;
 using Typedown.Core.Controls.FloatControls;
 using Typedown.Core.Interfaces;
 using Typedown.Core.Services;
@@ -21,6 +22,7 @@ namespace Typedown
                 RegisterService(builder);
                 RegisterComponent(builder);
                 ServiceProvider = builder.BuildServiceProvider();
+                Config.SetAppDataPathProvider(ServiceProvider.GetRequiredService<IAppDataPathProvider>());
             }
         }
 
@@ -39,12 +41,20 @@ namespace Typedown
         private static void RegisterService(ServiceCollection builder)
         {
             builder.AddScoped<IClipboard, Clipboard>();
+            builder.AddSingleton<IAppActivationService, AppActivationService>();
+            builder.AddScoped<IDialogService, DialogService>();
             builder.AddScoped<IFileConverter, FileConverter>();
             builder.AddScoped<IFileExport, FileExport>();
+            builder.AddScoped<IFilePickerService, FilePickerService>();
             builder.AddScoped<IFileOperation, FileOperation>();
             builder.AddScoped<IKeyboardAccelerator, KeyboardAccelerator>();
+            builder.AddScoped<UiDispatcher>();
+            builder.AddScoped<IUiDispatcher>(sp => sp.GetRequiredService<UiDispatcher>());
             builder.AddScoped<IPowerShellService, PowerShellService>();
+            builder.AddScoped<WindowContext>();
+            builder.AddScoped<IWindowContext>(sp => sp.GetRequiredService<WindowContext>());
             builder.AddScoped<IWindowService, WindowService>();
+            builder.AddSingleton<IAppDataPathProvider, AppDataPathProvider>();
             builder.AddScoped<AutoBackup>();
             builder.AddScoped<EventCenter>();
             builder.AddScoped<ImageAction>();
