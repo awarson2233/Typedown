@@ -3,11 +3,21 @@ param(
     [string]$MainRepo = "D:\source\repos\Typedown",
     [string]$XamlUIRepo = "D:\source\repos\Typedown.XamlUI",
     [string]$ExpectedBranch = "winui3-migration",
+    [string]$ExpectedMainBranch,
+    [string]$ExpectedXamlUIBranch,
     [switch]$AllowMainDirty,
     [switch]$AllowXamlUIDirty
 )
 
 $ErrorActionPreference = "Stop"
+
+if (-not $ExpectedMainBranch) {
+    $ExpectedMainBranch = $ExpectedBranch
+}
+
+if (-not $ExpectedXamlUIBranch) {
+    $ExpectedXamlUIBranch = $ExpectedBranch
+}
 
 function Invoke-Git {
     param(
@@ -26,6 +36,7 @@ function Test-Repo {
     param(
         [Parameter(Mandatory = $true)][string]$Repo,
         [Parameter(Mandatory = $true)][string]$Name,
+        [Parameter(Mandatory = $true)][string]$ExpectedRepoBranch,
         [Parameter(Mandatory = $true)][bool]$AllowDirty
     )
 
@@ -36,8 +47,8 @@ function Test-Repo {
     Invoke-Git $Repo @("rev-parse", "--is-inside-work-tree") | Out-Null
 
     $branch = (Invoke-Git $Repo @("branch", "--show-current")).Trim()
-    if ($branch -ne $ExpectedBranch) {
-        throw "$Name repo is on branch '$branch', expected '$ExpectedBranch'"
+    if ($branch -ne $ExpectedRepoBranch) {
+        throw "$Name repo is on branch '$branch', expected '$ExpectedRepoBranch'"
     }
 
     $remotes = Invoke-Git $Repo @("remote")
@@ -65,7 +76,7 @@ function Test-Repo {
     }
 }
 
-Test-Repo -Repo $MainRepo -Name "Typedown" -AllowDirty:$AllowMainDirty.IsPresent
-Test-Repo -Repo $XamlUIRepo -Name "Typedown.XamlUI" -AllowDirty:$AllowXamlUIDirty.IsPresent
+Test-Repo -Repo $MainRepo -Name "Typedown" -ExpectedRepoBranch $ExpectedMainBranch -AllowDirty:$AllowMainDirty.IsPresent
+Test-Repo -Repo $XamlUIRepo -Name "Typedown.XamlUI" -ExpectedRepoBranch $ExpectedXamlUIBranch -AllowDirty:$AllowXamlUIDirty.IsPresent
 
 Write-Host "Repository verification completed."

@@ -87,6 +87,12 @@ D:\source\repos\Typedown\Dev\Typedown\bin\x64\Debug_Local\net9.0-windows10.0.261
 .\scripts\verify-repos.ps1 -AllowMainDirty
 ```
 
+在支线 worktree 中检查时，应分别指定主仓库分支和 XamlUI 分支：
+
+```powershell
+.\scripts\verify-repos.ps1 -MainRepo D:\source\repos\Typedown.worktrees\phase1-xamlui-dependency -ExpectedMainBranch work/phase1-xamlui-dependency -ExpectedXamlUIBranch winui3-migration
+```
+
 严格模式要求：
 
 - 主仓库在 `winui3-migration`。
