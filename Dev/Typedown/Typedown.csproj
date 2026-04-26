@@ -1,10 +1,18 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk.WindowsDesktop">
 
 	<PropertyGroup>
-		<TypedownXamlUIProjectDir>..\..\..\Typedown.XamlUI\Typedown.XamlUI\</TypedownXamlUIProjectDir>
+		<TypedownXamlUIProjectDir Condition="'$(TypedownXamlUIProjectDir)' == '' and Exists('$(MSBuildProjectDirectory)\..\..\..\Typedown.XamlUI\Typedown.XamlUI\Typedown.XamlUI.csproj')">$(MSBuildProjectDirectory)\..\..\..\Typedown.XamlUI\Typedown.XamlUI\</TypedownXamlUIProjectDir>
+		<TypedownXamlUIProjectDir Condition="'$(TypedownXamlUIProjectDir)' == '' and Exists('$(MSBuildProjectDirectory)\..\..\..\..\Typedown.XamlUI\Typedown.XamlUI\Typedown.XamlUI.csproj')">$(MSBuildProjectDirectory)\..\..\..\..\Typedown.XamlUI\Typedown.XamlUI\</TypedownXamlUIProjectDir>
+		<TypedownXamlUIProjectDir Condition="'$(TypedownXamlUIProjectDir)' == ''">$(MSBuildProjectDirectory)\..\..\..\Typedown.XamlUI\Typedown.XamlUI\</TypedownXamlUIProjectDir>
+		<TypedownXamlUIProject>$(TypedownXamlUIProjectDir)Typedown.XamlUI.csproj</TypedownXamlUIProject>
 		<ManifestTool>C:\Program Files (x86)\Windows Kits\10\bin\10.0.26100.0\x86\mt.exe</ManifestTool>
 		<MakePri>C:\Program Files (x86)\Windows Kits\10\bin\10.0.26100.0\x86\makepri.exe</MakePri>
 	</PropertyGroup>
+
+	<Target Name="EnsureTypedownXamlUIDependency" BeforeTargets="PrepareForBuild">
+		<Error Condition="!Exists('$(TypedownXamlUIProject)')"
+			   Text="Missing required sibling dependency: '$(TypedownXamlUIProject)'. See docs/xamlui-dependency.md for required path/branch/remote/baseline commit." />
+	</Target>
 
 	<Import Project="$(TypedownXamlUIProjectDir)buildTransitive\Typedown.XamlUI.props" Condition="Exists('$(TypedownXamlUIProjectDir)buildTransitive\Typedown.XamlUI.props')" />
 
@@ -63,7 +71,7 @@
 
 	<ItemGroup>
 		<ProjectReference Include="..\Typedown.Core\Typedown.Core.csproj" />
-		<ProjectReference Include="..\..\..\Typedown.XamlUI\Typedown.XamlUI\Typedown.XamlUI.csproj" />
+		<ProjectReference Include="$(TypedownXamlUIProject)" />
 	</ItemGroup>
 
 	<ItemGroup>
