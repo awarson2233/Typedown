@@ -53,6 +53,46 @@ public class Phase10CoreContractsBoundaryTests
         AssertNoTypeReference(projectSource, "Typedown.XamlUI");
     }
 
+    [TestMethod]
+    public void WinUIPhase10b_ContainsRequiredPlatformServiceImplementations()
+    {
+        var servicesRoot = Path.Combine(RepoRoot, "Dev", "Typedown.WinUI", "Services");
+
+        AssertContainsClass(servicesRoot, "WinUIAppDataPathProvider.cs", "WinUIAppDataPathProvider");
+        AssertContainsClass(servicesRoot, "WinUIWindowContext.cs", "WinUIWindowContext");
+        AssertContainsClass(servicesRoot, "WinUIUiDispatcher.cs", "WinUIUiDispatcher");
+        AssertContainsClass(servicesRoot, "WinUIDialogService.cs", "WinUIDialogService");
+        AssertContainsClass(servicesRoot, "WinUIFilePickerService.cs", "WinUIFilePickerService");
+        AssertContainsClass(servicesRoot, "WinUIAppActivationService.cs", "WinUIAppActivationService");
+        AssertContainsClass(servicesRoot, "WinUIPlatformServices.cs", "WinUIPlatformServices");
+    }
+
+    [TestMethod]
+    public void WinUIPhase10b_SourceStaysOnWinUI3Boundary()
+    {
+        var sourceFiles = Directory
+            .EnumerateFiles(Path.Combine(RepoRoot, "Dev", "Typedown.WinUI"), "*.cs", SearchOption.AllDirectories)
+            .Concat(Directory.EnumerateFiles(Path.Combine(RepoRoot, "Dev", "Typedown.WinUI"), "*.xaml", SearchOption.AllDirectories))
+            .ToArray();
+
+        Assert.IsTrue(sourceFiles.Length > 0, "Expected WinUI source files.");
+
+        foreach (var file in sourceFiles)
+        {
+            var source = File.ReadAllText(file);
+
+            AssertNoTypeReference(source, "Windows.UI.Xaml");
+            AssertNoTypeReference(source, "Typedown.XamlUI");
+        }
+    }
+
+    private static void AssertContainsClass(string root, string fileName, string className)
+    {
+        var path = Path.Combine(root, fileName);
+        Assert.IsTrue(File.Exists(path), $"Expected file {path}.");
+        AssertHasTypeReference(File.ReadAllText(path), className);
+    }
+
     private static void AssertNoTypeReference(string source, string typeName)
     {
         source = NormalizePathSeparators(source);

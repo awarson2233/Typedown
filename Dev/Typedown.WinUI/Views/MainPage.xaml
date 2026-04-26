@@ -18,11 +18,11 @@
                 FontSize="34"
                 FontWeight="SemiBold"
                 Foreground="#19363B"
-                Text="Typedown WinUI3 Shell Spike" />
+                Text="Typedown WinUI3 Platform Services" />
             <TextBlock
                 FontSize="16"
                 Foreground="#4B5B5E"
-                Text="Phase 10a opens a platform-neutral contracts path for the WinUI3 shell. UI migration, platform service implementations, editor host parity, and ARM64 remain later phases." />
+                Text="Phase 10b wires the WinUI3 shell to the neutral contracts surface with minimal platform services. Editor migration, real core hookup, and ARM64 stay in later phases." />
             <TextBlock
                 FontSize="14"
                 Foreground="#6A7A7D"
@@ -46,8 +46,19 @@
                         FontSize="22"
                         FontWeight="SemiBold"
                         Foreground="#19363B"
-                        Text="Validated in Phase 9" />
+                        Text="Validated in Phase 10b" />
                     <ItemsRepeater ItemsSource="{x:Bind ValidatedItems}">
+                        <ItemsRepeater.ItemTemplate>
+                            <DataTemplate x:DataType="x:String">
+                                <TextBlock
+                                    Margin="0,0,0,8"
+                                    FontSize="15"
+                                    Foreground="#2E464A"
+                                    Text="{Binding}" />
+                            </DataTemplate>
+                        </ItemsRepeater.ItemTemplate>
+                    </ItemsRepeater>
+                    <ItemsRepeater ItemsSource="{x:Bind ServiceItems}">
                         <ItemsRepeater.ItemTemplate>
                             <DataTemplate x:DataType="x:String">
                                 <TextBlock

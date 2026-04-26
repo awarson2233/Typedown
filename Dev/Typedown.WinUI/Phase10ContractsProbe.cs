@@ -1,12 +1,14 @@
 using Typedown.Core.Interfaces;
+using Typedown.WinUI.Services;
 
 namespace Typedown.WinUI
 {
     internal static class Phase10ContractsProbe
     {
-        public static string Describe()
+        public static string Describe(WinUIPlatformServices services)
         {
-            return $"Phase 10a contracts reachable: {nameof(IAppDataPathProvider)}, {nameof(IDialogService)}.";
+            var localFolder = services.AppDataPathProvider.GetLocalFolderPath();
+            return $"Phase 10b contracts wired to WinUI services: {string.Join(", ", services.ServiceNames)}. Local data root: {localFolder}.";
         }
     }
 }

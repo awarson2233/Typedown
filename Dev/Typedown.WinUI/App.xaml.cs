@@ -1,4 +1,5 @@
 using Microsoft.UI.Xaml.Navigation;
+using Typedown.WinUI.Services;
 using Typedown.WinUI.Views;
 
 namespace Typedown.WinUI
@@ -9,6 +10,7 @@ namespace Typedown.WinUI
     public partial class App : Application
     {
         private Window? window;
+        private WinUIPlatformServices? platformServices;
 
         /// <summary>
         /// Initializes the singleton application object.  This is the first line of authored code
@@ -27,7 +29,8 @@ namespace Typedown.WinUI
         protected override void OnLaunched(LaunchActivatedEventArgs e)
         {
             window ??= new Window();
-            window.Title = "Typedown WinUI3 Phase 10a Contracts Spike";
+            platformServices ??= new WinUIPlatformServices(window);
+            platformServices.WindowContext.Title = "Typedown WinUI3 Phase 10b Platform Services";
 
             if (window.Content is not Frame rootFrame)
             {
@@ -36,9 +39,14 @@ namespace Typedown.WinUI
                 window.Content = rootFrame;
             }
 
-            _ = rootFrame.Navigate(typeof(MainPage), e.Arguments);
-            window.Activate();
+            platformServices.WindowContext.ViewRoot = rootFrame;
+            _ = rootFrame.Navigate(typeof(MainPage), platformServices);
+            platformServices.AppActivationService.StartListening(platformServices.UiDispatcher);
+            _ = platformServices.AppActivationService.Activate(Environment.GetCommandLineArgs());
+            platformServices.WindowContext.Activate();
         }
+
+        internal WinUIPlatformServices PlatformServices => platformServices ?? throw new InvalidOperationException("Platform services are not initialized.");
 
         /// <summary>
         /// Invoked when Navigation to a certain page fails
