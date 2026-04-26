@@ -238,7 +238,7 @@ Test-Path .\Dev\Typedown.WinUI\bin\x64\Debug_Local\net9.0-windows10.0.26100.0\Re
 ```text
 dotnet build Dev\Typedown.UI: 0 warnings, 0 errors
 dotnet build Dev\Typedown.Core.Contracts: 0 warnings, 0 errors
-dotnet test Tests\Typedown.ArchitectureTests: 53 passed
+dotnet test Tests\Typedown.ArchitectureTests: 68 passed
 dotnet build Dev\Typedown.WinUI Debug|x64: 0 warnings, 0 errors
 dotnet build Typedown.sln Debug_Local|x64: 0 warnings, 0 errors
 Debug Resources\Statics\index.html: True
@@ -249,7 +249,7 @@ Debug_Local Resources\Statics\index.html: True
 
 注意：`Dev\Typedown\Resources\Statics` 是 ignored 前端生成产物。新 worktree 初始没有该目录时，需先从主工作区复制现有 bundle 或在 `Dev\Typedown.Editor` 重新生成，再验证 WinUI 输出目录。
 
-在 `docs\winui3-post-phase9-roadmap.md` 中把 Phase 13 标记为“第二批已完成”，并记录仍 deferred 的平台 UI、legacy host 项和下一批迁移方向。
+在 `docs\winui3-post-phase9-roadmap.md` 中把 Phase 13 标记为“已完成”，并记录仍 deferred 到 Phase 14/15 的平台 UI、legacy host 项和主启动路径切换方向。
 
 ## Parallel Strategy
 
@@ -302,3 +302,9 @@ settings/shortcut worker 在 `Typedown.Core.Contracts.Settings` 增加平台中�
 dotnet test .\Tests\Typedown.ArchitectureTests\Typedown.ArchitectureTests.csproj -c Debug /nologo /v:minimal: 58 passed
 dotnet build .\Dev\Typedown.Core.Contracts\Typedown.Core.Contracts.csproj -c Debug /nologo /v:minimal /m:1 /nodeReuse:false: 0 warnings, 0 errors
 ```
+
+## Phase 13 收尾结论
+
+Phase 13 已完成低风险 UI 语义迁移：smoke 页面文本、legacy runtime state、legacy `.resw` 文本读取层、settings/shortcut 快照、editor/menu command envelope、file/shell visible state 均已有平台中立契约和 architecture tests。`Typedown.UI` 与 `Typedown.Core.Contracts` 仍禁止引用 WinUI/XamlUI，`Typedown.WinUI` 仍拥有 WebView2 host、platform services、Package/Unpackaged 启动配置。
+
+Phase 13 明确不完成这些事项：不迁移 WebView2 host，不迁移 Window/Dialog/FilePicker，不切换默认启动项目，不删除 legacy `Typedown.XamlUI`，不处理 ARM64。这些进入 Phase 14/15。

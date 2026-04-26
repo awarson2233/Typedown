@@ -21,7 +21,7 @@ Phase 9   最小 WinUI3 shell spike（已完成）
 Phase 10  WinUI3 平台服务闭环与启动基线（已完成）
 Phase 11  WebView2 editor host smoke 等价（已完成，真实本地文档 load/save 边界已完成）
 Phase 12  Typedown.UI 项目骨架与 UI 注册边界（已完成）
-Phase 13  低风险 UI 资源/页面/控件迁移（第二批已完成）
+Phase 13  低风险 UI 资源/页面/控件迁移（已完成）
 Phase 14  Debug_Local 主启动路径切换到 WinUI3
 Phase 15  legacy XamlUI 退场与构建清理
 Phase 16  ARM64 与打包验证
@@ -154,6 +154,10 @@ Phase 16  ARM64 与打包验证
 
 **第二批状态：已完成。** 已抽取 legacy editor runtime UI state 到 `Dev\Typedown.Core.Contracts\EditorRuntime`，保留 `ParagraphState` checked/enabled 语义，并显式锁定 legacy JSON bridge 字段形状。已在 `Typedown.UI.Resources` 增加平台中立 legacy `.resw` 文本读取层，当前覆盖 `en`、`zh-Hans`、`zh-Hant` 的 `CommonResources`、`DialogResources`、`Resources`、`SettingsResources`，不迁移 XAML `ResourceDictionary`、Style 或 Converter。
 
+**第三批状态：已完成。** 已补齐 settings/shortcut、editor/menu command、file/shell visible state 的平台中立契约：`Typedown.Core.Contracts.Settings`、`Typedown.Core.Contracts.Editor`、`Typedown.Core.Contracts.Shell`。这些契约保留 legacy JSON/PostMessage/快捷键位值/可见状态派生语义，不引入 WinUI/XamlUI/WebView2/Window/Dialog/FilePicker/Package 配置。
+
+**Phase 13 收尾结论：已完成。** 本阶段完成低风险 UI 语义迁移与边界锁定，但没有迁移 WinUI shell、WebView2 host、Window/Dialog/FilePicker、Package/launchSettings，也没有切换默认启动路径。剩余 UI 1:1 可视布局和运行时接入应进入 Phase 14/15，而不是继续扩大 Phase 13。
+
 **推荐顺序：**
 
 1. 平台中立字符串、图片 token、尺寸/颜色 token；XAML ResourceDictionary、Style、Converter 继续延后。
@@ -253,4 +257,4 @@ winui3-migration
 
 ## 下一步建议
 
-下一步继续 Phase 13 第三批：优先做 editor/menu/settings 的平台中立 UI command/view-state 契约，而不是切换默认启动路径。第三批仍不迁移 WebView2 host、Window、Dialog/FilePicker、Package/Unpackaged 配置，也不处理 ARM64。
+下一步进入 Phase 14：准备把 `Debug_Local|x64` 主调试入口切到 WinUI3。切换前应先做 WinUI3 与 legacy 的 1:1 等价核对清单，重点验证启动、打开/保存、editor bridge、settings payload、标题/保存状态、资源文本和 package/unpackaged 双路径；仍不处理 ARM64。

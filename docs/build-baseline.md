@@ -162,7 +162,7 @@ Test-Path .\Dev\Typedown.WinUI\bin\x64\Debug_Local\net9.0-windows10.0.26100.0\Re
 
 - `Typedown.Core.Contracts` Debug 构建返回 0 warning / 0 error。
 - `Typedown.UI` Debug 构建返回 0 warning / 0 error。
-- `Typedown.ArchitectureTests` 返回 53 passed。
+- `Typedown.ArchitectureTests` 返回 68 passed。
 - `Typedown.WinUI` Debug|x64 构建返回 0 warning / 0 error。
 - `Typedown.sln` Debug_Local|x64 构建返回 0 warning / 0 error。
 - Debug 与 Debug_Local 输出目录均存在 `Resources\Statics\index.html`。
