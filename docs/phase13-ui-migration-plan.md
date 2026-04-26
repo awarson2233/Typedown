@@ -261,3 +261,7 @@ Debug_Local Resources\Statics\index.html: True
 - `Typedown.WinUI` 仍拥有 WebView2 host、platform services、launch profiles 和 package manifest。
 - `Debug_Local|x64 + Unpackaged` 和 `Debug|x64` 构建路径均保持可用。
 - Phase 13 不改变 UI 布局，不删除 legacy `Typedown.XamlUI`，不处理 ARM64。
+
+## Phase 13 第二批: legacy 文本资源读取层
+
+第二批在 `Typedown.UI.Resources` 增加平台中立 legacy `.resw` 读取/索引层，当前只覆盖 `en`、`zh-Hans`、`zh-Hant` 的 `CommonResources`、`DialogResources`、`Resources`、`SettingsResources`。读取策略是运行时解析现有 `Dev/Typedown.Core/Resources/Strings` 下的 `.resw`，不复制 75 语言资源，不迁移 XAML `ResourceDictionary`、Style 或 Converter；索引过滤 `.resw` 模板样例 key，并支持未知 culture 与缺失 localized key 回退到 `en`。当前三种 culture 的四个目标 group key 集合一致，没有发现无法 1:1 承载的文本 key。
