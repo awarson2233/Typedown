@@ -15,7 +15,7 @@
 - Phase 0：已完成。构建/运行基线、仓库检查脚本和 `Debug_Local|x64` 验证入口已建立。
 - Phase 1：已完成。XamlUI 相邻仓库依赖已文档化，主项目和 Core 项目已支持正常仓库路径与 worktree 路径解析。
 - Phase 2：已完成。AppData、settings、database、backup 路径已通过 `IAppDataPathProvider` 进入迁移期兼容边界。
-- Phase 3：待执行。抽出 dialog/file picker 服务。
+- Phase 3：已完成。Dialog/file picker 已通过 Core 接口与 shell 实现隔离，close-only dialog 默认按钮语义已保留。
 - Phase 4：待执行。抽出 UI dispatcher/window context。
 - Phase 5：已完成。编辑器 bridge 协议已文档化并从 `MarkdownEditor` 中收束到独立 bridge。
 - Phase 6：待执行。抽出单实例与激活服务。
@@ -222,13 +222,13 @@ dotnet test Tests\Typedown.Test\Typedown.Test.csproj --configuration Debug --no-
 
 步骤：
 
-- [ ] 定义不暴露 `ContentDialogResult` 的 dialog result DTO。
-- [ ] 定义不暴露 `FileOpenPicker`、`FileSavePicker` 或 owner-window API 的 picker request DTO。
-- [ ] 在 shell 服务中实现当前 UWP picker/dialog 行为。
-- [ ] 用 `IFilePickerService` 替换 `FileViewModel.SaveAs()`、`FileViewModel.Export()`、`FileViewModel.Import()` 中的 picker 构造。
-- [ ] 用 `IDialogService` 替换 `FileViewModel` 中的恢复、保存、导入、导出错误对话框。
-- [ ] 用 `IDialogService` 替换 `ImageAction` 中直接调用 `AppContentDialog` 的逻辑。
-- [ ] 除非阻塞 ViewModel/服务抽取，否则暂不迁移 XAML 控件。
+- [x] 定义不暴露 `ContentDialogResult` 的 dialog result DTO。
+- [x] 定义不暴露 `FileOpenPicker`、`FileSavePicker` 或 owner-window API 的 picker request DTO。
+- [x] 在 shell 服务中实现当前 UWP picker/dialog 行为。
+- [x] 用 `IFilePickerService` 替换 `FileViewModel.SaveAs()`、`FileViewModel.Export()`、`FileViewModel.Import()` 中的 picker 构造。
+- [x] 用 `IDialogService` 替换 `FileViewModel` 中的恢复、保存、导入、导出错误对话框。
+- [x] 用 `IDialogService` 替换 `ImageAction` 中直接调用 `AppContentDialog` 的逻辑。
+- [x] 除非阻塞 ViewModel/服务抽取，否则暂不迁移 XAML 控件。
 
 验证：
 
@@ -421,10 +421,10 @@ settings/db path 指向预期迁移位置
 
 ## 可并行工作流
 
-Phase 0 提交后，可以按以下工作流分配 subagent 或 worktree。当前 Phase 1、Phase 2、Phase 5 已完成，后续应从 Phase 3 开始串行推进：
+Phase 0 提交后，可以按以下工作流分配 subagent 或 worktree。当前 Phase 1、Phase 2、Phase 3、Phase 5 已完成，后续应从 Phase 4 开始串行推进：
 
 - 构建/仓库治理：Phase 0、Phase 1、Phase 7。
-- 平台服务：Phase 2 已完成；Phase 3、Phase 4、Phase 6 必须串行。
+- 平台服务：Phase 2、Phase 3 已完成；Phase 4、Phase 6 必须串行。
 - 编辑器 bridge：Phase 5。
 - WinUI3 spike：Phase 8，仅在平台服务和编辑器 bridge 稳定后开始。
 
@@ -437,7 +437,7 @@ Phase 0 提交后，可以按以下工作流分配 subagent 或 worktree。当�
 
 ## 推荐立即执行
 
-下一步执行 Phase 3。Phase 3 合并并通过 `Debug_Local|x64` 基线验证后，再创建 Phase 4 worktree；Phase 4 合并验证后，再创建 Phase 6 worktree。
+下一步执行 Phase 4。Phase 4 合并并通过 `Debug_Local|x64` 基线验证后，再创建 Phase 6 worktree。
 
 ## 正式 WinUI3 迁移前的完成标准
 

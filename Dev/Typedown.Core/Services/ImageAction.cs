@@ -249,7 +249,7 @@ namespace Typedown.Core.Services
                 Title = Locale.GetString("Error"),
                 Content = message,
                 CloseButtonText = Locale.GetString("Ok"),
-                DefaultButton = DialogButton.None
+                DefaultButton = DialogDefaultButton.Close
             });
         }
     }

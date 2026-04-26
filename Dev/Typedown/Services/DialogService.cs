@@ -32,12 +32,13 @@ namespace Typedown.Services
             return MapResult(await dialog.ShowAsync(appViewModel.XamlRoot));
         }
 
-        private static ContentDialogButton MapDefaultButton(DialogButton button)
+        private static ContentDialogButton MapDefaultButton(DialogDefaultButton button)
         {
             return button switch
             {
-                DialogButton.Primary => ContentDialogButton.Primary,
-                DialogButton.Secondary => ContentDialogButton.Secondary,
+                DialogDefaultButton.Close => ContentDialogButton.Close,
+                DialogDefaultButton.Primary => ContentDialogButton.Primary,
+                DialogDefaultButton.Secondary => ContentDialogButton.Secondary,
                 _ => ContentDialogButton.None
             };
         }

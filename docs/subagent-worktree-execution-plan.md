@@ -40,12 +40,12 @@ worktrees/
 
 ## 当前执行状态
 
-- 第一批已完成并合入 `winui3-migration`：`work/phase1-xamlui-dependency`、`work/phase2-appdata-paths`、`work/phase5-editor-bridge`。
-- 下一批必须串行：先 `work/phase3-dialog-picker`，验证合入后再 `work/phase4-dispatcher-window-context`，最后 `work/phase6-app-activation`。
+- 已完成并合入 `winui3-migration`：`work/phase1-xamlui-dependency`、`work/phase2-appdata-paths`、`work/phase3-dialog-picker`、`work/phase5-editor-bridge`。
+- 下一批必须串行：先 `work/phase4-dispatcher-window-context`，验证合入后再 `work/phase6-app-activation`。
 - `work/phase7-build-matrix` 只记录构建矩阵和 ARM64 风险，不做 ARM64 适配。
 - `work/phase8-winui3-shell-spike` 只能在 Phase 3/4/6 稳定后开始。
 
-Phase 3、Phase 4、Phase 6 都会修改 `Dev\Typedown\Injection.cs`，并且会间接影响 `FileViewModel`、窗口上下文和 shell service 注册。不得同时启动这些实现 subagent。
+Phase 4、Phase 6 都会修改 `Dev\Typedown\Injection.cs`，并且会间接影响窗口上下文和 shell service 注册。不得同时启动这些实现 subagent。
 
 ## 分支与 Worktree 命名
 
@@ -68,8 +68,6 @@ git worktree add D:\source\repos\Typedown.worktrees\phase5-editor-bridge -b work
 后续串行创建：
 
 ```powershell
-git worktree add D:\source\repos\Typedown.worktrees\phase3-dialog-picker -b work/phase3-dialog-picker winui3-migration
-# Phase 3 合并验证后再创建 phase4。
 git worktree add D:\source\repos\Typedown.worktrees\phase4-dispatcher-window-context -b work/phase4-dispatcher-window-context winui3-migration
 # Phase 4 合并验证后再创建 phase6。
 git worktree add D:\source\repos\Typedown.worktrees\phase6-app-activation -b work/phase6-app-activation winui3-migration
@@ -81,11 +79,11 @@ git worktree add D:\source\repos\Typedown.worktrees\phase6-app-activation -b wor
 
 - `work/phase1-xamlui-dependency`：治理 XamlUI 相邻仓库依赖。
 - `work/phase2-appdata-paths`：抽出 AppData / settings / database path provider。
+- `work/phase3-dialog-picker`：抽出 dialog 和 picker 服务。
 - `work/phase5-editor-bridge`：文档化并稳定编辑器 bridge 协议。
 
 第二批在第一批合并后串行推进：
 
-- `work/phase3-dialog-picker`：抽出 dialog 和 picker 服务。先执行。
 - `work/phase4-dispatcher-window-context`：抽出 dispatcher 和 window context。Phase 3 合并验证后执行。
 - `work/phase6-app-activation`：抽出单实例和激活服务。Phase 4 合并验证后执行。
 - `work/phase7-build-matrix`：只记录构建矩阵和 ARM64 风险，不适配 ARM64。
@@ -286,7 +284,7 @@ review 可以用新的 subagent 完成，但 reviewer 只能只读扫描，不�
 - Phase 1 主要是构建/文档/脚本，冲突半径小。
 - Phase 2 会先动 `Injection.cs` 和路径基础设施，应早于 dialog/picker。
 - Phase 5 与 Phase 2 基本独立，但会动 `MarkdownEditor` 和 bridge，不应和 UI dispatcher/window context 同时合并。
-- Phase 3、4、6 都会碰服务注册和窗口/平台接口，必须串行。当前从 Phase 3 开始，不同时启动 Phase 4/6。
+- Phase 3、4、6 都会碰服务注册和窗口/平台接口，必须串行。当前 Phase 3 已完成，下一步从 Phase 4 开始，不同时启动 Phase 6。
 - Phase 7 不做 ARM64 适配，只在 WinUI3 前记录风险，因此可以放到服务边界稳定后再补。
 
 ## 集成流程
@@ -339,8 +337,7 @@ git branch -d work/phase1-xamlui-dependency
 
 ## 下一步
 
-1. 从当前 `winui3-migration` 创建 `work/phase3-dialog-picker`。
-2. 启动一个实现 subagent，只负责 Phase 3。
+1. 从当前 `winui3-migration` 创建 `work/phase4-dispatcher-window-context`。
+2. 启动一个实现 subagent，只负责 Phase 4。
 3. 主工作区做 review、合并和基线验证。
-4. Phase 3 合入后，再创建并启动 Phase 4。
-5. Phase 4 合入后，再创建并启动 Phase 6。
+4. Phase 4 合入后，再创建并启动 Phase 6。

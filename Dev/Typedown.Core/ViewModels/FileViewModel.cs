@@ -275,7 +275,7 @@ namespace Typedown.Core.ViewModels
                 Content = Locale.GetDialogString("RecoverContent"),
                 PrimaryButtonText = Locale.GetDialogString("Recover"),
                 SecondaryButtonText = Locale.GetDialogString("Delete"),
-                DefaultButton = DialogButton.Primary
+                DefaultButton = DialogDefaultButton.Primary
             });
             if (result == DialogButton.Primary)
             {
@@ -428,7 +428,7 @@ namespace Typedown.Core.ViewModels
                 CloseButtonText = Locale.GetDialogString("Cancel"),
                 PrimaryButtonText = Locale.GetDialogString("Save"),
                 SecondaryButtonText = Locale.GetDialogString("Don'tSave"),
-                DefaultButton = DialogButton.Primary
+                DefaultButton = DialogDefaultButton.Primary
             });
             askToSaveOpened = false;
             switch (result)
@@ -599,7 +599,7 @@ namespace Typedown.Core.ViewModels
                 Title = title,
                 Content = content,
                 CloseButtonText = closeButtonText,
-                DefaultButton = DialogButton.None
+                DefaultButton = DialogDefaultButton.Close
             });
         }
     }

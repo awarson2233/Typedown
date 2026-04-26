@@ -14,6 +14,14 @@ namespace Typedown.Core.Interfaces
         Secondary
     }
 
+    public enum DialogDefaultButton
+    {
+        None,
+        Close,
+        Primary,
+        Secondary
+    }
+
     public class DialogRequest
     {
         public object Title { get; set; }
@@ -26,6 +34,6 @@ namespace Typedown.Core.Interfaces
 
         public string SecondaryButtonText { get; set; }
 
-        public DialogButton DefaultButton { get; set; } = DialogButton.None;
+        public DialogDefaultButton DefaultButton { get; set; } = DialogDefaultButton.None;
     }
 }

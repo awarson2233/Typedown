@@ -43,6 +43,7 @@ namespace Typedown.Test.ArchitectureTests
             AssertNoTypeReference(dialogSource, "FileSavePicker");
             AssertNoTypeReference(dialogSource, "FolderPicker");
             AssertNoDialogButtonMember(dialogSource, "Close");
+            AssertDialogDefaultButtonMember(dialogSource, "Close");
 
             AssertNoTypeReference(pickerSource, "ContentDialogResult");
             AssertNoTypeReference(pickerSource, "FileOpenPicker");
@@ -54,6 +55,15 @@ namespace Typedown.Test.ArchitectureTests
             AssertNoTypeReference(pickerSource, "window");
         }
 
+        [TestMethod]
+        public void DialogService_PreservesCloseDefaultButtonMapping()
+        {
+            var source = File.ReadAllText(Path.Combine(RepoRoot, "Dev", "Typedown", "Services", "DialogService.cs"));
+
+            Assert.IsTrue(source.Contains("DialogDefaultButton.Close => ContentDialogButton.Close"),
+                "Close-only dialogs must keep ContentDialogButton.Close as their default button.");
+        }
+
         private static void AssertNoTypeReference(string source, string typeName)
         {
             Assert.IsFalse(Regex.IsMatch(source, $@"\b{Regex.Escape(typeName)}\b"), $"Unexpected reference to {typeName}.");
@@ -63,6 +73,12 @@ namespace Typedown.Test.ArchitectureTests
         {
             var pattern = $@"enum\s+DialogButton\s*\{{[\s\S]*\b{Regex.Escape(memberName)}\b";
             Assert.IsFalse(Regex.IsMatch(source, pattern), $"Unexpected DialogButton member {memberName}.");
+        }
+
+        private static void AssertDialogDefaultButtonMember(string source, string memberName)
+        {
+            var pattern = $@"enum\s+DialogDefaultButton\s*\{{[\s\S]*\b{Regex.Escape(memberName)}\b";
+            Assert.IsTrue(Regex.IsMatch(source, pattern), $"Expected DialogDefaultButton member {memberName}.");
         }
     }
 }
