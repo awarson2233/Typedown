@@ -30,9 +30,39 @@ namespace Typedown.Test.ArchitectureTests
             AssertNoTypeReference(source, "AppContentDialog");
         }
 
+        [TestMethod]
+        public void DialogAndPickerInterfaces_DoNotExposePlatformTypes()
+        {
+            var dialogSource = File.ReadAllText(Path.Combine(RepoRoot, "Dev", "Typedown.Core", "Interfaces", "IDialogService.cs"));
+            var pickerSource = File.ReadAllText(Path.Combine(RepoRoot, "Dev", "Typedown.Core", "Interfaces", "IFilePickerService.cs"));
+
+            AssertNoTypeReference(dialogSource, "ContentDialogResult");
+            AssertNoTypeReference(dialogSource, "XamlRoot");
+            AssertNoTypeReference(dialogSource, "HWND");
+            AssertNoTypeReference(dialogSource, "FileOpenPicker");
+            AssertNoTypeReference(dialogSource, "FileSavePicker");
+            AssertNoTypeReference(dialogSource, "FolderPicker");
+            AssertNoDialogButtonMember(dialogSource, "Close");
+
+            AssertNoTypeReference(pickerSource, "ContentDialogResult");
+            AssertNoTypeReference(pickerSource, "FileOpenPicker");
+            AssertNoTypeReference(pickerSource, "FileSavePicker");
+            AssertNoTypeReference(pickerSource, "FolderPicker");
+            AssertNoTypeReference(pickerSource, "XamlRoot");
+            AssertNoTypeReference(pickerSource, "HWND");
+            AssertNoTypeReference(pickerSource, "owner");
+            AssertNoTypeReference(pickerSource, "window");
+        }
+
         private static void AssertNoTypeReference(string source, string typeName)
         {
             Assert.IsFalse(Regex.IsMatch(source, $@"\b{Regex.Escape(typeName)}\b"), $"Unexpected reference to {typeName}.");
+        }
+
+        private static void AssertNoDialogButtonMember(string source, string memberName)
+        {
+            var pattern = $@"enum\s+DialogButton\s*\{{[\s\S]*\b{Regex.Escape(memberName)}\b";
+            Assert.IsFalse(Regex.IsMatch(source, pattern), $"Unexpected DialogButton member {memberName}.");
         }
     }
 }

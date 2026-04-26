@@ -11,8 +11,7 @@ namespace Typedown.Core.Interfaces
     {
         None,
         Primary,
-        Secondary,
-        Close
+        Secondary
     }
 
     public class DialogRequest

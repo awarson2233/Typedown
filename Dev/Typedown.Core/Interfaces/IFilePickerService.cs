@@ -5,14 +5,14 @@ namespace Typedown.Core.Interfaces
 {
     public interface IFilePickerService
     {
-        Task<string> PickOpenFileAsync(OpenFilePickerRequest request);
+        Task<string> PickOpenFileAsync(OpenFileRequest request);
 
-        Task<string> PickSaveFileAsync(SaveFilePickerRequest request);
+        Task<string> PickSaveFileAsync(SaveFileRequest request);
 
-        Task<string> PickFolderAsync(FolderPickerRequest request);
+        Task<string> PickFolderAsync(PickFolderRequest request);
     }
 
-    public class OpenFilePickerRequest
+    public class OpenFileRequest
     {
         public IList<string> FileTypeFilter { get; set; } = new List<string>();
     }
@@ -34,14 +34,14 @@ namespace Typedown.Core.Interfaces
         public IList<string> Extensions { get; set; } = new List<string>();
     }
 
-    public class SaveFilePickerRequest
+    public class SaveFileRequest
     {
         public IList<SaveFileTypeChoice> FileTypeChoices { get; set; } = new List<SaveFileTypeChoice>();
 
         public string SuggestedFileName { get; set; }
     }
 
-    public class FolderPickerRequest
+    public class PickFolderRequest
     {
         public IList<string> FileTypeFilter { get; set; } = new List<string> { "*" };
     }

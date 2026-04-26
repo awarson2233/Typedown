@@ -165,7 +165,7 @@ namespace Typedown.Core.ViewModels
         {
             if (!await AskToSave())
                 return false;
-            filePath ??= await FilePickerService.PickOpenFileAsync(new OpenFilePickerRequest
+            filePath ??= await FilePickerService.PickOpenFileAsync(new OpenFileRequest
             {
                 FileTypeFilter = FileTypeHelper.Markdown.ToList()
             });
@@ -176,7 +176,7 @@ namespace Typedown.Core.ViewModels
 
         public async Task<bool> OpenFolder(string folderPath = null)
         {
-            folderPath ??= await FilePickerService.PickFolderAsync(new FolderPickerRequest());
+            folderPath ??= await FilePickerService.PickFolderAsync(new PickFolderRequest());
             if (folderPath == null)
                 return false;
             if (!await LoadFolder(folderPath))
@@ -333,7 +333,7 @@ namespace Typedown.Core.ViewModels
         {
             try
             {
-                var filePath = await FilePickerService.PickSaveFileAsync(new SaveFilePickerRequest
+                var filePath = await FilePickerService.PickSaveFileAsync(new SaveFileRequest
                 {
                     FileTypeChoices =
                     {
@@ -440,7 +440,6 @@ namespace Typedown.Core.ViewModels
                     AutoBackup.DeleteBackup(FilePath);
                     return true;
                 case DialogButton.None:
-                case DialogButton.Close:
                     return false;
             }
             return false;
@@ -478,7 +477,7 @@ namespace Typedown.Core.ViewModels
 
         private async void Export(ExportConfig config)
         {
-            var filePath = await FilePickerService.PickSaveFileAsync(new SaveFilePickerRequest
+            var filePath = await FilePickerService.PickSaveFileAsync(new SaveFileRequest
             {
                 FileTypeChoices = config.FileExtensions
                     .Select(x => new SaveFileTypeChoice(x.name, new List<string> { x.extension }))
@@ -512,7 +511,7 @@ namespace Typedown.Core.ViewModels
         {
             try
             {
-                var filePath = await FilePickerService.PickOpenFileAsync(new OpenFilePickerRequest
+                var filePath = await FilePickerService.PickOpenFileAsync(new OpenFileRequest
                 {
                     FileTypeFilter = { ".html" }
                 });
@@ -600,7 +599,7 @@ namespace Typedown.Core.ViewModels
                 Title = title,
                 Content = content,
                 CloseButtonText = closeButtonText,
-                DefaultButton = DialogButton.Close
+                DefaultButton = DialogButton.None
             });
         }
     }

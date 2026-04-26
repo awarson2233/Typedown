@@ -38,7 +38,6 @@ namespace Typedown.Services
             {
                 DialogButton.Primary => ContentDialogButton.Primary,
                 DialogButton.Secondary => ContentDialogButton.Secondary,
-                DialogButton.Close => ContentDialogButton.Close,
                 _ => ContentDialogButton.None
             };
         }

@@ -17,7 +17,7 @@ namespace Typedown.Services
             this.appViewModel = appViewModel;
         }
 
-        public async Task<string> PickOpenFileAsync(OpenFilePickerRequest request)
+        public async Task<string> PickOpenFileAsync(OpenFileRequest request)
         {
             var picker = new FileOpenPicker();
             request.FileTypeFilter.ToList().ForEach(picker.FileTypeFilter.Add);
@@ -26,7 +26,7 @@ namespace Typedown.Services
             return file?.Path;
         }
 
-        public async Task<string> PickSaveFileAsync(SaveFilePickerRequest request)
+        public async Task<string> PickSaveFileAsync(SaveFileRequest request)
         {
             var picker = new FileSavePicker();
             foreach (var choice in request.FileTypeChoices)
@@ -37,7 +37,7 @@ namespace Typedown.Services
             return file?.Path;
         }
 
-        public async Task<string> PickFolderAsync(FolderPickerRequest request)
+        public async Task<string> PickFolderAsync(PickFolderRequest request)
         {
             var picker = new FolderPicker();
             request.FileTypeFilter.ToList().ForEach(picker.FileTypeFilter.Add);
