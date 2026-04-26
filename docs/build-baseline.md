@@ -109,10 +109,37 @@ D:\source\repos\Typedown\Dev\Typedown\bin\x64\Debug_Local\net9.0-windows10.0.261
 ## 当前风险
 
 - XamlUI 已纳入主仓库，但仍是 legacy XAML host，不是长期 `Typedown.UI` 模块。
-- `Debug|x64` 依赖前端 dev server，不能作为稳定基线。
-- `Debug_Local|x64` 依赖 `Resources\Statics` 已存在且可加载。
+- legacy `Dev\Typedown` 的 `Debug|x64` 依赖前端 dev server，不能作为稳定基线。
+- legacy `Dev\Typedown` 的 `Debug_Local|x64` 依赖 `Resources\Statics` 已存在且可加载。
+- WinUI3 当前日常基线是 `Debug_Local|x64 + Typedown.WinUI (Unpackaged)`；Package 验证基线是 `Debug|x64 + Typedown.WinUI (Package)`。
+- WinUI3 Package 路径必须验证 `Resources\Statics\index.html` 同时存在于 `Debug` 输出和 package payload。
 - ARM64 配置不能从 solution 下拉框推断；正式 ARM64 适配推迟到 WinUI3 shell 切换后。
 - Packaging 仍是 Desktop Bridge / WAP，后续需要独立治理。
+
+## WinUI3 Phase 11 收尾验证入口
+
+Phase 11 之后，WinUI3 shell/editor host 的最小收尾验证为：
+
+```powershell
+dotnet build .\Dev\Typedown.UI\Typedown.UI.csproj -c Debug /nologo /v:minimal
+dotnet test .\Tests\Typedown.ArchitectureTests\Typedown.ArchitectureTests.csproj -c Debug /nologo /v:minimal
+dotnet build .\Dev\Typedown.WinUI\Typedown.WinUI.csproj -c Debug -p:Platform=x64 /nologo /v:minimal /m:1 /nodeReuse:false
+dotnet build .\Typedown.sln -c Debug_Local -p:Platform=x64 /nologo /v:minimal /m:1 /nodeReuse:false
+```
+
+构建后检查：
+
+```powershell
+Test-Path .\Dev\Typedown.WinUI\bin\x64\Debug\net9.0-windows10.0.26100.0\Resources\Statics\index.html
+Test-Path .\Dev\Typedown.WinUI\bin\x64\Debug_Local\net9.0-windows10.0.26100.0\Resources\Statics\index.html
+```
+
+如果需要验证 packaged loose registration：
+
+```powershell
+Add-AppxPackage -Register .\Dev\Typedown.WinUI\bin\x64\Debug\net9.0-windows10.0.26100.0\AppxManifest.xml
+Start-Process "shell:AppsFolder\62082Surprise.Typedown.WinUI_m01jdq2q5rxw0!App"
+```
 
 ## 本次验证记录
 

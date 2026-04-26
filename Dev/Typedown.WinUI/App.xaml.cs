@@ -1,4 +1,6 @@
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml.Navigation;
+using Typedown.UI.Composition;
 using Typedown.WinUI.Services;
 using Typedown.WinUI.Views;
 
@@ -11,6 +13,7 @@ namespace Typedown.WinUI
     {
         private Window? window;
         private WinUIPlatformServices? platformServices;
+        private IServiceProvider? uiServices;
 
         /// <summary>
         /// Initializes the singleton application object.  This is the first line of authored code
@@ -30,6 +33,9 @@ namespace Typedown.WinUI
         {
             window ??= new Window();
             platformServices ??= new WinUIPlatformServices(window);
+            uiServices ??= new ServiceCollection()
+                .AddTypedownUI()
+                .BuildServiceProvider();
             platformServices.WindowContext.Title = "Typedown WinUI3 Phase 10b Platform Services";
 
             if (window.Content is not Frame rootFrame)
@@ -40,13 +46,17 @@ namespace Typedown.WinUI
             }
 
             platformServices.WindowContext.ViewRoot = rootFrame;
-            _ = rootFrame.Navigate(typeof(MainPage), platformServices);
+            _ = rootFrame.Navigate(typeof(MainPage), new MainPageNavigationContext(platformServices, uiServices));
             platformServices.AppActivationService.StartListening(platformServices.UiDispatcher);
             _ = platformServices.AppActivationService.Activate(Environment.GetCommandLineArgs());
             platformServices.WindowContext.Activate();
         }
 
         internal WinUIPlatformServices PlatformServices => platformServices ?? throw new InvalidOperationException("Platform services are not initialized.");
+
+        private sealed record MainPageNavigationContext(
+            WinUIPlatformServices PlatformServices,
+            IServiceProvider UiServices);
 
         /// <summary>
         /// Invoked when Navigation to a certain page fails

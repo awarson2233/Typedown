@@ -14,6 +14,8 @@ Typedown.UI
   应用 UI 层。
   负责页面、控件、资源、UI ViewModel、UI 编排和编辑器视图组合。
   它可以依赖 Typedown.Core 的契约和模型，但不负责进程启动、平台服务或打包。
+  Phase 12 后，Typedown.UI 的第一批职责是 MVVM 基础类型、MainPageViewModel
+  和 UI 注册边界。它仍不得引用 Typedown.WinUI，也不得包含 WinUI platform service 实现。
 
 Typedown.Core
   平台中立核心层。

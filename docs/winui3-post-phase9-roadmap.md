@@ -2,7 +2,7 @@
 
 本文档重新设计 Phase 9 之后的迁移路线。当前决策仍然是 `Typedown.UI` 与 `Typedown.WinUI` 分离，`Dev\Typedown.XamlUI` 只作为 legacy XAML host 保留到 WinUI3 功能等价后删除。
 
-当前状态：Phase 9 和 Phase 10 已完成。`Dev\Typedown.WinUI` 已成为 WinUI3 shell spike 和平台服务基线；日常启动入口为 `Debug_Local|x64 + Typedown.WinUI (Unpackaged)`，Package/MSIX 入口保留为 `Debug|x64 + Typedown.WinUI (Package)` 的部署验证路径。
+当前状态：Phase 9、Phase 10 和 Phase 11 已完成到 WinUI3 smoke/editor-host 基线。`Dev\Typedown.WinUI` 已成为 WinUI3 shell spike、平台服务、WebView2 editor host 和 Package/Unpackaged 双入口基线；日常启动入口为 `Debug_Local|x64 + Typedown.WinUI (Unpackaged)`，Package/MSIX 入口保留为 `Debug|x64 + Typedown.WinUI (Package)` 的部署验证路径。
 
 ## 总原则
 
@@ -19,9 +19,9 @@
 ```text
 Phase 9   最小 WinUI3 shell spike（已完成）
 Phase 10  WinUI3 平台服务闭环与启动基线（已完成）
-Phase 11  WebView2 editor host 等价（进行中，真实本地文档 load/save 边界已完成）
-Phase 12  Typedown.UI 项目骨架与 UI 注册边界
-Phase 13  低风险 UI 资源/页面/控件迁移
+Phase 11  WebView2 editor host smoke 等价（已完成，真实本地文档 load/save 边界已完成）
+Phase 12  Typedown.UI 项目骨架与 UI 注册边界（已完成）
+Phase 13  低风险 UI 资源/页面/控件迁移（下一阶段）
 Phase 14  Debug_Local 主启动路径切换到 WinUI3
 Phase 15  legacy XamlUI 退场与构建清理
 Phase 16  ARM64 与打包验证
@@ -78,9 +78,11 @@ Phase 16  ARM64 与打包验证
 
 **目标：** 在 WinUI3 shell 中重建 editor host，验证同一份 React bundle 和 native bridge 协议可复用。
 
-**当前入口：** 从 `Debug_Local|x64 + Typedown.WinUI (Unpackaged)` 开始实现和验证。不要把 Package 证书问题作为 Phase 11 的阻塞项。
+**当前入口：** `Debug_Local|x64 + Typedown.WinUI (Unpackaged)` 是日常实现和验证入口；`Debug|x64 + Typedown.WinUI (Package)` 是部署验证入口。
 
-**当前状态：** 已建立“可打开并可编辑 smoke”的 WinUI3 WebView2 editor host，并完成 contract-backed editor document session 边界。`Dev\Typedown.WinUI\Controls\WinUIEditorHost.cs` 通过本地 `WinUIEditorBridgeAdapter` 解析 `invoke` / `message` / `diffmsg`；文档状态、真实本地 markdown 文件 `LoadFile/Save/SaveAs(save copy)`、`GetSettings` payload、以及 `LoadFile/Search/Replace/SearchOpenChange/ThemeChanged/SettingsChanged/Export` 的 host command factory 已收敛到 `Dev\Typedown.Core.Contracts\Editor\*` + `WinUIEditorDocumentSession`。当前 WinUI host 还提供了本地文件运行路径：可在初始化前设置文件路径，或通过 host 方法触发 `LoadFile/Save/SaveAs`，并在 ready handshake 之后把 session 当前 state 发送给 WebView。当前实现仍只接本地文件系统和 smoke-safe stub，不引用 `Dev\Typedown.Core` 或 legacy `Dev\Typedown.XamlUI`。
+**状态：已完成到 Phase 11 验收边界。** 已建立“可打开并可编辑 smoke”的 WinUI3 WebView2 editor host，并完成 contract-backed editor document session 边界。`Dev\Typedown.WinUI\Controls\WinUIEditorHost.cs` 通过本地 `WinUIEditorBridgeAdapter` 解析 `invoke` / `message` / `diffmsg`；文档状态、真实本地 markdown 文件 `LoadFile/Save/SaveAs(save copy)`、`GetSettings` payload、以及 `LoadFile/Search/Replace/SearchOpenChange/ThemeChanged/SettingsChanged/Export` 的 host command factory 已收敛到 `Dev\Typedown.Core.Contracts\Editor\*` + `WinUIEditorDocumentSession`。当前 WinUI host 还提供了本地文件运行路径：可在初始化前设置文件路径，或通过 host 方法触发 `LoadFile/Save/SaveAs`，并在 ready handshake 之后把 session 当前 state 发送给 WebView。当前实现仍只接本地文件系统和 smoke-safe stub，不引用 `Dev\Typedown.Core` 或 legacy `Dev\Typedown.XamlUI`。
+
+**收尾结论：** Phase 11 不再继续扩大功能范围。真实 Core 文档服务、导出/打印、图片选择、浮层 UI、查找替换 UI 和完整 editor command parity 全部转入 Phase 13/14 前的后续功能迁移，不作为 Phase 12 的前置阻塞。
 
 **主要任务：**
 
@@ -90,15 +92,18 @@ Phase 16  ARM64 与打包验证
 - [x] 验证 C# -> JS 的 host message smoke 路径。
 - [x] 建立本地 bridge/command adapter，支持前端最小 invoke 与编辑状态事件。
 - [x] 让 WinUI smoke host 能打开并编辑一份本地 smoke markdown。
-- [ ] 将 `IEditorDocumentSession` 从当前本地文件系统实现替换为真实 legacy/Core 文档服务接入。
-- [ ] 迁移真实 `MarkdownEditor` 命令编排、真实导出/打印/图片选择、完整主题同步和完整编辑状态事件。
-- 对齐主题、DPI、输入转发、焦点和窗口句柄需求。
+- [x] 修复 `Debug|x64 + Package` 的 editor static bundle 打包规则，确保 `Resources\Statics\index.html` 进入 MSIX payload。
+- [ ] 后续迁移：将 `IEditorDocumentSession` 从当前本地文件系统实现替换为真实 legacy/Core 文档服务接入。
+- [ ] 后续迁移：迁移真实 `MarkdownEditor` 命令编排、真实导出/打印/图片选择、完整主题同步和完整编辑状态事件。
+- 后续迁移：对齐主题、DPI、输入转发、焦点和窗口句柄需求。
 - 保持 bridge 协议语义不变；如果需要新增 WinUI 侧 adapter，先落在 `Typedown.WinUI`，不要提前批量移动 legacy XAML 页面/控件。
 
 **验收：**
 
 - WinUI3 shell 可以显示 editor，并能打开一份本地 smoke markdown 进入可编辑状态。
 - 至少完成一次 editor bundle 初始化、JS/C# 双向消息 smoke，以及最小 `invoke`/`diffmsg` 适配。
+- `Debug_Local|x64` 输出和 `Debug|x64` Package 输出都包含 `Resources\Statics\index.html`。
+- Package 注册损坏时，使用当前 `Debug` 输出目录下的 `AppxManifest.xml` 重新注册；不把注册状态损坏误判为 WebView/editor 协议失败。
 - 真实 Core 文档服务接入、导出/打印、浮层 UI、查找替换 UI 和完整 editor command parity 可拆到 Phase 11 后续子任务，不与 `Typedown.UI` 控件搬迁混做。
 - 不升级前端依赖，不改变 bridge 协议语义。
 
@@ -108,25 +113,40 @@ Phase 16  ARM64 与打包验证
 
 **目标：** 建立真正的 `Typedown.UI`，但只先承接 UI 层注册和最小页面，不做批量控件搬迁。
 
+**状态：已完成。** Phase 12 的目的不是迁移 legacy `Dev\Typedown.XamlUI`，也不是把 `Typedown.WinUI` 与 `Typedown.UI` 合并；它已建立 UI 层边界，让后续 Phase 13 能按目录搬迁页面/控件/资源。
+
+**详细计划：** 见 [phase12-mvvm-ui-plan.md](./phase12-mvvm-ui-plan.md)。Phase 12 引入 MVVM 骨架，但不改变当前页面布局。`Typedown.UI` 先承接 `MainPageViewModel`、MVVM 基础类型和 `AddTypedownUI` 注册入口；`Typedown.WinUI` 仍负责 Window、Frame、平台服务、WebView2 host 和 Package/Unpackaged 启动。
+
 **主要任务：**
 
-- 新建 `Dev\Typedown.UI` 项目。
-- 定义 UI 层服务注册扩展，例如 `AddTypedownUI()`。
-- 放入最小 page/control/resource 骨架。
-- 将页面级 ViewModel 注册从 WinUI shell 中拆出到 UI 层。
-- 明确 `Typedown.UI -> Typedown.Core`，禁止 `Typedown.UI -> Typedown.WinUI`。
+- [x] 新建 `Dev\Typedown.UI` 项目，目标框架与当前 WinUI shell 保持一致。
+- [x] 定义 UI 层服务注册扩展 `AddTypedownUI()`，但不在 UI 层注册 WinUI platform services。
+- [x] 放入最小 MVVM 骨架，先承接页面级组合，不搬迁 legacy host/run loop/HWND 代码。
+- [x] 将 `MainPageViewModel` 和页面级状态注册从 WinUI shell 中拆出到 UI 层。
+- [x] 明确 `Typedown.UI -> Typedown.Core.Contracts`，禁止 `Typedown.UI -> Typedown.WinUI`。
+- [x] 更新 architecture tests，锁定 `Typedown.WinUI -> Typedown.UI`、`Typedown.UI` 不反向引用 WinUI、`Typedown.Core.Contracts` 不引用 UI framework。
 
 **验收：**
 
-- `Typedown.WinUI -> Typedown.UI -> Typedown.Core` 依赖方向成立。
+- `Typedown.WinUI -> Typedown.UI -> Typedown.Core.Contracts` 依赖方向成立；如确需 `Typedown.UI -> Typedown.Core`，必须记录具体原因。
 - legacy 启动路径仍可保留到切换完成。
 - UI 项目不包含 XamlUI host/run loop/HWND 代码。
+- `Debug_Local|x64 + Typedown.WinUI (Unpackaged)` 仍可构建并加载 editor bundle。
+- `Debug|x64 + Typedown.WinUI (Package)` 仍可构建，Package payload 仍包含 editor static bundle。
 
-**执行方式：** 可以多 agent 拆分为项目骨架、DI 注册、依赖验证三个任务，但需要一个集成 worktree 统一合并，避免 solution/project 文件冲突。
+**执行方式：** 可以多 agent 拆分，但必须只有一个集成任务修改 `.sln` / `.csproj`。推荐拆分如下：
+
+- Agent A：项目骨架与 solution 集成，负责 `Dev\Typedown.UI`、`Typedown.sln`、项目引用。
+- Agent B：UI 注册边界，负责 `AddTypedownUI()`、最小 ViewModel/page 组合点，不修改 solution。
+- Agent C：架构测试与文档，负责依赖方向测试、Phase 12 文档和验证命令。
+
+合并顺序必须串行：先 Agent A，再 Agent B，最后 Agent C。每步合并后运行 architecture tests，最后运行 WinUI Debug/Debug_Local 构建。
 
 ## Phase 13：低风险 UI 资源/页面/控件迁移
 
 **目标：** 按风险从低到高把 UI 层内容迁入 `Typedown.UI`，不要一次性搬空 `Typedown.Core`。
+
+**详细计划：** 见 [phase13-ui-migration-plan.md](./phase13-ui-migration-plan.md)。Phase 13 先做清点和分批迁移，不移动 WinUI shell、WebView2 host、平台服务、打包入口，也不删除 legacy `Typedown.XamlUI`。
 
 **推荐顺序：**
 
@@ -227,4 +247,4 @@ winui3-migration
 
 ## 下一步建议
 
-下一步应启动 Phase 11：在现有 `Dev\Typedown.WinUI` 上接入 WebView2 editor host 和应用骨架。不要在 Phase 11 同时创建完整 `Typedown.UI` 或迁移控件；那会把“editor host 等价”和“UI 搬迁”两个风险叠在一起。
+下一步应启动 Phase 12：创建 `Dev\Typedown.UI` 的最小项目骨架和 UI 注册边界。不要在 Phase 12 批量搬迁 legacy XAML 控件，也不要把 `Typedown.WinUI` 与 `Typedown.UI` 合并；Phase 12 只为 Phase 13 的低风险 UI 迁移建立可测试边界。

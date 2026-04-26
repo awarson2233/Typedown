@@ -24,7 +24,8 @@ Phase 10c 的目标是把 `Dev\Typedown.WinUI` 收敛成一个可直接承载 VS
 Phase 10c 将 packaged 基线收回到 `Dev\Typedown.WinUI` 自身：
 
 - WinUI 项目启用单项目 MSIX：`<WindowsPackageType>MSIX</WindowsPackageType>`。
-- WinUI 项目在 `Debug_Local` 下显式使用 `<WindowsPackageType>None</WindowsPackageType>`，避免 Unpackaged 调试时注入 WinAppSDK DeploymentManager 自动初始化。
+- WinUI 项目在 `Debug_Local` 下显式使用 `<WindowsPackageType>None</WindowsPackageType>`，避免 Unpackaged 调试时进入 MSIX 部署链。
+- WinUI 项目全局关闭 WinAppSDK DeploymentManager 自动初始化，并全局启用 Bootstrap 自动初始化；这样 `Debug + Unpackaged` 不会再进入 `DeploymentManagerAutoInitializer`，也不会在 `Microsoft.UI.Xaml.Application.Start` 前因 WinUI runtime 未 bootstrap 而触发 `REGDB_E_CLASSNOTREG`。
 - `Package.appxmanifest` 改为 WinUI shell 自己的 package identity，不再使用模板占位值。
 - `Typedown.sln` 的 `Debug|x64` 至少确保 `Typedown.WinUI` 自己具备 Build + Deploy，而旧 `Typedown.Package` 不再参与该配置的 Deploy。
 - `Typedown.WinUI` 在 `Debug|x64` 下补上 `Deploy.0`，让 VS packaged 调试落在 WinUI 项目本身，而不是旧 `wapproj`。
@@ -38,6 +39,16 @@ Phase 10c 将 packaged 基线收回到 `Dev\Typedown.WinUI` 自身：
 `Debug|x64 + Typedown.WinUI (Package)` 是 Package/MSIX 验证入口。MSIX 部署必须有签名，且签名根证书必须被 Windows 信任；如果证书不被信任，会出现 `0x800B0109`，这是部署层限制，不是应用代码错误。
 
 如果 `Debug_Local` 也使用 `<WindowsPackageType>MSIX</WindowsPackageType>`，Windows App SDK 会向 Unpackaged 启动产物注入 DeploymentManager 自动初始化，可能在启动前触发 `DeploymentInitializeOptions` 的 `REGDB_E_CLASSNOTREG (0x80040154)`。因此 `Debug_Local` 必须保持 `WindowsPackageType=None`。
+
+当前 `Typedown.WinUI` 同时显式设置：
+
+```xml
+<WindowsAppSdkBootstrapInitialize>true</WindowsAppSdkBootstrapInitialize>
+<WindowsAppSDKBootstrapAutoInitializeOptions_OnPackageIdentity_NoOp>true</WindowsAppSDKBootstrapAutoInitializeOptions_OnPackageIdentity_NoOp>
+<WindowsAppSdkDeploymentManagerInitialize>false</WindowsAppSdkDeploymentManagerInitialize>
+```
+
+这让 `Debug + Typedown.WinUI (Unpackaged)` 作为误选配置时也能启动到 WinUI runtime；但日常基线仍推荐 `Debug_Local + Typedown.WinUI (Unpackaged)`，Package 验证仍推荐 `Debug + Typedown.WinUI (Package)`。
 
 ## Visual Studio 使用方式
 
@@ -71,3 +82,42 @@ Phase 10c 将 packaged 基线收回到 `Dev\Typedown.WinUI` 自身：
 - signed package publish：`dotnet msbuild .\Dev\Typedown.WinUI\Typedown.WinUI.csproj /restore /t:Publish /p:Configuration=Debug /p:Platform=x64 /p:GenerateAppxPackageOnBuild=true`
 
 最后一条命令能确认 WinUI 项目自己的 signed package target 可产出 `.msix`。但 VS 是否能直接完成 packaged 启动，仍需要用户在 VS 中实际点一次 `Typedown.WinUI (Package)` 确认。
+
+## Phase 11 后的 Package 资源规则
+
+WinUI editor host 复用旧前端产物 `Dev\Typedown\Resources\Statics`。该目录必须同时进入：
+
+- `Debug_Local|x64` 的普通输出目录，用于 Unpackaged 日常调试。
+- `Debug|x64` 的 Package payload，用于 `Typedown.WinUI (Package)` 部署启动。
+
+`Dev\Typedown.WinUI\Typedown.WinUI.csproj` 中的 `AddEditorStaticBundleToPackagingOutputs` target 会在 `GetPackagingOutputs` 之后、`_ComputeAppxPackagePayload` 之前，把 `..\Typedown\Resources\Statics\**\*` 加入 `PackagingOutputs`，目标路径保持为 `Resources\Statics\%(RecursiveDir)%(Filename)%(Extension)`。
+
+如果 packaged 启动时 Visual Studio 报：
+
+```text
+无法激活 Windows 应用商店应用“62082Surprise.Typedown.WinUI_m01jdq2q5rxw0!App”。
+激活请求失败，错误为“系统找不到指定的文件”。
+```
+
+先检查当前注册包是否指向有效输出目录：
+
+```powershell
+Get-AppxPackage -Name 62082Surprise.Typedown.WinUI |
+  Select-Object Name,PackageFullName,InstallLocation,Status,SignatureKind,IsDevelopmentMode
+```
+
+如果 `InstallLocation` 为空或不是当前 `Debug` 输出目录，重新注册 loose package：
+
+```powershell
+$pkg = Get-AppxPackage -Name 62082Surprise.Typedown.WinUI -ErrorAction SilentlyContinue
+if ($pkg) { Remove-AppxPackage -Package $pkg.PackageFullName }
+Add-AppxPackage -Register .\Dev\Typedown.WinUI\bin\x64\Debug\net9.0-windows10.0.26100.0\AppxManifest.xml
+```
+
+注册后至少验证：
+
+```powershell
+$loc = (Get-AppxPackage -Name 62082Surprise.Typedown.WinUI).InstallLocation
+Test-Path (Join-Path $loc 'Typedown.WinUI.exe')
+Test-Path (Join-Path $loc 'Resources\Statics\index.html')
+```

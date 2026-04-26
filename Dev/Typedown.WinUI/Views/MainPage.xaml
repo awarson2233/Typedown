@@ -7,6 +7,7 @@
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:local="using:Typedown.WinUI.Views"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:ui="using:Typedown.UI.ViewModels"
     mc:Ignorable="d">
     <Grid Background="#F4EFE5">
         <Grid.RowDefinitions>
@@ -19,15 +20,15 @@
                 FontSize="34"
                 FontWeight="SemiBold"
                 Foreground="#19363B"
-                Text="Typedown WinUI3 Platform Services" />
+                Text="{x:Bind ViewModel.Title, Mode=OneWay}" />
             <TextBlock
                 FontSize="16"
                 Foreground="#4B5B5E"
-                Text="Phase 11 adds the first WinUI3 WebView2 editor host slice while keeping the shell on Typedown.Core.Contracts and away from the legacy XAML host." />
+                Text="{x:Bind ViewModel.Subtitle, Mode=OneWay}" />
             <TextBlock
                 FontSize="14"
                 Foreground="#6A7A7D"
-                Text="{x:Bind ContractsProbeSummary}" />
+                Text="{x:Bind ViewModel.ContractsProbeSummary, Mode=OneWay}" />
         </StackPanel>
 
         <Grid Grid.Row="1" Padding="40,10,40,40" ColumnSpacing="24">
@@ -67,36 +68,36 @@
                         FontWeight="SemiBold"
                         Foreground="White"
                         Text="Migration boundary" />
-                    <ItemsRepeater ItemsSource="{x:Bind ValidatedItems}">
+                    <ItemsRepeater ItemsSource="{x:Bind ViewModel.ValidatedItems, Mode=OneWay}">
                         <ItemsRepeater.ItemTemplate>
-                            <DataTemplate x:DataType="x:String">
+                            <DataTemplate x:DataType="ui:MigrationBoundaryItem">
                                 <TextBlock
                                     Margin="0,0,0,8"
                                     FontSize="15"
                                     Foreground="#F4EFE5"
-                                    Text="{Binding}" />
+                                    Text="{x:Bind Text}" />
                             </DataTemplate>
                         </ItemsRepeater.ItemTemplate>
                     </ItemsRepeater>
-                    <ItemsRepeater ItemsSource="{x:Bind ServiceItems}">
+                    <ItemsRepeater ItemsSource="{x:Bind ViewModel.ServiceItems, Mode=OneWay}">
                         <ItemsRepeater.ItemTemplate>
-                            <DataTemplate x:DataType="x:String">
+                            <DataTemplate x:DataType="ui:MigrationBoundaryItem">
                                 <TextBlock
                                     Margin="0,0,0,8"
                                     FontSize="15"
                                     Foreground="#F4EFE5"
-                                    Text="{Binding}" />
+                                    Text="{x:Bind Text}" />
                             </DataTemplate>
                         </ItemsRepeater.ItemTemplate>
                     </ItemsRepeater>
-                    <ItemsRepeater ItemsSource="{x:Bind DeferredItems}">
+                    <ItemsRepeater ItemsSource="{x:Bind ViewModel.DeferredItems, Mode=OneWay}">
                         <ItemsRepeater.ItemTemplate>
-                            <DataTemplate x:DataType="x:String">
+                            <DataTemplate x:DataType="ui:MigrationBoundaryItem">
                                 <TextBlock
                                     Margin="0,0,0,8"
                                     FontSize="15"
                                     Foreground="#F4EFE5"
-                                    Text="{Binding}" />
+                                    Text="{x:Bind Text}" />
                             </DataTemplate>
                         </ItemsRepeater.ItemTemplate>
                     </ItemsRepeater>

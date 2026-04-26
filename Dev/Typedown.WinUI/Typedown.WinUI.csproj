@@ -13,6 +13,9 @@
         <AppxPackageSigningEnabled>true</AppxPackageSigningEnabled>
         <PackageCertificateThumbprint>43B9C8C444BBB5C2DAC24C8925EDAFB6BF6163C5</PackageCertificateThumbprint>
         <GenerateAppInstallerFile>false</GenerateAppInstallerFile>
+        <WindowsAppSdkBootstrapInitialize>true</WindowsAppSdkBootstrapInitialize>
+        <WindowsAppSDKBootstrapAutoInitializeOptions_OnPackageIdentity_NoOp>true</WindowsAppSDKBootstrapAutoInitializeOptions_OnPackageIdentity_NoOp>
+        <WindowsAppSdkDeploymentManagerInitialize>false</WindowsAppSdkDeploymentManagerInitialize>
 
         <!-- Project Options -->
         <Nullable>enable</Nullable>
@@ -42,11 +45,17 @@
         <Content Include="Assets\Square44x44Logo.targetsize-24_altform-unplated.png" />
         <Content Include="Assets\StoreLogo.png" />
         <Content Include="Assets\Wide310x150Logo.scale-200.png" />
-        <Content Include="..\Typedown\Resources\Statics\**" CopyToOutputDirectory="Always" Link="Resources\Statics\%(RecursiveDir)%(Filename)%(Extension)" />
+        <Content Include="..\Typedown\Resources\Statics\**\*"
+                 CopyToOutputDirectory="Always"
+                 CopyToPublishDirectory="Always"
+                 Link="Resources\Statics\%(RecursiveDir)%(Filename)%(Extension)"
+                 TargetPath="Resources\Statics\%(RecursiveDir)%(Filename)%(Extension)" />
     </ItemGroup>
 
     <ItemGroup>
         <ProjectReference Include="..\\Typedown.Core.Contracts\\Typedown.Core.Contracts.csproj" />
+        <ProjectReference Include="..\Typedown.UI\Typedown.UI.csproj" />
+        <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="9.0.8" />
         <PackageReference Include="Microsoft.WindowsAppSDK" Version="1.8.260416003" />
         <PackageReference Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.26100.7705" />
 
@@ -70,4 +79,17 @@
     <PropertyGroup Condition="'$(DisableHasPackageAndPublishMenuAddedByProject)'!='true' and '$(EnableMsixTooling)'=='true'">
         <HasPackageAndPublishMenu>true</HasPackageAndPublishMenu>
     </PropertyGroup>
+
+    <Target Name="AddEditorStaticBundleToPackagingOutputs"
+            AfterTargets="GetPackagingOutputs"
+            BeforeTargets="_ComputeAppxPackagePayload">
+        <ItemGroup>
+            <_EditorStaticBundleForPackaging Include="..\Typedown\Resources\Statics\**\*" />
+            <PackagingOutputs Include="@(_EditorStaticBundleForPackaging)">
+                <TargetPath>Resources\Statics\%(_EditorStaticBundleForPackaging.RecursiveDir)%(_EditorStaticBundleForPackaging.Filename)%(_EditorStaticBundleForPackaging.Extension)</TargetPath>
+                <OutputGroup>CustomOutputGroupForPackaging</OutputGroup>
+                <ProjectName>$(ProjectName)</ProjectName>
+            </PackagingOutputs>
+        </ItemGroup>
+    </Target>
 </Project>
