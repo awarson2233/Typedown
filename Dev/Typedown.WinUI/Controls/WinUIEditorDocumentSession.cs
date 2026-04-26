@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Text.Json;
 using Typedown.Core.Contracts.Editor;
 
@@ -35,6 +36,128 @@ namespace Typedown.WinUI.Controls
         public EditorDocumentState State { get; private set; }
 
         public EditorSettingsSnapshot SettingsSnapshot { get; private set; }
+
+        // Persistence boundary: LoadFile(), ReplaceFileText(), Save(), SaveAs().
+        // Expected IO/path failures are collapsed through catch () filters into EditorPersistenceResult.
+        public EditorPersistenceResult LoadFile(string filePath)
+        {
+            if (string.IsNullOrWhiteSpace(filePath))
+            {
+                return new EditorPersistenceResult(false, State, "A file path is required to load markdown.");
+            }
+
+            try
+            {
+                var text = File.ReadAllText(filePath);
+                var basePath = InferBasePath(filePath) ?? AppContext.BaseDirectory;
+                var hash = ComputeHash(text);
+
+                UpdateState(new EditorDocumentState
+                {
+                    Text = text,
+                    FilePath = filePath,
+                    BasePath = basePath,
+                    FileHash = hash,
+                    CurrentHash = hash,
+                    IsLoaded = true,
+                    IsSaved = true,
+                    LastEventName = "LoadFile"
+                });
+
+                return new EditorPersistenceResult(true, State, PersistedFilePath: filePath);
+            }
+            catch (Exception ex) when (IsExpectedIoFailure(ex))
+            {
+                return new EditorPersistenceResult(false, State, ex.Message, PersistedFilePath: filePath);
+            }
+        }
+
+        public EditorPersistenceResult ReplaceFileText(string text, string? filePath = null, string? basePath = null)
+        {
+            text ??= string.Empty;
+            var nextFilePath = filePath ?? State.FilePath;
+            var nextBasePath = basePath
+                ?? InferBasePath(nextFilePath)
+                ?? State.BasePath;
+            var currentHash = ComputeHash(text);
+
+            UpdateState(State with
+            {
+                Text = text,
+                FilePath = nextFilePath,
+                BasePath = nextBasePath,
+                CurrentHash = currentHash,
+                IsLoaded = !string.IsNullOrWhiteSpace(nextFilePath) || State.IsLoaded,
+                IsSaved = string.Equals(currentHash, State.FileHash, StringComparison.Ordinal),
+                LastEventName = "ReplaceFileText"
+            });
+
+            return new EditorPersistenceResult(true, State, PersistedFilePath: nextFilePath);
+        }
+
+        public EditorPersistenceResult Save()
+        {
+            if (string.IsNullOrWhiteSpace(State.FilePath))
+            {
+                return new EditorPersistenceResult(false, State, "Cannot save a smoke document without a file path.");
+            }
+
+            try
+            {
+                File.WriteAllText(State.FilePath, State.Text);
+                var hash = ComputeHash(State.Text);
+
+                UpdateState(State with
+                {
+                    FileHash = hash,
+                    CurrentHash = hash,
+                    IsLoaded = true,
+                    IsSaved = true,
+                    LastEventName = "Save"
+                });
+
+                return new EditorPersistenceResult(true, State, PersistedFilePath: State.FilePath);
+            }
+            catch (Exception ex) when (IsExpectedIoFailure(ex))
+            {
+                return new EditorPersistenceResult(false, State, ex.Message, PersistedFilePath: State.FilePath);
+            }
+        }
+
+        public EditorPersistenceResult SaveAs(string filePath, bool saveCopy = false)
+        {
+            if (string.IsNullOrWhiteSpace(filePath))
+            {
+                return new EditorPersistenceResult(false, State, "A file path is required to save markdown.");
+            }
+
+            try
+            {
+                File.WriteAllText(filePath, State.Text);
+                var savedHash = ComputeHash(State.Text);
+                var savedBasePath = InferBasePath(filePath) ?? AppContext.BaseDirectory;
+
+                if (!saveCopy)
+                {
+                    UpdateState(State with
+                    {
+                        FilePath = filePath,
+                        BasePath = savedBasePath,
+                        FileHash = savedHash,
+                        CurrentHash = savedHash,
+                        IsLoaded = true,
+                        IsSaved = true,
+                        LastEventName = "SaveAs"
+                    });
+                }
+
+                return new EditorPersistenceResult(true, State, PersistedFilePath: filePath, IsCopy: saveCopy);
+            }
+            catch (Exception ex) when (IsExpectedIoFailure(ex))
+            {
+                return new EditorPersistenceResult(false, State, ex.Message, PersistedFilePath: filePath, IsCopy: saveCopy);
+            }
+        }
 
         public void HandleEditorEvent(EditorEventMessage message)
         {
@@ -78,15 +201,6 @@ namespace Typedown.WinUI.Controls
             };
         }
 
-        public EditorHostMessage CreateLoadFileMessage()
-        {
-            return new EditorHostMessage("LoadFile", new
-            {
-                text = State.Text,
-                basePath = State.BasePath
-            });
-        }
-
         private string HandleContentLoaded()
         {
             State = State with { LastEventName = "ContentLoaded" };
@@ -114,7 +228,7 @@ namespace Typedown.WinUI.Controls
                 ?? State.BasePath;
             var hash = ComputeHash(text);
 
-            State = State with
+            UpdateState(State with
             {
                 Text = text,
                 FilePath = filePath ?? State.FilePath,
@@ -124,16 +238,7 @@ namespace Typedown.WinUI.Controls
                 IsLoaded = true,
                 IsSaved = true,
                 LastEventName = "FileLoaded"
-            };
-
-            SettingsSnapshot = SettingsSnapshot with
-            {
-                Payload = SettingsSnapshot.Payload with
-                {
-                    Markdown = text,
-                    BasePath = basePath
-                }
-            };
+            });
         }
 
         private void ApplyMarkdownChange(JsonElement? args)
@@ -141,31 +246,35 @@ namespace Typedown.WinUI.Controls
             var text = ReadStringProperty(args, "text") ?? State.Text;
             var currentHash = ComputeHash(text);
 
-            State = State with
+            UpdateState(State with
             {
                 Text = text,
                 CurrentHash = currentHash,
                 IsSaved = string.Equals(currentHash, State.FileHash, StringComparison.Ordinal),
                 LastEventName = "MarkdownChange"
-            };
+            });
+        }
 
+        private void UpdateState(EditorDocumentState state)
+        {
+            State = state;
             SettingsSnapshot = SettingsSnapshot with
             {
                 Payload = SettingsSnapshot.Payload with
                 {
-                    Markdown = text,
-                    BasePath = State.BasePath
+                    Markdown = state.Text,
+                    BasePath = state.BasePath
                 }
             };
         }
 
-        private static object CreateThemePayload()
+        private static EditorThemePayload CreateThemePayload()
         {
-            return new
+            return new EditorThemePayload
             {
-                theme = "Light",
-                accentColor = new { r = 27, g = 102, b = 107, a = 1 },
-                background = new { R = 249, G = 249, B = 249, A = 1 }
+                Theme = "Light",
+                AccentColor = new EditorColorPayload(27, 102, 107, 1),
+                Background = new EditorColorPayload(249, 249, 249, 1)
             };
         }
 
@@ -251,6 +360,14 @@ namespace Typedown.WinUI.Controls
         private static string? InferBasePath(string? filePath)
         {
             return string.IsNullOrWhiteSpace(filePath) ? null : System.IO.Path.GetDirectoryName(filePath);
+        }
+
+        private static bool IsExpectedIoFailure(Exception ex)
+        {
+            return ex is IOException
+                or UnauthorizedAccessException
+                or NotSupportedException
+                or ArgumentException;
         }
 
         private static string ComputeHash(string text)

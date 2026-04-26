@@ -24,7 +24,7 @@
 - Phase 9：已完成。最小 WinUI3 shell spike 已落到 `Dev\Typedown.WinUI`，当前不依赖 legacy `Typedown.XamlUI`。
 - Phase 10：已完成。`Typedown.Core.Contracts` 已拆出，WinUI 平台服务桩、solution 构建基线、Package/Unpackaged 调试入口已建立。
 
-Phase 9 之后的路线已重新设计并拆分到 `docs/winui3-post-phase9-roadmap.md`。当前正在推进 Phase 11：在 WinUI shell 中建立真实应用骨架与 editor host 边界。Phase 11 已完成“可打开并可编辑 smoke”的 WebView2 editor host，并建立 `Typedown.Core.Contracts` 上的 contract-backed editor document session 边界；本地 WinUI session 已补齐最小 invoke/事件适配，但仍是 fake/local 实现。后续继续补真实 MarkdownEditor 命令、legacy/Core 文档服务接入、保存/导出、浮层、查找替换，不批量迁移 legacy XAML 控件。
+Phase 9 之后的路线已重新设计并拆分到 `docs/winui3-post-phase9-roadmap.md`。当前正在推进 Phase 11：在 WinUI shell 中建立真实应用骨架与 editor host 边界。Phase 11 已完成“可打开并可编辑 smoke”的 WebView2 editor host，并在 `Typedown.Core.Contracts` 上补齐了 platform-neutral editor command / persistence boundary、本地 markdown 文件 `LoadFile/Save/SaveAs(save copy)` session、以及 `Search/Replace/SearchOpenChange/ThemeChanged/SettingsChanged/Export` host message factory；当前 WinUI host 已有本地文件 load/save 运行路径，但 session 仍只接本地文件系统和 smoke-safe stub，不接 legacy/Core 文档服务。后续继续补真实 MarkdownEditor 命令编排、legacy/Core 文档服务接入、真实导出/打印/图片选择、浮层、查找替换 UI，不批量迁移 legacy XAML 控件。
 
 Phase 3、Phase 4、Phase 6 必须串行推进。它们都会触碰 `Dev\Typedown\Injection.cs`，并且 Phase 6 会依赖前面已经稳定的 shell service 注册边界；不得并行创建实现分支。
 

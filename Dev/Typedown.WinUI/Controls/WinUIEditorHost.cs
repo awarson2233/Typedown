@@ -15,17 +15,18 @@ namespace Typedown.WinUI.Controls
         private readonly TextBlock messageText;
         private readonly IEditorHostSink hostSink;
         private IEditorDocumentSession documentSession;
+        private WinUIEditorHostController hostController;
         private WinUIEditorBridgeAdapter bridgeAdapter;
         private bool coreInitialized;
         private bool isLoaded;
         private bool coreEventsAttached;
-        private bool pendingLoadFile;
         private int loadVersion;
 
         public WinUIEditorHost()
         {
             documentSession = new WinUIEditorDocumentSession();
             hostSink = new WinUIEditorHostSink(this);
+            hostController = new WinUIEditorHostController(documentSession, hostSink);
             bridgeAdapter = new WinUIEditorBridgeAdapter(documentSession);
             webView = new WebView2
             {
@@ -53,6 +54,14 @@ namespace Typedown.WinUI.Controls
         public string Status => statusText.Text;
 
         public string LatestRawWebMessage => messageText.Text;
+
+        public string? InitialFilePath
+        {
+            get => hostController.InitialFilePath;
+            set => hostController.InitialFilePath = value;
+        }
+
+        // Host entrypoints: LoadFile(), Save(), SaveAs().
 
         private Grid BuildLayout()
         {
@@ -121,9 +130,21 @@ namespace Typedown.WinUI.Controls
 
                 AttachCoreWebView();
                 documentSession = new WinUIEditorDocumentSession(basePath: ResolveBasePath(editorIndex));
+                hostController = new WinUIEditorHostController(documentSession, hostSink)
+                {
+                    InitialFilePath = InitialFilePath
+                };
                 bridgeAdapter = new WinUIEditorBridgeAdapter(documentSession);
                 bridgeAdapter.ResetForNavigation();
-                pendingLoadFile = true;
+                hostController.ResetForNavigation();
+                if (!string.IsNullOrWhiteSpace(InitialFilePath))
+                {
+                    var loadResult = hostController.LoadFile(InitialFilePath);
+                    if (!loadResult.Success)
+                    {
+                        statusText.Text = $"Initial file load failed: {loadResult.Message}";
+                    }
+                }
                 statusText.Text = bridgeAdapter.StatusText;
                 messageText.Text = bridgeAdapter.LastRawMessage;
 
@@ -146,7 +167,6 @@ namespace Typedown.WinUI.Controls
         {
             isLoaded = false;
             loadVersion++;
-            pendingLoadFile = false;
             DetachCoreWebView();
         }
 
@@ -159,6 +179,7 @@ namespace Typedown.WinUI.Controls
 
             if (!wasContentLoaded && bridgeAdapter.IsContentLoaded)
             {
+                hostController.MarkEditorReady();
                 TrySendPendingLoadFile();
             }
         }
@@ -223,16 +244,91 @@ namespace Typedown.WinUI.Controls
 
         private void TrySendPendingLoadFile()
         {
-            if (!isLoaded || !bridgeAdapter.IsContentLoaded || !pendingLoadFile)
+            if (!isLoaded || !bridgeAdapter.IsContentLoaded)
             {
                 return;
             }
 
-            pendingLoadFile = !hostSink.Send(new EditorHostMessage("LoadFile", new
+            _ = hostController.TrySendLoadFile();
+        }
+
+        public EditorPersistenceResult LoadFile(string filePath)
+        {
+            InitialFilePath = filePath;
+            var result = hostController.LoadFile(filePath);
+            if (!result.Success)
             {
-                text = documentSession.State.Text,
-                basePath = documentSession.State.BasePath
-            }));
+                statusText.Text = $"LoadFile failed: {result.Message}";
+            }
+
+            return result;
+        }
+
+        public EditorPersistenceResult Save()
+        {
+            var result = hostController.Save();
+            if (!result.Success)
+            {
+                statusText.Text = $"Save failed: {result.Message}";
+            }
+
+            return result;
+        }
+
+        public EditorPersistenceResult SaveAs(string filePath, bool saveCopy = false)
+        {
+            var result = hostController.SaveAs(filePath, saveCopy);
+            if (result.Success && !saveCopy)
+            {
+                InitialFilePath = filePath;
+            }
+
+            if (!result.Success)
+            {
+                statusText.Text = $"SaveAs failed: {result.Message}";
+            }
+
+            return result;
+        }
+
+        public EditorPersistenceResult ReplaceFileText(string text, string? filePath = null, string? basePath = null)
+        {
+            return hostController.ReplaceFileText(text, filePath, basePath);
+        }
+
+        internal bool SendLoadFile()
+        {
+            return hostSink.Send(EditorHostCommands.CreateLoadFile(documentSession.State));
+        }
+
+        internal bool SendThemeChanged(EditorThemePayload payload)
+        {
+            return hostSink.Send(EditorHostCommands.CreateThemeChanged(payload));
+        }
+
+        internal bool SendSearch(EditorSearchRequest request)
+        {
+            return hostSink.Send(EditorHostCommands.CreateSearch(request));
+        }
+
+        internal bool SendReplace(EditorReplaceRequest request)
+        {
+            return hostSink.Send(EditorHostCommands.CreateReplace(request));
+        }
+
+        internal bool SendSearchOpenChange(EditorSearchPanelState state)
+        {
+            return hostSink.Send(EditorHostCommands.CreateSearchOpenChange(state));
+        }
+
+        internal bool SendSettingsChanged(EditorSettingsChange change)
+        {
+            return hostSink.Send(EditorHostCommands.CreateSettingsChanged(change));
+        }
+
+        internal bool SendExport(EditorExportRequest request)
+        {
+            return hostSink.Send(EditorHostCommands.CreateExport(request));
         }
 
         internal bool SendRawMessage(string payload)

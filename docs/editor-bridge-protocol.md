@@ -93,16 +93,19 @@ Phase 11 不再让 `WinUIEditorBridgeAdapter` 自己维护 smoke markdown/basePa
 
 - `Dev\Typedown.Core.Contracts\Editor\IEditorDocumentSession`
   - 提供 `EditorDocumentState` 与 `EditorSettingsSnapshot`
+  - 提供 platform-neutral persistence：`LoadFile`、`ReplaceFileText`、`Save`、`SaveAs(save copy)`
   - 处理 editor event：`FileLoaded`、`MarkdownChange`、`CursorChange`、`StateChange`
   - 处理 smoke-safe remote invoke
 - `Dev\Typedown.Core.Contracts\Editor\EditorDocumentState`
   - 当前最小状态：`Text`、`FilePath`、`BasePath`、`FileHash`、`CurrentHash`、`IsLoaded`、`IsSaved`、`LastEventName`
 - `Dev\Typedown.Core.Contracts\Editor\EditorSettingsPayload`
   - 提供前端 `GetSettings` 需要的 JSON shape，保持 platform-neutral，不依赖 WinUI/WebView2/XAML/Newtonsoft/`Typedown.Core`
+- `Dev\Typedown.Core.Contracts\Editor\EditorHostCommands`
+  - 提供 host -> editor 的 platform-neutral command factory：`LoadFile`、`ReplaceFileText`、`Search`、`Replace`、`SearchOpenChange`、`ThemeChanged`、`SettingsChanged`、`Export`
 - `Dev\Typedown.Core.Contracts\Editor\IEditorHostSink` + `EditorHostMessage`
-  - 让 host 用 contract DTO 发送 `LoadFile`；当前 WinUI 实现为 `WinUIEditorHostSink`
+  - 让 host 用 contract DTO 发送上述消息；当前 WinUI 实现为 `WinUIEditorHostSink`
 
-当前 WinUI 本地实现是 `Dev\Typedown.WinUI\Controls\WinUIEditorDocumentSession.cs`。它仍是 Phase 11 的 fake/local session，不接 `Typedown.Core`，但已经把文档状态和 settings payload 收敛到稳定 contract 上，后续真实 legacy/Core 文档服务可以在不改 editor bridge 协议的前提下替换 session 实现。
+当前 WinUI 本地实现是 `Dev\Typedown.WinUI\Controls\WinUIEditorDocumentSession.cs`，由 `WinUIEditorHostController` 驱动。它现在已经可以直接读写真实本地 markdown 文件，并维护 `Text` / `FilePath` / `BasePath` / `FileHash` / `CurrentHash` / `IsSaved`；对 missing file、invalid save path、无路径 smoke 文档等可预期 IO/path 失败，会稳定返回 `EditorPersistenceResult` 而不会把异常抛到 UI 线程。该实现仍不接 `Typedown.Core`，后续真实 legacy/Core 文档服务可以在不改 editor bridge 协议的前提下替换 session 实现。
 
 ## WinUI Phase 11 Smoke Remote Surface
 
@@ -129,6 +132,7 @@ Phase 11 不再让 `WinUIEditorBridgeAdapter` 自己维护 smoke markdown/basePa
 - `ExportCallback`、`PrintHTML`、`SetClipboard`、`OpenNewWindow`、`UnhandledException` 当前采用 smoke-safe stub；它们只记录状态并返回 `true` 或 `null`。
 - `FileLoaded` 会把 session 状态重置到已加载/已保存基线，并刷新 `FileHash`/`CurrentHash`。
 - `MarkdownChange` 会更新 `Text`/`CurrentHash`，并以 `CurrentHash == FileHash` 推导 `IsSaved`。
+- 真实导出、真实打印、真实图片选择、浮层 UI、查找替换 UI 仍未迁入 WinUI；当前只保证协议稳定、消息 casing 不变、未实现重功能不崩溃。
 
 ## WinUI Host Readiness Handshake
 
@@ -136,7 +140,8 @@ Phase 11 不再让 `WinUIEditorBridgeAdapter` 自己维护 smoke markdown/basePa
 
 1. WebView2 导航完成后，Host 发送 `WinUIHostReady`。
 2. Editor 主动发起 `ContentLoaded` invoke。
-3. Host 在收到 `ContentLoaded` 后，通过 `EditorHostMessage("LoadFile", ...)` 发送 session 当前 state 中的 `text/basePath`。
+3. Host 在收到 `ContentLoaded` 后，通过 `EditorHostCommands.CreateLoadFile(...)` 发送 session 当前 state 中的 `text/basePath`。
+4. 如果 host 在 ready 之前已经通过 `InitialFilePath` 或 `LoadFile(...)` 装载了真实本地文件，发送给 WebView 的就是该文件对应的 session state，而不是 smoke 默认文本。
 
 这样可以避免 bundle 尚未完成初始化时的竞态，也避免 `Unloaded` 之后残留 delayed send。
 

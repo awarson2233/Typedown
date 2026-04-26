@@ -37,6 +37,8 @@ public class Phase10CoreContractsBoundaryTests
         Assert.IsTrue(File.Exists(Path.Combine(RepoRoot, "Dev", "Typedown.Core.Contracts", "Editor", "EditorSettingsPayload.cs")));
         Assert.IsTrue(File.Exists(Path.Combine(RepoRoot, "Dev", "Typedown.Core.Contracts", "Editor", "EditorEventMessage.cs")));
         Assert.IsTrue(File.Exists(Path.Combine(RepoRoot, "Dev", "Typedown.Core.Contracts", "Editor", "EditorHostMessage.cs")));
+        Assert.IsTrue(File.Exists(Path.Combine(RepoRoot, "Dev", "Typedown.Core.Contracts", "Editor", "EditorHostCommands.cs")));
+        Assert.IsTrue(File.Exists(Path.Combine(RepoRoot, "Dev", "Typedown.Core.Contracts", "Editor", "EditorPersistenceResult.cs")));
     }
 
     [TestMethod]
@@ -230,15 +232,18 @@ public class Phase10CoreContractsBoundaryTests
     public void WinUIPhase11_AddsEditorHostWithoutLegacyHostDependency()
     {
         var hostPath = Path.Combine(RepoRoot, "Dev", "Typedown.WinUI", "Controls", "WinUIEditorHost.cs");
+        var controllerPath = Path.Combine(RepoRoot, "Dev", "Typedown.WinUI", "Controls", "WinUIEditorHostController.cs");
         var adapterPath = Path.Combine(RepoRoot, "Dev", "Typedown.WinUI", "Controls", "WinUIEditorBridgeAdapter.cs");
         var sessionPath = Path.Combine(RepoRoot, "Dev", "Typedown.WinUI", "Controls", "WinUIEditorDocumentSession.cs");
         var projectSource = File.ReadAllText(Path.Combine(RepoRoot, "Dev", "Typedown.WinUI", "Typedown.WinUI.csproj"));
         var pageSource = File.ReadAllText(Path.Combine(RepoRoot, "Dev", "Typedown.WinUI", "Views", "MainPage.xaml"));
         var hostSource = File.ReadAllText(hostPath);
+        var controllerSource = File.ReadAllText(controllerPath);
         var adapterSource = File.ReadAllText(adapterPath);
         var sessionSource = File.ReadAllText(sessionPath);
 
         Assert.IsTrue(File.Exists(hostPath), "Expected the Phase 11 WinUI editor host.");
+        Assert.IsTrue(File.Exists(controllerPath), "Expected the Phase 11 WinUI editor host controller.");
         Assert.IsTrue(File.Exists(adapterPath), "Expected the Phase 11 WinUI editor bridge adapter.");
         Assert.IsTrue(File.Exists(sessionPath), "Expected the Phase 11 local editor document session.");
         AssertHasTypeReference(hostSource, "WebView2");
@@ -251,6 +256,14 @@ public class Phase10CoreContractsBoundaryTests
         AssertHasTypeReference(hostSource, "IsContentLoaded");
         AssertHasTypeReference(hostSource, "TrySendPendingLoadFile");
         AssertHasTypeReference(hostSource, "IEditorDocumentSession");
+        AssertHasTypeReference(hostSource, "SendLoadFile");
+        AssertHasTypeReference(hostSource, "SendThemeChanged");
+        AssertHasTypeReference(hostSource, "SendSearchOpenChange");
+        AssertHasTypeReference(hostSource, "SendSettingsChanged");
+        AssertHasTypeReference(hostSource, "LoadFile(");
+        AssertHasTypeReference(hostSource, "Save(");
+        AssertHasTypeReference(hostSource, "SaveAs(");
+        AssertHasTypeReference(hostSource, "InitialFilePath");
         AssertHasTypeReference(hostSource, "AreDefaultContextMenusEnabled = false");
         AssertHasTypeReference(hostSource, "AreBrowserAcceleratorKeysEnabled = false");
         AssertHasTypeReference(hostSource, "AreDevToolsEnabled = false");
@@ -270,6 +283,13 @@ public class Phase10CoreContractsBoundaryTests
         AssertHasTypeReference(sessionSource, "LoadImage");
         AssertHasTypeReference(sessionSource, "GetStringResources");
         AssertHasTypeReference(sessionSource, "GetSettings");
+        AssertHasTypeReference(sessionSource, "LoadFile(");
+        AssertHasTypeReference(sessionSource, "ReplaceFileText(");
+        AssertHasTypeReference(sessionSource, "Save(");
+        AssertHasTypeReference(sessionSource, "SaveAs(");
+        AssertHasTypeReference(sessionSource, "File.ReadAllText");
+        AssertHasTypeReference(sessionSource, "File.WriteAllText");
+        AssertHasTypeReference(sessionSource, "catch (");
         AssertHasTypeReference(sessionSource, "SetClipboard");
         AssertHasTypeReference(sessionSource, "OpenNewWindow");
         AssertHasTypeReference(sessionSource, "UnhandledException");
@@ -282,6 +302,11 @@ public class Phase10CoreContractsBoundaryTests
         AssertHasTypeReference(adapterSource, "IEditorDocumentSession");
         AssertHasTypeReference(adapterSource, "HandleEditorEvent");
         AssertHasTypeReference(adapterSource, "HandleRemoteInvoke");
+        AssertHasTypeReference(controllerSource, "IEditorHostSink");
+        AssertHasTypeReference(controllerSource, "TrySendLoadFile");
+        AssertHasTypeReference(controllerSource, "MarkEditorReady");
+        AssertHasTypeReference(controllerSource, "LoadFile(");
+        AssertHasTypeReference(controllerSource, "SaveAs(");
         AssertNoTypeReference(adapterSource, "D:\\source\\repos\\Typedown");
         AssertHasTypeReference(sessionSource, "IEditorDocumentSession");
         AssertHasTypeReference(sessionSource, "EditorDocumentState");
@@ -294,6 +319,7 @@ public class Phase10CoreContractsBoundaryTests
         AssertNoTypeReference(sessionSource, "Typedown.XamlUI");
         AssertNoTypeReference(adapterSource, "Typedown.Core.Services");
         AssertNoTypeReference(hostSource, "Typedown.Core.Services");
+        AssertNoTypeReference(hostSource, "is WinUIEditorHostSink");
         AssertNoTypeReference(projectSource, @"..\Typedown.Core\Typedown.Core.csproj");
     }
 
