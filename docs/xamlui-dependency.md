@@ -20,8 +20,8 @@
 
 ## 2. 预期仓库位置与基线
 
-- 主仓库路径：`D:\source\repos\Typedown.worktrees\phase1-xamlui-dependency`
-- 主仓库分支：`work/phase1-xamlui-dependency`
+- 主仓库标准路径：`D:\source\repos\Typedown`
+- 主仓库主线分支：`winui3-migration`
 - 主仓库 remote（fork）：`awarson2233 https://github.com/awarson2233/Typedown`
 - 主仓库基线提交：`12ce36fc921527152e394ed9e6cb72df67f34eac`
 
@@ -29,6 +29,11 @@
 - XamlUI 分支：`winui3-migration`
 - XamlUI remote（fork）：`awarson2233 https://github.com/awarson2233/Typedown.XamlUI`
 - XamlUI 基线提交：`e137473c5c7a1b2650fc9ce2a13ab98ad5de520d`
+
+worktree 验证说明：
+
+- 在支线验证（例如 `work/phase1-xamlui-dependency`）时，`verify-repos.ps1` / `verify-baseline.ps1` 的 `-MainRepo` 或 `-RepoRoot` 可以指向 `D:\source\repos\Typedown.worktrees\<phase>`。
+- 即使主仓库使用 worktree 路径执行验证，XamlUI 仍应位于 `D:\source\repos\Typedown.XamlUI`。
 
 ## 3. 构建错误策略（Phase 1）
 
