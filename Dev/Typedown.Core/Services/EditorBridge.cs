@@ -43,17 +43,24 @@ namespace Typedown.Core.Services
             if (msg == null || string.IsNullOrWhiteSpace(msg.Type))
                 return;
 
-            switch (msg.Type)
+            try
             {
-                case "invoke":
-                    await HandleInvokeAsync(msg);
-                    break;
-                case "message":
-                    transport.EmitMessage(msg.Name, msg.Args);
-                    break;
-                case "diffmsg":
-                    transport.EmitDiffMessage(msg.Name, msg.Args, msg.Diff, msg.Start, msg.End);
-                    break;
+                switch (msg.Type)
+                {
+                    case "invoke":
+                        await HandleInvokeAsync(msg);
+                        break;
+                    case "message":
+                        transport.EmitMessage(msg.Name, msg.Args);
+                        break;
+                    case "diffmsg":
+                        transport.EmitDiffMessage(msg.Name, msg.Args, msg.Diff, msg.Start, msg.End);
+                        break;
+                }
+            }
+            catch
+            {
+                // Malformed editor payloads must not bubble to WebView event handlers.
             }
         }
 

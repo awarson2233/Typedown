@@ -1,7 +1,6 @@
 using Newtonsoft.Json.Linq;
 using System.Collections.Generic;
 using Typedown.Core.Models;
-using Typedown.Core.Services;
 
 namespace Typedown.Services
 {
@@ -11,7 +10,7 @@ namespace Typedown.Services
 
         public EventCenter EventCenter { get; }
 
-        public Transport(RemoteInvoke remoteInvoke, EventCenter eventCenter)
+        public Transport(EventCenter eventCenter)
         {
             EventCenter = eventCenter;
         }

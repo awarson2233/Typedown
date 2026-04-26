@@ -236,9 +236,9 @@ namespace Typedown.Controls
             }
         }
 
-        private async void OnWebMessageReceived(object sender, CoreWebView2WebMessageReceivedEventArgs e)
+        private void OnWebMessageReceived(object sender, CoreWebView2WebMessageReceivedEventArgs e)
         {
-            await editorBridge.ReceiveAsync(e.TryGetWebMessageAsString());
+            _ = editorBridge.ReceiveAsync(e.TryGetWebMessageAsString());
         }
 
         private void OnNewWindowRequested(object sender, CoreWebView2NewWindowRequestedEventArgs args)
