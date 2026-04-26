@@ -6,6 +6,18 @@ namespace Typedown.ArchitectureTests;
 [TestClass]
 public class Phase13LegacyTextResourceTests
 {
+    private static readonly string[] Cultures = ["en", "zh-Hans", "zh-Hant"];
+
+    private static readonly LegacyTextResourceGroup[] Groups =
+    [
+        LegacyTextResourceGroup.CommonResources,
+        LegacyTextResourceGroup.DialogResources,
+        LegacyTextResourceGroup.Resources,
+        LegacyTextResourceGroup.SettingsResources
+    ];
+
+    private static readonly string[] ReswTemplateKeys = ["Name1", "Color1", "Bitmap1", "Icon1"];
+
     [TestMethod]
     public void LegacyTextResources_ReadsEnglishAppName()
     {
@@ -34,7 +46,15 @@ public class Phase13LegacyTextResourceTests
     }
 
     [TestMethod]
-    public void LegacyTextResources_ReadsChineseValuesThatDifferFromEnglish()
+    public void LegacyTextResources_ReadsDialogResourceText()
+    {
+        Assert.AreEqual(
+            "You have unsaved changes",
+            LegacyTextResourceReader.GetString("en", LegacyTextResourceGroup.DialogResources, "AsKToSaveContent"));
+    }
+
+    [TestMethod]
+    public void LegacyTextResources_ReadsChineseSimplifiedValuesThatDifferFromEnglish()
     {
         Assert.AreEqual(
             "取消",
@@ -42,14 +62,49 @@ public class Phase13LegacyTextResourceTests
     }
 
     [TestMethod]
-    public void LegacyTextResources_ExcludesReswTemplateKeys()
+    public void LegacyTextResources_ReadsChineseTraditionalValuesThatDifferFromEnglish()
     {
-        var resources = LegacyTextResourceReader.GetGroup("en", LegacyTextResourceGroup.Resources);
+        var english = LegacyTextResourceReader.GetString("en", LegacyTextResourceGroup.DialogResources, "AsKToSaveContent");
+        var traditionalChinese = LegacyTextResourceReader.GetString("zh-Hant", LegacyTextResourceGroup.DialogResources, "AsKToSaveContent");
 
-        CollectionAssert.DoesNotContain(resources.Keys.ToArray(), "Name1");
-        CollectionAssert.DoesNotContain(resources.Keys.ToArray(), "Color1");
-        CollectionAssert.DoesNotContain(resources.Keys.ToArray(), "Bitmap1");
-        CollectionAssert.DoesNotContain(resources.Keys.ToArray(), "Icon1");
+        Assert.AreEqual("您有未儲存的變更", traditionalChinese);
+        Assert.AreNotEqual(english, traditionalChinese);
+    }
+
+    [TestMethod]
+    public void LegacyTextResources_AllSupportedCulturesAndGroupsHaveExpectedKeyCountsAndExcludeTemplateKeys()
+    {
+        foreach (var culture in Cultures)
+        {
+            foreach (var group in Groups)
+            {
+                var resources = LegacyTextResourceReader.GetGroup(culture, group);
+
+                Assert.AreEqual(GetExpectedKeyCount(group), resources.Count, $"{culture}/{group} key count changed.");
+                Assert.IsTrue(resources.Count > 0, $"{culture}/{group} should not be empty.");
+
+                foreach (var templateKey in ReswTemplateKeys)
+                {
+                    CollectionAssert.DoesNotContain(resources.Keys.ToArray(), templateKey, $"{culture}/{group} includes template key {templateKey}.");
+                }
+            }
+        }
+    }
+
+    [TestMethod]
+    public void LegacyTextResources_LocalizedGroupsHaveSameKeyShapeAsEnglish()
+    {
+        foreach (var group in Groups)
+        {
+            var englishKeys = LegacyTextResourceReader.GetGroup("en", group).Keys.ToArray();
+
+            foreach (var culture in Cultures.Where(culture => culture != "en"))
+            {
+                var localizedKeys = LegacyTextResourceReader.GetGroup(culture, group).Keys.ToArray();
+
+                CollectionAssert.AreEquivalent(englishKeys, localizedKeys, $"{culture}/{group} key shape differs from en.");
+            }
+        }
     }
 
     [TestMethod]
@@ -58,6 +113,13 @@ public class Phase13LegacyTextResourceTests
         Assert.AreEqual(
             "Typedown",
             LegacyTextResourceReader.GetString("fr-FR", LegacyTextResourceGroup.Resources, "AppName"));
+    }
+
+    [TestMethod]
+    public void LegacyTextResources_ReturnsNullForUnknownKey()
+    {
+        Assert.IsNull(
+            LegacyTextResourceReader.GetString("en", LegacyTextResourceGroup.Resources, "Missing.Key"));
     }
 
     [TestMethod]
@@ -78,5 +140,17 @@ public class Phase13LegacyTextResourceTests
 
         Assert.AreEqual("取消", catalog.GetString("zh-Hans", LegacyTextResourceGroup.CommonResources, "Cancel"));
         Assert.AreEqual("OK", catalog.GetString("zh-Hans", LegacyTextResourceGroup.CommonResources, "Ok"));
+    }
+
+    private static int GetExpectedKeyCount(LegacyTextResourceGroup group)
+    {
+        return group switch
+        {
+            LegacyTextResourceGroup.CommonResources => 204,
+            LegacyTextResourceGroup.DialogResources => 33,
+            LegacyTextResourceGroup.Resources => 1,
+            LegacyTextResourceGroup.SettingsResources => 141,
+            _ => throw new ArgumentOutOfRangeException(nameof(group), group, null)
+        };
     }
 }
