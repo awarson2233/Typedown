@@ -1,5 +1,6 @@
-﻿using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection;
 using Typedown.Controls;
+using Typedown.Core;
 using Typedown.Core.Controls.FloatControls;
 using Typedown.Core.Interfaces;
 using Typedown.Core.Services;
@@ -21,6 +22,7 @@ namespace Typedown
                 RegisterService(builder);
                 RegisterComponent(builder);
                 ServiceProvider = builder.BuildServiceProvider();
+                Config.SetAppDataPathProvider(ServiceProvider.GetRequiredService<IAppDataPathProvider>());
             }
         }
 
@@ -45,6 +47,7 @@ namespace Typedown
             builder.AddScoped<IKeyboardAccelerator, KeyboardAccelerator>();
             builder.AddScoped<IPowerShellService, PowerShellService>();
             builder.AddScoped<IWindowService, WindowService>();
+            builder.AddSingleton<IAppDataPathProvider, AppDataPathProvider>();
             builder.AddScoped<AutoBackup>();
             builder.AddScoped<EventCenter>();
             builder.AddScoped<ImageAction>();
