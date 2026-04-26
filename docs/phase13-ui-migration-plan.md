@@ -281,3 +281,9 @@ Debug_Local Resources\Statics\index.html: True
 settings/shortcut worker 在 `Typedown.Core.Contracts.Settings` 增加平台中立 DTO：`EditorShortcutModifierFlags`、`EditorShortcutKey`、`TypedownDefaultShortcuts`、`SettingsUiSnapshot`。默认快捷键快照来自 legacy `SettingsViewModel.Shortcut.cs` 的当前默认值，只保存 modifier flags 与稳定 virtual-key numeric code，不引用 `Windows.System.VirtualKey`、WinUI、XamlUI 或 legacy ViewModel。
 
 第三批 settings 契约只保留 legacy `SettingsViewModel` 中存在的单一设置属性和三组图片插入明细，不增加新聚合字段。`SettingsUiSnapshot` 不接入 `Config`、文件系统或旧持久化逻辑；JSON 字段通过 `JsonPropertyName` 锁定为 legacy camelCase 形状，包括 `editorAreaWidth`、`spellcheckEnabled`、`spellcheckLang`、`insertClipboardImageAction/copyPath/useUploadConfigId`、`insertLocalImageAction/copyPath/useUploadConfigId`、`insertWebImageAction/copyPath/useUploadConfigId`，不包含 `fontFamily` 或 `imageInsertStrategy`。
+
+## Phase 13 editor/menu command contract 状态
+
+- Worker phase13-editor-commands 抽取 editor/menu/paragraph/format 的 host -> editor UI command 契约到 `Dev\Typedown.Core.Contracts\Editor`，不接入 WinUI runtime，不迁移 WebView2 host。
+- `EditorUiCommandNames` 集中保存 legacy PostMessage 名称；其中 legacy delete 消息保持为实际 bridge 名称 `DeleteSelection`，由契约属性 `Delete` 暴露给上层 command 语义。
+- `EditorUiCommand` 继续使用 `{ name, args }` envelope；`Format`、`UpdateParagraph`、`InsertParagraph` 保持 legacy string payload，`Find`、`InsertTable`、`SearchOpenChange`、`ScrollTo` 等 payload DTO 显式锁定 camelCase/legacy 字段名。
