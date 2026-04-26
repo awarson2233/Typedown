@@ -8,9 +8,21 @@ public sealed class MainPageViewModel : ObservableObject
     private string contractsProbeSummary = MainPageTextResources.PendingContractsProbeSummary;
     private IReadOnlyList<MigrationBoundaryItem> serviceItems = Array.Empty<MigrationBoundaryItem>();
 
+    public MainPageViewModel()
+        : this(new Phase14ShellViewModel())
+    {
+    }
+
+    public MainPageViewModel(Phase14ShellViewModel shell)
+    {
+        Shell = shell;
+    }
+
     public string Title { get; } = MainPageTextResources.Title;
 
     public string Subtitle { get; } = MainPageTextResources.Subtitle;
+
+    public Phase14ShellViewModel Shell { get; }
 
     public string ContractsProbeSummary
     {
