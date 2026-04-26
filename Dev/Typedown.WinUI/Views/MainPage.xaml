@@ -5,104 +5,406 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:controls="using:Typedown.WinUI.Controls"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-    xmlns:local="using:Typedown.WinUI.Views"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:ui="using:Typedown.UI.ViewModels"
     mc:Ignorable="d">
-    <Grid Background="#F4EFE5">
+    <Grid Background="#F5EFE2">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
-        <StackPanel Padding="40,36,40,20" Spacing="10">
-            <TextBlock
-                FontSize="34"
-                FontWeight="SemiBold"
-                Foreground="#19363B"
-                Text="{x:Bind ViewModel.Title, Mode=OneWay}" />
-            <TextBlock
-                FontSize="16"
-                Foreground="#4B5B5E"
-                Text="{x:Bind ViewModel.Subtitle, Mode=OneWay}" />
-            <TextBlock
-                FontSize="14"
-                Foreground="#6A7A7D"
-                Text="{x:Bind ViewModel.ContractsProbeSummary, Mode=OneWay}" />
-        </StackPanel>
+        <Border
+            x:Name="AppDocumentChrome"
+            Margin="24,24,24,0"
+            Padding="24,20"
+            Background="#FBF8F2"
+            BorderBrush="#D8CBB8"
+            BorderThickness="1"
+            CornerRadius="20">
+            <Grid ColumnSpacing="18">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
 
-        <Grid Grid.Row="1" Padding="40,10,40,40" ColumnSpacing="24">
+                <StackPanel Spacing="8">
+                    <TextBlock
+                        FontSize="14"
+                        Foreground="#7A6956"
+                        Text="Typedown / Main document shell" />
+                    <TextBlock
+                        FontSize="30"
+                        FontWeight="SemiBold"
+                        Foreground="#19363B"
+                        Text="{x:Bind ViewModel.Title, Mode=OneWay}" />
+                    <TextBlock
+                        TextWrapping="WrapWholeWords"
+                        FontSize="15"
+                        Foreground="#4B5B5E"
+                        Text="{x:Bind ViewModel.Subtitle, Mode=OneWay}" />
+                </StackPanel>
+
+                <StackPanel
+                    Grid.Column="1"
+                    HorizontalAlignment="Right"
+                    VerticalAlignment="Center"
+                    Spacing="10">
+                    <Border
+                        Padding="12,8"
+                        Background="#19363B"
+                        CornerRadius="999">
+                        <TextBlock
+                            FontSize="12"
+                            FontWeight="SemiBold"
+                            Foreground="#F5EFE2"
+                            Text="Phase 14 layout draft" />
+                    </Border>
+                    <TextBlock
+                        HorizontalAlignment="Right"
+                        FontSize="13"
+                        Foreground="#7A6956"
+                        Text="No real commands or startup changes" />
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <Border
+            x:Name="PrimaryToolbar"
+            Grid.Row="1"
+            Margin="24,16,24,0"
+            Padding="16,12"
+            Background="#E8DDCB"
+            BorderBrush="#D8CBB8"
+            BorderThickness="1"
+            CornerRadius="18">
+            <Grid ColumnSpacing="16">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <Button Content="File" MinWidth="76" />
+                    <Button Content="Edit" MinWidth="76" />
+                    <Button Content="Search" MinWidth="76" />
+                    <Button Content="Outline" MinWidth="82" />
+                    <Button Content="Export" MinWidth="78" />
+                </StackPanel>
+
+                <StackPanel
+                    Grid.Column="1"
+                    Orientation="Horizontal"
+                    HorizontalAlignment="Right"
+                    Spacing="8">
+                    <Button Content="Split view" MinWidth="92" />
+                    <Button Content="Preview" MinWidth="86" />
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <Grid
+            Grid.Row="2"
+            Margin="24,16,24,16"
+            ColumnSpacing="20">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="2*" />
+                <ColumnDefinition Width="340" />
                 <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="360" />
             </Grid.ColumnDefinitions>
 
             <Border
-                Background="White"
+                Padding="18"
+                Background="#FBF8F2"
                 BorderBrush="#D8CBB8"
                 BorderThickness="1"
-                CornerRadius="18"
-                Padding="24">
-                <Grid RowSpacing="16">
+                CornerRadius="20">
+                <StackPanel Spacing="18">
+                    <StackPanel Spacing="4">
+                        <TextBlock
+                            FontSize="12"
+                            FontWeight="SemiBold"
+                            Foreground="#7A6956"
+                            Text="Document context" />
+                        <TextBlock
+                            FontSize="20"
+                            FontWeight="SemiBold"
+                            Foreground="#19363B"
+                            Text="Top-level chrome placeholders" />
+                        <TextBlock
+                            TextWrapping="WrapWholeWords"
+                            FontSize="14"
+                            Foreground="#5B6668"
+                            Text="{x:Bind ViewModel.ContractsProbeSummary, Mode=OneWay}" />
+                    </StackPanel>
+
+                    <Border
+                        Padding="14"
+                        Background="#F1E7D8"
+                        CornerRadius="16">
+                        <StackPanel Spacing="8">
+                            <TextBlock
+                                FontSize="12"
+                                FontWeight="SemiBold"
+                                Foreground="#7A6956"
+                                Text="Draft chrome inventory" />
+                            <TextBlock FontSize="14" Foreground="#19363B" Text="App title row, toolbar group, editor canvas, migration panel, status bar." />
+                            <TextBlock FontSize="14" Foreground="#19363B" Text="Bindings stay intentionally shallow until the Typedown.UI shell state lands." />
+                        </StackPanel>
+                    </Border>
+
+                    <StackPanel Spacing="10">
+                        <TextBlock
+                            FontSize="14"
+                            FontWeight="SemiBold"
+                            Foreground="#19363B"
+                            Text="Validated shell carryover" />
+                        <ItemsRepeater ItemsSource="{x:Bind ViewModel.ValidatedItems, Mode=OneWay}">
+                            <ItemsRepeater.ItemTemplate>
+                                <DataTemplate x:DataType="ui:MigrationBoundaryItem">
+                                    <Border
+                                        Margin="0,0,0,8"
+                                        Padding="12"
+                                        Background="#FFFFFF"
+                                        BorderBrush="#E4D9C8"
+                                        BorderThickness="1"
+                                        CornerRadius="12">
+                                        <TextBlock
+                                            TextWrapping="WrapWholeWords"
+                                            FontSize="13"
+                                            Foreground="#314447"
+                                            Text="{x:Bind Text}" />
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsRepeater.ItemTemplate>
+                        </ItemsRepeater>
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
+            <Border
+                x:Name="EditorShell"
+                Grid.Column="1"
+                Padding="18"
+                Background="#FFFDFC"
+                BorderBrush="#D8CBB8"
+                BorderThickness="1"
+                CornerRadius="20">
+                <Grid RowSpacing="14">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto" />
                         <RowDefinition Height="*" />
                     </Grid.RowDefinitions>
-                    <TextBlock
-                        FontSize="22"
-                        FontWeight="SemiBold"
-                        Foreground="#19363B"
-                        Text="Phase 11 editable editor smoke" />
-                    <controls:WinUIEditorHost Grid.Row="1" />
+
+                    <Grid ColumnSpacing="12">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+
+                        <StackPanel Spacing="4">
+                            <TextBlock
+                                FontSize="12"
+                                FontWeight="SemiBold"
+                                Foreground="#7A6956"
+                                Text="Editor host" />
+                            <TextBlock
+                                FontSize="22"
+                                FontWeight="SemiBold"
+                                Foreground="#19363B"
+                                Text="Phase 14 main editing surface" />
+                        </StackPanel>
+
+                        <Border
+                            Grid.Column="1"
+                            Padding="10,6"
+                            Background="#F1E7D8"
+                            CornerRadius="999">
+                            <TextBlock
+                                FontSize="12"
+                                FontWeight="SemiBold"
+                                Foreground="#7A6956"
+                                Text="WebView2 retained" />
+                        </Border>
+                    </Grid>
+
+                    <Border
+                        Grid.Row="1"
+                        Background="#FFFFFF"
+                        BorderBrush="#E4D9C8"
+                        BorderThickness="1"
+                        CornerRadius="16"
+                        Padding="8">
+                        <controls:WinUIEditorHost />
+                    </Border>
                 </Grid>
             </Border>
 
             <Border
-                Grid.Column="1"
+                x:Name="MigrationStatusPanel"
+                Grid.Column="2"
+                Padding="18"
                 Background="#19363B"
-                CornerRadius="18"
-                Padding="24">
-                <StackPanel Spacing="16">
-                    <TextBlock
-                        FontSize="22"
-                        FontWeight="SemiBold"
-                        Foreground="White"
-                        Text="Migration boundary" />
-                    <ItemsRepeater ItemsSource="{x:Bind ViewModel.ValidatedItems, Mode=OneWay}">
-                        <ItemsRepeater.ItemTemplate>
-                            <DataTemplate x:DataType="ui:MigrationBoundaryItem">
+                CornerRadius="20">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel Spacing="18">
+                        <StackPanel Spacing="4">
+                            <TextBlock
+                                FontSize="12"
+                                FontWeight="SemiBold"
+                                Foreground="#A9C3C8"
+                                Text="Phase 14 migration status" />
+                            <TextBlock
+                                FontSize="24"
+                                FontWeight="SemiBold"
+                                Foreground="#FFFFFF"
+                                Text="Right-side transition panel" />
+                        </StackPanel>
+
+                        <Border
+                            Padding="14"
+                            Background="#22484E"
+                            CornerRadius="14">
+                            <StackPanel Spacing="8">
                                 <TextBlock
-                                    Margin="0,0,0,8"
-                                    FontSize="15"
-                                    Foreground="#F4EFE5"
-                                    Text="{x:Bind Text}" />
-                            </DataTemplate>
-                        </ItemsRepeater.ItemTemplate>
-                    </ItemsRepeater>
-                    <ItemsRepeater ItemsSource="{x:Bind ViewModel.ServiceItems, Mode=OneWay}">
-                        <ItemsRepeater.ItemTemplate>
-                            <DataTemplate x:DataType="ui:MigrationBoundaryItem">
+                                    FontSize="13"
+                                    FontWeight="SemiBold"
+                                    Foreground="#D6EBEE"
+                                    Text="Platform service probe" />
                                 <TextBlock
-                                    Margin="0,0,0,8"
-                                    FontSize="15"
+                                    TextWrapping="WrapWholeWords"
+                                    FontSize="13"
                                     Foreground="#F4EFE5"
-                                    Text="{x:Bind Text}" />
-                            </DataTemplate>
-                        </ItemsRepeater.ItemTemplate>
-                    </ItemsRepeater>
-                    <ItemsRepeater ItemsSource="{x:Bind ViewModel.DeferredItems, Mode=OneWay}">
-                        <ItemsRepeater.ItemTemplate>
-                            <DataTemplate x:DataType="ui:MigrationBoundaryItem">
-                                <TextBlock
-                                    Margin="0,0,0,8"
-                                    FontSize="15"
-                                    Foreground="#F4EFE5"
-                                    Text="{x:Bind Text}" />
-                            </DataTemplate>
-                        </ItemsRepeater.ItemTemplate>
-                    </ItemsRepeater>
-                </StackPanel>
+                                    Text="{x:Bind ViewModel.ContractsProbeSummary, Mode=OneWay}" />
+                            </StackPanel>
+                        </Border>
+
+                        <StackPanel Spacing="10">
+                            <TextBlock
+                                FontSize="14"
+                                FontWeight="SemiBold"
+                                Foreground="#FFFFFF"
+                                Text="Validated boundaries" />
+                            <ItemsRepeater ItemsSource="{x:Bind ViewModel.ServiceItems, Mode=OneWay}">
+                                <ItemsRepeater.ItemTemplate>
+                                    <DataTemplate x:DataType="ui:MigrationBoundaryItem">
+                                        <Border
+                                            Margin="0,0,0,8"
+                                            Padding="12"
+                                            Background="#22484E"
+                                            CornerRadius="12">
+                                            <TextBlock
+                                                TextWrapping="WrapWholeWords"
+                                                FontSize="13"
+                                                Foreground="#F4EFE5"
+                                                Text="{x:Bind Text}" />
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsRepeater.ItemTemplate>
+                            </ItemsRepeater>
+                            <ItemsRepeater ItemsSource="{x:Bind ViewModel.ValidatedItems, Mode=OneWay}">
+                                <ItemsRepeater.ItemTemplate>
+                                    <DataTemplate x:DataType="ui:MigrationBoundaryItem">
+                                        <Border
+                                            Margin="0,0,0,8"
+                                            Padding="12"
+                                            Background="#22484E"
+                                            CornerRadius="12">
+                                            <TextBlock
+                                                TextWrapping="WrapWholeWords"
+                                                FontSize="13"
+                                                Foreground="#F4EFE5"
+                                                Text="{x:Bind Text}" />
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsRepeater.ItemTemplate>
+                            </ItemsRepeater>
+                        </StackPanel>
+
+                        <StackPanel Spacing="10">
+                            <TextBlock
+                                FontSize="14"
+                                FontWeight="SemiBold"
+                                Foreground="#FFFFFF"
+                                Text="Deferred for later phases" />
+                            <ItemsRepeater ItemsSource="{x:Bind ViewModel.DeferredItems, Mode=OneWay}">
+                                <ItemsRepeater.ItemTemplate>
+                                    <DataTemplate x:DataType="ui:MigrationBoundaryItem">
+                                        <Border
+                                            Margin="0,0,0,8"
+                                            Padding="12"
+                                            Background="#16353A"
+                                            BorderBrush="#315A61"
+                                            BorderThickness="1"
+                                            CornerRadius="12">
+                                            <TextBlock
+                                                TextWrapping="WrapWholeWords"
+                                                FontSize="13"
+                                                Foreground="#D6EBEE"
+                                                Text="{x:Bind Text}" />
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsRepeater.ItemTemplate>
+                            </ItemsRepeater>
+                        </StackPanel>
+                    </StackPanel>
+                </ScrollViewer>
             </Border>
         </Grid>
+
+        <Border
+            x:Name="BottomStatusBar"
+            Grid.Row="3"
+            Margin="24,0,24,24"
+            Padding="16,12"
+            Background="#FBF8F2"
+            BorderBrush="#D8CBB8"
+            BorderThickness="1"
+            CornerRadius="18">
+            <Grid ColumnSpacing="16">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Orientation="Horizontal" Spacing="14">
+                    <TextBlock
+                        FontSize="13"
+                        Foreground="#314447"
+                        Text="Status bar" />
+                    <TextBlock
+                        FontSize="13"
+                        Foreground="#5B6668"
+                        Text="{x:Bind ViewModel.ContractsProbeSummary, Mode=OneWay}" />
+                </StackPanel>
+
+                <StackPanel
+                    Grid.Column="1"
+                    Orientation="Horizontal"
+                    HorizontalAlignment="Right"
+                    Spacing="8">
+                    <Border
+                        Padding="10,4"
+                        Background="#F1E7D8"
+                        CornerRadius="999">
+                        <TextBlock
+                            FontSize="12"
+                            Foreground="#7A6956"
+                            Text="UTF-8" />
+                    </Border>
+                    <Border
+                        Padding="10,4"
+                        Background="#F1E7D8"
+                        CornerRadius="999">
+                        <TextBlock
+                            FontSize="12"
+                            Foreground="#7A6956"
+                            Text="Markdown" />
+                    </Border>
+                </StackPanel>
+            </Grid>
+        </Border>
     </Grid>
 </Page>
