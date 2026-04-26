@@ -275,3 +275,9 @@ Debug_Local Resources\Statics\index.html: True
 
 第二批在 `Typedown.UI.Resources` 增加平台中立 legacy `.resw` 读取/索引层，当前只覆盖 `en`、`zh-Hans`、`zh-Hant` 的 `CommonResources`、`DialogResources`、`Resources`、`SettingsResources`。读取策略是运行时解析现有 `Dev/Typedown.Core/Resources/Strings` 下的 `.resw`，不复制 75 语言资源，不迁移 XAML `ResourceDictionary`、Style 或 Converter；索引过滤 `.resw` 模板样例 key，并支持未知 culture 与缺失 localized key 回退到 `en`。当前三种 culture 的四个目标 group key 集合一致，没有发现无法 1:1 承载的文本 key。
 补强测试覆盖 `en` / `zh-Hans` / `zh-Hant` 与四个资源 group 的 key count、key shape、模板 key 排除、DialogResources 真实 key、zh-Hant 差异文本、未知 culture fallback 和未知 key 返回 `null`。
+
+## Phase 13 editor/menu command contract 状态
+
+- Worker phase13-editor-commands 抽取 editor/menu/paragraph/format 的 host -> editor UI command 契约到 `Dev\Typedown.Core.Contracts\Editor`，不接入 WinUI runtime，不迁移 WebView2 host。
+- `EditorUiCommandNames` 集中保存 legacy PostMessage 名称；其中 legacy delete 消息保持为实际 bridge 名称 `DeleteSelection`，由契约属性 `Delete` 暴露给上层 command 语义。
+- `EditorUiCommand` 继续使用 `{ name, args }` envelope；`Format`、`UpdateParagraph`、`InsertParagraph` 保持 legacy string payload，`Find`、`InsertTable`、`SearchOpenChange`、`ScrollTo` 等 payload DTO 显式锁定 camelCase/legacy 字段名。
