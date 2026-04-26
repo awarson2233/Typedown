@@ -6,8 +6,9 @@ namespace Typedown.Core.Contracts.Settings;
 public enum EditorShortcutModifierFlags
 {
     None = 0,
-    Alt = 1,
-    Control = 2,
+    Control = 1,
+    // Legacy WinRT names this bit Menu; Typedown UI exposes it as Alt.
+    Alt = 2,
     Shift = 4,
     Windows = 8,
 }

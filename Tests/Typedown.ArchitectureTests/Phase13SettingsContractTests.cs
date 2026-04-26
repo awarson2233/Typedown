@@ -47,8 +47,8 @@ public class Phase13SettingsContractTests
             78);
 
         Assert.AreEqual(0, (int)EditorShortcutModifierFlags.None);
-        Assert.AreEqual(1, (int)EditorShortcutModifierFlags.Alt);
-        Assert.AreEqual(2, (int)EditorShortcutModifierFlags.Control);
+        Assert.AreEqual(1, (int)EditorShortcutModifierFlags.Control);
+        Assert.AreEqual(2, (int)EditorShortcutModifierFlags.Alt);
         Assert.AreEqual(4, (int)EditorShortcutModifierFlags.Shift);
         Assert.AreEqual(8, (int)EditorShortcutModifierFlags.Windows);
         Assert.IsTrue(shortcut.Modifiers.HasFlag(EditorShortcutModifierFlags.Control));
@@ -91,6 +91,15 @@ public class Phase13SettingsContractTests
         AssertShortcut(shortcuts, "SidePane", EditorShortcutModifierFlags.Control | EditorShortcutModifierFlags.Shift, 76);
         AssertShortcut(shortcuts, "FocusMode", EditorShortcutModifierFlags.None, 119);
         AssertShortcut(shortcuts, "TypewriterMode", EditorShortcutModifierFlags.None, 120);
+    }
+
+    [TestMethod]
+    public void ShortcutModifierFlags_PreserveLegacyPersistenceBitValues()
+    {
+        var shortcuts = TypedownDefaultShortcuts.All;
+
+        Assert.AreEqual(1, (int)shortcuts["Save"].Modifiers, "Legacy VirtualKeyModifiers.Control is bit 1.");
+        Assert.AreEqual(2 | 4, (int)shortcuts["Print"].Modifiers, "Legacy VirtualKeyModifiers.Menu/Alt plus Shift is 6.");
     }
 
     [TestMethod]
