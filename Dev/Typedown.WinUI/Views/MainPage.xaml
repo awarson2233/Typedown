@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<Page
+    x:Class="Typedown.WinUI.Views.MainPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:local="using:Typedown.WinUI.Views"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+    <Grid Background="#F4EFE5">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <StackPanel Padding="40,36,40,20" Spacing="10">
+            <TextBlock
+                FontSize="34"
+                FontWeight="SemiBold"
+                Foreground="#19363B"
+                Text="Typedown WinUI3 Shell Spike" />
+            <TextBlock
+                FontSize="16"
+                Foreground="#4B5B5E"
+                Text="Phase 9 only validates a standalone WinUI3 shell. UI migration, editor host parity, and ARM64 remain later phases." />
+        </StackPanel>
+
+        <Grid Grid.Row="1" Padding="40,10,40,40" ColumnSpacing="24">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+
+            <Border
+                Background="White"
+                BorderBrush="#D8CBB8"
+                BorderThickness="1"
+                CornerRadius="18"
+                Padding="24">
+                <StackPanel Spacing="16">
+                    <TextBlock
+                        FontSize="22"
+                        FontWeight="SemiBold"
+                        Foreground="#19363B"
+                        Text="Validated in Phase 9" />
+                    <ItemsRepeater ItemsSource="{x:Bind ValidatedItems}">
+                        <ItemsRepeater.ItemTemplate>
+                            <DataTemplate x:DataType="x:String">
+                                <TextBlock
+                                    Margin="0,0,0,8"
+                                    FontSize="15"
+                                    Foreground="#2E464A"
+                                    Text="{Binding}" />
+                            </DataTemplate>
+                        </ItemsRepeater.ItemTemplate>
+                    </ItemsRepeater>
+                </StackPanel>
+            </Border>
+
+            <Border
+                Grid.Column="1"
+                Background="#19363B"
+                CornerRadius="18"
+                Padding="24">
+                <StackPanel Spacing="16">
+                    <TextBlock
+                        FontSize="22"
+                        FontWeight="SemiBold"
+                        Foreground="White"
+                        Text="Deferred to later phases" />
+                    <ItemsRepeater ItemsSource="{x:Bind DeferredItems}">
+                        <ItemsRepeater.ItemTemplate>
+                            <DataTemplate x:DataType="x:String">
+                                <TextBlock
+                                    Margin="0,0,0,8"
+                                    FontSize="15"
+                                    Foreground="#F4EFE5"
+                                    Text="{Binding}" />
+                            </DataTemplate>
+                        </ItemsRepeater.ItemTemplate>
+                    </ItemsRepeater>
+                </StackPanel>
+            </Border>
+        </Grid>
+    </Grid>
+</Page>

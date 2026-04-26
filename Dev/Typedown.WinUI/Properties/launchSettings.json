@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "Typedown.WinUI (Package)": {
+      "commandName": "MsixPackage"
+    },
+    "Typedown.WinUI (Unpackaged)": {
+      "commandName": "Project"
+    }
+  }
+}
