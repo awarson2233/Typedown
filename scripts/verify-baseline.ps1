@@ -3,6 +3,8 @@ param(
     [string]$RepoRoot = "D:\source\repos\Typedown",
     [string]$Configuration = "Debug_Local",
     [string]$Platform = "x64",
+    [string]$ExpectedMainBranch = "winui3-migration",
+    [string]$ExpectedXamlUIBranch = "winui3-migration",
     [switch]$AllowMainDirty,
     [switch]$AllowXamlUIDirty,
     [switch]$SkipEditorBuild
@@ -15,7 +17,7 @@ if (-not (Test-Path -LiteralPath $repoCheck)) {
     throw "Repository verification script not found: $repoCheck"
 }
 
-& $repoCheck -MainRepo $RepoRoot -AllowMainDirty:$AllowMainDirty.IsPresent -AllowXamlUIDirty:$AllowXamlUIDirty.IsPresent
+& $repoCheck -MainRepo $RepoRoot -ExpectedMainBranch $ExpectedMainBranch -ExpectedXamlUIBranch $ExpectedXamlUIBranch -AllowMainDirty:$AllowMainDirty.IsPresent -AllowXamlUIDirty:$AllowXamlUIDirty.IsPresent
 if ($LASTEXITCODE -ne 0) {
     throw "Repository verification failed."
 }

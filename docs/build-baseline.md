@@ -93,6 +93,12 @@ D:\source\repos\Typedown\Dev\Typedown\bin\x64\Debug_Local\net9.0-windows10.0.261
 .\scripts\verify-repos.ps1 -MainRepo D:\source\repos\Typedown.worktrees\phase1-xamlui-dependency -ExpectedMainBranch work/phase1-xamlui-dependency -ExpectedXamlUIBranch winui3-migration
 ```
 
+支线 worktree 中运行基线构建时同样需要指定分支：
+
+```powershell
+.\scripts\verify-baseline.ps1 -RepoRoot D:\source\repos\Typedown.worktrees\phase1-xamlui-dependency -ExpectedMainBranch work/phase1-xamlui-dependency -ExpectedXamlUIBranch winui3-migration -SkipEditorBuild
+```
+
 严格模式要求：
 
 - 主仓库在 `winui3-migration`。
