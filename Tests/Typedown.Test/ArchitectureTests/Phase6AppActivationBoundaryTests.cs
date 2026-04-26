@@ -22,6 +22,7 @@ namespace Typedown.Test.ArchitectureTests
             AssertNoTypeReference(source, "CoreDispatcher");
             AssertNoTypeReference(source, "Windows.UI");
             AssertHasTypeReference(source, "AppActivationKind");
+            AssertHasTypeReference(source, "ForwardFailedStartNewInstance");
         }
 
         [TestMethod]
@@ -36,6 +37,18 @@ namespace Typedown.Test.ArchitectureTests
             AssertHasTypeReference(source, "IAppActivationService");
             AssertHasTypeReference(source, "ActivationRequested");
             AssertHasTypeReference(source, "StartListening");
+        }
+
+        [TestMethod]
+        public void App_Launch_StartsNewInstanceForPrimaryLaunchAndForwardFailure()
+        {
+            var source = File.ReadAllText(Path.Combine(RepoRoot, "Dev", "Typedown", "App.cs"));
+
+            AssertContainsInOrder(
+                source,
+                "activationResult.Kind == AppActivationKind.FirstLaunch",
+                "activationResult.Kind == AppActivationKind.ForwardFailedStartNewInstance",
+                "LaunchNewApplication();");
         }
 
         [TestMethod]
@@ -56,6 +69,18 @@ namespace Typedown.Test.ArchitectureTests
             AssertHasTypeReference(source, "SetForegroundWindow");
             AssertHasTypeReference(source, "ActivationRequested");
             AssertHasTypeReference(source, "RunIdleAsync");
+        }
+
+        [TestMethod]
+        public void AppActivationService_ReturnsExplicitFallbackKindWhenPipeForwardingFails()
+        {
+            var source = File.ReadAllText(Path.Combine(RepoRoot, "Dev", "Typedown", "Services", "AppActivationService.cs"));
+
+            AssertContainsInOrder(
+                source,
+                "if (TryForwardToPrimaryInstance(commandLineArgs, out var windowHandle))",
+                "return new(AppActivationKind.ForwardedToExistingInstance, windowHandle);",
+                "return new(AppActivationKind.ForwardFailedStartNewInstance);");
         }
 
         private static void AssertNoTypeReference(string source, string typeName)

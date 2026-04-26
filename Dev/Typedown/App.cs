@@ -16,7 +16,8 @@ namespace Typedown
         {
             var activationService = Injection.ServiceProvider.GetRequiredService<IAppActivationService>();
             var activationResult = activationService.Activate(System.Environment.GetCommandLineArgs());
-            if (activationResult.Kind == AppActivationKind.FirstLaunch)
+            if (activationResult.Kind == AppActivationKind.FirstLaunch
+                || activationResult.Kind == AppActivationKind.ForwardFailedStartNewInstance)
                 LaunchNewApplication();
         }
 

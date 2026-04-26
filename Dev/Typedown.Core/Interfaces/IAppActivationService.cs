@@ -6,6 +6,7 @@ namespace Typedown.Core.Interfaces
     {
         FirstLaunch,
         ForwardedToExistingInstance,
+        ForwardFailedStartNewInstance,
         OpenFileRequest
     }
 

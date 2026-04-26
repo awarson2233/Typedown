@@ -31,9 +31,7 @@ namespace Typedown.Services
             if (TryForwardToPrimaryInstance(commandLineArgs, out var windowHandle))
                 return new(AppActivationKind.ForwardedToExistingInstance, windowHandle);
 
-            return TryAcquirePrimaryInstance()
-                ? new AppActivationResult(AppActivationKind.FirstLaunch)
-                : new AppActivationResult(AppActivationKind.ForwardedToExistingInstance);
+            return new(AppActivationKind.ForwardFailedStartNewInstance);
         }
 
         public void StartListening(IUiDispatcher dispatcher)
