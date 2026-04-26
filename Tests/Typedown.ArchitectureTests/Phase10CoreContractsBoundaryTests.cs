@@ -54,15 +54,24 @@ public class Phase10CoreContractsBoundaryTests
     }
 
     [TestMethod]
-    public void WinUIPackagedBaseline_UsesSolutionDebugX64BuildAndDeployWithoutLegacyPackageDeploy()
+    public void WinUIPackagedBaseline_UsesSolutionDebugX64BuildAndDeployWithoutLegacyProjects()
     {
         var solutionSource = File.ReadAllText(Path.Combine(RepoRoot, "Typedown.sln"));
         var winuiProjectGuid = FindProjectGuid(solutionSource, "Typedown.WinUI");
+        var contractsProjectGuid = FindProjectGuid(solutionSource, "Typedown.Core.Contracts");
         var legacyPackageGuid = FindProjectGuid(solutionSource, "Typedown.Package");
+        var xamlDesignGuid = FindProjectGuid(solutionSource, "XamlDesignApp");
+        var xamlUiGuid = FindProjectGuid(solutionSource, "Typedown.XamlUI");
 
+        AssertHasTypeReference(solutionSource, $"{contractsProjectGuid}.Debug|x64.Build.0");
         AssertHasTypeReference(solutionSource, $"{winuiProjectGuid}.Debug|x64.Build.0");
         AssertHasTypeReference(solutionSource, $"{winuiProjectGuid}.Debug|x64.Deploy.0");
+        AssertNoTypeReference(solutionSource, $"{legacyPackageGuid}.Debug|x64.Build.0");
         AssertNoTypeReference(solutionSource, $"{legacyPackageGuid}.Debug|x64.Deploy.0");
+        AssertNoTypeReference(solutionSource, $"{xamlDesignGuid}.Debug|x64.Build.0");
+        AssertNoTypeReference(solutionSource, $"{xamlDesignGuid}.Debug|x64.Deploy.0");
+        AssertNoTypeReference(solutionSource, $"{xamlUiGuid}.Debug|x64.Build.0");
+        AssertNoTypeReference(solutionSource, $"{xamlUiGuid}.Debug|x64.Deploy.0");
     }
 
     [TestMethod]
@@ -85,6 +94,48 @@ public class Phase10CoreContractsBoundaryTests
         AssertHasTypeReference(scriptSource, "Cert:\\CurrentUser\\My");
         AssertHasTypeReference(scriptSource, "Cert:\\CurrentUser\\TrustedPeople");
         AssertHasTypeReference(scriptSource, "Cert:\\CurrentUser\\Root");
+    }
+
+    [TestMethod]
+    public void XamlDesignApp_DebugLocalMappingsPointToExistingDebugConfigurations()
+    {
+        var solutionSource = File.ReadAllText(Path.Combine(RepoRoot, "Typedown.sln"));
+        var projectGuid = FindProjectGuid(solutionSource, "XamlDesignApp");
+
+        AssertHasTypeReference(solutionSource, $"{projectGuid}.Debug_Local|ARM64.ActiveCfg = Debug|ARM64");
+        AssertHasTypeReference(solutionSource, $"{projectGuid}.Debug_Local|x64.ActiveCfg = Debug|x64");
+        AssertHasTypeReference(solutionSource, $"{projectGuid}.Debug_Local|x86.ActiveCfg = Debug|x86");
+        AssertNoTypeReference(solutionSource, $"{projectGuid}.Debug_Local|ARM64.ActiveCfg = Debug_Local|ARM64");
+        AssertNoTypeReference(solutionSource, $"{projectGuid}.Debug_Local|x64.ActiveCfg = Debug_Local|x64");
+        AssertNoTypeReference(solutionSource, $"{projectGuid}.Debug_Local|x86.ActiveCfg = Debug_Local|x86");
+        AssertNoTypeReference(solutionSource, $"{projectGuid}.Debug_Local|ARM64.Deploy.0 = Debug_Local|ARM64");
+        AssertNoTypeReference(solutionSource, $"{projectGuid}.Debug_Local|x64.Deploy.0 = Debug_Local|x64");
+        AssertNoTypeReference(solutionSource, $"{projectGuid}.Debug_Local|x86.Deploy.0 = Debug_Local|x86");
+    }
+
+    [TestMethod]
+    public void TypedownXamlUI_UsesOnlyExistingAnyCpuSolutionMappings()
+    {
+        var solutionSource = File.ReadAllText(Path.Combine(RepoRoot, "Typedown.sln"));
+        var projectGuid = FindProjectGuid(solutionSource, "Typedown.XamlUI");
+
+        AssertHasTypeReference(solutionSource, $"{projectGuid}.Debug_Local|ARM64.ActiveCfg = Debug|AnyCPU");
+        AssertHasTypeReference(solutionSource, $"{projectGuid}.Debug_Local|x64.ActiveCfg = Debug|AnyCPU");
+        AssertHasTypeReference(solutionSource, $"{projectGuid}.Debug_Local|x86.ActiveCfg = Debug|AnyCPU");
+        AssertHasTypeReference(solutionSource, $"{projectGuid}.Debug|ARM64.ActiveCfg = Debug|AnyCPU");
+        AssertHasTypeReference(solutionSource, $"{projectGuid}.Debug|x64.ActiveCfg = Debug|AnyCPU");
+        AssertHasTypeReference(solutionSource, $"{projectGuid}.Debug|x86.ActiveCfg = Debug|AnyCPU");
+        AssertNoTypeReference(solutionSource, $"{projectGuid}.Debug|x64.Build.0");
+        AssertNoTypeReference(solutionSource, $"{projectGuid}.Debug|x64.Deploy.0");
+        AssertNoTypeReference(solutionSource, $"{projectGuid}.Debug_Local|ARM64.ActiveCfg = Debug_Local|Any CPU");
+        AssertNoTypeReference(solutionSource, $"{projectGuid}.Debug_Local|x64.ActiveCfg = Debug_Local|Any CPU");
+        AssertNoTypeReference(solutionSource, $"{projectGuid}.Debug_Local|x86.ActiveCfg = Debug_Local|Any CPU");
+        AssertNoTypeReference(solutionSource, $"{projectGuid}.Debug|ARM64.ActiveCfg = Debug|Any CPU");
+        AssertNoTypeReference(solutionSource, $"{projectGuid}.Debug|x64.ActiveCfg = Debug|Any CPU");
+        AssertNoTypeReference(solutionSource, $"{projectGuid}.Debug|x86.ActiveCfg = Debug|Any CPU");
+        AssertNoTypeReference(solutionSource, $"{projectGuid}.Debug_Local|ARM64.ActiveCfg = Debug_Local|AnyCPU");
+        AssertNoTypeReference(solutionSource, $"{projectGuid}.Debug_Local|x64.ActiveCfg = Debug_Local|AnyCPU");
+        AssertNoTypeReference(solutionSource, $"{projectGuid}.Debug_Local|x86.ActiveCfg = Debug_Local|AnyCPU");
     }
 
     [TestMethod]
