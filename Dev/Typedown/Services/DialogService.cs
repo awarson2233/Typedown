@@ -2,24 +2,24 @@ using System;
 using System.Threading.Tasks;
 using Typedown.Core.Controls;
 using Typedown.Core.Interfaces;
-using Typedown.Core.ViewModels;
 using Windows.UI.Xaml.Controls;
+using Windows.UI.Xaml;
 
 namespace Typedown.Services
 {
     public class DialogService : IDialogService
     {
-        private readonly AppViewModel appViewModel;
+        private readonly IWindowContext windowContext;
 
-        public DialogService(AppViewModel appViewModel)
+        public DialogService(IWindowContext windowContext)
         {
-            this.appViewModel = appViewModel;
+            this.windowContext = windowContext;
         }
 
         public async Task<DialogButton> ShowAsync(DialogRequest request)
         {
-            if (appViewModel.XamlRoot == null)
-                throw new InvalidOperationException("XamlRoot is not available for dialog display.");
+            if (windowContext.ViewRoot is not XamlRoot viewRoot)
+                throw new InvalidOperationException("Window view root is not available for dialog display.");
 
             var dialog = AppContentDialog.Create();
             dialog.Title = request.Title;
@@ -29,7 +29,7 @@ namespace Typedown.Services
             dialog.SecondaryButtonText = request.SecondaryButtonText;
             dialog.DefaultButton = MapDefaultButton(request.DefaultButton);
 
-            return MapResult(await dialog.ShowAsync(appViewModel.XamlRoot));
+            return MapResult(await dialog.ShowAsync(viewRoot));
         }
 
         private static ContentDialogButton MapDefaultButton(DialogDefaultButton button)

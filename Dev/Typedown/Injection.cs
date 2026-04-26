@@ -47,7 +47,11 @@ namespace Typedown
             builder.AddScoped<IFilePickerService, FilePickerService>();
             builder.AddScoped<IFileOperation, FileOperation>();
             builder.AddScoped<IKeyboardAccelerator, KeyboardAccelerator>();
+            builder.AddScoped<UiDispatcher>();
+            builder.AddScoped<IUiDispatcher>(sp => sp.GetRequiredService<UiDispatcher>());
             builder.AddScoped<IPowerShellService, PowerShellService>();
+            builder.AddScoped<WindowContext>();
+            builder.AddScoped<IWindowContext>(sp => sp.GetRequiredService<WindowContext>());
             builder.AddScoped<IWindowService, WindowService>();
             builder.AddSingleton<IAppDataPathProvider, AppDataPathProvider>();
             builder.AddScoped<AutoBackup>();

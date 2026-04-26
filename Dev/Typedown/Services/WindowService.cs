@@ -9,6 +9,13 @@ namespace Typedown.Services
 {
     public class WindowService : IWindowService
     {
+        private readonly IWindowContext windowContext;
+
+        public WindowService(IWindowContext windowContext)
+        {
+            this.windowContext = windowContext;
+        }
+
         public Subject<nint> WindowStateChanged { get; } = new();
 
         public Subject<nint> WindowIsActivedChanged { get; } = new();
@@ -17,7 +24,7 @@ namespace Typedown.Services
 
         public void RaiseWindowIsActivedChanged(nint hWnd) => WindowIsActivedChanged.OnNext(hWnd);
 
-        public nint GetWindow(UIElement element) => XamlWindow.GetWindow(element)?.Handle ?? default;
+        public nint GetWindow(UIElement element) => XamlWindow.GetWindow(element)?.Handle ?? windowContext.WindowHandle;
 
         public nint GetXamlSourceHandle(UIElement element) => XamlWindow.GetWindow(element)?.XamlSourceHandle ?? default;
 

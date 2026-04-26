@@ -3,18 +3,17 @@ using System.Linq;
 using System.Threading.Tasks;
 using Typedown.Core.Interfaces;
 using Typedown.Core.Utilities;
-using Typedown.Core.ViewModels;
 using Windows.Storage.Pickers;
 
 namespace Typedown.Services
 {
     public class FilePickerService : IFilePickerService
     {
-        private readonly AppViewModel appViewModel;
+        private readonly IWindowContext windowContext;
 
-        public FilePickerService(AppViewModel appViewModel)
+        public FilePickerService(IWindowContext windowContext)
         {
-            this.appViewModel = appViewModel;
+            this.windowContext = windowContext;
         }
 
         public async Task<string> PickOpenFileAsync(OpenFileRequest request)
@@ -48,9 +47,9 @@ namespace Typedown.Services
 
         private nint GetMainWindow()
         {
-            if (appViewModel.MainWindow == default)
+            if (windowContext.WindowHandle == default)
                 throw new InvalidOperationException("Main window handle is not available for file picker display.");
-            return appViewModel.MainWindow;
+            return windowContext.WindowHandle;
         }
     }
 }

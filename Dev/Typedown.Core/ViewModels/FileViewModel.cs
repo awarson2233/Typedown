@@ -12,7 +12,6 @@ using Typedown.Core.Interfaces;
 using Typedown.Core.Models;
 using Typedown.Core.Services;
 using Typedown.Core.Utilities;
-using Windows.ApplicationModel.Core;
 using Windows.UI.Xaml;
 
 namespace Typedown.Core.ViewModels
@@ -64,6 +63,10 @@ namespace Typedown.Core.ViewModels
 
         public IFilePickerService FilePickerService => ServiceProvider.GetService<IFilePickerService>();
 
+        public IUiDispatcher UiDispatcher => ServiceProvider.GetService<IUiDispatcher>();
+
+        public IWindowContext WindowContext => ServiceProvider.GetService<IWindowContext>();
+
         private readonly CompositeDisposable disposables = new();
 
         public FileViewModel(IServiceProvider serviceProvider)
@@ -84,7 +87,7 @@ namespace Typedown.Core.ViewModels
             saveFileTimer.Interval = TimeSpan.FromSeconds(5);
             saveFileTimer.Tick += SaveFileTimerTick;
             saveFileTimer.Start();
-            _ = CoreApplication.GetCurrentView().CoreWindow.Dispatcher.RunIdleAsync(() => OnStartup());
+            _ = UiDispatcher.RunIdleAsync(() => OnStartup());
         }
 
         private async void SaveFileTimerTick(object sender, object e)
@@ -190,9 +193,9 @@ namespace Typedown.Core.ViewModels
         {
             try
             {
-                if (TryGetOpenedWindow(path, out var window) && window != AppViewModel.MainWindow)
+                if (TryGetOpenedWindow(path, out var window) && window != WindowContext.WindowHandle)
                 {
-                    _ = AppViewModel.XamlRoot?.Content?.Dispatcher?.RunIdleAsync(() => PInvoke.SetForegroundWindow(window));
+                    _ = UiDispatcher.RunIdleAsync(() => PInvoke.SetForegroundWindow(window));
                     return false;
                 }
                 if (!File.Exists(path))
@@ -563,7 +566,10 @@ namespace Typedown.Core.ViewModels
                 window = default;
                 return false;
             }
-            window = AppViewModel.GetInstances().Where(x => x.FileViewModel.FilePath?.ToLower() == filePath.ToLower()).FirstOrDefault()?.MainWindow ?? default;
+            window = AppViewModel.GetInstances()
+                .Where(x => x.FileViewModel.FilePath?.ToLower() == filePath.ToLower())
+                .Select(x => x.WindowContext?.WindowHandle ?? default)
+                .FirstOrDefault();
             return window != default;
         }
 
@@ -588,8 +594,7 @@ namespace Typedown.Core.ViewModels
 
         private void Exit()
         {
-            var SC_CLOSE = 0xF060;
-            PInvoke.PostMessage(AppViewModel.MainWindow, (uint)PInvoke.WindowMessage.WM_SYSCOMMAND, (nint)SC_CLOSE, IntPtr.Zero);
+            WindowContext.RequestClose();
         }
 
         private Task<DialogButton> ShowDialog(string title, object content, string closeButtonText)

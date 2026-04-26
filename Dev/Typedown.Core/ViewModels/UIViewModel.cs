@@ -7,10 +7,9 @@ using System.Linq;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
 using System.Text;
+using Typedown.Core.Interfaces;
 using Typedown.Core.Services;
 using Typedown.Core.Utilities;
-using Windows.ApplicationModel.Core;
-using Windows.UI.Core;
 using Windows.UI.ViewManagement;
 using Windows.UI.Xaml;
 
@@ -40,12 +39,12 @@ namespace Typedown.Core.ViewModels
 
         private readonly UISettings uiSettings = new();
 
-        private readonly CoreDispatcher dispatcher;
+        private readonly IUiDispatcher dispatcher;
 
         public UIViewModel(IServiceProvider serviceProvider)
         {
-            dispatcher = CoreApplication.GetCurrentView().CoreWindow.Dispatcher;
             ServiceProvider = serviceProvider;
+            dispatcher = ServiceProvider.GetService<IUiDispatcher>();
             disposables.Add(RemoteInvoke.Handle<JToken, object>("GetStringResources", GetStringResources));
             _ = dispatcher.RunIdleAsync(() => InitializeBinding());
         }
@@ -75,7 +74,7 @@ namespace Typedown.Core.ViewModels
 
         private void UpdateActualTheme()
         {
-            _ = dispatcher?.TryRunIdleAsync(_ =>
+            _ = dispatcher?.RunIdleAsync(() =>
             {
                 try
                 {
