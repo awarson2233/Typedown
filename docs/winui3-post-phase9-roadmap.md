@@ -80,7 +80,7 @@ Phase 16  ARM64 与打包验证
 
 **当前入口：** 从 `Debug_Local|x64 + Typedown.WinUI (Unpackaged)` 开始实现和验证。不要把 Package 证书问题作为 Phase 11 的阻塞项。
 
-**当前状态：** 已建立“可打开并可编辑 smoke”的 WinUI3 WebView2 editor host。`Dev\Typedown.WinUI\Controls\WinUIEditorHost.cs` 现在通过本地 `WinUIEditorBridgeAdapter` 解析 `invoke` / `message` / `diffmsg`，处理 `GetCurrentTheme`、`ContentLoaded`、`GetStringResources`、`GetSettings` 最小命令集，并在导航完成后保留 `WinUIHostReady` smoke 消息同时发送一次 `LoadFile`，让前端走通打开文档和编辑状态上报路径。该切片仍不引用 `Dev\Typedown.Core` 或 legacy `Dev\Typedown.XamlUI`。
+**当前状态：** 已建立“可打开并可编辑 smoke”的 WinUI3 WebView2 editor host。`Dev\Typedown.WinUI\Controls\WinUIEditorHost.cs` 现在通过本地 `WinUIEditorBridgeAdapter` 解析 `invoke` / `message` / `diffmsg`，为 `Dev\Typedown.Editor\src\services\remote\common.ts` 中全部 remote 命令提供 smoke-safe handler，并在导航完成后先发送 `WinUIHostReady`、收到 `ContentLoaded` invoke 后再发送 `LoadFile`，让前端走通打开文档和编辑状态上报路径，同时去掉固定 delay 竞态。该切片仍不引用 `Dev\Typedown.Core` 或 legacy `Dev\Typedown.XamlUI`。
 
 **主要任务：**
 

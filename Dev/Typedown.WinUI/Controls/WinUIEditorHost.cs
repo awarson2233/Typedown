@@ -1,6 +1,5 @@
 using System;
 using System.IO;
-using System.Threading.Tasks;
 using System.Text.Json;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
@@ -13,8 +12,12 @@ namespace Typedown.WinUI.Controls
         private readonly WebView2 webView;
         private readonly TextBlock statusText;
         private readonly TextBlock messageText;
-        private readonly WinUIEditorBridgeAdapter bridgeAdapter;
-        private bool initialized;
+        private WinUIEditorBridgeAdapter bridgeAdapter;
+        private bool coreInitialized;
+        private bool isLoaded;
+        private bool coreEventsAttached;
+        private string? pendingLoadFilePayload;
+        private int loadVersion;
 
         public WinUIEditorHost()
         {
@@ -88,12 +91,8 @@ namespace Typedown.WinUI.Controls
 
         private async void OnLoaded(object sender, RoutedEventArgs e)
         {
-            if (initialized)
-            {
-                return;
-            }
-
-            initialized = true;
+            isLoaded = true;
+            var currentLoadVersion = ++loadVersion;
 
             var editorIndex = ResolveEditorIndexPath();
             if (editorIndex is null)
@@ -104,15 +103,38 @@ namespace Typedown.WinUI.Controls
 
             try
             {
-                await webView.EnsureCoreWebView2Async();
+                if (!coreInitialized)
+                {
+                    await webView.EnsureCoreWebView2Async();
+                    if (!isLoaded || currentLoadVersion != loadVersion)
+                    {
+                        return;
+                    }
+
+                    coreInitialized = true;
+                }
+
+                AttachCoreWebView();
+                bridgeAdapter = new WinUIEditorBridgeAdapter(basePath: ResolveBasePath(editorIndex));
+                bridgeAdapter.ResetForNavigation();
+                statusText.Text = bridgeAdapter.StatusText;
+                messageText.Text = bridgeAdapter.LastRawMessage;
+                pendingLoadFilePayload = JsonSerializer.Serialize(new
+                {
+                    name = "LoadFile",
+                    args = new
+                    {
+                        text = bridgeAdapter.SmokeMarkdown,
+                        basePath = bridgeAdapter.BasePath
+                    }
+                });
+
                 webView.CoreWebView2.Settings.AreDefaultContextMenusEnabled = false;
                 webView.CoreWebView2.Settings.AreBrowserAcceleratorKeysEnabled = false;
                 webView.CoreWebView2.Settings.AreDevToolsEnabled = false;
                 webView.CoreWebView2.Settings.IsBuiltInErrorPageEnabled = false;
                 webView.CoreWebView2.Settings.IsStatusBarEnabled = false;
                 webView.CoreWebView2.Settings.IsZoomControlEnabled = false;
-                webView.CoreWebView2.WebMessageReceived += OnWebMessageReceived;
-                webView.CoreWebView2.NavigationCompleted += OnNavigationCompleted;
                 webView.CoreWebView2.Navigate(new Uri(editorIndex).AbsoluteUri);
                 statusText.Text = $"Editor host navigating to {editorIndex}";
             }
@@ -124,24 +146,32 @@ namespace Typedown.WinUI.Controls
 
         private void OnUnloaded(object sender, RoutedEventArgs e)
         {
-            if (webView.CoreWebView2 is null)
-            {
-                return;
-            }
-
-            webView.CoreWebView2.WebMessageReceived -= OnWebMessageReceived;
-            webView.CoreWebView2.NavigationCompleted -= OnNavigationCompleted;
+            isLoaded = false;
+            loadVersion++;
+            pendingLoadFilePayload = null;
+            DetachCoreWebView();
         }
 
         private void OnWebMessageReceived(CoreWebView2 sender, CoreWebView2WebMessageReceivedEventArgs e)
         {
+            var wasContentLoaded = bridgeAdapter.IsContentLoaded;
             bridgeAdapter.Receive(e.TryGetWebMessageAsString(), SendRawMessage);
             statusText.Text = bridgeAdapter.StatusText;
             messageText.Text = bridgeAdapter.LastRawMessage;
+
+            if (!wasContentLoaded && bridgeAdapter.IsContentLoaded)
+            {
+                TrySendPendingLoadFile();
+            }
         }
 
         private async void OnNavigationCompleted(CoreWebView2 sender, CoreWebView2NavigationCompletedEventArgs e)
         {
+            if (!isLoaded)
+            {
+                return;
+            }
+
             if (!e.IsSuccess)
             {
                 statusText.Text = $"Editor navigation failed: {e.WebErrorStatus}";
@@ -160,19 +190,50 @@ namespace Typedown.WinUI.Controls
                 }
             });
             SendRawMessage(payload);
-
-            await Task.Delay(250);
-            SendMessage("LoadFile", new
-            {
-                text = bridgeAdapter.SmokeMarkdown,
-                basePath = bridgeAdapter.BasePath
-            });
+            TrySendPendingLoadFile();
         }
 
         private bool SendMessage(string name, object args)
         {
             var payload = JsonSerializer.Serialize(new { name, args });
             return SendRawMessage(payload);
+        }
+
+        private void AttachCoreWebView()
+        {
+            if (coreEventsAttached || webView.CoreWebView2 is null)
+            {
+                return;
+            }
+
+            webView.CoreWebView2.WebMessageReceived += OnWebMessageReceived;
+            webView.CoreWebView2.NavigationCompleted += OnNavigationCompleted;
+            coreEventsAttached = true;
+        }
+
+        private void DetachCoreWebView()
+        {
+            if (!coreEventsAttached || webView.CoreWebView2 is null)
+            {
+                return;
+            }
+
+            webView.CoreWebView2.WebMessageReceived -= OnWebMessageReceived;
+            webView.CoreWebView2.NavigationCompleted -= OnNavigationCompleted;
+            coreEventsAttached = false;
+        }
+
+        private void TrySendPendingLoadFile()
+        {
+            if (!isLoaded || !bridgeAdapter.IsContentLoaded || string.IsNullOrWhiteSpace(pendingLoadFilePayload))
+            {
+                return;
+            }
+
+            if (SendRawMessage(pendingLoadFilePayload))
+            {
+                pendingLoadFilePayload = null;
+            }
         }
 
         private bool SendRawMessage(string payload)
@@ -186,6 +247,12 @@ namespace Typedown.WinUI.Controls
             {
                 return false;
             }
+        }
+
+        private static string ResolveBasePath(string editorIndex)
+        {
+            var directory = Path.GetDirectoryName(editorIndex);
+            return string.IsNullOrWhiteSpace(directory) ? AppContext.BaseDirectory : directory;
         }
 
         private static string? ResolveEditorIndexPath()

@@ -12,4 +12,8 @@
     <PackageReference Include="MSTest.TestAdapter" Version="3.0.2" />
     <PackageReference Include="MSTest.TestFramework" Version="3.0.2" />
   </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="..\..\Dev\Typedown.WinUI\Controls\WinUIEditorBridgeAdapter.cs" Link="TestImports\WinUIEditorBridgeAdapter.cs" />
+  </ItemGroup>
 </Project>

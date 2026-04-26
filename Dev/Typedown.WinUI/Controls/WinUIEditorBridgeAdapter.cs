@@ -5,8 +5,6 @@ namespace Typedown.WinUI.Controls
 {
     internal sealed class WinUIEditorBridgeAdapter
     {
-        private const string DefaultBasePath = "D:\\source\\repos\\Typedown";
-
         private readonly Dictionary<string, Func<JsonElement?, object?>> invokeHandlers;
         private readonly Dictionary<string, string> diffCache = new(StringComparer.Ordinal);
         private readonly string smokeMarkdown;
@@ -15,7 +13,7 @@ namespace Typedown.WinUI.Controls
         public WinUIEditorBridgeAdapter(string? smokeMarkdown = null, string? basePath = null)
         {
             this.smokeMarkdown = string.IsNullOrWhiteSpace(smokeMarkdown) ? GetDefaultSmokeMarkdown() : smokeMarkdown;
-            this.basePath = string.IsNullOrWhiteSpace(basePath) ? DefaultBasePath : basePath;
+            this.basePath = string.IsNullOrWhiteSpace(basePath) ? AppContext.BaseDirectory : basePath;
 
             invokeHandlers = new Dictionary<string, Func<JsonElement?, object?>>(StringComparer.Ordinal)
             {
@@ -26,8 +24,40 @@ namespace Typedown.WinUI.Controls
                     LastEventName = "ContentLoaded";
                     return "WinUI editor content loaded.";
                 },
+                ["ExportCallback"] = args =>
+                {
+                    LastEventName = "ExportCallback";
+                    LastRawMessage = FormatArgs(args);
+                    return true;
+                },
+                ["PrintHTML"] = args =>
+                {
+                    LastEventName = "PrintHTML";
+                    LastRawMessage = FormatArgs(args);
+                    return true;
+                },
+                ["ResizeTable"] = args => CreateResizeTablePayload(args),
+                ["LoadImage"] = args => CreateLoadImagePayload(args),
                 ["GetStringResources"] = args => CreateStringResources(args),
-                ["GetSettings"] = _ => CreateSettingsPayload()
+                ["GetSettings"] = _ => CreateSettingsPayload(),
+                ["SetClipboard"] = args =>
+                {
+                    LastEventName = "SetClipboard";
+                    LastRawMessage = FormatArgs(args);
+                    return true;
+                },
+                ["OpenNewWindow"] = args =>
+                {
+                    LastEventName = "OpenNewWindow";
+                    LastRawMessage = FormatArgs(args);
+                    return true;
+                },
+                ["UnhandledException"] = args =>
+                {
+                    LastEventName = "UnhandledException";
+                    LastRawMessage = FormatArgs(args);
+                    return null;
+                }
             };
 
             LastEventName = "Waiting";
@@ -50,6 +80,15 @@ namespace Typedown.WinUI.Controls
 
         public string StatusText =>
             $"Loaded={IsContentLoaded}; FileLoaded={IsFileLoaded}; MarkdownLength={CurrentMarkdownLength}; LastEvent={LastEventName}";
+
+        public void ResetForNavigation()
+        {
+            IsContentLoaded = false;
+            IsFileLoaded = false;
+            CurrentMarkdownLength = 0;
+            LastEventName = "Waiting";
+            diffCache.Clear();
+        }
 
         public void Receive(string? rawMessage, Func<string, bool> sender)
         {
@@ -316,6 +355,64 @@ namespace Typedown.WinUI.Controls
             }
 
             return resources;
+        }
+
+        private static object CreateResizeTablePayload(JsonElement? args)
+        {
+            var row = ReadIntProperty(args, "row");
+            var column = ReadIntProperty(args, "column");
+            var rows = ReadIntProperty(args, "rows");
+            var columns = ReadIntProperty(args, "columns");
+
+            return new
+            {
+                row = row ?? rows ?? 0,
+                column = column ?? columns ?? 0,
+                rows = rows ?? row ?? 0,
+                columns = columns ?? column ?? 0
+            };
+        }
+
+        private static object CreateLoadImagePayload(JsonElement? args)
+        {
+            return new
+            {
+                url = ReadStringProperty(args, "url") ?? string.Empty
+            };
+        }
+
+        private static int? ReadIntProperty(JsonElement? args, string propertyName)
+        {
+            if (args is not JsonElement element || element.ValueKind != JsonValueKind.Object)
+            {
+                return null;
+            }
+
+            return element.TryGetProperty(propertyName, out var property) && property.TryGetInt32(out var value)
+                ? value
+                : null;
+        }
+
+        private static string? ReadStringProperty(JsonElement? args, string propertyName)
+        {
+            if (args is not JsonElement element || element.ValueKind != JsonValueKind.Object)
+            {
+                return null;
+            }
+
+            return element.TryGetProperty(propertyName, out var property) && property.ValueKind == JsonValueKind.String
+                ? property.GetString()
+                : null;
+        }
+
+        private static string FormatArgs(JsonElement? args)
+        {
+            if (args is not JsonElement element)
+            {
+                return string.Empty;
+            }
+
+            return element.GetRawText();
         }
 
         private static void Send(Func<string, bool> sender, string name, object args)
