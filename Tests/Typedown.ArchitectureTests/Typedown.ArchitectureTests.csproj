@@ -14,7 +14,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Compile Include="..\..\Dev\Typedown.Core.Contracts\Editor\*.cs" Link="TestImports\Contracts\%(Filename)%(Extension)" />
+    <ProjectReference Include="..\..\Dev\Typedown.Core.Contracts\Typedown.Core.Contracts.csproj" />
     <Compile Include="..\..\Dev\Typedown.WinUI\Controls\WinUIEditorBridgeAdapter.cs" Link="TestImports\WinUIEditorBridgeAdapter.cs" />
     <Compile Include="..\..\Dev\Typedown.WinUI\Controls\WinUIEditorDocumentSession.cs" Link="TestImports\WinUIEditorDocumentSession.cs" />
   </ItemGroup>

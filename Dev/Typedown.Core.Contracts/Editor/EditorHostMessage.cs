@@ -1,4 +1,8 @@
 namespace Typedown.Core.Contracts.Editor
 {
-    public sealed record EditorHostMessage(string Name, object Args);
+    using System.Text.Json.Serialization;
+
+    public sealed record EditorHostMessage(
+        [property: JsonPropertyName("name")] string Name,
+        [property: JsonPropertyName("args")] object Args);
 }

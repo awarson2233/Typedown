@@ -88,6 +88,20 @@ public class WinUIEditorBridgeAdapterTests
     }
 
     [TestMethod]
+    public void EditorHostMessage_SerializesWithProtocolCasing()
+    {
+        var payload = JsonSerializer.Serialize(new EditorHostMessage("LoadFile", new { text = "abc", basePath = @"C:\docs" }));
+
+        using var document = JsonDocument.Parse(payload);
+        Assert.IsTrue(document.RootElement.TryGetProperty("name", out var name));
+        Assert.IsTrue(document.RootElement.TryGetProperty("args", out var args));
+        Assert.AreEqual("LoadFile", name.GetString());
+        Assert.AreEqual("abc", args.GetProperty("text").GetString());
+        Assert.IsFalse(document.RootElement.TryGetProperty("Name", out _));
+        Assert.IsFalse(document.RootElement.TryGetProperty("Args", out _));
+    }
+
+    [TestMethod]
     public void MalformedPayload_DoesNotThrowAndLeavesSessionUsable()
     {
         var session = new WinUIEditorDocumentSession();
