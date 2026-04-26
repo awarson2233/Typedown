@@ -21,7 +21,7 @@ Phase 9   最小 WinUI3 shell spike（已完成）
 Phase 10  WinUI3 平台服务闭环与启动基线（已完成）
 Phase 11  WebView2 editor host smoke 等价（已完成，真实本地文档 load/save 边界已完成）
 Phase 12  Typedown.UI 项目骨架与 UI 注册边界（已完成）
-Phase 13  低风险 UI 资源/页面/控件迁移（第一批已完成）
+Phase 13  低风险 UI 资源/页面/控件迁移（第二批已完成）
 Phase 14  Debug_Local 主启动路径切换到 WinUI3
 Phase 15  legacy XamlUI 退场与构建清理
 Phase 16  ARM64 与打包验证
@@ -152,9 +152,11 @@ Phase 16  ARM64 与打包验证
 
 **第一批状态：已完成。** 已完成到 `Typedown.UI.Resources.MainPageTextResources`。当前只移动 smoke 页面静态文本和默认状态提示；`MainPage.xaml` 布局、`WinUIEditorHost`、platform services、Package/Unpackaged 启动配置均保持在 `Typedown.WinUI`。
 
+**第二批状态：已完成。** 已抽取 legacy editor runtime UI state 到 `Dev\Typedown.Core.Contracts\EditorRuntime`，保留 `ParagraphState` checked/enabled 语义，并显式锁定 legacy JSON bridge 字段形状。已在 `Typedown.UI.Resources` 增加平台中立 legacy `.resw` 文本读取层，当前覆盖 `en`、`zh-Hans`、`zh-Hant` 的 `CommonResources`、`DialogResources`、`Resources`、`SettingsResources`，不迁移 XAML `ResourceDictionary`、Style 或 Converter。
+
 **推荐顺序：**
 
-1. 资源字典、字符串、图片、converter。
+1. 平台中立字符串、图片 token、尺寸/颜色 token；XAML ResourceDictionary、Style、Converter 继续延后。
 2. 纯显示控件和无平台服务依赖的 controls。
 3. settings 页面和低风险页面。
 4. root/navigation 结构。
@@ -251,4 +253,4 @@ winui3-migration
 
 ## 下一步建议
 
-下一步应启动 Phase 12：创建 `Dev\Typedown.UI` 的最小项目骨架和 UI 注册边界。不要在 Phase 12 批量搬迁 legacy XAML 控件，也不要把 `Typedown.WinUI` 与 `Typedown.UI` 合并；Phase 12 只为 Phase 13 的低风险 UI 迁移建立可测试边界。
+下一步继续 Phase 13 第三批：优先做 editor/menu/settings 的平台中立 UI command/view-state 契约，而不是切换默认启动路径。第三批仍不迁移 WebView2 host、Window、Dialog/FilePicker、Package/Unpackaged 配置，也不处理 ARM64。

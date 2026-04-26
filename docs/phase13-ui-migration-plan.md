@@ -237,16 +237,19 @@ Test-Path .\Dev\Typedown.WinUI\bin\x64\Debug_Local\net9.0-windows10.0.26100.0\Re
 
 ```text
 dotnet build Dev\Typedown.UI: 0 warnings, 0 errors
-dotnet test Tests\Typedown.ArchitectureTests: 35 passed
+dotnet build Dev\Typedown.Core.Contracts: 0 warnings, 0 errors
+dotnet test Tests\Typedown.ArchitectureTests: 53 passed
 dotnet build Dev\Typedown.WinUI Debug|x64: 0 warnings, 0 errors
 dotnet build Typedown.sln Debug_Local|x64: 0 warnings, 0 errors
 Debug Resources\Statics\index.html: True
 Debug_Local Resources\Statics\index.html: True
 ```
 
+2026-04-27 二批集成说明：第一次并行验证时 `Typedown.UI` 构建遇到 `Typedown.Core.Contracts` 输出文件被 Defender 临时锁定的 `CS2012`，随后串行重跑通过；该问题不是代码失败。
+
 注意：`Dev\Typedown\Resources\Statics` 是 ignored 前端生成产物。新 worktree 初始没有该目录时，需先从主工作区复制现有 bundle 或在 `Dev\Typedown.Editor` 重新生成，再验证 WinUI 输出目录。
 
-在 `docs\winui3-post-phase9-roadmap.md` 中把 Phase 13 标记为“完成第一批低风险迁移”，并记录仍 deferred 的平台 UI 和 legacy host 项。
+在 `docs\winui3-post-phase9-roadmap.md` 中把 Phase 13 标记为“第二批已完成”，并记录仍 deferred 的平台 UI、legacy host 项和下一批迁移方向。
 
 ## Parallel Strategy
 

@@ -116,11 +116,12 @@ D:\source\repos\Typedown\Dev\Typedown\bin\x64\Debug_Local\net9.0-windows10.0.261
 - ARM64 配置不能从 solution 下拉框推断；正式 ARM64 适配推迟到 WinUI3 shell 切换后。
 - Packaging 仍是 Desktop Bridge / WAP，后续需要独立治理。
 
-## WinUI3 Phase 11 收尾验证入口
+## WinUI3 Phase 13 收尾验证入口
 
-Phase 11 之后，WinUI3 shell/editor host 的最小收尾验证为：
+Phase 13 之后，WinUI3 shell/editor host 的最小收尾验证为：
 
 ```powershell
+dotnet build .\Dev\Typedown.Core.Contracts\Typedown.Core.Contracts.csproj -c Debug /nologo /v:minimal /m:1 /nodeReuse:false
 dotnet build .\Dev\Typedown.UI\Typedown.UI.csproj -c Debug /nologo /v:minimal
 dotnet test .\Tests\Typedown.ArchitectureTests\Typedown.ArchitectureTests.csproj -c Debug /nologo /v:minimal
 dotnet build .\Dev\Typedown.WinUI\Typedown.WinUI.csproj -c Debug -p:Platform=x64 /nologo /v:minimal /m:1 /nodeReuse:false
@@ -142,6 +143,30 @@ Start-Process "shell:AppsFolder\62082Surprise.Typedown.WinUI_m01jdq2q5rxw0!App"
 ```
 
 ## 本次验证记录
+
+验证时间：2026-04-27
+
+执行命令：
+
+```powershell
+dotnet build .\Dev\Typedown.Core.Contracts\Typedown.Core.Contracts.csproj -c Debug /nologo /v:minimal /m:1 /nodeReuse:false
+dotnet build .\Dev\Typedown.UI\Typedown.UI.csproj -c Debug /nologo /v:minimal /m:1 /nodeReuse:false
+dotnet test .\Tests\Typedown.ArchitectureTests\Typedown.ArchitectureTests.csproj -c Debug /nologo /v:minimal
+dotnet build .\Dev\Typedown.WinUI\Typedown.WinUI.csproj -c Debug -p:Platform=x64 /nologo /v:minimal /m:1 /nodeReuse:false
+dotnet build .\Typedown.sln -c Debug_Local -p:Platform=x64 /nologo /v:minimal /m:1 /nodeReuse:false
+Test-Path .\Dev\Typedown.WinUI\bin\x64\Debug\net9.0-windows10.0.26100.0\Resources\Statics\index.html
+Test-Path .\Dev\Typedown.WinUI\bin\x64\Debug_Local\net9.0-windows10.0.26100.0\Resources\Statics\index.html
+```
+
+结果：
+
+- `Typedown.Core.Contracts` Debug 构建返回 0 warning / 0 error。
+- `Typedown.UI` Debug 构建返回 0 warning / 0 error。
+- `Typedown.ArchitectureTests` 返回 53 passed。
+- `Typedown.WinUI` Debug|x64 构建返回 0 warning / 0 error。
+- `Typedown.sln` Debug_Local|x64 构建返回 0 warning / 0 error。
+- Debug 与 Debug_Local 输出目录均存在 `Resources\Statics\index.html`。
+- 首次并行运行 `Typedown.Core.Contracts` 与 `Typedown.UI` 构建时出现过一次 `CS2012` 输出文件被 Defender 临时锁定；串行重跑后通过，不作为代码失败记录。
 
 验证时间：2026-04-26
 
