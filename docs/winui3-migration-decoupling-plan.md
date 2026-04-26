@@ -21,7 +21,10 @@
 - Phase 6：已完成（当前 `work/phase6-app-activation` 实现，待主工作区 review/merge）。单实例与激活逻辑已通过 `IAppActivationService` 收束到 shell service。
 - Phase 7：已完成。构建矩阵和 ARM64 风险已记录，不做 ARM64 适配。
 - Phase 8：已完成。`Typedown.UI` / `Typedown.WinUI` / legacy XAML host 的模块边界已固化，不移动旧 XAML 控件。
-- Phase 9：待执行。最小 WinUI3 shell spike，必须在 Phase 3/4/6 稳定后开始，并以 Phase 8 的模块边界为准。
+- Phase 9：已完成。最小 WinUI3 shell spike 已落到 `Dev\Typedown.WinUI`，当前不依赖 legacy `Typedown.XamlUI`。
+- Phase 10：已完成。`Typedown.Core.Contracts` 已拆出，WinUI 平台服务桩、solution 构建基线、Package/Unpackaged 调试入口已建立。
+
+Phase 9 之后的路线已重新设计并拆分到 `docs/winui3-post-phase9-roadmap.md`。当前下一步是 Phase 11：在 WinUI shell 中建立真实应用骨架与 editor host 边界。Phase 11 先接入 WebView2/editor host、导航和应用服务组合根，不批量迁移 legacy XAML 控件。
 
 Phase 3、Phase 4、Phase 6 必须串行推进。它们都会触碰 `Dev\Typedown\Injection.cs`，并且 Phase 6 会依赖前面已经稳定的 shell service 注册边界；不得并行创建实现分支。
 
@@ -32,8 +35,10 @@ Phase 3、Phase 4、Phase 6 必须串行推进。它们都会触碰 `Dev\Typedow
 - 主 fork remote：`awarson2233 https://github.com/awarson2233/Typedown`
 - XamlUI legacy host：`D:\source\repos\Typedown\Dev\Typedown.XamlUI`
 - XamlUI 来源：`D:\source\repos\Typedown.XamlUI` 的 `work/vs-debug-build-fixes` 状态
-- 稳定本地运行模式：`Debug_Local|x64`，加载 `Dev\Typedown\Resources\Statics\index.html`
-- 前端调试模式：`Debug|x64`，加载 `http://localhost:3000`，需要先运行 `yarn start`
+- legacy 稳定本地运行模式：`Dev\Typedown` 的 `Debug_Local|x64`，加载 `Dev\Typedown\Resources\Statics\index.html`
+- legacy 前端调试模式：`Dev\Typedown` 的 `Debug|x64`，加载 `http://localhost:3000`，需要先运行 `yarn start`
+- WinUI3 日常调试入口：`Debug_Local|x64` + `Typedown.WinUI (Unpackaged)`。该路径不走 MSIX 部署、不依赖证书，`Typedown.WinUI.csproj` 在 `Debug_Local` 下必须保持 `<WindowsPackageType>None</WindowsPackageType>`。
+- WinUI3 Package 验证入口：`Debug|x64` + `Typedown.WinUI (Package)`。该路径走 MSIX 部署，必须有受信任的 dev/test 证书；证书问题不应阻塞日常代码调试。
 
 已知基线命令：
 
@@ -486,7 +491,7 @@ Typedown.WinUI = WinUI3 shell
 Typedown.XamlUI / LegacyXamlHost = 当前旧宿主
 ```
 
-## Phase 9：创建 WinUI3 Shell Spike
+## Phase 9：创建 WinUI3 Shell Spike（已完成）
 
 **目标：** 在迁移全部 XAML 控件前，证明前面抽出的边界确实可复用。
 
@@ -498,11 +503,11 @@ Typedown.XamlUI / LegacyXamlHost = 当前旧宿主
 
 步骤：
 
-- [ ] 创建最小 WinUI3 app 项目，能启动、创建窗口并注册 shell 服务。
-- [ ] 在 WinUI3 WebView2 中加载同一份静态编辑器 bundle。
-- [ ] 实现最小 WinUI3 版本 `IEditorBridge`、`IUiDispatcher`、`IWindowContext`、`IDialogService`、`IFilePickerService`。
-- [ ] 在 shell/editor proof 成功前，暂不迁移 `RootControl`、`MainPage` 和详细 XAML resources。
-- [ ] 对比当前 `Debug_Local|x64` 基线，列出功能缺口。
+- [x] 创建最小 WinUI3 app 项目，能启动并创建窗口。
+- [x] 建立 `Typedown.WinUI` 与 `Typedown.Core.Contracts` 的依赖边界。
+- [x] 保持 WinUI3 shell 不依赖 legacy `Typedown.XamlUI`。
+- [x] 在 shell/editor proof 成功前，暂不迁移 `RootControl`、`MainPage` 和详细 XAML resources。
+- [x] 对比当前 `Debug_Local|x64` 基线，列出功能缺口并转入 Phase 10/11。
 
 验证：
 
@@ -516,6 +521,47 @@ settings/db path 指向预期迁移位置
 ```
 
 ---
+
+## Phase 10：WinUI3 平台服务与启动基线（已完成）
+
+**目标：** 让 `Typedown.WinUI` 不只是空窗口，而是具备可继续迁移的 contracts、平台服务桩和可重复启动基线。
+
+完成记录：
+
+- [x] 新增 `Dev\Typedown.Core.Contracts`，承载平台中立接口。
+- [x] `Typedown.WinUI` 引用 contracts，但不直接引用 legacy `Typedown.XamlUI`。
+- [x] WinUI 侧实现 `IAppDataPathProvider`、`IDialogService`、`IFilePickerService`、`IUiDispatcher`、`IWindowContext`、`IAppActivationService` 的最小服务。
+- [x] `Debug|x64` solution build 收敛到 `Typedown.Core.Contracts` + `Typedown.WinUI`，并保留 `Typedown.WinUI (Package)` 部署入口。
+- [x] `Debug_Local|x64` solution build 收敛到 `Typedown.Core.Contracts` + `Typedown.WinUI`，并作为 `Typedown.WinUI (Unpackaged)` 无证书调试入口。
+- [x] 修复 `Debug_Local` 下 WinAppSDK DeploymentManager 自动初始化异常：`Debug_Local` 必须使用 `<WindowsPackageType>None</WindowsPackageType>`，否则会在 Unpackaged 启动前触发 `DeploymentInitializeOptions` 的 `REGDB_E_CLASSNOTREG`。
+
+验证：
+
+```powershell
+dotnet test .\Tests\Typedown.ArchitectureTests\Typedown.ArchitectureTests.csproj -c Debug /nologo /v:minimal
+dotnet build .\Typedown.sln -c Debug_Local -p:Platform=x64 /nologo /v:minimal /m:1 /nodeReuse:false
+dotnet build .\Typedown.sln -c Debug -p:Platform=x64 /nologo /v:minimal /m:1 /nodeReuse:false
+```
+
+## Phase 11：WinUI3 应用骨架与 Editor Host 边界（下一步）
+
+**目标：** 在不迁移 legacy XAML 控件的前提下，让 WinUI shell 具备真实应用骨架，能承接 editor host、导航和服务组合根。
+
+任务：
+
+- [ ] 在 `Typedown.WinUI` 中建立稳定的窗口/Frame/导航骨架。
+- [ ] 明确 `Typedown.UI` 的创建时机和职责：页面、控件、资源、UI ViewModel、应用级 UI 编排；不承担 MSIX、App/Window、单实例或平台服务注册。
+- [ ] 在 WinUI shell 中创建 WebView2 editor host 迁移点，优先复用现有 `Resources\Statics` 和 editor bridge 协议。
+- [ ] 清点仍位于 `Typedown.Core` 或 legacy XAML 层中的前端/页面/控件职责，按风险拆到 Phase 12/13，而不是在 Phase 11 批量移动。
+- [ ] 保持 `Debug_Local|x64 + Typedown.WinUI (Unpackaged)` 为日常验证入口。
+
+验证：
+
+```text
+VS: Debug_Local | x64 + Typedown.WinUI (Unpackaged) 能启动
+命令行: dotnet build .\Typedown.sln -c Debug_Local -p:Platform=x64
+架构测试: Typedown.WinUI 不引用 Typedown.XamlUI，Typedown.Core.Contracts 保持平台中立
+```
 
 ## 可并行工作流
 
@@ -536,7 +582,7 @@ Phase 0 提交后，可以按以下工作流分配 subagent 或 worktree。当�
 
 ## 推荐立即执行
 
-下一步执行 Phase 9：创建最小 WinUI3 shell spike。Phase 9 必须遵守 `docs/winui3-target-architecture.md`，不得把 legacy host 内容迁入 `Typedown.UI`，不得做 ARM64 适配。
+下一步执行 Phase 11：WinUI3 应用骨架与 editor host 边界。Phase 11 必须遵守 `docs/winui3-target-architecture.md`，不得把 legacy host 内容迁入 `Typedown.UI`，不得做 ARM64 适配。
 
 ## 正式 WinUI3 迁移前的完成标准
 
