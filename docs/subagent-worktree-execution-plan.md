@@ -41,7 +41,7 @@ worktrees/
 ## 当前执行状态
 
 - 已完成并合入 `winui3-migration`：`work/phase1-xamlui-dependency`、`work/phase2-appdata-paths`、`work/phase3-dialog-picker`、`work/phase4-dispatcher-window-context`、`work/phase5-editor-bridge`。
-- 下一批必须串行：创建并验证 `work/phase6-app-activation`。
+- 当前串行阶段：`work/phase6-app-activation` 已完成实现并待主工作区 review/merge；下一步创建 `work/phase7-build-matrix`。
 - `work/phase7-build-matrix` 只记录构建矩阵和 ARM64 风险，不做 ARM64 适配。
 - `work/phase8-winui3-shell-spike` 只能在 Phase 3/4/6 稳定后开始。
 
@@ -335,7 +335,7 @@ git branch -d work/phase1-xamlui-dependency
 
 ## 下一步
 
-1. 从当前 `winui3-migration` 创建 `work/phase6-app-activation`。
-2. 启动一个实现 subagent，只负责 Phase 6。
-3. 主工作区做 review、合并和基线验证。
-4. Phase 6 合入后，再补 Phase 7 构建矩阵风险记录。
+1. 主工作区 review 并合并 `work/phase6-app-activation`。
+2. 在主工作区运行基线验证并补做单实例/激活 smoke。
+3. 从当前 `winui3-migration` 创建 `work/phase7-build-matrix`。
+4. 只记录构建矩阵与 ARM64 风险，不做 ARM64 适配。

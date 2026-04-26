@@ -41,6 +41,7 @@ namespace Typedown
         private static void RegisterService(ServiceCollection builder)
         {
             builder.AddScoped<IClipboard, Clipboard>();
+            builder.AddSingleton<IAppActivationService, AppActivationService>();
             builder.AddScoped<IDialogService, DialogService>();
             builder.AddScoped<IFileConverter, FileConverter>();
             builder.AddScoped<IFileExport, FileExport>();
