@@ -43,7 +43,7 @@ worktrees/
 - 已完成并合入 `winui3-migration`：`work/phase1-xamlui-dependency`、`work/phase2-appdata-paths`、`work/phase3-dialog-picker`、`work/phase4-dispatcher-window-context`、`work/phase5-editor-bridge`。
 - 当前串行阶段：`work/phase6-app-activation` 已完成实现并待主工作区 review/merge；`work/phase7-build-matrix` 已在当前分支完成文档更新，下一步创建 `work/phase8-ui-winui-boundary`。
 - `work/phase7-build-matrix` 已记录构建矩阵和 ARM64 风险，不做 ARM64 适配。
-- `work/phase8-ui-winui-boundary` 固化 `Typedown.UI`、`Typedown.WinUI` 和 legacy XAML host 的职责，不迁移控件。
+- `work/phase8-ui-winui-boundary` 已固化 `Typedown.UI`、`Typedown.WinUI` 和 legacy XAML host 的职责，不迁移控件。
 - `work/phase9-winui3-shell-spike` 只能在 Phase 3/4/6/8 稳定后开始。
 
 Phase 6 会继续修改 `Dev\Typedown\Injection.cs` 和 shell service 注册。不得同时启动其他会触碰同一边界的实现 subagent。
@@ -86,7 +86,7 @@ git worktree add D:\source\repos\Typedown.worktrees\phase6-app-activation -b wor
 
 - `work/phase6-app-activation`：抽出单实例和激活服务。Phase 4 合并验证后执行。
 - `work/phase7-build-matrix`：已记录构建矩阵和 ARM64 风险，不适配 ARM64。
-- `work/phase8-ui-winui-boundary`：固化 UI / WinUI / legacy host 模块边界。
+- `work/phase8-ui-winui-boundary`：已固化 UI / WinUI / legacy host 模块边界。
 
 第三批最后推进：
 
@@ -226,7 +226,7 @@ git worktree add D:\source\repos\Typedown.worktrees\phase6-app-activation -b wor
 - `docs\winui3-migration-decoupling-plan.md`
 - `docs\subagent-worktree-execution-plan.md`
 - `docs\xamlui-dependency.md`
-- 可选：`docs\winui3-target-architecture.md`
+- `docs\winui3-target-architecture.md`
 
 约束：
 
@@ -306,7 +306,7 @@ review 可以用新的 subagent 完成，但 reviewer 只能只读扫描，不�
 - Phase 5 与 Phase 2 基本独立，但会动 `MarkdownEditor` 和 bridge，不应和 UI dispatcher/window context 同时合并。
 - Phase 3、4、6 都会碰服务注册和窗口/平台接口，必须串行。当前 Phase 4 已完成，下一步从 Phase 6 开始。
 - Phase 7 不做 ARM64 适配，只在 WinUI3 前记录风险；当前已作为文档阶段完成。
-- Phase 8 是架构命名和依赖方向治理，应先于任何 WinUI3 shell 项目创建。
+- Phase 8 是架构命名和依赖方向治理，已先于任何 WinUI3 shell 项目创建完成。
 
 ## 集成流程
 
@@ -360,5 +360,5 @@ git branch -d work/phase1-xamlui-dependency
 
 1. 主工作区 review 并合并 `work/phase6-app-activation`。
 2. 在主工作区运行基线验证并补做单实例/激活 smoke。
-3. 从当前 `winui3-migration` 创建 `work/phase8-ui-winui-boundary`。
-4. Phase 8 只固化 `Typedown.UI` / `Typedown.WinUI` / legacy host 边界，不移动旧控件。
+3. 从当前 `winui3-migration` 创建 `work/phase9-winui3-shell-spike`。
+4. Phase 9 创建最小 WinUI3 shell spike，必须遵守 `docs\winui3-target-architecture.md`。

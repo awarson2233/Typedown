@@ -73,3 +73,5 @@ worktree 验证说明：
 3. Phase 9 创建最小 `Typedown.WinUI` shell spike。
 4. 只把 WinUI3 兼容的新页面、控件、资源和 UI ViewModel 放入 `Typedown.UI`。
 5. 等 WinUI3 shell 功能等价后，再删除 legacy host 依赖。
+
+Phase 8 的完整边界清单见 [winui3-target-architecture.md](./winui3-target-architecture.md)。
