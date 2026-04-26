@@ -9,6 +9,40 @@ public class Phase13ShellStateContractTests
 {
     private static readonly string RepoRoot = FindRepoRoot();
 
+    private static readonly string[] ForbiddenShellBoundaryTokens =
+    [
+        "Windows.UI.Xaml",
+        "Microsoft.UI.Xaml",
+        "Typedown.WinUI",
+        "Typedown.XamlUI",
+        "Windows.Storage",
+        "Windows.UI.Xaml.Window",
+        "Microsoft.UI.Xaml.Window",
+        "IWindow",
+        "WindowHandle",
+        "HWND",
+        "AppWindow",
+        "CoreWindow",
+        "FrameStack",
+        "NavigationStack",
+        "BackStack",
+        "XamlRoot",
+    ];
+
+    private static readonly string[] ForbiddenIoAndLegacyUiTokens =
+    [
+        "File.Exists",
+        "File.Read",
+        "File.Write",
+        "Directory.",
+        "Config",
+        "SettingsViewModel",
+        "FilePicker",
+        "FileOpenPicker",
+        "FileSavePicker",
+        "ContentDialog",
+    ];
+
     [TestMethod]
     public void ShellStateContracts_StayPlatformNeutralAndAvoidLegacyDependencies()
     {
@@ -23,17 +57,8 @@ public class Phase13ShellStateContractTests
         {
             var source = File.ReadAllText(file);
 
-            AssertNoTypeReference(source, "Windows.UI.Xaml");
-            AssertNoTypeReference(source, "Microsoft.UI.Xaml");
-            AssertNoTypeReference(source, "Typedown.WinUI");
-            AssertNoTypeReference(source, "Typedown.XamlUI");
-            AssertNoTypeReference(source, "Windows.Storage");
-            AssertNoTypeReference(source, "FileOpenPicker");
-            AssertNoTypeReference(source, "ContentDialog");
-            AssertNoTypeReference(source, "Window");
-            AssertNoTypeReference(source, "Frame");
-            AssertNoTypeReference(source, "HWND");
-            AssertNoTypeReference(source, "XamlRoot");
+            AssertNoReferences(source, ForbiddenShellBoundaryTokens);
+            AssertNoReferences(source, ForbiddenIoAndLegacyUiTokens);
         }
     }
 
@@ -130,7 +155,15 @@ public class Phase13ShellStateContractTests
         Assert.IsFalse(json.Contains("\"CurrentPageName\"", StringComparison.Ordinal));
     }
 
-    private static void AssertNoTypeReference(string source, string text)
+    private static void AssertNoReferences(string source, IReadOnlyList<string> forbiddenTokens)
+    {
+        foreach (var token in forbiddenTokens)
+        {
+            AssertNoReference(source, token);
+        }
+    }
+
+    private static void AssertNoReference(string source, string text)
     {
         Assert.IsFalse(source.Contains(text, StringComparison.Ordinal), $"Unexpected reference: {text}");
     }
