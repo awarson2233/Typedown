@@ -59,19 +59,32 @@ public class Phase10CoreContractsBoundaryTests
         var solutionSource = File.ReadAllText(Path.Combine(RepoRoot, "Typedown.sln"));
         var winuiProjectGuid = FindProjectGuid(solutionSource, "Typedown.WinUI");
         var contractsProjectGuid = FindProjectGuid(solutionSource, "Typedown.Core.Contracts");
+        var legacyAppGuid = FindProjectGuid(solutionSource, "Typedown");
         var legacyPackageGuid = FindProjectGuid(solutionSource, "Typedown.Package");
+        var editorGuid = FindProjectGuid(solutionSource, "Typedown.Editor");
+        var legacyTestGuid = FindProjectGuid(solutionSource, "Typedown.Test");
+        var legacyCoreGuid = FindProjectGuid(solutionSource, "Typedown.Core");
         var xamlDesignGuid = FindProjectGuid(solutionSource, "XamlDesignApp");
         var xamlUiGuid = FindProjectGuid(solutionSource, "Typedown.XamlUI");
 
         AssertHasTypeReference(solutionSource, $"{contractsProjectGuid}.Debug|x64.Build.0");
         AssertHasTypeReference(solutionSource, $"{winuiProjectGuid}.Debug|x64.Build.0");
         AssertHasTypeReference(solutionSource, $"{winuiProjectGuid}.Debug|x64.Deploy.0");
-        AssertNoTypeReference(solutionSource, $"{legacyPackageGuid}.Debug|x64.Build.0");
-        AssertNoTypeReference(solutionSource, $"{legacyPackageGuid}.Debug|x64.Deploy.0");
-        AssertNoTypeReference(solutionSource, $"{xamlDesignGuid}.Debug|x64.Build.0");
-        AssertNoTypeReference(solutionSource, $"{xamlDesignGuid}.Debug|x64.Deploy.0");
-        AssertNoTypeReference(solutionSource, $"{xamlUiGuid}.Debug|x64.Build.0");
-        AssertNoTypeReference(solutionSource, $"{xamlUiGuid}.Debug|x64.Deploy.0");
+        AssertDebugX64DoesNotBuildOrDeployLegacyProject(solutionSource, legacyAppGuid);
+        AssertDebugX64DoesNotBuildOrDeployLegacyProject(solutionSource, legacyPackageGuid);
+        AssertDebugX64DoesNotBuildOrDeployLegacyProject(solutionSource, xamlDesignGuid);
+        AssertDebugX64DoesNotBuildOrDeployLegacyProject(solutionSource, xamlUiGuid);
+
+        AssertHasTypeReference(solutionSource, $"{contractsProjectGuid}.Debug_Local|x64.Build.0");
+        AssertHasTypeReference(solutionSource, $"{winuiProjectGuid}.Debug_Local|x64.Build.0");
+        AssertNoTypeReference(solutionSource, $"{winuiProjectGuid}.Debug_Local|x64.Deploy.0");
+        AssertDebugLocalX64DoesNotBuildOrDeployLegacyProject(solutionSource, legacyAppGuid);
+        AssertDebugLocalX64DoesNotBuildOrDeployLegacyProject(solutionSource, legacyPackageGuid);
+        AssertDebugLocalX64DoesNotBuildOrDeployLegacyProject(solutionSource, editorGuid);
+        AssertDebugLocalX64DoesNotBuildOrDeployLegacyProject(solutionSource, legacyTestGuid);
+        AssertDebugLocalX64DoesNotBuildOrDeployLegacyProject(solutionSource, legacyCoreGuid);
+        AssertDebugLocalX64DoesNotBuildOrDeployLegacyProject(solutionSource, xamlDesignGuid);
+        AssertDebugLocalX64DoesNotBuildOrDeployLegacyProject(solutionSource, xamlUiGuid);
     }
 
     [TestMethod]
@@ -267,6 +280,18 @@ public class Phase10CoreContractsBoundaryTests
     {
         source = NormalizePathSeparators(source);
         Assert.IsTrue(Regex.IsMatch(source, CreateBoundaryPattern(typeName)), $"Expected reference to {typeName}.");
+    }
+
+    private static void AssertDebugX64DoesNotBuildOrDeployLegacyProject(string solutionSource, string projectGuid)
+    {
+        AssertNoTypeReference(solutionSource, $"{projectGuid}.Debug|x64.Build.0");
+        AssertNoTypeReference(solutionSource, $"{projectGuid}.Debug|x64.Deploy.0");
+    }
+
+    private static void AssertDebugLocalX64DoesNotBuildOrDeployLegacyProject(string solutionSource, string projectGuid)
+    {
+        AssertNoTypeReference(solutionSource, $"{projectGuid}.Debug_Local|x64.Build.0");
+        AssertNoTypeReference(solutionSource, $"{projectGuid}.Debug_Local|x64.Deploy.0");
     }
 
     private static string CreateBoundaryPattern(string typeName)

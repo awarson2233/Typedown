@@ -1,5 +1,8 @@
 [CmdletBinding()]
-param()
+param(
+    [ValidateSet("CurrentUser", "LocalMachine", "All")]
+    [string]$Scope = "All"
+)
 
 $ErrorActionPreference = "Stop"
 
@@ -17,19 +20,31 @@ $certificate = New-Object System.Security.Cryptography.X509Certificates.X509Cert
 $subject = $certificate.Subject
 $thumbprint = $pfxImport.Thumbprint
 
-$alreadyTrusted = Get-ChildItem Cert:\CurrentUser\TrustedPeople | Where-Object Thumbprint -eq $thumbprint
-if ($alreadyTrusted) {
-    Write-Host "Typedown WinUI dev certificate already trusted in CurrentUser\\TrustedPeople."
-} else {
-    Import-Certificate -FilePath $certPath -CertStoreLocation Cert:\CurrentUser\TrustedPeople | Out-Null
-    Write-Host "Imported Typedown WinUI dev certificate into CurrentUser\\TrustedPeople."
+function Import-CertificateIfMissing {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$StorePath,
+        [Parameter(Mandatory = $true)]
+        [string]$DisplayName
+    )
+
+    if (Get-ChildItem $StorePath | Where-Object Thumbprint -eq $thumbprint) {
+        Write-Host "Typedown WinUI dev certificate already trusted in $DisplayName."
+        return
+    }
+
+    Import-Certificate -FilePath $certPath -CertStoreLocation $StorePath | Out-Null
+    Write-Host "Imported Typedown WinUI dev certificate into $DisplayName."
 }
 
-if (Get-ChildItem Cert:\CurrentUser\Root | Where-Object Thumbprint -eq $thumbprint) {
-    Write-Host "Typedown WinUI dev certificate already trusted in CurrentUser\\Root."
-} else {
-    Import-Certificate -FilePath $certPath -CertStoreLocation Cert:\CurrentUser\Root | Out-Null
-    Write-Host "Imported Typedown WinUI dev certificate into CurrentUser\\Root."
+if ($Scope -in @("CurrentUser", "All")) {
+    Import-CertificateIfMissing -StorePath Cert:\CurrentUser\TrustedPeople -DisplayName "CurrentUser\\TrustedPeople"
+    Import-CertificateIfMissing -StorePath Cert:\CurrentUser\Root -DisplayName "CurrentUser\\Root"
+}
+
+if ($Scope -in @("LocalMachine", "All")) {
+    Import-CertificateIfMissing -StorePath Cert:\LocalMachine\TrustedPeople -DisplayName "LocalMachine\\TrustedPeople"
+    Import-CertificateIfMissing -StorePath Cert:\LocalMachine\Root -DisplayName "LocalMachine\\Root"
 }
 
 Write-Host "Subject: $subject"
