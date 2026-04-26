@@ -25,9 +25,6 @@ public sealed record SettingsUiSnapshot
     [JsonPropertyName("fontSize")]
     public double FontSize { get; init; } = 16d;
 
-    [JsonPropertyName("fontFamily")]
-    public string? FontFamily { get; init; }
-
     [JsonPropertyName("lineHeight")]
     public double LineHeight { get; init; } = 1.6d;
 
@@ -42,9 +39,6 @@ public sealed record SettingsUiSnapshot
 
     [JsonPropertyName("spellcheckLang")]
     public string SpellcheckLanguage { get; init; } = string.Empty;
-
-    [JsonPropertyName("imageInsertStrategy")]
-    public string? ImageInsertStrategy { get; init; }
 
     [JsonPropertyName("insertClipboardImageAction")]
     public int InsertClipboardImageAction { get; init; }

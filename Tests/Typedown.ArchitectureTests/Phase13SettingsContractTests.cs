@@ -114,13 +114,20 @@ public class Phase13SettingsContractTests
             Typewriter = true,
             FocusMode = true,
             FontSize = 18,
-            FontFamily = "Consolas",
             LineHeight = 1.8,
             EditorWidth = "1200px",
             Language = "en-US",
             Spellcheck = true,
             SpellcheckLanguage = "en-US",
-            ImageInsertStrategy = "copy",
+            InsertClipboardImageAction = 1,
+            InsertClipboardImageCopyPath = "./clipboard",
+            InsertClipboardImageUseUploadConfigId = 7,
+            InsertLocalImageAction = 2,
+            InsertLocalImageCopyPath = "./local",
+            InsertLocalImageUseUploadConfigId = 8,
+            InsertWebImageAction = 3,
+            InsertWebImageCopyPath = "./web",
+            InsertWebImageUseUploadConfigId = 9,
         };
 
         var json = JsonSerializer.Serialize(snapshot);
@@ -132,13 +139,22 @@ public class Phase13SettingsContractTests
         StringAssert.Contains(json, "\"typewriter\"");
         StringAssert.Contains(json, "\"focusMode\"");
         StringAssert.Contains(json, "\"fontSize\"");
-        StringAssert.Contains(json, "\"fontFamily\"");
         StringAssert.Contains(json, "\"lineHeight\"");
         StringAssert.Contains(json, "\"editorAreaWidth\"");
         StringAssert.Contains(json, "\"language\"");
         StringAssert.Contains(json, "\"spellcheckEnabled\"");
         StringAssert.Contains(json, "\"spellcheckLang\"");
-        StringAssert.Contains(json, "\"imageInsertStrategy\"");
+        StringAssert.Contains(json, "\"insertClipboardImageAction\"");
+        StringAssert.Contains(json, "\"insertClipboardImageCopyPath\"");
+        StringAssert.Contains(json, "\"insertClipboardImageUseUploadConfigId\"");
+        StringAssert.Contains(json, "\"insertLocalImageAction\"");
+        StringAssert.Contains(json, "\"insertLocalImageCopyPath\"");
+        StringAssert.Contains(json, "\"insertLocalImageUseUploadConfigId\"");
+        StringAssert.Contains(json, "\"insertWebImageAction\"");
+        StringAssert.Contains(json, "\"insertWebImageCopyPath\"");
+        StringAssert.Contains(json, "\"insertWebImageUseUploadConfigId\"");
+        Assert.IsFalse(json.Contains("\"fontFamily\"", StringComparison.Ordinal));
+        Assert.IsFalse(json.Contains("\"imageInsertStrategy\"", StringComparison.Ordinal));
         Assert.IsFalse(json.Contains("\"SidePaneOpen\"", StringComparison.Ordinal));
         Assert.IsFalse(json.Contains("\"EditorWidth\"", StringComparison.Ordinal));
         Assert.IsFalse(json.Contains("\"Spellcheck\"", StringComparison.Ordinal));
