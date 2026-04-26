@@ -20,7 +20,7 @@
 - Phase 5：已完成。编辑器 bridge 协议已文档化并从 `MarkdownEditor` 中收束到独立 bridge。
 - Phase 6：已完成（当前 `work/phase6-app-activation` 实现，待主工作区 review/merge）。单实例与激活逻辑已通过 `IAppActivationService` 收束到 shell service。
 - Phase 7：已完成。构建矩阵和 ARM64 风险已记录，不做 ARM64 适配。
-- Phase 8：待执行。固化 `Typedown.UI` / `Typedown.WinUI` / legacy XAML host 的模块边界，不移动旧 XAML 控件。
+- Phase 8：已完成。`Typedown.UI` / `Typedown.WinUI` / legacy XAML host 的模块边界已固化，不移动旧 XAML 控件。
 - Phase 9：待执行。最小 WinUI3 shell spike，必须在 Phase 3/4/6 稳定后开始，并以 Phase 8 的模块边界为准。
 
 Phase 3、Phase 4、Phase 6 必须串行推进。它们都会触碰 `Dev\Typedown\Injection.cs`，并且 Phase 6 会依赖前面已经稳定的 shell service 注册边界；不得并行创建实现分支。
@@ -442,7 +442,7 @@ cd D:\source\repos\Typedown
 .\scripts\verify-baseline.ps1
 ```
 
-## Phase 8：固化 UI / WinUI / Legacy Host 模块边界
+## Phase 8：固化 UI / WinUI / Legacy Host 模块边界（已完成）
 
 **目标：** 在创建 WinUI3 shell 前，先把模块命名、依赖方向和迁移任务写死，避免把旧 `Typedown.XamlUI` 错命名为长期 `UI` 模块。
 
@@ -451,16 +451,24 @@ cd D:\source\repos\Typedown
 - 修改：`docs/winui3-migration-decoupling-plan.md`
 - 修改：`docs/subagent-worktree-execution-plan.md`
 - 修改：`docs/xamlui-dependency.md`
-- 可选新增：`docs/winui3-target-architecture.md`
+- 新增：`docs/winui3-target-architecture.md`
 
 步骤：
 
-- [ ] 记录 `Typedown.XamlUI` 的当前职责：旧 XAML app/window/run loop、WinRT/XAML 运行时 glue、运行时资源/pri/dll 复制。
-- [ ] 记录 `Typedown.UI` 的长期职责：页面、控件、资源、UI ViewModel、编辑器视图编排。
-- [ ] 记录 `Typedown.WinUI` 的长期职责：App/Window、平台服务实现、DI composition root、WebView2 host、打包入口。
-- [ ] 明确 `Typedown.XamlUI` 不改名为 `Typedown.UI`；如需纳入主仓库，只能命名为 legacy host 语义。
-- [ ] 明确迁移前不把旧 UWP XAML 控件批量移动到 `Typedown.UI`，避免把 `Windows.UI.Xaml` 污染到目标模块。
-- [ ] 为后续 worktree 创建 `work/phase8-ui-winui-boundary`，只允许文档和最小 solution/project 边界验证，不做控件迁移。
+- [x] 记录 `Typedown.XamlUI` 的当前职责：旧 XAML app/window/run loop、WinRT/XAML 运行时 glue、运行时资源/pri/dll 复制。
+- [x] 记录 `Typedown.UI` 的长期职责：页面、控件、资源、UI ViewModel、编辑器视图编排。
+- [x] 记录 `Typedown.WinUI` 的长期职责：App/Window、平台服务实现、DI composition root、WebView2 host、打包入口。
+- [x] 明确 `Typedown.XamlUI` 不改名为 `Typedown.UI`；如需纳入主仓库，只能命名为 legacy host 语义。
+- [x] 明确迁移前不把旧 UWP XAML 控件批量移动到 `Typedown.UI`，避免把 `Windows.UI.Xaml` 污染到目标模块。
+- [x] 为后续 worktree 创建 `work/phase8-ui-winui-boundary`，只允许文档和最小 solution/project 边界验证，不做控件迁移。
+
+完成记录：
+
+- [x] 新增 `docs/winui3-target-architecture.md`。
+- [x] 并行只读扫描 `Dev\Typedown.Core`、`Dev\Typedown`、`Dev\Typedown.XamlUI`。
+- [x] 固化 `Typedown.UI`、`Typedown.WinUI`、`Typedown.Core`、legacy host 的职责和依赖方向。
+- [x] 记录 Phase 9 前禁止事项。
+- [x] 记录 Phase 9 最小 WinUI3 shell spike 验证目标。
 
 验证：
 
@@ -484,7 +492,7 @@ Typedown.XamlUI / LegacyXamlHost = 当前旧宿主
 
 **文件：**
 
-- 在 Phase 0-8 稳定后再新增 WinUI3 shell 项目。
+- 在 Phase 0-8 稳定后再新增 WinUI3 shell 项目，并以 `docs/winui3-target-architecture.md` 为边界约束。
 - 尽量只通过已抽出的接口引用 `Typedown.Core`。
 - 复用 `Resources\Statics` 和编辑器 bridge 协议。
 
@@ -528,7 +536,7 @@ Phase 0 提交后，可以按以下工作流分配 subagent 或 worktree。当�
 
 ## 推荐立即执行
 
-下一步执行 Phase 7 和 Phase 8。Phase 7 只补 `build-matrix` / ARM64 风险记录，不做 ARM64 适配；Phase 8 固化 `Typedown.UI` / `Typedown.WinUI` / legacy host 边界。两者主要改文档，原则上可以并行，但如果同一文档发生冲突，应以 Phase 8 的架构命名为准。
+下一步执行 Phase 9：创建最小 WinUI3 shell spike。Phase 9 必须遵守 `docs/winui3-target-architecture.md`，不得把 legacy host 内容迁入 `Typedown.UI`，不得做 ARM64 适配。
 
 ## 正式 WinUI3 迁移前的完成标准
 
