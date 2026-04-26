@@ -40,6 +40,17 @@ namespace Typedown.Test.ArchitectureTests
         }
 
         [TestMethod]
+        public void App_BindsActivationListenerToFirstWindowScopedDispatcherByDesign()
+        {
+            var source = File.ReadAllText(Path.Combine(RepoRoot, "Dev", "Typedown", "App.cs"));
+
+            AssertContainsInOrder(
+                source,
+                "legacy boundary: the first window's scoped dispatcher owns pipe callbacks",
+                "activationService.StartListening(window.ServiceProvider.GetRequiredService<IUiDispatcher>());");
+        }
+
+        [TestMethod]
         public void App_Launch_StartsNewInstanceForPrimaryLaunchAndForwardFailure()
         {
             var source = File.ReadAllText(Path.Combine(RepoRoot, "Dev", "Typedown", "App.cs"));
@@ -83,6 +94,31 @@ namespace Typedown.Test.ArchitectureTests
                 "return new(AppActivationKind.ForwardFailedStartNewInstance);");
         }
 
+        [TestMethod]
+        public void AppActivationService_TreatsMissingReturnedHandleAsForwardedSuccess()
+        {
+            var source = File.ReadAllText(Path.Combine(RepoRoot, "Dev", "Typedown", "Services", "AppActivationService.cs"));
+
+            AssertContainsInOrder(
+                source,
+                "if (long.TryParse(reader.ReadLine(), out var handle))",
+                "if (windowHandle != default)",
+                "return true;");
+        }
+
+        [TestMethod]
+        public void AppActivationService_TreatsMissingPipePayloadAsReadFailure()
+        {
+            var source = File.ReadAllText(Path.Combine(RepoRoot, "Dev", "Typedown", "Services", "AppActivationService.cs"));
+
+            AssertContainsInOrder(
+                source,
+                "var line = await reader.ReadLineAsync();",
+                "if (line == null)",
+                "throw new IOException(",
+                "ParseArgs(line)");
+        }
+
         private static void AssertNoTypeReference(string source, string typeName)
         {
             Assert.IsFalse(Regex.IsMatch(StripComments(source), CreateBoundaryPattern(typeName)), $"Unexpected reference to {typeName}.");
@@ -91,6 +127,18 @@ namespace Typedown.Test.ArchitectureTests
         private static void AssertHasTypeReference(string source, string typeName)
         {
             Assert.IsTrue(Regex.IsMatch(StripComments(source), CreateBoundaryPattern(typeName)), $"Expected reference to {typeName}.");
+        }
+
+        private static void AssertContainsInOrder(string source, params string[] snippets)
+        {
+            var currentIndex = -1;
+            foreach (var snippet in snippets)
+            {
+                var nextIndex = source.IndexOf(snippet, currentIndex + 1);
+                Assert.IsTrue(nextIndex >= 0, $"Expected to find snippet: {snippet}");
+                Assert.IsTrue(nextIndex > currentIndex, $"Expected snippet to appear after the previous one: {snippet}");
+                currentIndex = nextIndex;
+            }
         }
 
         private static string CreateBoundaryPattern(string typeName)

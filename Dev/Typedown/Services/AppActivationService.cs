@@ -71,7 +71,10 @@ namespace Typedown.Services
                     await server.WaitForConnectionAsync();
                     using var reader = new StreamReader(server);
                     using var writer = new StreamWriter(server) { AutoFlush = true };
-                    var request = new AppActivationRequest(AppActivationKind.OpenFileRequest, ParseArgs(await reader.ReadLineAsync()));
+                    var line = await reader.ReadLineAsync();
+                    if (line == null)
+                        throw new IOException("Activation pipe closed before command line payload was received.");
+                    var request = new AppActivationRequest(AppActivationKind.OpenFileRequest, ParseArgs(line));
                     var windowHandle = await dispatcher.RunIdleAsync(() => RaiseActivationRequested(request));
                     await writer.WriteLineAsync(windowHandle.ToString());
                 }
