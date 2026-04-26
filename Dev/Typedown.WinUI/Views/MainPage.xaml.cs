@@ -15,7 +15,7 @@ namespace Typedown.WinUI.Views
         {
             "WinUI3 shell now provides minimal platform service implementations behind Typedown.Core.Contracts.",
             "The shell still builds without referencing the legacy app core or the legacy XAML host project.",
-            "Phase 10b only proves service wiring, path resolution, dispatcher plumbing, dialogs, pickers, and activation stubs."
+            "Phase 10b only proves service wiring, path resolution, dispatcher plumbing, dialogs, pickers, and an activation stub contract surface."
         };
 
         public string[] DeferredItems { get; } =

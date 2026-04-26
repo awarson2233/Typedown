@@ -11,10 +11,16 @@ Phase 10b 的目标不是迁移编辑器或接入真实 `Typedown.Core`，而是
 - 新增 `WinUIUiDispatcher`，基于 `DispatcherQueue` 提供 `RunAsync` / `RunIdleAsync` 及泛型返回值版本。
 - 新增 `WinUIDialogService`，基于 `ContentDialog` 和 `XamlRoot` 的最小实现。
 - 新增 `WinUIFilePickerService`，基于 WinUI3 picker 并通过窗口 HWND 完成初始化。
-- 新增 `WinUIAppActivationService`，保留 contracts 事件面，提供最小可编译激活返回。
+- 新增 `WinUIAppActivationService`，保留 contracts 事件面，提供最小可编译激活返回；当前仍是 activation stub，不是完整监听链。
 - 新增 `WinUIPlatformServices` 聚合类，并由 `App.OnLaunched` 负责创建和接线。
-- 更新 `MainPage` 与 probe 文案，明确 Phase 10b 只验证平台服务，不宣称真实 UI / editor 已迁移。
+- 更新 `MainPage` 与 probe 文案，明确 Phase 10b 只验证平台服务和 activation stub contract surface，不宣称真实 UI / editor 已迁移。
 - 更新架构测试，持续守住 `Typedown.WinUI -> Typedown.Core.Contracts` 的边界，不允许直接引用 legacy core 或 legacy XAML host。
+
+补充语义：
+
+- picker 取消时返回 `null`，与 legacy 行为和 core 调用点保持一致，不使用空字符串伪装取消。
+- dialog 的 `CloseButtonText` 保持原样透传，避免为只有 Primary/Secondary 的业务对话框隐式补出关闭按钮。
+- activation 目前只覆盖 `Activate(...)` 的最小判定和 contracts 形状；`StartListening(...)` 仍是 no-op stub。
 
 ## 仍然刻意不做的事
 

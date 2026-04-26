@@ -23,7 +23,7 @@ namespace Typedown.WinUI.Services
             {
                 Title = request.Title,
                 Content = request.Content,
-                CloseButtonText = request.CloseButtonText ?? "Close",
+                CloseButtonText = request.CloseButtonText,
                 PrimaryButtonText = request.PrimaryButtonText,
                 SecondaryButtonText = request.SecondaryButtonText,
                 DefaultButton = MapDefaultButton(request.DefaultButton),

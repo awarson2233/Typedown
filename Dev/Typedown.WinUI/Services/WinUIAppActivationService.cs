@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Linq;
 using Typedown.Core.Interfaces;
 
 namespace Typedown.WinUI.Services
@@ -17,8 +18,9 @@ namespace Typedown.WinUI.Services
 
         public AppActivationResult Activate(string[] commandLineArgs)
         {
-            var kind = ResolveKind(commandLineArgs);
-            var request = new AppActivationRequest(kind, commandLineArgs ?? Array.Empty<string>());
+            var userArgs = commandLineArgs?.Skip(1).ToArray() ?? Array.Empty<string>();
+            var kind = ResolveKind(userArgs);
+            var request = new AppActivationRequest(kind, userArgs);
             var requestedHandle = windowContext.WindowHandle;
 
             if (ActivationRequested is not null)

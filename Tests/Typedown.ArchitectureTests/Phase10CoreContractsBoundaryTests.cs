@@ -48,6 +48,9 @@ public class Phase10CoreContractsBoundaryTests
         var projectSource = File.ReadAllText(Path.Combine(RepoRoot, "Dev", "Typedown.WinUI", "Typedown.WinUI.csproj"));
 
         AssertHasTypeReference(projectSource, @"..\Typedown.Core.Contracts\Typedown.Core.Contracts.csproj");
+        AssertHasTypeReference(projectSource, "<Platforms>x64</Platforms>");
+        AssertNoTypeReference(projectSource, "arm64");
+        AssertNoTypeReference(projectSource, "x86");
         AssertNoTypeReference(projectSource, @"..\Typedown.Core\Typedown.Core.csproj");
         AssertNoTypeReference(projectSource, @"..\Typedown.XamlUI\Typedown.XamlUI.csproj");
         AssertNoTypeReference(projectSource, "Typedown.XamlUI");
@@ -86,11 +89,90 @@ public class Phase10CoreContractsBoundaryTests
         }
     }
 
+    [TestMethod]
+    public void PickerContract_PreservesNullCancelSemantics()
+    {
+        var contractSource = File.ReadAllText(Path.Combine(RepoRoot, "Dev", "Typedown.Core.Contracts", "Interfaces", "IFilePickerService.cs"));
+        var legacySource = File.ReadAllText(Path.Combine(RepoRoot, "Dev", "Typedown", "Services", "FilePickerService.cs"));
+        var winuiSource = File.ReadAllText(Path.Combine(RepoRoot, "Dev", "Typedown.WinUI", "Services", "WinUIFilePickerService.cs"));
+
+        AssertHasTypeReference(contractSource, "Task<string?> PickOpenFileAsync");
+        AssertHasTypeReference(contractSource, "Task<string?> PickSaveFileAsync");
+        AssertHasTypeReference(contractSource, "Task<string?> PickFolderAsync");
+        AssertNoTypeReference(winuiSource, "return file?.Path ?? string.Empty;");
+        AssertNoTypeReference(winuiSource, "return folder?.Path ?? string.Empty;");
+        AssertHasTypeReference(winuiSource, "return file?.Path;");
+        AssertHasTypeReference(winuiSource, "return folder?.Path;");
+        AssertHasTypeReference(legacySource, "return file?.Path;");
+        AssertHasTypeReference(legacySource, "return folder?.Path;");
+    }
+
+    [TestMethod]
+    public void WinUIDialogService_PreservesNullCloseButtonSemantics()
+    {
+        var source = File.ReadAllText(Path.Combine(RepoRoot, "Dev", "Typedown.WinUI", "Services", "WinUIDialogService.cs"));
+
+        AssertHasTypeReference(source, "CloseButtonText = request.CloseButtonText");
+        AssertNoTypeReference(source, "?? \"Close\"");
+    }
+
+    [TestMethod]
+    public void AppAndActivationService_KeepPhase10bActivationAsStub()
+    {
+        var appSource = File.ReadAllText(Path.Combine(RepoRoot, "Dev", "Typedown.WinUI", "App.xaml.cs"));
+        var activationSource = File.ReadAllText(Path.Combine(RepoRoot, "Dev", "Typedown.WinUI", "Services", "WinUIAppActivationService.cs"));
+        var platformSource = File.ReadAllText(Path.Combine(RepoRoot, "Dev", "Typedown.WinUI", "Services", "WinUIPlatformServices.cs"));
+        var pageSource = File.ReadAllText(Path.Combine(RepoRoot, "Dev", "Typedown.WinUI", "Views", "MainPage.xaml.cs"));
+
+        AssertContainsInOrder(
+            appSource,
+            "platformServices ??= new WinUIPlatformServices(window);",
+            "platformServices.WindowContext.ViewRoot = rootFrame;",
+            "_ = rootFrame.Navigate(typeof(MainPage), platformServices);",
+            "platformServices.AppActivationService.StartListening(platformServices.UiDispatcher);",
+            "_ = platformServices.AppActivationService.Activate(Environment.GetCommandLineArgs());");
+
+        AssertHasTypeReference(platformSource, "new WinUIAppDataPathProvider()");
+        AssertHasTypeReference(platformSource, "new WinUIWindowContext(window)");
+        AssertHasTypeReference(platformSource, "new WinUIUiDispatcher(window.DispatcherQueue)");
+        AssertHasTypeReference(platformSource, "new WinUIDialogService(WindowContext)");
+        AssertHasTypeReference(platformSource, "new WinUIFilePickerService(WindowContext)");
+        AssertHasTypeReference(platformSource, "new WinUIAppActivationService(WindowContext)");
+
+        AssertContainsInOrder(
+            activationSource,
+            "var userArgs = commandLineArgs?.Skip(1).ToArray() ?? Array.Empty<string>();",
+            "var kind = ResolveKind(userArgs);",
+            "var request = new AppActivationRequest(kind, userArgs);");
+        AssertContainsInOrder(
+            activationSource,
+            "if (commandLineArgs is null || commandLineArgs.Length == 0)",
+            "return AppActivationKind.FirstLaunch;",
+            "return File.Exists(commandLineArgs[0])",
+            "? AppActivationKind.OpenFileRequest",
+            ": AppActivationKind.FirstLaunch;");
+        AssertHasTypeReference(activationSource, "public void StartListening(IUiDispatcher dispatcher)");
+
+        AssertHasTypeReference(pageSource, "activation stub contract surface");
+    }
+
     private static void AssertContainsClass(string root, string fileName, string className)
     {
         var path = Path.Combine(root, fileName);
         Assert.IsTrue(File.Exists(path), $"Expected file {path}.");
         AssertHasTypeReference(File.ReadAllText(path), className);
+    }
+
+    private static void AssertContainsInOrder(string source, params string[] snippets)
+    {
+        var currentIndex = -1;
+        foreach (var snippet in snippets)
+        {
+            var nextIndex = source.IndexOf(snippet, currentIndex + 1, StringComparison.Ordinal);
+            Assert.IsTrue(nextIndex >= 0, $"Expected to find snippet: {snippet}");
+            Assert.IsTrue(nextIndex > currentIndex, $"Expected snippet to appear after the previous one: {snippet}");
+            currentIndex = nextIndex;
+        }
     }
 
     private static void AssertNoTypeReference(string source, string typeName)

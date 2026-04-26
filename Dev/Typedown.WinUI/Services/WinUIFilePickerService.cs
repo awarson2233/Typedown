@@ -16,7 +16,7 @@ namespace Typedown.WinUI.Services
             this.windowContext = windowContext ?? throw new ArgumentNullException(nameof(windowContext));
         }
 
-        public async Task<string> PickOpenFileAsync(OpenFileRequest request)
+        public async Task<string?> PickOpenFileAsync(OpenFileRequest request)
         {
             request ??= new OpenFileRequest();
 
@@ -29,10 +29,10 @@ namespace Typedown.WinUI.Services
             }
 
             var file = await picker.PickSingleFileAsync();
-            return file?.Path ?? string.Empty;
+            return file?.Path;
         }
 
-        public async Task<string> PickSaveFileAsync(SaveFileRequest request)
+        public async Task<string?> PickSaveFileAsync(SaveFileRequest request)
         {
             request ??= new SaveFileRequest();
 
@@ -57,10 +57,10 @@ namespace Typedown.WinUI.Services
             }
 
             var file = await picker.PickSaveFileAsync();
-            return file?.Path ?? string.Empty;
+            return file?.Path;
         }
 
-        public async Task<string> PickFolderAsync(PickFolderRequest request)
+        public async Task<string?> PickFolderAsync(PickFolderRequest request)
         {
             request ??= new PickFolderRequest();
 
@@ -73,7 +73,7 @@ namespace Typedown.WinUI.Services
             }
 
             var folder = await picker.PickSingleFolderAsync();
-            return folder?.Path ?? string.Empty;
+            return folder?.Path;
         }
     }
 }
