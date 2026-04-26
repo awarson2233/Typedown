@@ -16,13 +16,13 @@
 - Phase 1：已完成。XamlUI 相邻仓库依赖已文档化，主项目和 Core 项目已支持正常仓库路径与 worktree 路径解析。
 - Phase 2：已完成。AppData、settings、database、backup 路径已通过 `IAppDataPathProvider` 进入迁移期兼容边界。
 - Phase 3：已完成。Dialog/file picker 已通过 Core 接口与 shell 实现隔离，close-only dialog 默认按钮语义已保留。
-- Phase 4：待执行。抽出 UI dispatcher/window context。
+- Phase 4：已完成。UI dispatcher 与 window context 已通过 Core 接口抽出，当前 shell 通过 `UiDispatcher` / `WindowContext` 适配。
 - Phase 5：已完成。编辑器 bridge 协议已文档化并从 `MarkdownEditor` 中收束到独立 bridge。
 - Phase 6：待执行。抽出单实例与激活服务。
 - Phase 7：待执行。只记录构建矩阵和 ARM64 风险，不做 ARM64 适配。
 - Phase 8：待执行。最小 WinUI3 shell spike，必须在 Phase 3/4/6 稳定后开始。
 
-Phase 3、Phase 4、Phase 6 必须串行推进。它们都会触碰 `Dev\Typedown\Injection.cs`，并且 Phase 4/6 会依赖前面已经稳定的 shell service 注册边界；不得并行创建实现分支。
+Phase 3、Phase 4、Phase 6 必须串行推进。它们都会触碰 `Dev\Typedown\Injection.cs`，并且 Phase 6 会依赖前面已经稳定的 shell service 注册边界；不得并行创建实现分支。
 
 ## 当前基线
 
@@ -265,12 +265,12 @@ dotnet test Tests\Typedown.Test\Typedown.Test.csproj --configuration Debug --no-
 
 步骤：
 
-- [ ] 增加 dispatcher 抽象，提供 `RunAsync` 和 `RunIdleAsync`。
-- [ ] 用当前 `CoreDispatcher` 实现该抽象。
-- [ ] 增加 window context 抽象，覆盖活动窗口 handle、XAML root、标题、激活状态和关闭请求。
-- [ ] 在 `MainWindow` 创建和加载时初始化 window context。
-- [ ] 替换 ViewModel 中直接使用 `CoreApplication.GetCurrentView().CoreWindow.Dispatcher` 的位置。
-- [ ] 减少新增 `AppViewModel.MainWindow` 和 `AppViewModel.XamlRoot` 使用；本阶段可保留兼容 shim。
+- [x] 增加 dispatcher 抽象，提供 `RunAsync` 和 `RunIdleAsync`。
+- [x] 用当前 `CoreDispatcher` 实现该抽象。
+- [x] 增加 window context 抽象，覆盖活动窗口 handle、XAML root、标题、激活状态和关闭请求。
+- [x] 在 `MainWindow` 创建和加载时初始化 window context。
+- [x] 替换 ViewModel 中直接使用 `CoreApplication.GetCurrentView().CoreWindow.Dispatcher` 的位置。
+- [x] 减少新增 `AppViewModel.MainWindow` 和 `AppViewModel.XamlRoot` 使用；本阶段保留兼容 shim。
 
 验证：
 
@@ -421,10 +421,10 @@ settings/db path 指向预期迁移位置
 
 ## 可并行工作流
 
-Phase 0 提交后，可以按以下工作流分配 subagent 或 worktree。当前 Phase 1、Phase 2、Phase 3、Phase 5 已完成，后续应从 Phase 4 开始串行推进：
+Phase 0 提交后，可以按以下工作流分配 subagent 或 worktree。当前 Phase 1、Phase 2、Phase 3、Phase 4、Phase 5 已完成，后续应从 Phase 6 开始串行推进：
 
 - 构建/仓库治理：Phase 0、Phase 1、Phase 7。
-- 平台服务：Phase 2、Phase 3 已完成；Phase 4、Phase 6 必须串行。
+- 平台服务：Phase 2、Phase 3、Phase 4 已完成；Phase 6 必须在 Phase 4 合并验证后执行。
 - 编辑器 bridge：Phase 5。
 - WinUI3 spike：Phase 8，仅在平台服务和编辑器 bridge 稳定后开始。
 
@@ -437,7 +437,7 @@ Phase 0 提交后，可以按以下工作流分配 subagent 或 worktree。当�
 
 ## 推荐立即执行
 
-下一步执行 Phase 4。Phase 4 合并并通过 `Debug_Local|x64` 基线验证后，再创建 Phase 6 worktree。
+下一步执行 Phase 6。Phase 6 合并并通过 `Debug_Local|x64` 基线验证后，再补 Phase 7 构建矩阵风险记录。
 
 ## 正式 WinUI3 迁移前的完成标准
 
