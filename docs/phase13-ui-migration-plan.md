@@ -280,6 +280,8 @@ Debug_Local Resources\Statics\index.html: True
 
 settings/shortcut worker 在 `Typedown.Core.Contracts.Settings` 增加平台中立 DTO：`EditorShortcutModifierFlags`、`EditorShortcutKey`、`TypedownDefaultShortcuts`、`SettingsUiSnapshot`。默认快捷键快照来自 legacy `SettingsViewModel.Shortcut.cs` 的当前默认值，只保存 modifier flags 与稳定 virtual-key numeric code，不引用 `Windows.System.VirtualKey`、WinUI、XamlUI 或 legacy ViewModel。
 
+最终快照覆盖 legacy `SettingsViewModel.Shortcut.cs` 中全部 69 个 `ShortcutKey` 属性；无默认快捷键的 legacy 项以 `null` 保留，而不是从契约中省略。
+
 第三批 settings 契约只保留 legacy `SettingsViewModel` 中存在的单一设置属性和三组图片插入明细，不增加新聚合字段。`SettingsUiSnapshot` 不接入 `Config`、文件系统或旧持久化逻辑；JSON 字段通过 `JsonPropertyName` 锁定为 legacy camelCase 形状，包括 `editorAreaWidth`、`spellcheckEnabled`、`spellcheckLang`、`insertClipboardImageAction/copyPath/useUploadConfigId`、`insertLocalImageAction/copyPath/useUploadConfigId`、`insertWebImageAction/copyPath/useUploadConfigId`，不包含 `fontFamily` 或 `imageInsertStrategy`。
 
 ## Phase 13 editor/menu command contract 状态
@@ -299,7 +301,7 @@ settings/shortcut worker 在 `Typedown.Core.Contracts.Settings` 增加平台中�
 验证记录：
 
 ```text
-dotnet test .\Tests\Typedown.ArchitectureTests\Typedown.ArchitectureTests.csproj -c Debug /nologo /v:minimal: 58 passed
+dotnet test .\Tests\Typedown.ArchitectureTests\Typedown.ArchitectureTests.csproj -c Debug /nologo /v:minimal: 68 passed
 dotnet build .\Dev\Typedown.Core.Contracts\Typedown.Core.Contracts.csproj -c Debug /nologo /v:minimal /m:1 /nodeReuse:false: 0 warnings, 0 errors
 ```
 
