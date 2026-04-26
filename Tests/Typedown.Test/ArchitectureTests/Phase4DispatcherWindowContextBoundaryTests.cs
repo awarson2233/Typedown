@@ -14,7 +14,7 @@ namespace Typedown.Test.ArchitectureTests
         [TestMethod]
         public void UiDispatcherInterface_DoesNotExposePlatformDispatcherTypes()
         {
-            var source = File.ReadAllText(Path.Combine(RepoRoot, "Dev", "Typedown.Core", "Interfaces", "IUiDispatcher.cs"));
+            var source = File.ReadAllText(Path.Combine(RepoRoot, "Dev", "Typedown.Core.Contracts", "Interfaces", "IUiDispatcher.cs"));
 
             AssertNoTypeReference(source, "CoreDispatcher");
             AssertNoTypeReference(source, "CoreDispatcherPriority");
@@ -25,7 +25,7 @@ namespace Typedown.Test.ArchitectureTests
         [TestMethod]
         public void WindowContextInterface_DoesNotExposePlatformTypeNames()
         {
-            var source = File.ReadAllText(Path.Combine(RepoRoot, "Dev", "Typedown.Core", "Interfaces", "IWindowContext.cs"));
+            var source = File.ReadAllText(Path.Combine(RepoRoot, "Dev", "Typedown.Core.Contracts", "Interfaces", "IWindowContext.cs"));
 
             AssertNoTypeReference(source, "XamlRoot");
             AssertNoTypeReference(source, "HWND");

@@ -27,7 +27,7 @@ namespace Typedown.WinUI
         protected override void OnLaunched(LaunchActivatedEventArgs e)
         {
             window ??= new Window();
-            window.Title = "Typedown WinUI3 Phase 9 Spike";
+            window.Title = "Typedown WinUI3 Phase 10a Contracts Spike";
 
             if (window.Content is not Frame rootFrame)
             {

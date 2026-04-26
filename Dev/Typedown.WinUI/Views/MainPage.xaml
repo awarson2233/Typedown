@@ -22,7 +22,11 @@
             <TextBlock
                 FontSize="16"
                 Foreground="#4B5B5E"
-                Text="Phase 9 only validates a standalone WinUI3 shell. UI migration, editor host parity, and ARM64 remain later phases." />
+                Text="Phase 10a opens a platform-neutral contracts path for the WinUI3 shell. UI migration, platform service implementations, editor host parity, and ARM64 remain later phases." />
+            <TextBlock
+                FontSize="14"
+                Foreground="#6A7A7D"
+                Text="{x:Bind ContractsProbeSummary}" />
         </StackPanel>
 
         <Grid Grid.Row="1" Padding="40,10,40,40" ColumnSpacing="24">

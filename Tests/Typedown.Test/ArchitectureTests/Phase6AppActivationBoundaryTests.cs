@@ -14,7 +14,7 @@ namespace Typedown.Test.ArchitectureTests
         [TestMethod]
         public void AppActivationInterface_DoesNotExposePipeMutexOrPlatformDispatcherTypes()
         {
-            var source = File.ReadAllText(Path.Combine(RepoRoot, "Dev", "Typedown.Core", "Interfaces", "IAppActivationService.cs"));
+            var source = File.ReadAllText(Path.Combine(RepoRoot, "Dev", "Typedown.Core.Contracts", "Interfaces", "IAppActivationService.cs"));
 
             AssertNoTypeReference(source, "NamedPipeServerStream");
             AssertNoTypeReference(source, "NamedPipeClientStream");

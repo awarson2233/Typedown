@@ -33,8 +33,8 @@ namespace Typedown.Test.ArchitectureTests
         [TestMethod]
         public void DialogAndPickerInterfaces_DoNotExposePlatformTypes()
         {
-            var dialogSource = File.ReadAllText(Path.Combine(RepoRoot, "Dev", "Typedown.Core", "Interfaces", "IDialogService.cs"));
-            var pickerSource = File.ReadAllText(Path.Combine(RepoRoot, "Dev", "Typedown.Core", "Interfaces", "IFilePickerService.cs"));
+            var dialogSource = File.ReadAllText(Path.Combine(RepoRoot, "Dev", "Typedown.Core.Contracts", "Interfaces", "IDialogService.cs"));
+            var pickerSource = File.ReadAllText(Path.Combine(RepoRoot, "Dev", "Typedown.Core.Contracts", "Interfaces", "IFilePickerService.cs"));
 
             AssertNoTypeReference(dialogSource, "ContentDialogResult");
             AssertNoTypeReference(dialogSource, "XamlRoot");

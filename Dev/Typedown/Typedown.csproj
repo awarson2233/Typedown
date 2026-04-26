@@ -70,6 +70,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
+		<ProjectReference Include="..\Typedown.Core.Contracts\Typedown.Core.Contracts.csproj" />
 		<ProjectReference Include="..\Typedown.Core\Typedown.Core.csproj" />
 		<ProjectReference Include="$(TypedownXamlUIProject)" />
 	</ItemGroup>

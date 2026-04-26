@@ -4,9 +4,9 @@ namespace Typedown.Core.Interfaces
     {
         nint WindowHandle { get; set; }
 
-        object ViewRoot { get; set; }
+        object? ViewRoot { get; set; }
 
-        string Title { get; set; }
+        string? Title { get; set; }
 
         bool IsActive { get; set; }
 
