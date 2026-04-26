@@ -14,13 +14,61 @@
 
 Phase 13 不做 WinUI3 默认启动切换，不做 ARM64，不删除 legacy `Typedown.XamlUI`，不升级 React/CRA 前端。Phase 13 只迁移低风险 UI 资源、页面状态和无平台服务依赖的 UI composition。
 
+## Phase 13 Inventory
+
+清点命令：
+
+```powershell
+rg -n "Windows\.UI\.Xaml|Microsoft\.UI\.Xaml|Page|UserControl|ResourceDictionary|Converter|IValueConverter|DataContext|ViewModel" Dev\Typedown Dev\Typedown.Core Dev\Typedown.XamlUI Dev\Typedown.WinUI -S
+```
+
+结果结论：原始输出非常大，主要噪声来自 `Dev\Typedown.XamlUI\buildTransitive\AppManifest.xml` 和 `Dev\Typedown.Core\Resources\Strings\**\*.resw` 的模板文本。Phase 13 第一批只迁移当前 WinUI smoke 页面里的纯展示状态/文本，不迁移 legacy XAML host、WebView2 host、WinUI platform services 或 Core 多语言资源。
+
+### Safe resources
+
+- `Dev\Typedown.UI\ViewModels\MainPageViewModel.cs` 中的标题、副标题、迁移边界说明、deferred 说明文本。
+- 后续可新增 `Dev\Typedown.UI\Resources\MainPageTextResources.cs` 一类平台中立资源容器，用于承接 smoke 页面静态文本。
+
+### Safe view state
+
+- `Dev\Typedown.UI\ViewModels\MainPageViewModel.cs`
+- `Dev\Typedown.UI\ViewModels\MigrationBoundaryItem.cs`
+- `Dev\Typedown.UI\Mvvm\ObservableObject.cs`
+- `Dev\Typedown.UI\Mvvm\RelayCommand.cs`
+- `Dev\Typedown.UI\Composition\ServiceCollectionExtensions.cs`
+
+### Deferred platform UI
+
+- `Dev\Typedown.WinUI\Views\MainPage.xaml`
+- `Dev\Typedown.WinUI\Views\MainPage.xaml.cs`
+- `Dev\Typedown.WinUI\Controls\WinUIEditorHost.cs`
+- `Dev\Typedown.WinUI\Controls\WinUIEditorHostController.cs`
+- `Dev\Typedown.WinUI\Controls\WinUIEditorBridgeAdapter.cs`
+- `Dev\Typedown.WinUI\Services\WinUIPlatformServices.cs`
+- `Dev\Typedown.WinUI\Services\WinUIDialogService.cs`
+- `Dev\Typedown.WinUI\Services\WinUIFilePickerService.cs`
+- `Dev\Typedown.WinUI\Services\WinUIAppActivationService.cs`
+- `Dev\Typedown.WinUI\Package.appxmanifest`
+- `Dev\Typedown.WinUI\Properties\launchSettings.json`
+
+### Deferred legacy host
+
+- `Dev\Typedown\Controls\MarkdownEditor.cs`
+- `Dev\Typedown.Core\ViewModels\*.cs`
+- `Dev\Typedown.Core\Resources\Strings\**\*.resw`
+- `Dev\Typedown.XamlUI\*.cs`
+- `Dev\Typedown.XamlUI\Resources\*.xaml`
+- `Dev\Typedown.XamlUI\buildTransitive\*`
+- `Dev\Typedown.XamlUI\lib\*`
+- `Dev\Typedown.XamlUI\runtimes\*`
+
 ## Task 1: 清点可迁移 UI 面
 
 **Files:**
 - Modify: `docs\phase13-ui-migration-plan.md`
 - Modify: `docs\winui3-post-phase9-roadmap.md`
 
-- [ ] **Step 1: 生成候选清单**
+- [x] **Step 1: 生成候选清单**
 
 运行：
 
@@ -30,7 +78,7 @@ rg -n "Windows\.UI\.Xaml|Microsoft\.UI\.Xaml|Page|UserControl|ResourceDictionary
 
 预期：得到 legacy UI、Core UI 耦合点、WinUI shell 当前 UI 面的候选列表。
 
-- [ ] **Step 2: 分类候选项**
+- [x] **Step 2: 分类候选项**
 
 在本文档追加 `Phase 13 Inventory` 小节，按以下四类记录候选文件：
 
@@ -41,7 +89,7 @@ rg -n "Windows\.UI\.Xaml|Microsoft\.UI\.Xaml|Page|UserControl|ResourceDictionary
 4. Deferred legacy host: XamlUI host/run loop/HWND/PRI/WinRT 相关，Phase 15 前不移动。
 ```
 
-- [ ] **Step 3: 更新路线图**
+- [x] **Step 3: 更新路线图**
 
 在 `docs\winui3-post-phase9-roadmap.md` 的 Phase 13 中补充实际候选清单链接和第一批迁移范围。
 
@@ -50,7 +98,7 @@ rg -n "Windows\.UI\.Xaml|Microsoft\.UI\.Xaml|Page|UserControl|ResourceDictionary
 **Files:**
 - Modify: `Tests\Typedown.ArchitectureTests\Phase10CoreContractsBoundaryTests.cs`
 
-- [ ] **Step 1: 添加 UI 禁止引用测试**
+- [x] **Step 1: 添加 UI 禁止引用测试**
 
 在 architecture tests 中覆盖：
 
@@ -63,7 +111,7 @@ AssertNoTypeReference(uiProjectSource, @"..\Typedown.XamlUI\Typedown.XamlUI.cspr
 
 预期：测试继续通过，证明 Phase 13 前置边界稳定。
 
-- [ ] **Step 2: 添加 WinUI shell ownership 测试**
+- [x] **Step 2: 添加 WinUI shell ownership 测试**
 
 锁定以下职责仍在 `Typedown.WinUI`：
 
@@ -76,7 +124,7 @@ Properties\launchSettings.json
 
 预期：后续 worker 不会把 WebView2 host、平台服务或启动配置误迁到 `Typedown.UI`。
 
-- [ ] **Step 3: 运行架构测试**
+- [x] **Step 3: 运行架构测试**
 
 运行：
 
@@ -93,7 +141,7 @@ dotnet test .\Tests\Typedown.ArchitectureTests\Typedown.ArchitectureTests.csproj
 - Modify: `Dev\Typedown.UI\Composition\ServiceCollectionExtensions.cs`
 - Modify: `Dev\Typedown.WinUI\Views\MainPage.xaml.cs`
 
-- [ ] **Step 1: 从 WinUI code-behind 查找纯展示状态**
+- [x] **Step 1: 从 WinUI code-behind 查找纯展示状态**
 
 运行：
 
@@ -103,7 +151,7 @@ rg -n "public .*\\{ get;|ObservableCollection|IReadOnlyList|Title|Subtitle|Summa
 
 预期：只迁移不依赖 `Microsoft.UI.Xaml`、`WebView2`、window handle、dispatcher 的纯状态。
 
-- [ ] **Step 2: 将纯展示状态移动到 `Typedown.UI`**
+- [x] **Step 2: 将纯展示状态移动到 `Typedown.UI`**
 
 迁移规则：
 
@@ -112,11 +160,11 @@ rg -n "public .*\\{ get;|ObservableCollection|IReadOnlyList|Title|Subtitle|Summa
 留在 Typedown.WinUI: FrameworkElement、Page、WebView2、Window、DispatcherQueue、FileOpenPicker、ContentDialog。
 ```
 
-- [ ] **Step 3: 通过 DI 暴露新增 ViewModel**
+- [x] **Step 3: 通过 DI 暴露新增 ViewModel**
 
 在 `AddTypedownUI()` 中注册新增 UI ViewModel，保持 `Typedown.WinUI` 只解析接口或具体 ViewModel，不在 code-behind 中组装业务状态。
 
-- [ ] **Step 4: 运行最小验证**
+- [x] **Step 4: 运行最小验证**
 
 运行：
 
@@ -135,7 +183,7 @@ dotnet build .\Dev\Typedown.WinUI\Typedown.WinUI.csproj -c Debug -p:Platform=x64
 - Modify: `Dev\Typedown.UI\Typedown.UI.csproj`
 - Modify: `Dev\Typedown.WinUI\Views\MainPage.xaml`
 
-- [ ] **Step 1: 只迁移非 XAML framework 资源**
+- [x] **Step 1: 只迁移非 XAML framework 资源**
 
 允许迁移：
 
@@ -149,11 +197,11 @@ dotnet build .\Dev\Typedown.WinUI\Typedown.WinUI.csproj -c Debug -p:Platform=x64
 ResourceDictionary、Style、ControlTemplate、ThemeResource、Acrylic/Mica、WebView2 资源。
 ```
 
-- [ ] **Step 2: 从 ViewModel 或 resource provider 引用文本**
+- [x] **Step 2: 从 ViewModel 或 resource provider 引用文本**
 
 让 `MainPage.xaml` 继续绑定 `ViewModel`，不要让 `Typedown.UI` 直接持有 XAML 页面。
 
-- [ ] **Step 3: 验证布局不变**
+- [x] **Step 3: 验证布局不变**
 
 运行 WinUI `Debug|x64` 构建，并手动确认当前页面布局没有因 Phase 13 第一批迁移改变。
 
@@ -163,7 +211,7 @@ ResourceDictionary、Style、ControlTemplate、ThemeResource、Acrylic/Mica、We
 - Modify: `docs\build-baseline.md`
 - Modify: `docs\winui3-post-phase9-roadmap.md`
 
-- [ ] **Step 1: 运行完整验证**
+- [x] **Step 1: 运行完整验证**
 
 ```powershell
 dotnet build .\Dev\Typedown.UI\Typedown.UI.csproj -c Debug /nologo /v:minimal
@@ -174,7 +222,7 @@ dotnet build .\Typedown.sln -c Debug_Local -p:Platform=x64 /nologo /v:minimal /m
 
 预期：全部通过。
 
-- [ ] **Step 2: 验证 editor static bundle**
+- [x] **Step 2: 验证 editor static bundle**
 
 ```powershell
 Test-Path .\Dev\Typedown.WinUI\bin\x64\Debug\net9.0-windows10.0.26100.0\Resources\Statics\index.html
@@ -183,7 +231,20 @@ Test-Path .\Dev\Typedown.WinUI\bin\x64\Debug_Local\net9.0-windows10.0.26100.0\Re
 
 预期：两个命令都输出 `True`。
 
-- [ ] **Step 3: 更新文档状态**
+- [x] **Step 3: 更新文档状态**
+
+验证记录：
+
+```text
+dotnet build Dev\Typedown.UI: 0 warnings, 0 errors
+dotnet test Tests\Typedown.ArchitectureTests: 35 passed
+dotnet build Dev\Typedown.WinUI Debug|x64: 0 warnings, 0 errors
+dotnet build Typedown.sln Debug_Local|x64: 0 warnings, 0 errors
+Debug Resources\Statics\index.html: True
+Debug_Local Resources\Statics\index.html: True
+```
+
+注意：`Dev\Typedown\Resources\Statics` 是 ignored 前端生成产物。新 worktree 初始没有该目录时，需先从主工作区复制现有 bundle 或在 `Dev\Typedown.Editor` 重新生成，再验证 WinUI 输出目录。
 
 在 `docs\winui3-post-phase9-roadmap.md` 中把 Phase 13 标记为“完成第一批低风险迁移”，并记录仍 deferred 的平台 UI 和 legacy host 项。
 

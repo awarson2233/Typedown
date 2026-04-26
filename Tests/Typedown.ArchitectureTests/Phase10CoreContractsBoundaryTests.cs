@@ -459,6 +459,68 @@ public class Phase10CoreContractsBoundaryTests
         AssertNoTypeReference(mainPageSource, "public string[] DeferredItems");
     }
 
+    [TestMethod]
+    public void Phase13TypedownUI_KeepsFrameworkAndShellReferencesOutOfSource()
+    {
+        var uiRoot = Path.Combine(RepoRoot, "Dev", "Typedown.UI");
+        var uiSources = Directory
+            .EnumerateFiles(uiRoot, "*.*", SearchOption.AllDirectories)
+            .Where(path => path.EndsWith(".cs", StringComparison.OrdinalIgnoreCase)
+                || path.EndsWith(".csproj", StringComparison.OrdinalIgnoreCase))
+            .Where(path => !path.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}", StringComparison.OrdinalIgnoreCase)
+                && !path.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}", StringComparison.OrdinalIgnoreCase))
+            .Select(File.ReadAllText);
+
+        foreach (var source in uiSources)
+        {
+            AssertNoTypeReference(source, "using Microsoft.UI.Xaml");
+            AssertNoTypeReference(source, "using Windows.UI.Xaml");
+            AssertNoTypeReference(source, "global using Microsoft.UI.Xaml");
+            AssertNoTypeReference(source, "global using Windows.UI.Xaml");
+            AssertNoTypeReference(source, "using Typedown.WinUI");
+            AssertNoTypeReference(source, "using Typedown.XamlUI");
+            AssertNoTypeReference(source, @"..\Typedown.WinUI\Typedown.WinUI.csproj");
+            AssertNoTypeReference(source, @"..\Typedown.XamlUI\Typedown.XamlUI.csproj");
+        }
+    }
+
+    [TestMethod]
+    public void Phase13WinUI_KeepsShellOwnedPlatformSurfaces()
+    {
+        var winuiRoot = Path.Combine(RepoRoot, "Dev", "Typedown.WinUI");
+        var editorHostSource = File.ReadAllText(Path.Combine(winuiRoot, "Controls", "WinUIEditorHost.cs"));
+        var platformServicesSource = File.ReadAllText(Path.Combine(winuiRoot, "Services", "WinUIPlatformServices.cs"));
+        var packageManifestSource = File.ReadAllText(Path.Combine(winuiRoot, "Package.appxmanifest"));
+        var launchSettingsSource = File.ReadAllText(Path.Combine(winuiRoot, "Properties", "launchSettings.json"));
+
+        AssertHasTypeReference(editorHostSource, "WebView2");
+        AssertHasTypeReference(editorHostSource, "UserControl");
+        AssertHasTypeReference(platformServicesSource, "WinUIPlatformServices");
+        AssertHasTypeReference(packageManifestSource, "62082Surprise.Typedown.WinUI");
+        AssertHasTypeReference(launchSettingsSource, "Typedown.WinUI (Package)");
+        AssertHasTypeReference(launchSettingsSource, "Typedown.WinUI (Unpackaged)");
+    }
+
+    [TestMethod]
+    public void Phase13TypedownUI_OwnsMainPageStaticTextResources()
+    {
+        var uiRoot = Path.Combine(RepoRoot, "Dev", "Typedown.UI");
+        var resourcePath = Path.Combine(uiRoot, "Resources", "MainPageTextResources.cs");
+        var viewModelSource = File.ReadAllText(Path.Combine(uiRoot, "ViewModels", "MainPageViewModel.cs"));
+
+        Assert.IsTrue(File.Exists(resourcePath), "Expected Phase 13 main page text resources to live in Typedown.UI.");
+
+        var resourceSource = File.ReadAllText(resourcePath);
+        AssertHasTypeReference(resourceSource, "MainPageTextResources");
+        AssertHasTypeReference(resourceSource, "Title");
+        AssertHasTypeReference(resourceSource, "Subtitle");
+        AssertHasTypeReference(resourceSource, "PendingContractsProbeSummary");
+        AssertHasTypeReference(resourceSource, "ValidatedItems");
+        AssertHasTypeReference(resourceSource, "DeferredItems");
+        AssertHasTypeReference(viewModelSource, "MainPageTextResources");
+        AssertNoTypeReference(viewModelSource, "Phase 12 MVVM shell is waiting for WinUI platform service initialization.");
+    }
+
     private static void AssertContainsClass(string root, string fileName, string className)
     {
         var path = Path.Combine(root, fileName);

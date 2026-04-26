@@ -21,7 +21,7 @@ Phase 9   最小 WinUI3 shell spike（已完成）
 Phase 10  WinUI3 平台服务闭环与启动基线（已完成）
 Phase 11  WebView2 editor host smoke 等价（已完成，真实本地文档 load/save 边界已完成）
 Phase 12  Typedown.UI 项目骨架与 UI 注册边界（已完成）
-Phase 13  低风险 UI 资源/页面/控件迁移（下一阶段）
+Phase 13  低风险 UI 资源/页面/控件迁移（第一批已完成）
 Phase 14  Debug_Local 主启动路径切换到 WinUI3
 Phase 15  legacy XamlUI 退场与构建清理
 Phase 16  ARM64 与打包验证
@@ -147,6 +147,10 @@ Phase 16  ARM64 与打包验证
 **目标：** 按风险从低到高把 UI 层内容迁入 `Typedown.UI`，不要一次性搬空 `Typedown.Core`。
 
 **详细计划：** 见 [phase13-ui-migration-plan.md](./phase13-ui-migration-plan.md)。Phase 13 先做清点和分批迁移，不移动 WinUI shell、WebView2 host、平台服务、打包入口，也不删除 legacy `Typedown.XamlUI`。
+
+**第一批范围：** 只迁移 `Typedown.WinUI` smoke 页面当前暴露的纯展示状态和静态说明文本。候选清单已记录在 [phase13-ui-migration-plan.md](./phase13-ui-migration-plan.md) 的 `Phase 13 Inventory`。`WinUIEditorHost`、WinUI platform services、`Package.appxmanifest`、`launchSettings.json`、legacy `Typedown.XamlUI` 和 legacy `MarkdownEditor` 均延后，不进入第一批迁移。
+
+**第一批状态：已完成。** 已完成到 `Typedown.UI.Resources.MainPageTextResources`。当前只移动 smoke 页面静态文本和默认状态提示；`MainPage.xaml` 布局、`WinUIEditorHost`、platform services、Package/Unpackaged 启动配置均保持在 `Typedown.WinUI`。
 
 **推荐顺序：**
 
