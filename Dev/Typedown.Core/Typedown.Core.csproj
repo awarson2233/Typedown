@@ -1,5 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 	<PropertyGroup>
+		<TypedownXamlUIProjectDir>..\..\..\Typedown.XamlUI\Typedown.XamlUI\</TypedownXamlUIProjectDir>
+		<TypedownXamlUIProject>$(TypedownXamlUIProjectDir)Typedown.XamlUI.csproj</TypedownXamlUIProject>
 		<OutputType>Library</OutputType>
 		<TargetFramework>net9.0-windows10.0.26100.0</TargetFramework>
 		<TargetPlatformMinVersion>10.0.18362.0</TargetPlatformMinVersion>
@@ -20,6 +22,11 @@
 			Microsoft.UI.Xaml.Controls.Primitives;
 		</CsWinRTIncludes>
 	</PropertyGroup>
+
+	<Target Name="EnsureTypedownXamlUIDependency" BeforeTargets="PrepareForBuild">
+		<Error Condition="!Exists('$(TypedownXamlUIProject)')"
+			   Text="Missing required sibling dependency: '$(TypedownXamlUIProject)'. See docs/xamlui-dependency.md for required path/branch/remote/baseline commit." />
+	</Target>
 
 	<PropertyGroup Condition="'$(Platform)' == 'x64'">
 		<SelfContained>true</SelfContained>
@@ -46,7 +53,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<ProjectReference Include="..\..\..\Typedown.XamlUI\Typedown.XamlUI\Typedown.XamlUI.csproj" />
+		<ProjectReference Include="$(TypedownXamlUIProject)" />
 	</ItemGroup>
 
 </Project>

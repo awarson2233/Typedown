@@ -21,6 +21,7 @@ XamlUI 仓库：
 - 提交说明：`Restore net9 XamlUI host compatibility`
 
 当前主项目不是自包含构建。`Dev\Typedown\Typedown.csproj` 和 `Dev\Typedown.Core\Typedown.Core.csproj` 都依赖相邻目录 `D:\source\repos\Typedown.XamlUI`。
+该依赖的边界、预期路径/分支/commit、props/targets 与运行时复制文件请见 [xamlui-dependency.md](./xamlui-dependency.md)。
 
 ## 配置含义
 
