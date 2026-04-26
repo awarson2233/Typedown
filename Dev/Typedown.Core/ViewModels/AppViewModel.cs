@@ -38,11 +38,29 @@ namespace Typedown.Core.ViewModels
 
         public IMarkdownEditor MarkdownEditor => ServiceProvider.GetService<IMarkdownEditor>();
 
+        public IWindowContext WindowContext => ServiceProvider.GetService<IWindowContext>();
+
         public string[] CommandLineArgs { get; set; } = Environment.GetCommandLineArgs();
 
-        public IntPtr MainWindow { get; set; }
+        public IntPtr MainWindow
+        {
+            get => (IntPtr)(WindowContext?.WindowHandle ?? default);
+            set
+            {
+                if (WindowContext != null)
+                    WindowContext.WindowHandle = value;
+            }
+        }
 
-        public XamlRoot XamlRoot { get; set; }
+        public XamlRoot XamlRoot
+        {
+            get => WindowContext?.ViewRoot as XamlRoot;
+            set
+            {
+                if (WindowContext != null)
+                    WindowContext.ViewRoot = value;
+            }
+        }
 
         private static readonly List<WeakReference<AppViewModel>> instances = new();
 

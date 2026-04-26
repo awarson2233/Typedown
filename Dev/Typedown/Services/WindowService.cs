@@ -1,4 +1,5 @@
-﻿using System.Reactive.Subjects;
+using System;
+using System.Reactive.Subjects;
 using Typedown.Core.Interfaces;
 using Typedown.Core.Utilities;
 using Typedown.XamlUI;
@@ -9,6 +10,13 @@ namespace Typedown.Services
 {
     public class WindowService : IWindowService
     {
+        private readonly IWindowContext windowContext;
+
+        public WindowService(IWindowContext windowContext)
+        {
+            this.windowContext = windowContext;
+        }
+
         public Subject<nint> WindowStateChanged { get; } = new();
 
         public Subject<nint> WindowIsActivedChanged { get; } = new();
@@ -17,13 +25,19 @@ namespace Typedown.Services
 
         public void RaiseWindowIsActivedChanged(nint hWnd) => WindowIsActivedChanged.OnNext(hWnd);
 
-        public nint GetWindow(UIElement element) => XamlWindow.GetWindow(element)?.Handle ?? default;
+        public nint GetWindow(UIElement element) => XamlWindow.GetWindow(element)?.Handle ?? windowContext.WindowHandle;
 
         public nint GetXamlSourceHandle(UIElement element) => XamlWindow.GetWindow(element)?.XamlSourceHandle ?? default;
 
         public Point GetCursorPos(UIElement relativeTo)
         {
+            if (relativeTo == null)
+                throw new ArgumentNullException(nameof(relativeTo));
+
             var window = XamlWindow.GetWindow(relativeTo);
+            if (window == null || relativeTo.XamlRoot?.Content == null)
+                throw new InvalidOperationException("The specified UI element is not attached to a window.");
+
             PInvoke.GetCursorPos(out var screenPos);
             PInvoke.GetWindowRect(window.XamlSourceHandle, out var xamlRootRect);
             var pos = new Point((screenPos.X - xamlRootRect.left) / window.ScalingFactor, (screenPos.Y - xamlRootRect.top) / window.ScalingFactor);

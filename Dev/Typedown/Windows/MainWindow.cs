@@ -34,6 +34,10 @@ namespace Typedown.Windows
 
         public KeyboardAccelerator KeyboardAccelerator => ServiceProvider?.GetService<IKeyboardAccelerator>() as KeyboardAccelerator;
 
+        public UiDispatcher UiDispatcher => ServiceProvider?.GetService<IUiDispatcher>() as UiDispatcher;
+
+        public WindowContext WindowContext => ServiceProvider?.GetService<IWindowContext>() as WindowContext;
+
         public WindowService WindowService => ServiceProvider?.GetService<IWindowService>() as WindowService;
 
         public CompositeDisposable disposables = new();
@@ -54,6 +58,8 @@ namespace Typedown.Windows
 
         private void InitializeComponent()
         {
+            UiDispatcher?.Attach(Dispatcher);
+            WindowContext?.Bind(this);
             DataContext = AppViewModel;
             Content = RootControl;
             Frame = false;
@@ -89,6 +95,8 @@ namespace Typedown.Windows
 
         private void SetTitle(string title)
         {
+            if (WindowContext != null)
+                WindowContext.Title = title ?? string.Empty;
             Title = title;
         }
 
@@ -101,11 +109,16 @@ namespace Typedown.Windows
         {
             this.ShowWindowWithSavedPlacement();
             SaveWindowPlacementWithOffset(false);
-            AppViewModel.MainWindow = Handle;
+            if (WindowContext != null)
+            {
+                WindowContext.ViewRoot = RootControl.XamlRoot;
+                WindowContext.Refresh();
+            }
         }
 
         private void OnStateChanged(object sender, StateChangedEventArgs e)
         {
+            WindowContext?.Refresh();
             WindowService?.RaiseWindowStateChanged(Handle);
             if (RootControl?.IsLoaded ?? false)
                 SaveWindowPlacementWithOffset();
@@ -113,18 +126,22 @@ namespace Typedown.Windows
 
         private void OnIsActiveChanged(object sender, IsActiveChangedEventArgs e)
         {
+            if (WindowContext != null)
+                WindowContext.IsActive = e.NewIsActive;
             WindowService?.RaiseWindowIsActivedChanged(Handle);
             KeyboardAccelerator.IsEnable = e.NewIsActive;
         }
 
         private void OnLocationChanged(object sender, LocationChangedEventArgs e)
         {
+            WindowContext?.Refresh();
             if (RootControl?.IsLoaded ?? false)
                 SaveWindowPlacementWithOffset();
         }
 
         private void OnSizeChanged(object sender, XamlUI.SizeChangedEventArgs e)
         {
+            WindowContext?.Refresh();
             if (RootControl?.IsLoaded ?? false)
                 SaveWindowPlacementWithOffset();
         }
@@ -169,6 +186,7 @@ namespace Typedown.Windows
             var keepRun = AppViewModel.SettingsViewModel.KeepRun;
             checkActiveTimer?.Dispose();
             checkActiveTimer = null;
+            WindowContext?.Clear();
             ServiceScope?.Dispose();
             ServiceScope = null;
             RootControl = null;
