@@ -18,6 +18,9 @@ public class Phase14WinUILayoutTests
         AssertContains(source, "x:Name=\"MigrationStatusPanel\"");
         AssertContains(source, "x:Name=\"BottomStatusBar\"");
         AssertContains(source, "<controls:WinUIEditorHost");
+        AssertContains(source, "ItemsSource=\"{x:Bind ViewModel.Shell.CommandGroups, Mode=OneWay}\"");
+        AssertContains(source, "ItemsSource=\"{x:Bind ViewModel.Shell.StatusItems, Mode=OneWay}\"");
+        AssertContains(source, "<StackLayout Orientation=\"Horizontal\" />");
         AssertContains(source, "Text=\"Phase 14 migration status\"");
         AssertContains(source, "Text=\"Editor host\"");
     }

@@ -113,14 +113,14 @@ D:\source\repos\Typedown\Dev\Typedown\bin\x64\Debug_Local\net9.0-windows10.0.261
 - legacy `Dev\Typedown` 的 `Debug_Local|x64` 依赖 `Resources\Statics` 已存在且可加载。
 - WinUI3 当前日常基线是 `Debug_Local|x64 + Typedown.WinUI (Unpackaged)`；Package 验证基线是 `Debug|x64 + Typedown.WinUI (Package)`。
 - WinUI3 Package 路径必须验证 `Resources\Statics\index.html` 同时存在于 `Debug` 输出和 package payload。
-- Phase 14 当前只做首批 `1:1` 可视 UI 迁移准备，不切默认 `Debug_Local` 主启动路径。
+- Phase 14 当前只做首批 `1:1` 可视 UI 迁移，不切默认 `Debug_Local` 主启动路径。
 - `WinUIEditorHost`、Window/Dialog/FilePicker、`Package.appxmanifest`、`launchSettings.json` 仍由 `Typedown.WinUI` 持有；不要提前迁入 `Typedown.UI`。
 - ARM64 配置不能从 solution 下拉框推断；正式 ARM64 适配推迟到 WinUI3 shell 切换后。
 - Packaging 仍是 Desktop Bridge / WAP，后续需要独立治理。
 
 ## WinUI3 Phase 14 文档与边界准备
 
-Phase 14 当前定义为首批 `1:1` 可视 UI 迁移准备，不是默认启动路径切换。进入代码实现前，应先锁定以下边界：
+Phase 14 当前定义为首批 `1:1` 可视 UI 迁移，不是默认启动路径切换。进入代码实现前，应先锁定以下边界：
 
 - `Typedown.UI` 继续只承接平台中立状态来源和 view-model 组合，不引用 `Microsoft.UI.Xaml`、`Windows.UI.Xaml`、`Typedown.WinUI`、`Typedown.XamlUI`。
 - `Typedown.WinUI` 继续拥有 `WinUIEditorHost`、Window/Dialog/FilePicker、`Package.appxmanifest`、`launchSettings.json`。
@@ -131,6 +131,31 @@ Phase 14 当前定义为首批 `1:1` 可视 UI 迁移准备，不是默认启动
 ```powershell
 dotnet test .\Tests\Typedown.ArchitectureTests\Typedown.ArchitectureTests.csproj -c Debug /nologo /v:minimal
 ```
+
+## WinUI3 Phase 14 首批实现验证
+
+验证时间：2026-04-27
+
+执行命令：
+
+```powershell
+dotnet build .\Dev\Typedown.Core.Contracts\Typedown.Core.Contracts.csproj -c Debug /nologo /v:minimal /m:1 /nodeReuse:false
+dotnet build .\Dev\Typedown.UI\Typedown.UI.csproj -c Debug /nologo /v:minimal /m:1 /nodeReuse:false
+dotnet test .\Tests\Typedown.ArchitectureTests\Typedown.ArchitectureTests.csproj -c Debug /nologo /v:minimal
+dotnet build .\Dev\Typedown.WinUI\Typedown.WinUI.csproj -c Debug -p:Platform=x64 /nologo /v:minimal /m:1 /nodeReuse:false
+dotnet build .\Typedown.sln -c Debug_Local -p:Platform=x64 /nologo /v:minimal /m:1 /nodeReuse:false
+Test-Path .\Dev\Typedown.WinUI\bin\x64\Debug\net9.0-windows10.0.26100.0\Resources\Statics\index.html
+Test-Path .\Dev\Typedown.WinUI\bin\x64\Debug_Local\net9.0-windows10.0.26100.0\Resources\Statics\index.html
+```
+
+结果：
+
+- `Typedown.Core.Contracts` Debug 构建返回 0 warning / 0 error。
+- `Typedown.UI` Debug 构建返回 0 warning / 0 error。
+- `Typedown.ArchitectureTests` 返回 75 passed。
+- `Typedown.WinUI` Debug|x64 构建返回 0 warning / 0 error。
+- `Typedown.sln` Debug_Local|x64 构建返回 0 warning / 0 error。
+- Debug 与 Debug_Local 输出目录均存在 `Resources\Statics\index.html`。
 
 ## WinUI3 Phase 13 收尾验证入口
 

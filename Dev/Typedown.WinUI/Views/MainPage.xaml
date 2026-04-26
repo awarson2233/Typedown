@@ -34,17 +34,17 @@
                     <TextBlock
                         FontSize="14"
                         Foreground="#7A6956"
-                        Text="Typedown / Main document shell" />
+                        Text="{x:Bind ViewModel.Shell.AppTitle, Mode=OneWay}" />
                     <TextBlock
                         FontSize="30"
                         FontWeight="SemiBold"
                         Foreground="#19363B"
-                        Text="{x:Bind ViewModel.Title, Mode=OneWay}" />
+                        Text="{x:Bind ViewModel.Shell.DocumentTitle, Mode=OneWay}" />
                     <TextBlock
                         TextWrapping="WrapWholeWords"
                         FontSize="15"
                         Foreground="#4B5B5E"
-                        Text="{x:Bind ViewModel.Subtitle, Mode=OneWay}" />
+                        Text="{x:Bind ViewModel.Title, Mode=OneWay}" />
                 </StackPanel>
 
                 <StackPanel
@@ -87,11 +87,40 @@
                 </Grid.ColumnDefinitions>
 
                 <StackPanel Orientation="Horizontal" Spacing="8">
-                    <Button Content="File" MinWidth="76" />
-                    <Button Content="Edit" MinWidth="76" />
-                    <Button Content="Search" MinWidth="76" />
-                    <Button Content="Outline" MinWidth="82" />
-                    <Button Content="Export" MinWidth="78" />
+                    <ItemsRepeater ItemsSource="{x:Bind ViewModel.Shell.CommandGroups, Mode=OneWay}">
+                        <ItemsRepeater.Layout>
+                            <StackLayout Orientation="Horizontal" />
+                        </ItemsRepeater.Layout>
+                        <ItemsRepeater.ItemTemplate>
+                            <DataTemplate x:DataType="ui:ShellCommandGroupViewModel">
+                                <StackPanel
+                                    Margin="0,0,14,0"
+                                    Orientation="Horizontal"
+                                    Spacing="8">
+                                    <TextBlock
+                                        VerticalAlignment="Center"
+                                        FontSize="12"
+                                        FontWeight="SemiBold"
+                                        Foreground="#7A6956"
+                                        Text="{x:Bind Label}" />
+                                    <ItemsRepeater ItemsSource="{x:Bind Items}">
+                                        <ItemsRepeater.Layout>
+                                            <StackLayout Orientation="Horizontal" />
+                                        </ItemsRepeater.Layout>
+                                        <ItemsRepeater.ItemTemplate>
+                                            <DataTemplate x:DataType="ui:ShellCommandItemViewModel">
+                                                <Button
+                                                    Margin="0,0,8,0"
+                                                    Content="{x:Bind Label}"
+                                                    IsEnabled="{x:Bind IsEnabled}"
+                                                    MinWidth="72" />
+                                            </DataTemplate>
+                                        </ItemsRepeater.ItemTemplate>
+                                    </ItemsRepeater>
+                                </StackPanel>
+                            </DataTemplate>
+                        </ItemsRepeater.ItemTemplate>
+                    </ItemsRepeater>
                 </StackPanel>
 
                 <StackPanel
@@ -132,7 +161,7 @@
                             FontSize="20"
                             FontWeight="SemiBold"
                             Foreground="#19363B"
-                            Text="Top-level chrome placeholders" />
+                            Text="{x:Bind ViewModel.Shell.DocumentTitle, Mode=OneWay}" />
                         <TextBlock
                             TextWrapping="WrapWholeWords"
                             FontSize="14"
@@ -140,20 +169,35 @@
                             Text="{x:Bind ViewModel.ContractsProbeSummary, Mode=OneWay}" />
                     </StackPanel>
 
-                    <Border
-                        Padding="14"
-                        Background="#F1E7D8"
-                        CornerRadius="16">
-                        <StackPanel Spacing="8">
-                            <TextBlock
-                                FontSize="12"
-                                FontWeight="SemiBold"
-                                Foreground="#7A6956"
-                                Text="Draft chrome inventory" />
-                            <TextBlock FontSize="14" Foreground="#19363B" Text="App title row, toolbar group, editor canvas, migration panel, status bar." />
-                            <TextBlock FontSize="14" Foreground="#19363B" Text="Bindings stay intentionally shallow until the Typedown.UI shell state lands." />
-                        </StackPanel>
-                    </Border>
+                    <ItemsRepeater ItemsSource="{x:Bind ViewModel.Shell.SidePaneSections, Mode=OneWay}">
+                        <ItemsRepeater.ItemTemplate>
+                            <DataTemplate x:DataType="ui:ShellSidePaneSectionViewModel">
+                                <Border
+                                    Margin="0,0,0,8"
+                                    Padding="14"
+                                    Background="#F1E7D8"
+                                    CornerRadius="16">
+                                    <StackPanel Spacing="8">
+                                        <TextBlock
+                                            FontSize="12"
+                                            FontWeight="SemiBold"
+                                            Foreground="#7A6956"
+                                            Text="{x:Bind Key}" />
+                                        <TextBlock
+                                            TextWrapping="WrapWholeWords"
+                                            FontSize="14"
+                                            Foreground="#19363B"
+                                            Text="{x:Bind Title}" />
+                                        <TextBlock
+                                            TextWrapping="WrapWholeWords"
+                                            FontSize="13"
+                                            Foreground="#5B6668"
+                                            Text="{x:Bind Description}" />
+                                    </StackPanel>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsRepeater.ItemTemplate>
+                    </ItemsRepeater>
 
                     <StackPanel Spacing="10">
                         <TextBlock
@@ -214,7 +258,12 @@
                                 FontSize="22"
                                 FontWeight="SemiBold"
                                 Foreground="#19363B"
-                                Text="Phase 14 main editing surface" />
+                                Text="{x:Bind ViewModel.Shell.EditorPanelTitle, Mode=OneWay}" />
+                            <TextBlock
+                                TextWrapping="WrapWholeWords"
+                                FontSize="13"
+                                Foreground="#5B6668"
+                                Text="{x:Bind ViewModel.Shell.EditorPanelDescription, Mode=OneWay}" />
                         </StackPanel>
 
                         <Border
@@ -260,7 +309,7 @@
                                 FontSize="24"
                                 FontWeight="SemiBold"
                                 Foreground="#FFFFFF"
-                                Text="Right-side transition panel" />
+                                Text="{x:Bind ViewModel.Shell.AppTitle, Mode=OneWay}" />
                         </StackPanel>
 
                         <Border
@@ -374,10 +423,28 @@
                         FontSize="13"
                         Foreground="#314447"
                         Text="Status bar" />
-                    <TextBlock
-                        FontSize="13"
-                        Foreground="#5B6668"
-                        Text="{x:Bind ViewModel.ContractsProbeSummary, Mode=OneWay}" />
+                    <ItemsRepeater ItemsSource="{x:Bind ViewModel.Shell.StatusItems, Mode=OneWay}">
+                        <ItemsRepeater.Layout>
+                            <StackLayout Orientation="Horizontal" />
+                        </ItemsRepeater.Layout>
+                        <ItemsRepeater.ItemTemplate>
+                            <DataTemplate x:DataType="ui:ShellStatusItemViewModel">
+                                <StackPanel
+                                    Margin="0,0,14,0"
+                                    Orientation="Horizontal"
+                                    Spacing="4">
+                                    <TextBlock
+                                        FontSize="13"
+                                        Foreground="#7A6956"
+                                        Text="{x:Bind Label}" />
+                                    <TextBlock
+                                        FontSize="13"
+                                        Foreground="#314447"
+                                        Text="{x:Bind Value}" />
+                                </StackPanel>
+                            </DataTemplate>
+                        </ItemsRepeater.ItemTemplate>
+                    </ItemsRepeater>
                 </StackPanel>
 
                 <StackPanel

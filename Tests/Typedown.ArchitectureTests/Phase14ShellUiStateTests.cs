@@ -42,6 +42,8 @@ public class Phase14ShellUiStateTests
         Assert.AreEqual("Untitled", shell.DocumentTitle);
         Assert.IsFalse(string.IsNullOrWhiteSpace(shell.EditorPanelTitle));
         Assert.IsFalse(string.IsNullOrWhiteSpace(shell.EditorPanelDescription));
+        Assert.IsTrue(shell.CommandGroups.SelectMany(group => group.Items).Any(item => item.ShortcutDisplayText == "Ctrl+N"));
+        Assert.IsTrue(shell.CommandGroups.SelectMany(group => group.Items).Any(item => item.ShortcutDisplayText == "Ctrl+S"));
     }
 
     [TestMethod]

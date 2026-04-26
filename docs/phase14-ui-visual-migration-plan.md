@@ -78,3 +78,25 @@ Phase 14 完成的标志应当是：
 - 后续主启动路径切换被顺延到 Phase 15 之后的专门阶段
 
 如果需要切换 `Debug_Local|x64` 默认入口，应作为后续单独阶段执行，并在切换前先完成 WinUI3 与 legacy shell 的等价核对。
+
+## Implementation Status
+
+状态：首批已完成。
+
+本阶段已新增 `Typedown.UI` 的平台中立首批 shell 可视状态树：shell chrome、File/Edit/View command groups、side panel sections、status items、editor panel title/description。当前状态树是用于 WinUI3 可视骨架的 baseline/default state，不接真实文件系统、窗口、dialog、picker 或 WebView2 runtime；动态运行时状态接入留到后续等价迁移阶段。`MainPageViewModel` 继续保留 Phase 13 的 smoke 绑定面，同时通过 `Shell` 暴露 Phase 14 可视状态。
+
+`Typedown.WinUI\Views\MainPage.xaml` 已改为首批 `1:1` 可视骨架：顶部 app/document chrome、toolbar、左侧 document/side panel state、中部 `WinUIEditorHost`、右侧 migration/status panel、底部 status bar。页面绑定 `ViewModel.Shell`，但 `WinUIEditorHost`、Window/Dialog/FilePicker、Package、`launchSettings` 和启动入口仍由 `Typedown.WinUI` 持有。
+
+新增 architecture tests 锁定 Phase 14 文档边界、`Typedown.UI` 平台中立 baseline state、WinUI visual shell 区域、横向 toolbar/status 布局和 ownership 边界。
+
+验证记录：
+
+```text
+dotnet build .\Dev\Typedown.Core.Contracts\Typedown.Core.Contracts.csproj -c Debug /nologo /v:minimal /m:1 /nodeReuse:false: 0 warnings, 0 errors
+dotnet build .\Dev\Typedown.UI\Typedown.UI.csproj -c Debug /nologo /v:minimal /m:1 /nodeReuse:false: 0 warnings, 0 errors
+dotnet test .\Tests\Typedown.ArchitectureTests\Typedown.ArchitectureTests.csproj -c Debug /nologo /v:minimal: 75 passed
+dotnet build .\Dev\Typedown.WinUI\Typedown.WinUI.csproj -c Debug -p:Platform=x64 /nologo /v:minimal /m:1 /nodeReuse:false: 0 warnings, 0 errors
+dotnet build .\Typedown.sln -c Debug_Local -p:Platform=x64 /nologo /v:minimal /m:1 /nodeReuse:false: 0 warnings, 0 errors
+Debug Resources\Statics\index.html: True
+Debug_Local Resources\Statics\index.html: True
+```

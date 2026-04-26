@@ -179,6 +179,8 @@ Phase 17  ARM64 与打包验证
 
 **目标：** 在不切默认启动路径的前提下，先把 WinUI3 页面上的 shell chrome、command surface、status、side panel 做成首批 `1:1` 可视骨架，并明确这些可视面的平台中立状态来源。
 
+**状态：首批已完成。** 已在 `Typedown.UI` 建立平台中立 shell baseline/default state，并在 `Typedown.WinUI\Views\MainPage.xaml` 落地顶部 app/document chrome、toolbar、侧栏状态、中部 `WinUIEditorHost`、右侧 migration/status panel 和底部 status bar。当前状态树不接真实文件系统、窗口、dialog、picker 或 WebView2 runtime；`WinUIEditorHost`、Window/Dialog/FilePicker、Package、`launchSettings` 和默认启动入口未迁移、未切换。
+
 **详细计划：** 见 [phase14-ui-visual-migration-plan.md](./phase14-ui-visual-migration-plan.md)。本阶段只锁定可视 UI 面和状态来源边界；`WinUIEditorHost` 仍留在 `Typedown.WinUI`，legacy `Typedown.XamlUI` 继续保留为对照路径。
 
 **主要任务：**
