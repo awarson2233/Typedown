@@ -58,14 +58,60 @@ namespace Typedown.Test.ArchitectureTests
             AssertHasTypeReference(pickerServiceSource, "IWindowContext");
         }
 
+        [TestMethod]
+        public void MainWindow_InitializesDispatcherAndWindowContextBeforeDataContext()
+        {
+            var source = File.ReadAllText(Path.Combine(RepoRoot, "Dev", "Typedown", "Windows", "MainWindow.cs"));
+
+            AssertContainsInOrder(
+                source,
+                "UiDispatcher?.Attach(Dispatcher);",
+                "WindowContext?.Bind(this);",
+                "DataContext = AppViewModel;");
+        }
+
+        [TestMethod]
+        public void WindowService_GetCursorPos_GuardsAgainstMissingWindow()
+        {
+            var source = File.ReadAllText(Path.Combine(RepoRoot, "Dev", "Typedown", "Services", "WindowService.cs"));
+
+            AssertHasTypeReference(source, "InvalidOperationException");
+            AssertHasTypeReference(source, "XamlWindow.GetWindow(relativeTo)");
+            AssertHasTypeReference(source, "is not attached to a window");
+        }
+
         private static void AssertNoTypeReference(string source, string typeName)
         {
-            Assert.IsFalse(Regex.IsMatch(source, Regex.Escape(typeName)), $"Unexpected reference to {typeName}.");
+            Assert.IsFalse(Regex.IsMatch(StripComments(source), CreateBoundaryPattern(typeName)), $"Unexpected reference to {typeName}.");
         }
 
         private static void AssertHasTypeReference(string source, string typeName)
         {
-            Assert.IsTrue(Regex.IsMatch(source, $@"\b{Regex.Escape(typeName)}\b"), $"Expected reference to {typeName}.");
+            Assert.IsTrue(Regex.IsMatch(StripComments(source), CreateBoundaryPattern(typeName)), $"Expected reference to {typeName}.");
+        }
+
+        private static void AssertContainsInOrder(string source, params string[] snippets)
+        {
+            var currentIndex = -1;
+            foreach (var snippet in snippets)
+            {
+                var nextIndex = source.IndexOf(snippet, currentIndex + 1);
+                Assert.IsTrue(nextIndex >= 0, $"Expected to find snippet: {snippet}");
+                Assert.IsTrue(nextIndex > currentIndex, $"Expected snippet to appear after the previous one: {snippet}");
+                currentIndex = nextIndex;
+            }
+        }
+
+        private static string CreateBoundaryPattern(string typeName)
+        {
+            return $@"(?<![A-Za-z0-9_]){Regex.Escape(typeName)}(?![A-Za-z0-9_])";
+        }
+
+        private static string StripComments(string source)
+        {
+            source = Regex.Replace(source, @"//.*?$", string.Empty, RegexOptions.Multiline);
+            source = Regex.Replace(source, @"/\*[\s\S]*?\*/", string.Empty);
+            return source;
         }
     }
 }
