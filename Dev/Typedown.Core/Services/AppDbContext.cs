@@ -1,6 +1,8 @@
-﻿using Microsoft.Data.Sqlite;
+using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
+using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
 using Typedown.Core.Interfaces;
@@ -18,12 +20,13 @@ namespace Typedown.Core.Services
 
         public DbSet<ImageUploadConfig> ImageUploadConfigs { get; set; }
 
-
         private readonly string dbPath;
+
+        private readonly string migrateTaskKey;
 
         private static readonly object lockMigrateTask = new();
 
-        private static Task migrateTask;
+        private static readonly Dictionary<string, Task> migrateTasks = new(StringComparer.OrdinalIgnoreCase);
 
         public AppDbContext()
             : this(null)
@@ -33,6 +36,7 @@ namespace Typedown.Core.Services
         public AppDbContext(IAppDataPathProvider appDataPathProvider)
         {
             dbPath = (appDataPathProvider ?? Config.GetAppDataPathProvider()).GetDatabaseFilePath();
+            migrateTaskKey = Path.GetFullPath(dbPath);
         }
 
         protected override void OnConfiguring(DbContextOptionsBuilder options)
@@ -45,8 +49,16 @@ namespace Typedown.Core.Services
 
         public async Task EnsureMigrateAsync()
         {
+            Task migrateTask;
             lock (lockMigrateTask)
-                migrateTask ??= EnsureMigrateCoreAsync();
+            {
+                if (!migrateTasks.TryGetValue(migrateTaskKey, out migrateTask) || migrateTask.IsFaulted || migrateTask.IsCanceled)
+                {
+                    migrateTask = EnsureMigrateCoreAsync();
+                    migrateTasks[migrateTaskKey] = migrateTask;
+                }
+            }
+
             await migrateTask;
         }
 

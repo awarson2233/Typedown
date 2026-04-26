@@ -5,6 +5,7 @@ using Typedown.Core.Interfaces;
 namespace Typedown.Test.ServiceTests
 {
     [TestClass]
+    [DoNotParallelize]
     public class AppDataPathProviderShimTests
     {
         private IAppDataPathProvider originalProvider;

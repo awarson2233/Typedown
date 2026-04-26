@@ -60,6 +60,8 @@ namespace Typedown.Core
             return GetAppDataPathProvider().GetBackupFolderPath();
         }
 
+        // Migration compatibility shim: keeps existing static call sites working until
+        // path consumers are fully moved to DI-bound IAppDataPathProvider access.
         public static void SetAppDataPathProvider(IAppDataPathProvider provider)
         {
             if (provider == null)
