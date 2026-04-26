@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Threading.Tasks;
 using System.Text.Json;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
@@ -12,10 +13,12 @@ namespace Typedown.WinUI.Controls
         private readonly WebView2 webView;
         private readonly TextBlock statusText;
         private readonly TextBlock messageText;
+        private readonly WinUIEditorBridgeAdapter bridgeAdapter;
         private bool initialized;
 
         public WinUIEditorHost()
         {
+            bridgeAdapter = new WinUIEditorBridgeAdapter();
             webView = new WebView2
             {
                 HorizontalAlignment = HorizontalAlignment.Stretch,
@@ -24,13 +27,13 @@ namespace Typedown.WinUI.Controls
 
             statusText = new TextBlock
             {
-                Text = "Editor host is waiting for WebView2 initialization.",
+                Text = "Loaded=False; FileLoaded=False; MarkdownLength=0; LastEvent=Waiting",
                 TextWrapping = TextWrapping.Wrap
             };
 
             messageText = new TextBlock
             {
-                Text = "No editor web message received yet.",
+                Text = bridgeAdapter.LastRawMessage,
                 TextWrapping = TextWrapping.Wrap
             };
 
@@ -103,6 +106,11 @@ namespace Typedown.WinUI.Controls
             {
                 await webView.EnsureCoreWebView2Async();
                 webView.CoreWebView2.Settings.AreDefaultContextMenusEnabled = false;
+                webView.CoreWebView2.Settings.AreBrowserAcceleratorKeysEnabled = false;
+                webView.CoreWebView2.Settings.AreDevToolsEnabled = false;
+                webView.CoreWebView2.Settings.IsBuiltInErrorPageEnabled = false;
+                webView.CoreWebView2.Settings.IsStatusBarEnabled = false;
+                webView.CoreWebView2.Settings.IsZoomControlEnabled = false;
                 webView.CoreWebView2.WebMessageReceived += OnWebMessageReceived;
                 webView.CoreWebView2.NavigationCompleted += OnNavigationCompleted;
                 webView.CoreWebView2.Navigate(new Uri(editorIndex).AbsoluteUri);
@@ -127,10 +135,12 @@ namespace Typedown.WinUI.Controls
 
         private void OnWebMessageReceived(CoreWebView2 sender, CoreWebView2WebMessageReceivedEventArgs e)
         {
-            messageText.Text = e.TryGetWebMessageAsString();
+            bridgeAdapter.Receive(e.TryGetWebMessageAsString(), SendRawMessage);
+            statusText.Text = bridgeAdapter.StatusText;
+            messageText.Text = bridgeAdapter.LastRawMessage;
         }
 
-        private void OnNavigationCompleted(CoreWebView2 sender, CoreWebView2NavigationCompletedEventArgs e)
+        private async void OnNavigationCompleted(CoreWebView2 sender, CoreWebView2NavigationCompletedEventArgs e)
         {
             if (!e.IsSuccess)
             {
@@ -145,10 +155,37 @@ namespace Typedown.WinUI.Controls
                 args = new
                 {
                     shell = "Typedown.WinUI",
-                    phase = "Phase 11"
+                    phase = "Phase 11",
+                    mode = "OpenAndEditSmoke"
                 }
             });
-            sender.PostWebMessageAsString(payload);
+            SendRawMessage(payload);
+
+            await Task.Delay(250);
+            SendMessage("LoadFile", new
+            {
+                text = bridgeAdapter.SmokeMarkdown,
+                basePath = bridgeAdapter.BasePath
+            });
+        }
+
+        private bool SendMessage(string name, object args)
+        {
+            var payload = JsonSerializer.Serialize(new { name, args });
+            return SendRawMessage(payload);
+        }
+
+        private bool SendRawMessage(string payload)
+        {
+            try
+            {
+                webView.CoreWebView2?.PostWebMessageAsString(payload);
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
         }
 
         private static string? ResolveEditorIndexPath()

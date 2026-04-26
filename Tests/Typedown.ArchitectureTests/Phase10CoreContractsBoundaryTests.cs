@@ -202,19 +202,42 @@ public class Phase10CoreContractsBoundaryTests
     public void WinUIPhase11_AddsEditorHostWithoutLegacyHostDependency()
     {
         var hostPath = Path.Combine(RepoRoot, "Dev", "Typedown.WinUI", "Controls", "WinUIEditorHost.cs");
+        var adapterPath = Path.Combine(RepoRoot, "Dev", "Typedown.WinUI", "Controls", "WinUIEditorBridgeAdapter.cs");
         var projectSource = File.ReadAllText(Path.Combine(RepoRoot, "Dev", "Typedown.WinUI", "Typedown.WinUI.csproj"));
         var pageSource = File.ReadAllText(Path.Combine(RepoRoot, "Dev", "Typedown.WinUI", "Views", "MainPage.xaml"));
         var hostSource = File.ReadAllText(hostPath);
+        var adapterSource = File.ReadAllText(adapterPath);
 
         Assert.IsTrue(File.Exists(hostPath), "Expected the Phase 11 WinUI editor host.");
+        Assert.IsTrue(File.Exists(adapterPath), "Expected the Phase 11 WinUI editor bridge adapter.");
         AssertHasTypeReference(hostSource, "WebView2");
         AssertHasTypeReference(hostSource, "WebMessageReceived");
         AssertHasTypeReference(hostSource, "PostWebMessageAsString");
         AssertHasTypeReference(hostSource, "Resources");
         AssertHasTypeReference(hostSource, "Statics");
+        AssertHasTypeReference(hostSource, "WinUIHostReady");
+        AssertHasTypeReference(hostSource, "LoadFile");
+        AssertHasTypeReference(hostSource, "AreDefaultContextMenusEnabled = false");
+        AssertHasTypeReference(hostSource, "AreBrowserAcceleratorKeysEnabled = false");
+        AssertHasTypeReference(hostSource, "AreDevToolsEnabled = false");
+        AssertHasTypeReference(hostSource, "IsBuiltInErrorPageEnabled = false");
+        AssertHasTypeReference(hostSource, "IsStatusBarEnabled = false");
+        AssertHasTypeReference(hostSource, "IsZoomControlEnabled = false");
         AssertHasTypeReference(projectSource, @"..\Typedown\Resources\Statics\**");
         AssertHasTypeReference(pageSource, "WinUIEditorHost");
+        AssertHasTypeReference(adapterSource, "GetCurrentTheme");
+        AssertHasTypeReference(adapterSource, "ContentLoaded");
+        AssertHasTypeReference(adapterSource, "GetStringResources");
+        AssertHasTypeReference(adapterSource, "GetSettings");
+        AssertHasTypeReference(adapterSource, "FileLoaded");
+        AssertHasTypeReference(adapterSource, "MarkdownChange");
+        AssertHasTypeReference(adapterSource, "CursorChange");
+        AssertHasTypeReference(adapterSource, "StateChange");
+        AssertHasTypeReference(adapterSource, "\"diffmsg\"");
+        AssertHasTypeReference(adapterSource, "JsonDocument.Parse");
         AssertNoTypeReference(hostSource, "Typedown.XamlUI");
+        AssertNoTypeReference(adapterSource, "Typedown.XamlUI");
+        AssertNoTypeReference(adapterSource, "Typedown.Core.Services");
         AssertNoTypeReference(hostSource, "Typedown.Core.Services");
         AssertNoTypeReference(projectSource, @"..\Typedown.Core\Typedown.Core.csproj");
     }

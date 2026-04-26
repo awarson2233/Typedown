@@ -24,7 +24,7 @@
 - Phase 9：已完成。最小 WinUI3 shell spike 已落到 `Dev\Typedown.WinUI`，当前不依赖 legacy `Typedown.XamlUI`。
 - Phase 10：已完成。`Typedown.Core.Contracts` 已拆出，WinUI 平台服务桩、solution 构建基线、Package/Unpackaged 调试入口已建立。
 
-Phase 9 之后的路线已重新设计并拆分到 `docs/winui3-post-phase9-roadmap.md`。当前正在推进 Phase 11：在 WinUI shell 中建立真实应用骨架与 editor host 边界。Phase 11 已完成最小 WebView2 editor host smoke，后续继续补真实 MarkdownEditor 命令和文档流程，不批量迁移 legacy XAML 控件。
+Phase 9 之后的路线已重新设计并拆分到 `docs/winui3-post-phase9-roadmap.md`。当前正在推进 Phase 11：在 WinUI shell 中建立真实应用骨架与 editor host 边界。Phase 11 已完成“可打开并可编辑 smoke”的 WebView2 editor host，本地 WinUI bridge 已补齐最小 invoke/事件适配；后续继续补真实 MarkdownEditor 命令、Core 接入、保存/导出、浮层、查找替换，不批量迁移 legacy XAML 控件。
 
 Phase 3、Phase 4、Phase 6 必须串行推进。它们都会触碰 `Dev\Typedown\Injection.cs`，并且 Phase 6 会依赖前面已经稳定的 shell service 注册边界；不得并行创建实现分支。
 
@@ -543,7 +543,7 @@ dotnet build .\Typedown.sln -c Debug_Local -p:Platform=x64 /nologo /v:minimal /m
 dotnet build .\Typedown.sln -c Debug -p:Platform=x64 /nologo /v:minimal /m:1 /nodeReuse:false
 ```
 
-## Phase 11：WinUI3 应用骨架与 Editor Host 边界（已启动）
+## Phase 11：WinUI3 应用骨架与 Editor Host 边界（进行中）
 
 **目标：** 在不迁移 legacy XAML 控件的前提下，让 WinUI shell 具备真实应用骨架，能承接 editor host、导航和服务组合根。
 
@@ -552,16 +552,19 @@ dotnet build .\Typedown.sln -c Debug -p:Platform=x64 /nologo /v:minimal /m:1 /no
 - [x] 在 `Typedown.WinUI` 中保持稳定的窗口/Frame/导航骨架。
 - [ ] 明确 `Typedown.UI` 的创建时机和职责：页面、控件、资源、UI ViewModel、应用级 UI 编排；不承担 MSIX、App/Window、单实例或平台服务注册。
 - [x] 在 WinUI shell 中创建 WebView2 editor host 迁移点，优先复用现有 `Resources\Statics` 和 editor bridge 协议。
+- [x] 在 `Typedown.WinUI` 内建立本地 bridge/command adapter，支持 `GetCurrentTheme`、`ContentLoaded`、`GetStringResources`、`GetSettings` 以及最小编辑状态事件。
+- [x] 让 WinUI host 能打开并编辑一份 smoke markdown，而不是只停留在静态 bundle smoke。
 - [ ] 清点仍位于 `Typedown.Core` 或 legacy XAML 层中的前端/页面/控件职责，按风险拆到 Phase 12/13，而不是在 Phase 11 批量移动。
 - [x] 保持 `Debug_Local|x64 + Typedown.WinUI (Unpackaged)` 为日常验证入口。
 
 完成记录：
 
 - [x] 新增 `Dev\Typedown.WinUI\Controls\WinUIEditorHost.cs`，使用 WinUI3 标准 `WebView2` 承载 editor bundle。
+- [x] 新增 `Dev\Typedown.WinUI\Controls\WinUIEditorBridgeAdapter.cs`，在 WinUI 本地解析 `invoke` / `message` / `diffmsg`，并提供最小命令响应。
 - [x] `Typedown.WinUI.csproj` 复制 `Dev\Typedown\Resources\Statics\**` 到 WinUI 输出目录，同时 host 保留源码路径回退。
 - [x] `MainPage` 改为显示 Phase 11 editor host smoke，而不是只显示 Phase 10b 服务清单。
 - [x] 新增架构测试，确认 Phase 11 host 不引入 `Typedown.XamlUI` 或 `Typedown.Core` 项目引用。
-- [ ] 后续仍需把 legacy `MarkdownEditor` 的文档命令、主题、编辑状态、焦点和输入细节迁到 WinUI host。
+- [ ] 后续仍需把 legacy `MarkdownEditor` 的真实 Core 文档命令、保存/导出、浮层、查找替换、焦点和输入细节迁到 WinUI host。
 
 验证：
 

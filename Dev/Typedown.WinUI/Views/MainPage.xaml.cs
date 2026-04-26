@@ -15,14 +15,15 @@ namespace Typedown.WinUI.Views
         {
             "WinUI3 shell keeps platform service implementations and the activation stub contract surface behind Typedown.Core.Contracts.",
             "Phase 11 editor host is implemented inside Typedown.WinUI without referencing Typedown.Core or the legacy XAML host project.",
-            "The host loads the same Resources\\Statics editor bundle path used by the legacy app when the bundle exists."
+            "The host loads the same Resources\\Statics editor bundle path used by the legacy app when the bundle exists.",
+            "The local WinUI bridge now answers the minimum invoke contract and can open an editable smoke markdown document."
         };
 
         public string[] DeferredItems { get; } =
         {
-            "Full MarkdownEditor command parity and document workflow remain later Phase 11 work.",
+            "Real Typedown.Core document workflow, save/export integration and command parity remain later Phase 11 work.",
             "No legacy data migration or real Typedown.Core integration is included yet.",
-            "Legacy page/control migration belongs to Typedown.UI phases, not this host smoke slice.",
+            "Legacy page/control migration belongs to Typedown.UI phases, not this editable smoke slice.",
             "ARM64 validation remains out of scope for this phase."
         };
 

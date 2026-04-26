@@ -19,7 +19,7 @@
 ```text
 Phase 9   最小 WinUI3 shell spike（已完成）
 Phase 10  WinUI3 平台服务闭环与启动基线（已完成）
-Phase 11  WebView2 editor host 等价（已启动，最小 smoke 已完成）
+Phase 11  WebView2 editor host 等价（进行中，可打开并可编辑 smoke 已完成）
 Phase 12  Typedown.UI 项目骨架与 UI 注册边界
 Phase 13  低风险 UI 资源/页面/控件迁移
 Phase 14  Debug_Local 主启动路径切换到 WinUI3
@@ -80,7 +80,7 @@ Phase 16  ARM64 与打包验证
 
 **当前入口：** 从 `Debug_Local|x64 + Typedown.WinUI (Unpackaged)` 开始实现和验证。不要把 Package 证书问题作为 Phase 11 的阻塞项。
 
-**当前状态：** 已建立最小 WinUI3 WebView2 editor host smoke。`Dev\Typedown.WinUI\Controls\WinUIEditorHost.cs` 使用标准 WinUI3 `WebView2` 加载 `Resources\Statics\index.html`，接收 `window.chrome.webview.postMessage` 原始消息，并在导航完成后按现有 Host -> Editor JSON 形状发送 `WinUIHostReady` smoke 消息。该切片仍不引用 `Dev\Typedown.Core` 或 legacy `Dev\Typedown.XamlUI`。
+**当前状态：** 已建立“可打开并可编辑 smoke”的 WinUI3 WebView2 editor host。`Dev\Typedown.WinUI\Controls\WinUIEditorHost.cs` 现在通过本地 `WinUIEditorBridgeAdapter` 解析 `invoke` / `message` / `diffmsg`，处理 `GetCurrentTheme`、`ContentLoaded`、`GetStringResources`、`GetSettings` 最小命令集，并在导航完成后保留 `WinUIHostReady` smoke 消息同时发送一次 `LoadFile`，让前端走通打开文档和编辑状态上报路径。该切片仍不引用 `Dev\Typedown.Core` 或 legacy `Dev\Typedown.XamlUI`。
 
 **主要任务：**
 
@@ -88,15 +88,17 @@ Phase 16  ARM64 与打包验证
 - [x] 加载 `Dev\Typedown\Resources\Statics\index.html` 或输出目录中的等价 static bundle。
 - [x] 验证 `window.chrome.webview` 的 JS -> C# 原始消息接收路径。
 - [x] 验证 C# -> JS 的 host message smoke 路径。
-- [ ] 迁移真实 `MarkdownEditor` 命令、文档加载/保存、主题同步和编辑状态事件。
+- [x] 建立本地 bridge/command adapter，支持前端最小 invoke 与编辑状态事件。
+- [x] 让 WinUI smoke host 能打开并编辑一份本地 smoke markdown。
+- [ ] 迁移真实 `MarkdownEditor` 命令、真实 Core 文档加载/保存、主题同步和完整编辑状态事件。
 - 对齐主题、DPI、输入转发、焦点和窗口句柄需求。
 - 保持 bridge 协议语义不变；如果需要新增 WinUI 侧 adapter，先落在 `Typedown.WinUI`，不要提前批量移动 legacy XAML 页面/控件。
 
 **验收：**
 
-- WinUI3 shell 可以显示 editor。
-- 至少完成一次 editor bundle 初始化、JS/C# 双向消息 smoke。
-- 打开文档、保存文档和完整 editor command parity 可拆到 Phase 11 后续子任务，不与 `Typedown.UI` 控件搬迁混做。
+- WinUI3 shell 可以显示 editor，并能打开一份本地 smoke markdown 进入可编辑状态。
+- 至少完成一次 editor bundle 初始化、JS/C# 双向消息 smoke，以及最小 `invoke`/`diffmsg` 适配。
+- 真实 Core 接入、保存/导出、浮层、查找替换和完整 editor command parity 可拆到 Phase 11 后续子任务，不与 `Typedown.UI` 控件搬迁混做。
 - 不升级前端依赖，不改变 bridge 协议语义。
 
 **执行方式：** 串行集成，允许并行 readonly agent 分别检查 legacy `MarkdownEditor`、`WebViewController`、`Transport` 协议，但代码修改应由一个 agent 完成。

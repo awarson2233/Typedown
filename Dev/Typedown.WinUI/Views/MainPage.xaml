@@ -51,7 +51,7 @@
                         FontSize="22"
                         FontWeight="SemiBold"
                         Foreground="#19363B"
-                        Text="Phase 11 editor host smoke" />
+                        Text="Phase 11 editable editor smoke" />
                     <controls:WinUIEditorHost Grid.Row="1" />
                 </Grid>
             </Border>
