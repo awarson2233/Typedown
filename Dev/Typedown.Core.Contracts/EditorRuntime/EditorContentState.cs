@@ -5,8 +5,10 @@ namespace Typedown.Core.Contracts.EditorRuntime
 {
     public sealed record EditorContentState
     {
+        [JsonPropertyName("wordCount")]
         public EditorWordCount WordCount { get; init; } = new();
 
+        [JsonPropertyName("toc")]
         public List<EditorTocItem> Toc { get; init; } = [];
 
         [JsonPropertyName("cur")]

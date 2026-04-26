@@ -1,29 +1,41 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json.Serialization;
 
 namespace Typedown.Core.Contracts.EditorRuntime
 {
-    public sealed record EditorSelectionFormat(string Type, string Tag);
+    public sealed record EditorSelectionFormat(
+        [property: JsonPropertyName("type")] string Type,
+        [property: JsonPropertyName("tag")] string Tag);
 
     public sealed record EditorFormatState
     {
+        [JsonPropertyName("bold")]
         public bool Bold { get; init; }
 
+        [JsonPropertyName("italic")]
         public bool Italic { get; init; }
 
+        [JsonPropertyName("underline")]
         public bool Underline { get; init; }
 
+        [JsonPropertyName("strikethrough")]
         public bool Strikethrough { get; init; }
 
+        [JsonPropertyName("highlight")]
         public bool Highlight { get; init; }
 
+        [JsonPropertyName("inlineCode")]
         public bool InlineCode { get; init; }
 
+        [JsonPropertyName("inlineMath")]
         public bool InlineMath { get; init; }
 
+        [JsonPropertyName("hyperlink")]
         public bool Hyperlink { get; init; }
 
+        [JsonPropertyName("image")]
         public bool Image { get; init; }
 
         public static EditorFormatState FromSelectionFormats(IEnumerable<EditorSelectionFormat>? selectionFormats)

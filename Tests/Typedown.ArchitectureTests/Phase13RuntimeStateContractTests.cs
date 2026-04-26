@@ -1,4 +1,5 @@
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using System.Text.Json;
 using Typedown.Core.Contracts.EditorRuntime;
 
 namespace Typedown.ArchitectureTests;
@@ -161,6 +162,85 @@ public class Phase13RuntimeStateContractTests
         Assert.AreEqual(2, state.Toc.Count);
         Assert.AreSame(current, state.Current);
         Assert.IsTrue(state.Current.IsSelected);
+    }
+
+    [TestMethod]
+    public void ContentState_RoundTripsLegacyJsonShape()
+    {
+        const string legacyJson = """
+            {
+              "wordCount": { "word": 42, "character": 128 },
+              "toc": [
+                { "slug": "intro", "lvl": 1, "content": "Intro", "isSelected": false },
+                { "slug": 123, "lvl": 2, "content": "Runtime State", "isSelected": true }
+              ],
+              "cur": { "slug": 123, "lvl": 2, "content": "Runtime State", "isSelected": true }
+            }
+            """;
+
+        var state = JsonSerializer.Deserialize<EditorContentState>(legacyJson);
+
+        Assert.IsNotNull(state);
+        Assert.AreEqual(42, state.WordCount.Word);
+        Assert.AreEqual(128, state.WordCount.Character);
+        Assert.AreEqual("intro", state.Toc[0].Slug);
+        Assert.AreEqual("123", state.Toc[1].Slug);
+        Assert.AreEqual(2, state.Current?.Level);
+        Assert.AreEqual("123", state.Current?.Slug);
+
+        var json = JsonSerializer.Serialize(state);
+
+        StringAssert.Contains(json, "\"wordCount\"");
+        StringAssert.Contains(json, "\"word\"");
+        StringAssert.Contains(json, "\"character\"");
+        StringAssert.Contains(json, "\"toc\"");
+        StringAssert.Contains(json, "\"cur\"");
+        StringAssert.Contains(json, "\"slug\"");
+        StringAssert.Contains(json, "\"lvl\"");
+        StringAssert.Contains(json, "\"content\"");
+        StringAssert.Contains(json, "\"isSelected\"");
+        Assert.IsFalse(json.Contains("\"WordCount\"", StringComparison.Ordinal));
+        Assert.IsFalse(json.Contains("\"Current\"", StringComparison.Ordinal));
+        Assert.IsFalse(json.Contains("\"Level\"", StringComparison.Ordinal));
+    }
+
+    [TestMethod]
+    public void RuntimeMenuFormatAndParagraphState_SerializeWithLegacyCamelCaseNames()
+    {
+        var paragraphState = EditorParagraphState.FromMenuState(new EditorMenuState
+        {
+            IsDisabled = true,
+            IsLooseListItem = true,
+            Affiliation = new Dictionary<string, bool> { ["h1"] = true },
+        });
+        var formatState = new EditorFormatState
+        {
+            Bold = true,
+            InlineCode = true,
+            InlineMath = true,
+        };
+
+        var paragraphJson = JsonSerializer.Serialize(paragraphState);
+        var formatJson = JsonSerializer.Serialize(formatState);
+
+        StringAssert.Contains(paragraphJson, "\"menuState\"");
+        StringAssert.Contains(paragraphJson, "\"isDisabled\"");
+        StringAssert.Contains(paragraphJson, "\"isLooseListItem\"");
+        StringAssert.Contains(paragraphJson, "\"affiliation\"");
+        StringAssert.Contains(paragraphJson, "\"heading1\"");
+        StringAssert.Contains(paragraphJson, "\"isEnable\"");
+        StringAssert.Contains(paragraphJson, "\"isChecked\"");
+        StringAssert.Contains(paragraphJson, "\"formatIsEnable\"");
+        StringAssert.Contains(paragraphJson, "\"hyperlinkIsEnable\"");
+        StringAssert.Contains(paragraphJson, "\"imageIsEnable\"");
+        StringAssert.Contains(formatJson, "\"bold\"");
+        StringAssert.Contains(formatJson, "\"inlineCode\"");
+        StringAssert.Contains(formatJson, "\"inlineMath\"");
+        Assert.IsFalse(paragraphJson.Contains("\"MenuState\"", StringComparison.Ordinal));
+        Assert.IsFalse(paragraphJson.Contains("\"IsDisabled\"", StringComparison.Ordinal));
+        Assert.IsFalse(paragraphJson.Contains("\"IsEnable\"", StringComparison.Ordinal));
+        Assert.IsFalse(formatJson.Contains("\"InlineCode\"", StringComparison.Ordinal));
+        Assert.IsFalse(formatJson.Contains("\"InlineMath\"", StringComparison.Ordinal));
     }
 
     [TestMethod]

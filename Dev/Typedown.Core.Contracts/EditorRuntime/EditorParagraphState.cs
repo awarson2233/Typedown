@@ -1,62 +1,90 @@
 using System;
 using System.Linq;
+using System.Text.Json.Serialization;
 
 namespace Typedown.Core.Contracts.EditorRuntime
 {
     public sealed record EditorParagraphState
     {
+        [JsonPropertyName("menuState")]
         public EditorMenuState MenuState { get; init; } = new();
 
+        [JsonPropertyName("heading1")]
         public EditorMenuItemState Heading1 { get; init; } = new();
 
+        [JsonPropertyName("heading2")]
         public EditorMenuItemState Heading2 { get; init; } = new();
 
+        [JsonPropertyName("heading3")]
         public EditorMenuItemState Heading3 { get; init; } = new();
 
+        [JsonPropertyName("heading4")]
         public EditorMenuItemState Heading4 { get; init; } = new();
 
+        [JsonPropertyName("heading5")]
         public EditorMenuItemState Heading5 { get; init; } = new();
 
+        [JsonPropertyName("heading6")]
         public EditorMenuItemState Heading6 { get; init; } = new();
 
+        [JsonPropertyName("paragraph")]
         public EditorMenuItemState Paragraph { get; init; } = new();
 
+        [JsonPropertyName("upgradeHeading")]
         public EditorMenuItemState UpgradeHeading { get; init; } = new();
 
+        [JsonPropertyName("degradeHeading")]
         public EditorMenuItemState DegradeHeading { get; init; } = new();
 
+        [JsonPropertyName("table")]
         public EditorMenuItemState Table { get; init; } = new();
 
+        [JsonPropertyName("codeFences")]
         public EditorMenuItemState CodeFences { get; init; } = new();
 
+        [JsonPropertyName("htmlBlock")]
         public EditorMenuItemState HtmlBlock { get; init; } = new();
 
+        [JsonPropertyName("mathBlock")]
         public EditorMenuItemState MathBlock { get; init; } = new();
 
+        [JsonPropertyName("quoteBlock")]
         public EditorMenuItemState QuoteBlock { get; init; } = new();
 
+        [JsonPropertyName("orderList")]
         public EditorMenuItemState OrderList { get; init; } = new();
 
+        [JsonPropertyName("bulletList")]
         public EditorMenuItemState BulletList { get; init; } = new();
 
+        [JsonPropertyName("taskList")]
         public EditorMenuItemState TaskList { get; init; } = new();
 
+        [JsonPropertyName("chart")]
         public EditorMenuItemState Chart { get; init; } = new();
 
+        [JsonPropertyName("linkReference")]
         public EditorMenuItemState LinkReference { get; init; } = new();
 
+        [JsonPropertyName("footnote")]
         public EditorMenuItemState Footnote { get; init; } = new();
 
+        [JsonPropertyName("horizontalLine")]
         public EditorMenuItemState HorizontalLine { get; init; } = new();
 
+        [JsonPropertyName("toc")]
         public EditorMenuItemState Toc { get; init; } = new();
 
+        [JsonPropertyName("frontMatter")]
         public EditorMenuItemState FrontMatter { get; init; } = new();
 
+        [JsonPropertyName("formatIsEnable")]
         public bool FormatIsEnable { get; set; }
 
+        [JsonPropertyName("hyperlinkIsEnable")]
         public bool HyperlinkIsEnable { get; set; }
 
+        [JsonPropertyName("imageIsEnable")]
         public bool ImageIsEnable { get; set; }
 
         public static EditorParagraphState FromMenuState(EditorMenuState menuState)
