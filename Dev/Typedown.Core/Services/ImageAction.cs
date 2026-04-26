@@ -5,7 +5,6 @@ using System.Linq;
 using System.Net;
 using System.Text;
 using System.Threading.Tasks;
-using Typedown.Core.Controls;
 using Typedown.Core.Interfaces;
 using Typedown.Core.Utilities;
 using Typedown.Core.ViewModels;
@@ -19,6 +18,8 @@ namespace Typedown.Core.Services
         public AppViewModel AppViewModel => ServiceProvider.GetService<AppViewModel>();
 
         public FileViewModel FileViewModel => ServiceProvider.GetService<FileViewModel>();
+
+        public IDialogService DialogService => ServiceProvider.GetService<IDialogService>();
 
         private IServiceProvider ServiceProvider { get; }
 
@@ -53,7 +54,7 @@ namespace Typedown.Core.Services
             }
             catch (Exception ex)
             {
-                await AppContentDialog.Create(Locale.GetString("Error"), ex.Message, Locale.GetString("Ok")).ShowAsync(AppViewModel.XamlRoot);
+                await ShowErrorDialog(ex.Message);
                 return src;
             }
         }
@@ -80,7 +81,7 @@ namespace Typedown.Core.Services
             }
             catch (Exception ex)
             {
-                await AppContentDialog.Create(Locale.GetString("Error"), ex.Message, Locale.GetString("Ok")).ShowAsync(AppViewModel.XamlRoot);
+                await ShowErrorDialog(ex.Message);
                 return src;
             }
         }
@@ -105,7 +106,7 @@ namespace Typedown.Core.Services
             }
             catch (Exception ex)
             {
-                await AppContentDialog.Create(Locale.GetString("Error"), ex.Message, Locale.GetString("Ok")).ShowAsync(AppViewModel.XamlRoot);
+                await ShowErrorDialog(ex.Message);
                 return string.Empty;
             }
         }
@@ -239,6 +240,17 @@ namespace Typedown.Core.Services
                     filePath = "./" + filePath;
             }
             return filePath.Replace('\\', '/');
+        }
+
+        private Task<DialogButton> ShowErrorDialog(string message)
+        {
+            return DialogService.ShowAsync(new DialogRequest
+            {
+                Title = Locale.GetString("Error"),
+                Content = message,
+                CloseButtonText = Locale.GetString("Ok"),
+                DefaultButton = DialogButton.None
+            });
         }
     }
 }
