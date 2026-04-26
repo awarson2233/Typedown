@@ -48,12 +48,43 @@ public class Phase10CoreContractsBoundaryTests
         var projectSource = File.ReadAllText(Path.Combine(RepoRoot, "Dev", "Typedown.WinUI", "Typedown.WinUI.csproj"));
 
         AssertHasTypeReference(projectSource, @"..\Typedown.Core.Contracts\Typedown.Core.Contracts.csproj");
-        AssertHasTypeReference(projectSource, "<Platforms>x64</Platforms>");
-        AssertNoTypeReference(projectSource, "arm64");
-        AssertNoTypeReference(projectSource, "x86");
         AssertNoTypeReference(projectSource, @"..\Typedown.Core\Typedown.Core.csproj");
         AssertNoTypeReference(projectSource, @"..\Typedown.XamlUI\Typedown.XamlUI.csproj");
         AssertNoTypeReference(projectSource, "Typedown.XamlUI");
+    }
+
+    [TestMethod]
+    public void WinUIPackagedBaseline_UsesSolutionDebugX64BuildAndDeployWithoutLegacyPackageDeploy()
+    {
+        var solutionSource = File.ReadAllText(Path.Combine(RepoRoot, "Typedown.sln"));
+        var winuiProjectGuid = FindProjectGuid(solutionSource, "Typedown.WinUI");
+        var legacyPackageGuid = FindProjectGuid(solutionSource, "Typedown.Package");
+
+        AssertHasTypeReference(solutionSource, $"{winuiProjectGuid}.Debug|x64.Build.0");
+        AssertHasTypeReference(solutionSource, $"{winuiProjectGuid}.Debug|x64.Deploy.0");
+        AssertNoTypeReference(solutionSource, $"{legacyPackageGuid}.Debug|x64.Deploy.0");
+    }
+
+    [TestMethod]
+    public void WinUIPackagedBaseline_UsesRepositoryDevCertificate()
+    {
+        var projectSource = File.ReadAllText(Path.Combine(RepoRoot, "Dev", "Typedown.WinUI", "Typedown.WinUI.csproj"));
+        var launchSettingsSource = File.ReadAllText(Path.Combine(RepoRoot, "Dev", "Typedown.WinUI", "Properties", "launchSettings.json"));
+        var manifestSource = File.ReadAllText(Path.Combine(RepoRoot, "Dev", "Typedown.WinUI", "Package.appxmanifest"));
+        var scriptSource = File.ReadAllText(Path.Combine(RepoRoot, "scripts", "install-winui-dev-certificate.ps1"));
+
+        AssertHasTypeReference(projectSource, "<WindowsPackageType>MSIX</WindowsPackageType>");
+        AssertHasTypeReference(projectSource, "<AppxPackageSigningEnabled>true</AppxPackageSigningEnabled>");
+        AssertHasTypeReference(projectSource, "<PackageCertificateThumbprint>43B9C8C444BBB5C2DAC24C8925EDAFB6BF6163C5</PackageCertificateThumbprint>");
+        AssertHasTypeReference(launchSettingsSource, "\"Typedown.WinUI (Package)\"");
+        AssertHasTypeReference(launchSettingsSource, "\"commandName\": \"MsixPackage\"");
+        AssertHasTypeReference(manifestSource, "Publisher=\"CN=Typedown WinUI Dev Test\"");
+        Assert.IsTrue(File.Exists(Path.Combine(RepoRoot, "Dev", "Typedown.WinUI", "Typedown.WinUI.DevTest.pfx")));
+        Assert.IsTrue(File.Exists(Path.Combine(RepoRoot, "Dev", "Typedown.WinUI", "Typedown.WinUI.DevTest.cer")));
+        AssertHasTypeReference(scriptSource, "Typedown.WinUI.DevTest.pfx");
+        AssertHasTypeReference(scriptSource, "Cert:\\CurrentUser\\My");
+        AssertHasTypeReference(scriptSource, "Cert:\\CurrentUser\\TrustedPeople");
+        AssertHasTypeReference(scriptSource, "Cert:\\CurrentUser\\Root");
     }
 
     [TestMethod]
@@ -195,6 +226,17 @@ public class Phase10CoreContractsBoundaryTests
     private static string NormalizePathSeparators(string source)
     {
         return source.Replace("\\\\", "\\");
+    }
+
+    private static string FindProjectGuid(string solutionSource, string projectName)
+    {
+        var match = Regex.Match(
+            solutionSource,
+            $@"Project\(\""\{{[^}}]+\}}\""\)\s*=\s*\""{Regex.Escape(projectName)}\"".*?,\s*\""\{{(?<guid>[^}}]+)\}}\""",
+            RegexOptions.Multiline);
+
+        Assert.IsTrue(match.Success, $"Could not find project guid for {projectName}.");
+        return $"{{{match.Groups["guid"].Value}}}";
     }
 
     private static string FindRepoRoot()

@@ -229,6 +229,8 @@ ClientBin/
 *.pfx
 *.publishsettings
 orleans.codegen.cs
+!Dev/Typedown.WinUI/Typedown.WinUI.DevTest.pfx
+!Dev/Typedown.WinUI/Typedown.WinUI.DevTest.cer
 
 # Including strong name files can present a security risk
 # (https://github.com/github/gitignore/pull/2483#issue-259490424)
