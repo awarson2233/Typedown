@@ -275,3 +275,9 @@ Debug_Local Resources\Statics\index.html: True
 
 第二批在 `Typedown.UI.Resources` 增加平台中立 legacy `.resw` 读取/索引层，当前只覆盖 `en`、`zh-Hans`、`zh-Hant` 的 `CommonResources`、`DialogResources`、`Resources`、`SettingsResources`。读取策略是运行时解析现有 `Dev/Typedown.Core/Resources/Strings` 下的 `.resw`，不复制 75 语言资源，不迁移 XAML `ResourceDictionary`、Style 或 Converter；索引过滤 `.resw` 模板样例 key，并支持未知 culture 与缺失 localized key 回退到 `en`。当前三种 culture 的四个目标 group key 集合一致，没有发现无法 1:1 承载的文本 key。
 补强测试覆盖 `en` / `zh-Hans` / `zh-Hant` 与四个资源 group 的 key count、key shape、模板 key 排除、DialogResources 真实 key、zh-Hant 差异文本、未知 culture fallback 和未知 key 返回 `null`。
+
+## Phase 13 settings/shortcut 契约状态
+
+settings/shortcut worker 在 `Typedown.Core.Contracts.Settings` 增加平台中立 DTO：`EditorShortcutModifierFlags`、`EditorShortcutKey`、`TypedownDefaultShortcuts`、`SettingsUiSnapshot`。默认快捷键快照来自 legacy `SettingsViewModel.Shortcut.cs` 的当前默认值，只保存 modifier flags 与稳定 virtual-key numeric code，不引用 `Windows.System.VirtualKey`、WinUI、XamlUI 或 legacy ViewModel。
+
+第三批 settings 契约只保留 legacy `SettingsViewModel` 中存在的单一设置属性和三组图片插入明细，不增加新聚合字段。`SettingsUiSnapshot` 不接入 `Config`、文件系统或旧持久化逻辑；JSON 字段通过 `JsonPropertyName` 锁定为 legacy camelCase 形状，包括 `editorAreaWidth`、`spellcheckEnabled`、`spellcheckLang`、`insertClipboardImageAction/copyPath/useUploadConfigId`、`insertLocalImageAction/copyPath/useUploadConfigId`、`insertWebImageAction/copyPath/useUploadConfigId`，不包含 `fontFamily` 或 `imageInsertStrategy`。
