@@ -1,0 +1,62 @@
+<Page
+    x:Class="Typedown.WinUI.Pages.SettingPages.ViewPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:toolkit="using:CommunityToolkit.WinUI.Controls">
+    <StackPanel Spacing="8">
+        <TextBlock Text="Window" Margin="0,0,0,4"/>
+        <toolkit:SettingsCard Header="App theme" Description="Choose the app color theme." IsActionIconVisible="False">
+            <toolkit:SettingsCard.HeaderIcon>
+                <FontIcon Glyph="&#xe790;"/>
+            </toolkit:SettingsCard.HeaderIcon>
+            <ComboBox MinWidth="200" SelectedIndex="0">
+                <ComboBoxItem Content="Use system setting"/>
+                <ComboBoxItem Content="Light"/>
+                <ComboBoxItem Content="Dark"/>
+            </ComboBox>
+        </toolkit:SettingsCard>
+        <toolkit:SettingsExpander Header="Mica material" Description="Use Windows 11 Mica where available.">
+            <toolkit:SettingsExpander.HeaderIcon>
+                <FontIcon Glyph="&#xf4a5;"/>
+            </toolkit:SettingsExpander.HeaderIcon>
+            <ToggleSwitch IsOn="True"/>
+            <toolkit:SettingsExpander.Items>
+                <toolkit:SettingsCard Header="Editor Mica" IsActionIconVisible="False">
+                    <ToggleSwitch IsOn="True"/>
+                </toolkit:SettingsCard>
+            </toolkit:SettingsExpander.Items>
+        </toolkit:SettingsExpander>
+        <toolkit:SettingsCard Header="Animation" Description="Enable navigation and panel animations." IsActionIconVisible="False">
+            <toolkit:SettingsCard.HeaderIcon>
+                <FontIcon Glyph="&#xe8be;"/>
+            </toolkit:SettingsCard.HeaderIcon>
+            <ToggleSwitch IsOn="True"/>
+        </toolkit:SettingsCard>
+        <toolkit:SettingsCard Header="Topmost" Description="Keep the window above other windows." IsActionIconVisible="False">
+            <toolkit:SettingsCard.HeaderIcon>
+                <FontIcon Glyph="&#xee40;"/>
+            </toolkit:SettingsCard.HeaderIcon>
+            <ToggleSwitch/>
+        </toolkit:SettingsCard>
+
+        <TextBlock Text="Layout" Margin="0,16,0,4"/>
+        <toolkit:SettingsCard Header="Compact mode" Description="Use a more compact app layout." IsActionIconVisible="False">
+            <toolkit:SettingsCard.HeaderIcon>
+                <FontIcon Glyph="&#xf246;"/>
+            </toolkit:SettingsCard.HeaderIcon>
+            <ToggleSwitch/>
+        </toolkit:SettingsCard>
+        <toolkit:SettingsCard Header="Status bar" Description="Show the status bar below the editor." IsActionIconVisible="False">
+            <toolkit:SettingsCard.HeaderIcon>
+                <FontIcon Glyph="&#xe90e;"/>
+            </toolkit:SettingsCard.HeaderIcon>
+            <ToggleSwitch IsOn="True"/>
+        </toolkit:SettingsCard>
+        <toolkit:SettingsCard Header="Side pane" Description="Show the file/search side pane." IsActionIconVisible="False">
+            <toolkit:SettingsCard.HeaderIcon>
+                <FontIcon Glyph="&#xea4b;"/>
+            </toolkit:SettingsCard.HeaderIcon>
+            <ToggleSwitch IsOn="True"/>
+        </toolkit:SettingsCard>
+    </StackPanel>
+</Page>

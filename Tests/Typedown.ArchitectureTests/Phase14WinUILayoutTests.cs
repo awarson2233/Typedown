@@ -8,26 +8,137 @@ public class Phase14WinUILayoutTests
     private static readonly string RepoRoot = FindRepoRoot();
 
     [TestMethod]
-    public void MainPageXaml_DefinesPhase14VisualShellRegions()
+    public void MainPageXaml_UsesCopiedLegacyMainPageVisualStructure()
     {
-        var source = File.ReadAllText(Path.Combine(RepoRoot, "Dev", "Typedown.WinUI", "Views", "MainPage.xaml"));
+        var winuiRoot = Path.Combine(RepoRoot, "Dev", "Typedown.WinUI");
+        var mainPage = File.ReadAllText(Path.Combine(winuiRoot, "Views", "MainPage.xaml"));
+        var copiedMainPage = File.ReadAllText(Path.Combine(winuiRoot, "LegacyCopied", "Pages", "MainPage.xaml"));
 
-        AssertContains(source, "x:Name=\"AppDocumentChrome\"");
-        AssertContains(source, "x:Name=\"PrimaryToolbar\"");
-        AssertContains(source, "x:Name=\"EditorShell\"");
-        AssertContains(source, "x:Name=\"MigrationStatusPanel\"");
-        AssertContains(source, "x:Name=\"BottomStatusBar\"");
-        AssertContains(source, "<controls:WinUIEditorHost");
-        AssertContains(source, "ItemsSource=\"{x:Bind ViewModel.Shell.CommandGroups, Mode=OneWay}\"");
-        AssertContains(source, "ItemsSource=\"{x:Bind ViewModel.Shell.StatusItems, Mode=OneWay}\"");
-        AssertContains(source, "<StackLayout Orientation=\"Horizontal\" />");
-        AssertContains(source, "Text=\"Phase 14 migration status\"");
-        AssertContains(source, "Text=\"Editor host\"");
+        AssertContains(mainPage, "<controls:MenuBar");
+        AssertContains(mainPage, "<controls:MainContent");
+        AssertContains(mainPage, "x:Name=\"MainContent\"");
+        AssertContains(mainPage, "Grid.Row=\"1\"");
+        AssertContains(mainPage, "<controls:StatusBar");
+        AssertContains(mainPage, "x:Class=\"Typedown.WinUI.Views.MainPage\"");
+        AssertContains(copiedMainPage, "<controls:MenuBar/>");
+        AssertContains(copiedMainPage, "<controls:MainContent Grid.Row=\"1\"/>");
+        AssertContains(copiedMainPage, "<controls:StatusBar");
+        AssertDoesNotContain(mainPage, "MigrationStatusPanel");
+        AssertDoesNotContain(mainPage, "Phase 14 migration status");
+    }
+
+    [TestMethod]
+    public void WinUICopiedLegacySources_AreStagedForIncrementalRepair()
+    {
+        var copiedRoot = Path.Combine(RepoRoot, "Dev", "Typedown.WinUI", "LegacyCopied");
+
+        Assert.IsTrue(File.Exists(Path.Combine(copiedRoot, "Controls", "RootControl.xaml")));
+        Assert.IsTrue(File.Exists(Path.Combine(copiedRoot, "Controls", "CaptionControls", "Caption.xaml")));
+        Assert.IsTrue(File.Exists(Path.Combine(copiedRoot, "Controls", "EditorControls", "MenuBar.xaml")));
+        Assert.IsTrue(File.Exists(Path.Combine(copiedRoot, "Controls", "EditorControls", "MainContent.xaml")));
+        Assert.IsTrue(File.Exists(Path.Combine(copiedRoot, "Controls", "EditorControls", "EditorContainer.xaml")));
+        Assert.IsTrue(File.Exists(Path.Combine(copiedRoot, "Controls", "EditorControls", "StatusBar.xaml")));
+    }
+
+    [TestMethod]
+    public void WinUIStartup_UsesCopiedRootControlShell()
+    {
+        var winuiRoot = Path.Combine(RepoRoot, "Dev", "Typedown.WinUI");
+        var app = File.ReadAllText(Path.Combine(winuiRoot, "App.xaml.cs"));
+        var project = File.ReadAllText(Path.Combine(winuiRoot, "Typedown.WinUI.csproj"));
+        var root = File.ReadAllText(Path.Combine(winuiRoot, "Controls", "RootControl.xaml"));
+        var rootCode = File.ReadAllText(Path.Combine(winuiRoot, "Controls", "RootControl.xaml.cs"));
+        var mainPage = File.ReadAllText(Path.Combine(winuiRoot, "Views", "MainPage.xaml"));
+
+        AssertContains(app, "RootControl");
+        AssertContains(app, "ConfigureNativeTitleBar(window)");
+        AssertContains(app, "targetWindow.ExtendsContentIntoTitleBar = true");
+        AssertContains(app, "targetWindow.SystemBackdrop = new MicaBackdrop()");
+        AssertContains(app, "targetWindow.AppWindow.TitleBar");
+        AssertContains(app, "window.SetTitleBar(rootControl.TitleBarElement)");
+        AssertContains(root, "x:Name=\"AppTitleBar\"");
+        AssertContains(root, "x:Name=\"TitleDragRegion\"");
+        AssertContains(root, "x:Name=\"BackButton\"");
+        AssertContains(root, "Width=\"32\"");
+        AssertContains(root, "Height=\"32\"");
+        AssertContains(root, "Style=\"{ThemeResource TitleBarBackButtonStyle}\"");
+        AssertContains(root, "Text=\"Typedown\"");
+        AssertContains(rootCode, "Frame.Navigate(typeof(Views.MainPage), MainPageNavigationParameter)");
+        AssertContains(rootCode, "public UIElement TitleBarElement => TitleDragRegion");
+        AssertContains(rootCode, "Frame.SourcePageType == typeof(Pages.SettingsPage)");
+        AssertContains(mainPage, "<controls:MenuBar");
+        AssertContains(root, "<local:GlobalFrame");
+        AssertDoesNotContain(root, "<local:Caption");
+        AssertDoesNotContain(project, "Controls\\RootControl.xaml");
+    }
+
+    [TestMethod]
+    public void RestoredVisualShell_DoesNotOverlayEditorOrLeftPaneByDefault()
+    {
+        var winuiRoot = Path.Combine(RepoRoot, "Dev", "Typedown.WinUI");
+        var app = File.ReadAllText(Path.Combine(winuiRoot, "App.xaml"));
+        var leftPane = File.ReadAllText(Path.Combine(winuiRoot, "Controls", "SidePaneControls", "LeftPane.xaml"));
+        var editorContainer = File.ReadAllText(Path.Combine(winuiRoot, "Controls", "EditorControls", "EditorContainer.xaml"));
+        var mainContent = File.ReadAllText(Path.Combine(winuiRoot, "Controls", "EditorControls", "MainContent.xaml"));
+        var editorHost = File.ReadAllText(Path.Combine(winuiRoot, "Controls", "WinUIEditorHost.cs"));
+        var project = File.ReadAllText(Path.Combine(winuiRoot, "Typedown.WinUI.csproj"));
+
+        AssertContains(app, "x:Key=\"TypedownEditorBackgroundBrush\"");
+        AssertContains(app, "#F9F9F9");
+        AssertContains(app, "#282828");
+        AssertContains(leftPane, "x:Load=\"{x:Bind IsSearchPaneOpen, Mode=OneWay}\"");
+        AssertContains(leftPane, "Background=\"{ThemeResource TypedownEditorBackgroundBrush}\"");
+        AssertContains(editorContainer, "x:Name=\"EditorInitErrorView\" x:Load=\"False\"");
+        AssertContains(editorContainer, "x:Load=\"{x:Bind IsFindReplaceLoad, Mode=OneWay}\"");
+        AssertContains(editorContainer, "Background=\"{ThemeResource TypedownEditorBackgroundBrush}\"");
+        AssertContains(mainContent, "<ColumnDefinition x:Name=\"LeftPaneColumn\" Width=\"300\"/>");
+        AssertContains(mainContent, "Background=\"{ThemeResource TypedownEditorBackgroundBrush}\"");
+        AssertContains(mainContent, "Value=\"{x:Bind local:MainContent.GetColumnWidthNegative(LeftPaneColumn.Width), Mode=OneWay}\"");
+        AssertContains(mainContent, "x:Load=\"{x:Bind IsLeftPaneLoad, Mode=OneWay}\"");
+        AssertContains(mainContent, "xmlns:toolkit=\"using:CommunityToolkit.WinUI.Controls\"");
+        AssertContains(mainContent, "<toolkit:GridSplitter");
+        AssertContains(mainContent, "ResizeDirection=\"Columns\"");
+        AssertContains(editorHost, "Content = webView;");
+        AssertContains(editorHost, "CreateCurrentThemePayload()");
+        AssertContains(editorHost, "ActualTheme == ElementTheme.Dark");
+        AssertContains(editorHost, "ApplyNativeEditorBackground(themePayload.Background)");
+        AssertContains(editorHost, "AddScriptToExecuteOnDocumentCreatedAsync(BuildInitialEditorBackgroundScript(themePayload.Background))");
+        AssertContains(editorHost, "document.documentElement.style.backgroundColor = color");
+        AssertContains(editorHost, "themeProvider: CreateCurrentThemePayload");
+        AssertContains(editorHost, "Opacity = 0");
+        AssertContains(editorHost, "webView.Opacity = 1");
+        AssertDoesNotContain(editorHost, "statusBorder");
+        AssertDoesNotContain(editorHost, "messageBorder");
+        AssertContains(project, "CommunityToolkit.WinUI.Controls.Sizers");
+    }
+
+    [TestMethod]
+    public void StatusBarSidePaneButton_ControlsMainContentSidePane()
+    {
+        var winuiRoot = Path.Combine(RepoRoot, "Dev", "Typedown.WinUI");
+        var statusBar = File.ReadAllText(Path.Combine(winuiRoot, "Controls", "EditorControls", "StatusBar.xaml"));
+        var statusBarCode = File.ReadAllText(Path.Combine(winuiRoot, "Controls", "EditorControls", "StatusBar.xaml.cs"));
+        var mainContentCode = File.ReadAllText(Path.Combine(winuiRoot, "Controls", "EditorControls", "MainContent.xaml.cs"));
+        var mainPageCode = File.ReadAllText(Path.Combine(winuiRoot, "Views", "MainPage.xaml.cs"));
+
+        AssertContains(statusBar, "x:Name=\"SidePaneToggleButton\"");
+        AssertContains(statusBar, "IsChecked=\"{x:Bind IsSidePaneOpen, Mode=TwoWay}\"");
+        AssertContains(statusBar, "Glyph=\"{x:Bind IsSidePaneOpen, Converter={StaticResource SidePaneIconConverter}, Mode=OneWay}\"");
+        AssertContains(statusBarCode, "public static readonly DependencyProperty IsSidePaneOpenProperty");
+        AssertContains(statusBarCode, "public event EventHandler<bool>? SidePaneOpenChanged");
+        AssertContains(mainContentCode, "public void SetSidePaneOpen(bool isOpen)");
+        AssertContains(mainPageCode, "StatusBar.SidePaneOpenChanged += OnStatusBarSidePaneOpenChanged");
+        AssertContains(mainPageCode, "MainContent.SetSidePaneOpen(isOpen)");
     }
 
     private static void AssertContains(string source, string snippet)
     {
         StringAssert.Contains(source, snippet);
+    }
+
+    private static void AssertDoesNotContain(string source, string snippet)
+    {
+        Assert.IsFalse(source.Contains(snippet, StringComparison.Ordinal), $"Did not expect to find snippet: {snippet}");
     }
 
     private static string FindRepoRoot()

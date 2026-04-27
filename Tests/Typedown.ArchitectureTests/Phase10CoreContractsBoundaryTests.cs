@@ -220,6 +220,7 @@ public class Phase10CoreContractsBoundaryTests
         var sourceFiles = Directory
             .EnumerateFiles(Path.Combine(RepoRoot, "Dev", "Typedown.WinUI"), "*.cs", SearchOption.AllDirectories)
             .Concat(Directory.EnumerateFiles(Path.Combine(RepoRoot, "Dev", "Typedown.WinUI"), "*.xaml", SearchOption.AllDirectories))
+            .Where(file => !file.Contains($"{Path.DirectorySeparatorChar}LegacyCopied{Path.DirectorySeparatorChar}", StringComparison.Ordinal))
             .ToArray();
 
         Assert.IsTrue(sourceFiles.Length > 0, "Expected WinUI source files.");
@@ -240,8 +241,9 @@ public class Phase10CoreContractsBoundaryTests
         var controllerPath = Path.Combine(RepoRoot, "Dev", "Typedown.WinUI", "Controls", "WinUIEditorHostController.cs");
         var adapterPath = Path.Combine(RepoRoot, "Dev", "Typedown.WinUI", "Controls", "WinUIEditorBridgeAdapter.cs");
         var sessionPath = Path.Combine(RepoRoot, "Dev", "Typedown.WinUI", "Controls", "WinUIEditorDocumentSession.cs");
+        var editorContainerPath = Path.Combine(RepoRoot, "Dev", "Typedown.WinUI", "Controls", "EditorControls", "EditorContainer.xaml.cs");
         var projectSource = File.ReadAllText(Path.Combine(RepoRoot, "Dev", "Typedown.WinUI", "Typedown.WinUI.csproj"));
-        var pageSource = File.ReadAllText(Path.Combine(RepoRoot, "Dev", "Typedown.WinUI", "Views", "MainPage.xaml"));
+        var editorContainerSource = File.ReadAllText(editorContainerPath);
         var hostSource = File.ReadAllText(hostPath);
         var controllerSource = File.ReadAllText(controllerPath);
         var adapterSource = File.ReadAllText(adapterPath);
@@ -251,6 +253,7 @@ public class Phase10CoreContractsBoundaryTests
         Assert.IsTrue(File.Exists(controllerPath), "Expected the Phase 11 WinUI editor host controller.");
         Assert.IsTrue(File.Exists(adapterPath), "Expected the Phase 11 WinUI editor bridge adapter.");
         Assert.IsTrue(File.Exists(sessionPath), "Expected the Phase 11 local editor document session.");
+        Assert.IsTrue(File.Exists(editorContainerPath), "Expected the copied visual editor container to host the Phase 11 WinUI editor host.");
         AssertHasTypeReference(hostSource, "WebView2");
         AssertHasTypeReference(hostSource, "WebMessageReceived");
         AssertHasTypeReference(hostSource, "PostWebMessageAsString");
@@ -279,7 +282,7 @@ public class Phase10CoreContractsBoundaryTests
         AssertHasTypeReference(hostSource, "AttachCoreWebView");
         AssertNoTypeReference(hostSource, "Task.Delay(250)");
         AssertHasTypeReference(projectSource, @"..\Typedown\Resources\Statics\**");
-        AssertHasTypeReference(pageSource, "WinUIEditorHost");
+        AssertHasTypeReference(editorContainerSource, "WinUIEditorHost");
         AssertHasTypeReference(sessionSource, "GetCurrentTheme");
         AssertHasTypeReference(sessionSource, "ContentLoaded");
         AssertHasTypeReference(sessionSource, "ExportCallback");
@@ -380,6 +383,7 @@ public class Phase10CoreContractsBoundaryTests
         var activationSource = File.ReadAllText(Path.Combine(RepoRoot, "Dev", "Typedown.WinUI", "Services", "WinUIAppActivationService.cs"));
         var platformSource = File.ReadAllText(Path.Combine(RepoRoot, "Dev", "Typedown.WinUI", "Services", "WinUIPlatformServices.cs"));
         var pageSource = File.ReadAllText(Path.Combine(RepoRoot, "Dev", "Typedown.WinUI", "Views", "MainPage.xaml.cs"));
+        var rootSource = File.ReadAllText(Path.Combine(RepoRoot, "Dev", "Typedown.WinUI", "Controls", "RootControl.xaml.cs"));
 
         AssertContainsInOrder(
             appSource,
@@ -387,8 +391,8 @@ public class Phase10CoreContractsBoundaryTests
             "uiServices ??= new ServiceCollection()",
             ".AddTypedownUI()",
             ".BuildServiceProvider();",
-            "platformServices.WindowContext.ViewRoot = rootFrame;",
-            "_ = rootFrame.Navigate(typeof(MainPage), new MainPageNavigationContext(platformServices, uiServices));",
+            "rootControl.MainPageNavigationParameter = new MainPageNavigationContext(platformServices, uiServices);",
+            "platformServices.WindowContext.ViewRoot = rootControl;",
             "platformServices.AppActivationService.StartListening(platformServices.UiDispatcher);",
             "_ = platformServices.AppActivationService.Activate(Environment.GetCommandLineArgs());");
 
@@ -413,6 +417,8 @@ public class Phase10CoreContractsBoundaryTests
             ": AppActivationKind.FirstLaunch;");
         AssertHasTypeReference(activationSource, "public void StartListening(IUiDispatcher dispatcher)");
         AssertHasTypeReference(appSource, "private sealed record MainPageNavigationContext");
+        AssertHasTypeReference(appSource, "RootControl");
+        AssertHasTypeReference(rootSource, "Frame.Navigate(typeof(Views.MainPage), MainPageNavigationParameter)");
         AssertHasTypeReference(pageSource, "MainPageViewModel");
     }
 

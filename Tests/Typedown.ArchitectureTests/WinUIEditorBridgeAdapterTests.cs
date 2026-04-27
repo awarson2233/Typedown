@@ -110,6 +110,10 @@ public class WinUIEditorBridgeAdapterTests
         Assert.AreEqual("ThemeChanged", theme.GetProperty("name").GetString());
         Assert.AreEqual("Dark", theme.GetProperty("args").GetProperty("theme").GetString());
         Assert.AreEqual(10, theme.GetProperty("args").GetProperty("accentColor").GetProperty("r").GetInt32());
+        Assert.AreEqual(40, theme.GetProperty("args").GetProperty("background").GetProperty("R").GetInt32());
+        Assert.AreEqual(50, theme.GetProperty("args").GetProperty("background").GetProperty("G").GetInt32());
+        Assert.AreEqual(60, theme.GetProperty("args").GetProperty("background").GetProperty("B").GetInt32());
+        Assert.AreEqual(1, theme.GetProperty("args").GetProperty("background").GetProperty("A").GetDouble());
         Assert.AreEqual("SettingsChanged", settings.GetProperty("name").GetString());
         Assert.IsTrue(settings.GetProperty("args").GetProperty("searchIsRegexp").GetBoolean());
         Assert.AreEqual("Export", export.GetProperty("name").GetString());

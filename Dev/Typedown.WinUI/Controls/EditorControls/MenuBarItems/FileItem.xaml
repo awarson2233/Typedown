@@ -1,0 +1,42 @@
+<local:MenuBarItemBase
+    Title="File"
+    AutomationProperties.AutomationId="MenuBarFileItem"
+    x:Class="Typedown.WinUI.Controls.FileItem"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:Typedown.WinUI.Controls"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:u="using:Typedown.WinUI.Controls"
+    Loaded="OnLoaded"
+    Unloaded="OnUnloaded"
+    mc:Ignorable="d">
+    <MenuFlyoutItem x:Name="NewFileItem" Text="New"/>
+    <MenuFlyoutItem x:Name="NewWindowItem" Text="NewWindow"/>
+    <MenuFlyoutSeparator/>
+    <MenuFlyoutItem x:Name="OpenFileItem" Text="Open"/>
+    <MenuFlyoutItem x:Name="OpenFolderItem" Text="OpenFolder"/>
+    <MenuFlyoutSubItem x:Name="OpenRecentSubMenu" Text="OpenRecent" Loaded="OnOpenRecentSubMenuLoaded">
+        <MenuFlyoutItem x:Name="NoRecentFilesItem" Text="NoRecentFiles" IsEnabled="False"/>
+        <MenuFlyoutSeparator/>
+        <MenuFlyoutItem x:Name="ClearRecentFilesItem" Text="ClearRecentFiles"/>
+    </MenuFlyoutSubItem>
+    <MenuFlyoutSeparator/>
+    <MenuFlyoutItem x:Name="SaveItem" Text="Save"/>
+    <MenuFlyoutItem x:Name="SaveAsItem" Text="SaveAs"/>
+    <MenuFlyoutSeparator/>
+    <MenuFlyoutItem Text="Import"/>
+    <MenuFlyoutSubItem x:Name="ExportSubMenu" Text="Export" Loaded="OnExportSubMenuLoaded">
+        <MenuFlyoutItem x:Name="NoExportConfigItem" Text="NoExportConfigs" IsEnabled="False"/>
+        <MenuFlyoutItem Text="PDF" CommandParameter="pdf"/>
+        <MenuFlyoutItem Text="HTML" CommandParameter="html"/>
+        <MenuFlyoutItem Text="TEXT" CommandParameter="text"/>
+        <MenuFlyoutSeparator/>
+        <MenuFlyoutItem x:Name="ExportSettingsItem" Text="ExportSettings" CommandParameter="Settings/Export"/>
+    </MenuFlyoutSubItem>
+    <MenuFlyoutItem x:Name="PrintItem" Text="Print"/>
+    <MenuFlyoutSeparator/>
+    <MenuFlyoutItem x:Name="SettingItem" Text="Settings" CommandParameter="Settings/General"/>
+    <MenuFlyoutSeparator/>
+    <MenuFlyoutItem x:Name="CloseItem" Text="Close"/>
+</local:MenuBarItemBase>

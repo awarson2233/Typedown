@@ -9,8 +9,22 @@
     mc:Ignorable="d">
     <Application.Resources>
         <ResourceDictionary>
+            <ResourceDictionary.ThemeDictionaries>
+                <ResourceDictionary x:Key="Light">
+                    <Color x:Key="TypedownEditorBackgroundColor">#F9F9F9</Color>
+                    <SolidColorBrush x:Key="TypedownEditorBackgroundBrush" Color="{StaticResource TypedownEditorBackgroundColor}" />
+                </ResourceDictionary>
+                <ResourceDictionary x:Key="Default">
+                    <Color x:Key="TypedownEditorBackgroundColor">#282828</Color>
+                    <SolidColorBrush x:Key="TypedownEditorBackgroundBrush" Color="{StaticResource TypedownEditorBackgroundColor}" />
+                </ResourceDictionary>
+                <ResourceDictionary x:Key="HighContrast">
+                    <SolidColorBrush x:Key="TypedownEditorBackgroundBrush" Color="{ThemeResource SystemColorWindowColor}" />
+                </ResourceDictionary>
+            </ResourceDictionary.ThemeDictionaries>
             <ResourceDictionary.MergedDictionaries>
                 <XamlControlsResources xmlns="using:Microsoft.UI.Xaml.Controls" />
+                <ResourceDictionary Source="ms-appx:///Resources/Styles/Button.xaml" />
                 <!-- Other merged dictionaries here -->
             </ResourceDictionary.MergedDictionaries>
             <!-- Phase 9 uses a minimal neutral shell; product UI moves later into Typedown.UI. -->

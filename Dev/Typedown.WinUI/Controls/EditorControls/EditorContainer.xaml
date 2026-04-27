@@ -1,0 +1,115 @@
+<UserControl
+    x:Class="Typedown.WinUI.Controls.EditorContainer"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:Typedown.WinUI.Controls"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:float="using:Typedown.WinUI.Controls"
+    xmlns:viewmodels="using:Typedown.UI.ViewModels"
+    xmlns:items="using:Typedown.WinUI.Controls"
+    xmlns:u="using:Typedown.WinUI.Controls"
+    d:DataContext="{d:DesignInstance Type=viewmodels:AppViewModel}"
+    mc:Ignorable="d"
+    x:Name="ThisControl"
+    Loaded="OnLoaded"
+    Unloaded="OnUnloaded"
+    d:DesignHeight="300"
+    d:DesignWidth="400">
+    <UserControl.Resources>
+        <ScaleTransform
+            x:Key="FindReplaceTransform"
+            x:Name="FindReplaceTransform"
+            CenterX="0"
+            CenterY="0"/>
+        <CircleEase x:Key="CircleEaseOut" EasingMode="EaseOut"/>
+        <CircleEase x:Key="CircleEaseIn" EasingMode="EaseIn"/>
+    </UserControl.Resources>
+    <Grid Background="{ThemeResource TypedownEditorBackgroundBrush}">
+        <VisualStateManager.VisualStateGroups>
+            <VisualStateGroup x:Name="FindReplaceStates">
+                <VisualStateGroup.Transitions>
+                    <VisualTransition To="FindReplaceVisible" GeneratedDuration="0:0:0.2">
+                        <VisualTransition.Storyboard>
+                            <Storyboard>
+                                <ObjectAnimationUsingKeyFrames Storyboard.TargetName="ThisControl" Storyboard.TargetProperty="IsFindReplaceLoad">
+                                    <DiscreteObjectKeyFrame KeyTime="0" Value="True"/>
+                                </ObjectAnimationUsingKeyFrames>
+                                <DoubleAnimationUsingKeyFrames Storyboard.TargetName="FindReplaceTransform" Storyboard.TargetProperty="ScaleX">
+                                    <DiscreteDoubleKeyFrame KeyTime="0" Value="0"/>
+                                    <EasingDoubleKeyFrame KeyTime="0:0:0.2" Value="1" EasingFunction="{StaticResource CircleEaseOut}"/>
+                                </DoubleAnimationUsingKeyFrames>
+                                <DoubleAnimationUsingKeyFrames Storyboard.TargetName="FindReplaceTransform" Storyboard.TargetProperty="ScaleY">
+                                    <DiscreteDoubleKeyFrame KeyTime="0" Value="0"/>
+                                    <EasingDoubleKeyFrame KeyTime="0:0:0.2" Value="1" EasingFunction="{StaticResource CircleEaseOut}"/>
+                                </DoubleAnimationUsingKeyFrames>
+                            </Storyboard>
+                        </VisualTransition.Storyboard>
+                    </VisualTransition>
+                    <VisualTransition To="FindReplaceCollapsed" GeneratedDuration="0:0:0.2">
+                        <VisualTransition.Storyboard>
+                            <Storyboard>
+                                <ObjectAnimationUsingKeyFrames Storyboard.TargetName="ThisControl" Storyboard.TargetProperty="IsFindReplaceLoad">
+                                    <DiscreteObjectKeyFrame KeyTime="0" Value="True"/>
+                                </ObjectAnimationUsingKeyFrames>
+                                <DoubleAnimationUsingKeyFrames Storyboard.TargetName="FindReplaceTransform" Storyboard.TargetProperty="ScaleX">
+                                    <DiscreteDoubleKeyFrame KeyTime="0" Value="1"/>
+                                    <EasingDoubleKeyFrame KeyTime="0:0:0.2" Value="0" EasingFunction="{StaticResource CircleEaseIn}"/>
+                                </DoubleAnimationUsingKeyFrames>
+                                <DoubleAnimationUsingKeyFrames Storyboard.TargetName="FindReplaceTransform" Storyboard.TargetProperty="ScaleY">
+                                    <DiscreteDoubleKeyFrame KeyTime="0" Value="1"/>
+                                    <EasingDoubleKeyFrame KeyTime="0:0:0.2" Value="0" EasingFunction="{StaticResource CircleEaseIn}"/>
+                                </DoubleAnimationUsingKeyFrames>
+                            </Storyboard>
+                        </VisualTransition.Storyboard>
+                    </VisualTransition>
+                </VisualStateGroup.Transitions>
+                <VisualState x:Name="FindReplaceVisible">
+                    <VisualState.Setters>
+                        <Setter Target="ThisControl.IsFindReplaceLoad" Value="True"/>
+                    </VisualState.Setters>
+                </VisualState>
+                <VisualState x:Name="FindReplaceCollapsed">
+                    <VisualState.Setters>
+                        <Setter Target="ThisControl.IsFindReplaceLoad" Value="False"/>
+                    </VisualState.Setters>
+                </VisualState>
+            </VisualStateGroup>
+        </VisualStateManager.VisualStateGroups>
+        <ContentPresenter x:Name="MarkdownEditorPresenter" AllowDrop="True" DragEnter="OnDragEnter" Drop="OnDrop"/>
+        <ScrollViewer x:Name="EditorInitErrorView" x:Load="False">
+            <StackPanel Margin="24" Spacing="8">
+                <TextBlock TextWrapping="Wrap" Text="EditorInitErrorMessage"/>
+                <HyperlinkButton Content="Microsoft WebView2 Runtime" NavigateUri="https://developer.microsoft.com/microsoft-edge/webview2/" Margin="-12,0,0,0"/>
+            </StackPanel>
+        </ScrollViewer>
+        <ScrollBar
+            x:Name="HorizontalScrollBar"
+            Orientation="Horizontal"
+            VerticalAlignment="Bottom"
+            IndicatorMode="MouseIndicator"
+            Scroll="OnScroll"
+            Visibility="Visible"
+            SmallChange="16"
+            LargeChange="100"
+            Value="0"
+            ViewportSize="100"
+            Maximum="0"/>
+        <ScrollBar
+            x:Name="VerticalScrollBar"
+            Orientation="Vertical"
+            HorizontalAlignment="Right"
+            IndicatorMode="MouseIndicator"
+            Scroll="OnScroll"
+            Visibility="Visible"
+            SmallChange="16"
+            LargeChange="100"
+            Value="0"
+            ViewportSize="100"
+            Maximum="0"/>
+        <float:FindReplace
+            x:Name="FindReplaceDialog"
+            x:Load="{x:Bind IsFindReplaceLoad, Mode=OneWay}"
+            RenderTransform="{StaticResource FindReplaceTransform}"/>
+    </Grid>
+</UserControl>

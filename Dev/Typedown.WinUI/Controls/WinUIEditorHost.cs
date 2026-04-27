@@ -1,4 +1,5 @@
 using System;
+using System.Globalization;
 using System.IO;
 using System.Text.Json;
 using Microsoft.UI.Xaml;
@@ -11,12 +12,13 @@ namespace Typedown.WinUI.Controls
     public sealed class WinUIEditorHost : UserControl
     {
         private readonly WebView2 webView;
-        private readonly TextBlock statusText;
-        private readonly TextBlock messageText;
+
         private readonly IEditorHostSink hostSink;
         private IEditorDocumentSession documentSession;
         private WinUIEditorHostController hostController;
         private WinUIEditorBridgeAdapter bridgeAdapter;
+        private string status;
+        private string latestRawWebMessage;
         private bool coreInitialized;
         private bool isLoaded;
         private bool coreEventsAttached;
@@ -24,36 +26,28 @@ namespace Typedown.WinUI.Controls
 
         public WinUIEditorHost()
         {
-            documentSession = new WinUIEditorDocumentSession();
             hostSink = new WinUIEditorHostSink(this);
+            documentSession = new WinUIEditorDocumentSession(themeProvider: CreateCurrentThemePayload);
             hostController = new WinUIEditorHostController(documentSession, hostSink);
             bridgeAdapter = new WinUIEditorBridgeAdapter(documentSession);
             webView = new WebView2
             {
                 HorizontalAlignment = HorizontalAlignment.Stretch,
+                Opacity = 0,
                 VerticalAlignment = VerticalAlignment.Stretch
             };
 
-            statusText = new TextBlock
-            {
-                Text = "Loaded=False; FileLoaded=False; MarkdownLength=0; LastEvent=Waiting",
-                TextWrapping = TextWrapping.Wrap
-            };
+            status = "Loaded=False; FileLoaded=False; MarkdownLength=0; LastEvent=Waiting";
+            latestRawWebMessage = bridgeAdapter.LastRawMessage;
 
-            messageText = new TextBlock
-            {
-                Text = bridgeAdapter.LastRawMessage,
-                TextWrapping = TextWrapping.Wrap
-            };
-
-            Content = BuildLayout();
+            Content = webView;
             Loaded += OnLoaded;
             Unloaded += OnUnloaded;
         }
 
-        public string Status => statusText.Text;
+        public string Status => status;
 
-        public string LatestRawWebMessage => messageText.Text;
+        public string LatestRawWebMessage => latestRawWebMessage;
 
         public string? InitialFilePath
         {
@@ -63,46 +57,6 @@ namespace Typedown.WinUI.Controls
 
         // Host entrypoints: LoadFile(), Save(), SaveAs().
 
-        private Grid BuildLayout()
-        {
-            var root = new Grid
-            {
-                RowSpacing = 12
-            };
-
-            root.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-            root.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
-            root.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-
-            var statusBorder = new Border
-            {
-                Background = new Microsoft.UI.Xaml.Media.SolidColorBrush(Windows.UI.Color.FromArgb(255, 244, 239, 229)),
-                BorderBrush = new Microsoft.UI.Xaml.Media.SolidColorBrush(Windows.UI.Color.FromArgb(255, 216, 203, 184)),
-                BorderThickness = new Thickness(1),
-                CornerRadius = new CornerRadius(10),
-                Padding = new Thickness(12),
-                Child = statusText
-            };
-
-            var messageBorder = new Border
-            {
-                Background = new Microsoft.UI.Xaml.Media.SolidColorBrush(Windows.UI.Color.FromArgb(255, 25, 54, 59)),
-                CornerRadius = new CornerRadius(10),
-                Padding = new Thickness(12),
-                Child = messageText
-            };
-            messageText.Foreground = new Microsoft.UI.Xaml.Media.SolidColorBrush(Windows.UI.Color.FromArgb(255, 255, 255, 255));
-
-            Grid.SetRow(statusBorder, 0);
-            Grid.SetRow(webView, 1);
-            Grid.SetRow(messageBorder, 2);
-
-            root.Children.Add(statusBorder);
-            root.Children.Add(webView);
-            root.Children.Add(messageBorder);
-            return root;
-        }
-
         private async void OnLoaded(object sender, RoutedEventArgs e)
         {
             isLoaded = true;
@@ -111,12 +65,15 @@ namespace Typedown.WinUI.Controls
             var editorIndex = ResolveEditorIndexPath();
             if (editorIndex is null)
             {
-                statusText.Text = "Editor static bundle is missing. Run yarn build in Dev\\Typedown.Editor to generate Dev\\Typedown\\Resources\\Statics\\index.html.";
+                status = "Editor static bundle is missing. Run yarn build in Dev\\Typedown.Editor to generate Dev\\Typedown\\Resources\\Statics\\index.html.";
                 return;
             }
 
             try
             {
+                var themePayload = CreateCurrentThemePayload();
+                ApplyNativeEditorBackground(themePayload.Background);
+
                 if (!coreInitialized)
                 {
                     await webView.EnsureCoreWebView2Async();
@@ -126,10 +83,11 @@ namespace Typedown.WinUI.Controls
                     }
 
                     coreInitialized = true;
+                    await webView.CoreWebView2.AddScriptToExecuteOnDocumentCreatedAsync(BuildInitialEditorBackgroundScript(themePayload.Background));
                 }
 
                 AttachCoreWebView();
-                documentSession = new WinUIEditorDocumentSession(basePath: ResolveBasePath(editorIndex));
+                documentSession = new WinUIEditorDocumentSession(basePath: ResolveBasePath(editorIndex), themeProvider: CreateCurrentThemePayload);
                 hostController = new WinUIEditorHostController(documentSession, hostSink)
                 {
                     InitialFilePath = InitialFilePath
@@ -142,11 +100,11 @@ namespace Typedown.WinUI.Controls
                     var loadResult = hostController.LoadFile(InitialFilePath);
                     if (!loadResult.Success)
                     {
-                        statusText.Text = $"Initial file load failed: {loadResult.Message}";
+                        status = $"Initial file load failed: {loadResult.Message}";
                     }
                 }
-                statusText.Text = bridgeAdapter.StatusText;
-                messageText.Text = bridgeAdapter.LastRawMessage;
+                status = bridgeAdapter.StatusText;
+                latestRawWebMessage = bridgeAdapter.LastRawMessage;
 
                 webView.CoreWebView2.Settings.AreDefaultContextMenusEnabled = false;
                 webView.CoreWebView2.Settings.AreBrowserAcceleratorKeysEnabled = false;
@@ -154,12 +112,13 @@ namespace Typedown.WinUI.Controls
                 webView.CoreWebView2.Settings.IsBuiltInErrorPageEnabled = false;
                 webView.CoreWebView2.Settings.IsStatusBarEnabled = false;
                 webView.CoreWebView2.Settings.IsZoomControlEnabled = false;
+                webView.Opacity = 0;
                 webView.CoreWebView2.Navigate(new Uri(editorIndex).AbsoluteUri);
-                statusText.Text = $"Editor host navigating to {editorIndex}";
+                status = $"Editor host navigating to {editorIndex}";
             }
             catch (Exception ex)
             {
-                statusText.Text = $"WebView2 initialization failed: {ex.GetType().Name}: {ex.Message}";
+                status = $"WebView2 initialization failed: {ex.GetType().Name}: {ex.Message}";
             }
         }
 
@@ -174,11 +133,12 @@ namespace Typedown.WinUI.Controls
         {
             var wasContentLoaded = bridgeAdapter.IsContentLoaded;
             bridgeAdapter.Receive(e.TryGetWebMessageAsString(), SendRawMessage);
-            statusText.Text = bridgeAdapter.StatusText;
-            messageText.Text = bridgeAdapter.LastRawMessage;
+            status = bridgeAdapter.StatusText;
+            latestRawWebMessage = bridgeAdapter.LastRawMessage;
 
             if (!wasContentLoaded && bridgeAdapter.IsContentLoaded)
             {
+                webView.Opacity = 1;
                 hostController.MarkEditorReady();
                 TrySendPendingLoadFile();
             }
@@ -193,11 +153,12 @@ namespace Typedown.WinUI.Controls
 
             if (!e.IsSuccess)
             {
-                statusText.Text = $"Editor navigation failed: {e.WebErrorStatus}";
+                webView.Opacity = 1;
+                status = $"Editor navigation failed: {e.WebErrorStatus}";
                 return;
             }
 
-            statusText.Text = "Editor static bundle loaded. Bridge smoke message sent from WinUI host.";
+            status = "Editor static bundle loaded. Bridge smoke message sent from WinUI host.";
             var payload = JsonSerializer.Serialize(new
             {
                 name = "WinUIHostReady",
@@ -216,6 +177,58 @@ namespace Typedown.WinUI.Controls
         {
             var payload = JsonSerializer.Serialize(new { name, args });
             return SendRawMessage(payload);
+        }
+
+        private EditorThemePayload CreateCurrentThemePayload()
+        {
+            var isDark = ActualTheme == ElementTheme.Dark;
+            var background = isDark
+                ? new EditorColorPayload(40, 40, 40, 1)
+                : new EditorColorPayload(249, 249, 249, 1);
+
+            return new EditorThemePayload
+            {
+                Theme = isDark ? "Dark" : "Light",
+                AccentColor = new EditorColorPayload(27, 102, 107, 1),
+                Background = background
+            };
+        }
+
+        private void ApplyNativeEditorBackground(EditorColorPayload background)
+        {
+            webView.DefaultBackgroundColor = Windows.UI.Color.FromArgb(
+                ToByte(background.A * 255),
+                ToByte(background.R),
+                ToByte(background.G),
+                ToByte(background.B));
+        }
+
+        private static string BuildInitialEditorBackgroundScript(EditorColorPayload background)
+        {
+            var color = string.Create(
+                CultureInfo.InvariantCulture,
+                $"rgba({background.R}, {background.G}, {background.B}, {background.A})");
+
+            return string.Create(
+                CultureInfo.InvariantCulture,
+                $$"""
+                (() => {
+                    const color = '{{color}}';
+                    const apply = () => {
+                        document.documentElement.style.backgroundColor = color;
+                        if (document.body) {
+                            document.body.style.backgroundColor = color;
+                        }
+                    };
+                    apply();
+                    document.addEventListener('DOMContentLoaded', apply, { once: true });
+                })();
+                """);
+        }
+
+        private static byte ToByte(double value)
+        {
+            return (byte)Math.Clamp((int)Math.Round(value), 0, 255);
         }
 
         private void AttachCoreWebView()
@@ -258,7 +271,7 @@ namespace Typedown.WinUI.Controls
             var result = hostController.LoadFile(filePath);
             if (!result.Success)
             {
-                statusText.Text = $"LoadFile failed: {result.Message}";
+                status = $"LoadFile failed: {result.Message}";
             }
 
             return result;
@@ -269,7 +282,7 @@ namespace Typedown.WinUI.Controls
             var result = hostController.Save();
             if (!result.Success)
             {
-                statusText.Text = $"Save failed: {result.Message}";
+                status = $"Save failed: {result.Message}";
             }
 
             return result;
@@ -285,7 +298,7 @@ namespace Typedown.WinUI.Controls
 
             if (!result.Success)
             {
-                statusText.Text = $"SaveAs failed: {result.Message}";
+                status = $"SaveAs failed: {result.Message}";
             }
 
             return result;

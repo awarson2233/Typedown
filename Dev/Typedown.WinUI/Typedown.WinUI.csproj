@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="UTF-8" ?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project Sdk="Microsoft.NET.Sdk">
     <PropertyGroup>
         <TargetFramework>net9.0-windows10.0.26100.0</TargetFramework>
@@ -28,7 +28,7 @@
         <UseRidGraph>true</UseRidGraph>
         <Platforms>x64</Platforms>
         <ApplicationManifest>app.manifest</ApplicationManifest>
-        <RuntimeIdentifiers Condition="$([MSBuild]::GetTargetFrameworkVersion('$(TargetFramework)')) >= 8">win-x64</RuntimeIdentifiers>
+        <RuntimeIdentifiers Condition="$([MSBuild]::GetTargetFrameworkVersion('$(TargetFramework)')) &gt;= 8">win-x64</RuntimeIdentifiers>
         <RuntimeIdentifiers Condition="$([MSBuild]::GetTargetFrameworkVersion('$(TargetFramework)')) &lt; 8">win10-x64</RuntimeIdentifiers>
     </PropertyGroup>
 
@@ -45,16 +45,14 @@
         <Content Include="Assets\Square44x44Logo.targetsize-24_altform-unplated.png" />
         <Content Include="Assets\StoreLogo.png" />
         <Content Include="Assets\Wide310x150Logo.scale-200.png" />
-        <Content Include="..\Typedown\Resources\Statics\**\*"
-                 CopyToOutputDirectory="Always"
-                 CopyToPublishDirectory="Always"
-                 Link="Resources\Statics\%(RecursiveDir)%(Filename)%(Extension)"
-                 TargetPath="Resources\Statics\%(RecursiveDir)%(Filename)%(Extension)" />
+        <Content Include="..\Typedown\Resources\Statics\**\*" CopyToOutputDirectory="Always" CopyToPublishDirectory="Always" Link="Resources\Statics\%(RecursiveDir)%(Filename)%(Extension)" TargetPath="Resources\Statics\%(RecursiveDir)%(Filename)%(Extension)" />
     </ItemGroup>
 
     <ItemGroup>
+        <PackageReference Include="CommunityToolkit.WinUI.Controls.SettingsControls" Version="8.2.251219" />
         <ProjectReference Include="..\\Typedown.Core.Contracts\\Typedown.Core.Contracts.csproj" />
         <ProjectReference Include="..\Typedown.UI\Typedown.UI.csproj" />
+        <PackageReference Include="CommunityToolkit.WinUI.Controls.Sizers" Version="8.2.251219" />
         <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="9.0.8" />
         <PackageReference Include="Microsoft.WindowsAppSDK" Version="1.8.260416003" />
         <PackageReference Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.26100.7705" />
@@ -62,27 +60,25 @@
         <Manifest Include="$(ApplicationManifest)" />
     </ItemGroup>
 
-    <!-- 
+    <!--
         Defining the "Msix" ProjectCapability here allows the Single-project MSIX Packaging
         Tools extension to be activated for this project even if the Windows App SDK Nuget
         package has not yet been restored.
     -->
     <ItemGroup Condition="'$(DisableMsixProjectCapabilityAddedByProject)'!='true' and '$(EnableMsixTooling)'=='true'">
-        <ProjectCapability Include="Msix"/>
+        <ProjectCapability Include="Msix" />
     </ItemGroup>
 
-    <!-- 
-        Defining the "HasPackageAndPublishMenuAddedByProject" property here allows the Solution 
-        Explorer "Package and Publish" context menu entry to be enabled for this project even if 
+    <!--
+        Defining the "HasPackageAndPublishMenuAddedByProject" property here allows the Solution
+        Explorer "Package and Publish" context menu entry to be enabled for this project even if
         the Windows App SDK Nuget package has not yet been restored.
     -->
     <PropertyGroup Condition="'$(DisableHasPackageAndPublishMenuAddedByProject)'!='true' and '$(EnableMsixTooling)'=='true'">
         <HasPackageAndPublishMenu>true</HasPackageAndPublishMenu>
     </PropertyGroup>
 
-    <Target Name="AddEditorStaticBundleToPackagingOutputs"
-            AfterTargets="GetPackagingOutputs"
-            BeforeTargets="_ComputeAppxPackagePayload">
+    <Target Name="AddEditorStaticBundleToPackagingOutputs" AfterTargets="GetPackagingOutputs" BeforeTargets="_ComputeAppxPackagePayload">
         <ItemGroup>
             <_EditorStaticBundleForPackaging Include="..\Typedown\Resources\Statics\**\*" />
             <PackagingOutputs Include="@(_EditorStaticBundleForPackaging)">
@@ -92,4 +88,37 @@
             </PackagingOutputs>
         </ItemGroup>
     </Target>
+
+    <ItemGroup>
+        <Page Remove="LegacyCopied\**\*.xaml" />
+        <Page Remove="Controls\EditorControls\MenuBarItems\*.xaml" />
+        <Page Remove="Controls\EditorControls\ContextMenuItems\*.xaml" />
+        <Page Remove="Controls\FloatControls\FindReplace.xaml" />
+        <Page Remove="Controls\SettingControls\AboutApp.xaml" />
+        <Page Remove="Controls\SettingControls\SettingItems\**\*.xaml" />
+        <Page Remove="Pages\SettingPages\ExportConfigPage.xaml" />
+        <Page Remove="Pages\SettingPages\ImageUploadPage.xaml" />
+        <Page Remove="Pages\SettingPages\ShortcutPage.xaml" />
+        <Page Remove="Pages\SettingPages\UploadConfigPage.xaml" />
+        <Compile Remove="Controls\SettingControls\SettingItems\**\*.cs" />
+        <Compile Remove="Controls\SettingControls\AboutApp.xaml.cs" />
+        <Compile Remove="Pages\SettingPages\ExportConfigPage.xaml.cs" />
+        <Compile Remove="Pages\SettingPages\ImageUploadPage.xaml.cs" />
+        <Compile Remove="Pages\SettingPages\ShortcutPage.xaml.cs" />
+        <Compile Remove="Pages\SettingPages\UploadConfigPage.xaml.cs" />
+        <ApplicationDefinition Remove="LegacyCopied\**\*.xaml" />
+        <None Include="LegacyCopied\**\*.xaml" />
+        <None Include="Controls\SettingControls\SettingItems\**\*.xaml" />
+        <None Include="Controls\SettingControls\SettingItems\**\*.cs" />
+        <None Include="Controls\SettingControls\AboutApp.xaml" />
+        <None Include="Controls\SettingControls\AboutApp.xaml.cs" />
+        <None Include="Pages\SettingPages\ExportConfigPage.xaml" />
+        <None Include="Pages\SettingPages\ExportConfigPage.xaml.cs" />
+        <None Include="Pages\SettingPages\ImageUploadPage.xaml" />
+        <None Include="Pages\SettingPages\ImageUploadPage.xaml.cs" />
+        <None Include="Pages\SettingPages\ShortcutPage.xaml" />
+        <None Include="Pages\SettingPages\ShortcutPage.xaml.cs" />
+        <None Include="Pages\SettingPages\UploadConfigPage.xaml" />
+        <None Include="Pages\SettingPages\UploadConfigPage.xaml.cs" />
+    </ItemGroup>
 </Project>

@@ -1,6 +1,8 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml.Navigation;
+using Microsoft.UI.Xaml.Media;
 using Typedown.UI.Composition;
+using Typedown.WinUI.Controls;
 using Typedown.WinUI.Services;
 using Typedown.WinUI.Views;
 
@@ -36,20 +38,34 @@ namespace Typedown.WinUI
             uiServices ??= new ServiceCollection()
                 .AddTypedownUI()
                 .BuildServiceProvider();
-            platformServices.WindowContext.Title = "Typedown WinUI3 Phase 10b Platform Services";
+            platformServices.WindowContext.Title = "Typedown";
+            ConfigureNativeTitleBar(window);
 
-            if (window.Content is not Frame rootFrame)
+            if (window.Content is not RootControl rootControl)
             {
-                rootFrame = new Frame();
-                rootFrame.NavigationFailed += OnNavigationFailed;
-                window.Content = rootFrame;
+                rootControl = new RootControl();
+                window.Content = rootControl;
+                window.SetTitleBar(rootControl.TitleBarElement);
             }
 
-            platformServices.WindowContext.ViewRoot = rootFrame;
-            _ = rootFrame.Navigate(typeof(MainPage), new MainPageNavigationContext(platformServices, uiServices));
+            rootControl.MainPageNavigationParameter = new MainPageNavigationContext(platformServices, uiServices);
+            platformServices.WindowContext.ViewRoot = rootControl;
             platformServices.AppActivationService.StartListening(platformServices.UiDispatcher);
             _ = platformServices.AppActivationService.Activate(Environment.GetCommandLineArgs());
             platformServices.WindowContext.Activate();
+        }
+
+        private static void ConfigureNativeTitleBar(Window targetWindow)
+        {
+            targetWindow.ExtendsContentIntoTitleBar = true;
+            targetWindow.SystemBackdrop = new MicaBackdrop();
+
+            var titleBar = targetWindow.AppWindow.TitleBar;
+            titleBar.ExtendsContentIntoTitleBar = true;
+            titleBar.ButtonBackgroundColor = Microsoft.UI.Colors.Transparent;
+            titleBar.ButtonInactiveBackgroundColor = Microsoft.UI.Colors.Transparent;
+            titleBar.ButtonHoverBackgroundColor = Microsoft.UI.ColorHelper.FromArgb(32, 128, 128, 128);
+            titleBar.ButtonPressedBackgroundColor = Microsoft.UI.ColorHelper.FromArgb(48, 128, 128, 128);
         }
 
         internal WinUIPlatformServices PlatformServices => platformServices ?? throw new InvalidOperationException("Platform services are not initialized.");

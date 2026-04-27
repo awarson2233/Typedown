@@ -1,0 +1,25 @@
+<local:MenuBarItemBase
+    Title="Format"
+    x:Class="Typedown.WinUI.Controls.FormatItem"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:Typedown.WinUI.Controls"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:u="using:Typedown.WinUI.Controls"
+    Unloaded="OnUnloaded"
+    mc:Ignorable="d">
+    <ToggleMenuFlyoutItem x:Name="StrongItem" Text="Strong" CommandParameter="strong" IsEnabled="True" IsChecked="False"/>
+    <ToggleMenuFlyoutItem x:Name="EmphasisItem" Text="Emphasis" CommandParameter="em" IsEnabled="True" IsChecked="False"/>
+    <ToggleMenuFlyoutItem x:Name="UnderlineItem" Text="Underline" CommandParameter="u" IsEnabled="True" IsChecked="False"/>
+    <ToggleMenuFlyoutItem x:Name="InlineCodeItem" Text="InlineCode" CommandParameter="inline_code" IsEnabled="True" IsChecked="False"/>
+    <ToggleMenuFlyoutItem x:Name="InlineMathItem" Text="InlineMath" CommandParameter="inline_math" IsEnabled="True" IsChecked="False"/>
+    <MenuFlyoutSeparator/>
+    <ToggleMenuFlyoutItem x:Name="StrikethroughItem" Text="Strikethrough" CommandParameter="del" IsEnabled="True" IsChecked="False"/>
+    <ToggleMenuFlyoutItem x:Name="HighlightItem" Text="Highlight" CommandParameter="mark" IsChecked="False" IsEnabled="True"/>
+    <MenuFlyoutSeparator/>
+    <ToggleMenuFlyoutItem x:Name="HyperlinkItem" Text="Hyperlink" CommandParameter="link" IsEnabled="True" IsChecked="False"/>
+    <ToggleMenuFlyoutItem x:Name="ImageItem" Text="Image" CommandParameter="image" IsEnabled="True" IsChecked="False"/>
+    <MenuFlyoutSeparator/>
+    <MenuFlyoutItem x:Name="ClearFormatItem" Text="ClearFormat" CommandParameter="clear" IsEnabled="True"/>
+</local:MenuBarItemBase>

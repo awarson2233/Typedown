@@ -1,0 +1,51 @@
+<Page
+    x:Class="Typedown.WinUI.Pages.SettingPages.EditorPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:toolkit="using:CommunityToolkit.WinUI.Controls">
+    <StackPanel Spacing="8">
+        <TextBlock Text="Style" Margin="0,0,0,4"/>
+        <toolkit:SettingsCard Header="Font size" Description="Editor text font size." IsActionIconVisible="False">
+            <toolkit:SettingsCard.HeaderIcon>
+                <FontIcon Glyph="&#xe8e9;"/>
+            </toolkit:SettingsCard.HeaderIcon>
+            <NumberBox MinWidth="200" SpinButtonPlacementMode="Inline" SmallChange="1" Value="16"/>
+        </toolkit:SettingsCard>
+        <toolkit:SettingsCard Header="Line height" Description="Editor line height scale." IsActionIconVisible="False">
+            <toolkit:SettingsCard.HeaderIcon>
+                <FontIcon Glyph="&#xe94e;"/>
+            </toolkit:SettingsCard.HeaderIcon>
+            <NumberBox MinWidth="200" SpinButtonPlacementMode="Inline" SmallChange="0.1" Value="1.6"/>
+        </toolkit:SettingsCard>
+        <toolkit:SettingsCard Header="Editor area width" Description="Maximum editor content width." IsActionIconVisible="False">
+            <toolkit:SettingsCard.HeaderIcon>
+                <FontIcon Glyph="&#xe9a6;"/>
+            </toolkit:SettingsCard.HeaderIcon>
+            <TextBox MinWidth="200" Text="800"/>
+        </toolkit:SettingsCard>
+        <toolkit:SettingsCard Header="Tab size" Description="Number of spaces inserted by Tab." IsActionIconVisible="False">
+            <toolkit:SettingsCard.HeaderIcon>
+                <FontIcon Glyph="&#xede1;"/>
+            </toolkit:SettingsCard.HeaderIcon>
+            <NumberBox MinWidth="200" SpinButtonPlacementMode="Inline" Value="4"/>
+        </toolkit:SettingsCard>
+        <toolkit:SettingsCard Header="Auto pair quote" Description="Automatically insert closing quotes." IsActionIconVisible="False">
+            <toolkit:SettingsCard.HeaderIcon>
+                <FontIcon Glyph="&#xe9b1;"/>
+            </toolkit:SettingsCard.HeaderIcon>
+            <ToggleSwitch IsOn="True"/>
+        </toolkit:SettingsCard>
+        <toolkit:SettingsCard Header="Auto pair bracket" Description="Automatically insert closing brackets." IsActionIconVisible="False">
+            <toolkit:SettingsCard.HeaderIcon>
+                <FontIcon Glyph=""/>
+            </toolkit:SettingsCard.HeaderIcon>
+            <ToggleSwitch IsOn="True"/>
+        </toolkit:SettingsCard>
+        <toolkit:SettingsCard Header="Auto pair Markdown syntax" Description="Automatically complete Markdown formatting marks." IsActionIconVisible="False">
+            <toolkit:SettingsCard.HeaderIcon>
+                <FontIcon Glyph="&#xe943;"/>
+            </toolkit:SettingsCard.HeaderIcon>
+            <ToggleSwitch IsOn="True"/>
+        </toolkit:SettingsCard>
+    </StackPanel>
+</Page>

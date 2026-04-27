@@ -1,0 +1,26 @@
+<Page
+    x:Class="Typedown.WinUI.Pages.SettingPages.ExportPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:toolkit="using:CommunityToolkit.WinUI.Controls">
+    <StackPanel Spacing="8">
+        <TextBlock Text="General" Margin="0,0,0,4"/>
+        <toolkit:SettingsCard Header="Open folder after export" Description="Open the target folder when export completes." IsActionIconVisible="False">
+            <toolkit:SettingsCard.HeaderIcon>
+                <FontIcon Glyph="&#xed25;"/>
+            </toolkit:SettingsCard.HeaderIcon>
+            <ToggleSwitch IsOn="True"/>
+        </toolkit:SettingsCard>
+        <toolkit:SettingsCard Header="Add config" Description="Create a new export configuration." IsActionIconVisible="False">
+            <toolkit:SettingsCard.HeaderIcon>
+                <FontIcon Glyph="&#xed0e;"/>
+            </toolkit:SettingsCard.HeaderIcon>
+            <Button MinWidth="120" Content="Add"/>
+        </toolkit:SettingsCard>
+
+        <TextBlock Text="Configs" Margin="0,16,0,4"/>
+        <toolkit:SettingsCard Header="HTML" Description="Export the current document as HTML." IsClickEnabled="True"/>
+        <toolkit:SettingsCard Header="PDF" Description="Export the current document as PDF." IsClickEnabled="True"/>
+        <toolkit:SettingsCard Header="Image" Description="Export the current document as an image." IsClickEnabled="True"/>
+    </StackPanel>
+</Page>

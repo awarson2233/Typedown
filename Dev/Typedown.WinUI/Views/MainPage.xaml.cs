@@ -1,4 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.UI.Xaml.Media;
+using Microsoft.UI.Xaml.Media.Animation;
 using Microsoft.UI.Xaml.Navigation;
 using Typedown.UI.ViewModels;
 using Typedown.WinUI.Services;
@@ -13,6 +15,35 @@ namespace Typedown.WinUI.Views
         {
             this.InitializeComponent();
             ViewModel = new MainPageViewModel();
+            MenuBar.NavigateRequested += OnMenuBarNavigateRequested;
+            StatusBar.SidePaneOpenChanged += OnStatusBarSidePaneOpenChanged;
+            StatusBar.SetSidePaneOpen(MainContent.IsSidePaneOpen);
+        }
+
+        private void OnUnloaded(object sender, RoutedEventArgs e)
+        {
+            MenuBar.NavigateRequested -= OnMenuBarNavigateRequested;
+            StatusBar.SidePaneOpenChanged -= OnStatusBarSidePaneOpenChanged;
+        }
+
+        private void OnStatusBarSidePaneOpenChanged(object? sender, bool isOpen)
+        {
+            MainContent.SetSidePaneOpen(isOpen);
+        }
+
+        private void OnMenuBarNavigateRequested(object? sender, string route)
+        {
+            if (FindParentFrame(this) is not { } frame)
+            {
+                return;
+            }
+
+            var parts = route.Split('/', StringSplitOptions.RemoveEmptyEntries);
+            var pageName = parts.Length > 1 ? parts[1] : "General";
+            frame.Navigate(typeof(Pages.SettingsPage), pageName, new SlideNavigationTransitionInfo
+            {
+                Effect = SlideNavigationTransitionEffect.FromRight
+            });
         }
 
         protected override void OnNavigatedTo(NavigationEventArgs e)
@@ -24,7 +55,6 @@ namespace Typedown.WinUI.Views
             ViewModel.ApplyPlatformServiceSummary(
                 Phase10ContractsProbe.Describe(services),
                 services.ServiceNames);
-            Bindings.Update();
         }
 
         private static WinUIPlatformServices ResolvePlatformServices(object? parameter)
@@ -40,6 +70,19 @@ namespace Typedown.WinUI.Views
             var providerProperty = parameter?.GetType().GetProperty("UiServices");
             var provider = providerProperty?.GetValue(parameter) as IServiceProvider;
             return provider?.GetService<MainPageViewModel>() ?? new MainPageViewModel();
+        }
+
+        private static Frame? FindParentFrame(DependencyObject element)
+        {
+            for (var current = VisualTreeHelper.GetParent(element); current != null; current = VisualTreeHelper.GetParent(current))
+            {
+                if (current is Frame frame)
+                {
+                    return frame;
+                }
+            }
+
+            return null;
         }
     }
 }

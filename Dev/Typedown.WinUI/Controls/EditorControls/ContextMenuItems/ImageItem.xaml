@@ -1,0 +1,22 @@
+<controls:MenuItemCollection
+    xmlns:controls="using:Typedown.WinUI.Controls"
+    x:Class="Typedown.WinUI.Controls.ImageItem"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:Typedown.WinUI.Controls"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:u="using:Typedown.WinUI.Controls"
+    xmlns:viewmodels="using:Typedown.UI.ViewModels"
+    mc:Ignorable="d">
+    <MenuFlyoutItem x:Name="OpenImageLocationItem" Text="OpenImageLocation" Click="OnOpenImageLocationClick" Loaded="OnOpenImageLocationItemLoaded"/>
+    <MenuFlyoutItem Text="CopyImageTo" Click="OnCopyImageToClick"/>
+    <MenuFlyoutItem x:Name="MoveImageItem" Text="MoveImageTo" Click="OnMoveImageToClick"/>
+    <MenuFlyoutSubItem x:Name="UploadSubMenu" Text="UploadImage">
+        <MenuFlyoutItem x:Name="NoUploadConfigItem" Text="NoImageUploadConfiguration" IsEnabled="False"/>
+        <MenuFlyoutSeparator/>
+        <MenuFlyoutItem Text="ImageUploadSettings" Click="OnImageUploadSettingsClick"/>
+    </MenuFlyoutSubItem>
+    <MenuFlyoutItem Text="SaveImageAs" Click="OnSaveImageClick"/>
+    <MenuFlyoutItem x:Name="DeleteImageItem" Text="DeleteImageFile" Click="OnDeleteImageFileClick"/>
+</controls:MenuItemCollection>

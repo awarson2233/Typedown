@@ -8,8 +8,15 @@ namespace Typedown.WinUI.Controls
 {
     internal sealed class WinUIEditorDocumentSession : IEditorDocumentSession
     {
-        public WinUIEditorDocumentSession(string? initialMarkdown = null, string? basePath = null, string? filePath = null)
+        private readonly Func<EditorThemePayload> themeProvider;
+
+        public WinUIEditorDocumentSession(
+            string? initialMarkdown = null,
+            string? basePath = null,
+            string? filePath = null,
+            Func<EditorThemePayload>? themeProvider = null)
         {
+            this.themeProvider = themeProvider ?? CreateDefaultThemePayload;
             var seedMarkdown = string.IsNullOrWhiteSpace(initialMarkdown) ? GetDefaultSmokeMarkdown() : initialMarkdown;
             var seedBasePath = string.IsNullOrWhiteSpace(basePath) ? AppContext.BaseDirectory : basePath;
             var seedHash = ComputeHash(seedMarkdown);
@@ -186,7 +193,7 @@ namespace Typedown.WinUI.Controls
         {
             return name switch
             {
-                "GetCurrentTheme" => CreateThemePayload(),
+                "GetCurrentTheme" => themeProvider(),
                 "ContentLoaded" => HandleContentLoaded(),
                 "ExportCallback" => HandleStubInvoke(name),
                 "PrintHTML" => HandleStubInvoke(name),
@@ -268,7 +275,7 @@ namespace Typedown.WinUI.Controls
             };
         }
 
-        private static EditorThemePayload CreateThemePayload()
+        private static EditorThemePayload CreateDefaultThemePayload()
         {
             return new EditorThemePayload
             {

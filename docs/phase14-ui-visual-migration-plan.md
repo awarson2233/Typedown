@@ -81,22 +81,35 @@ Phase 14 完成的标志应当是：
 
 ## Implementation Status
 
-状态：首批已完成。
+状态：复制迁移骨架已打通，进入逐控件修复阶段。
 
-本阶段已新增 `Typedown.UI` 的平台中立首批 shell 可视状态树：shell chrome、File/Edit/View command groups、side panel sections、status items、editor panel title/description。当前状态树是用于 WinUI3 可视骨架的 baseline/default state，不接真实文件系统、窗口、dialog、picker 或 WebView2 runtime；动态运行时状态接入留到后续等价迁移阶段。`MainPageViewModel` 继续保留 Phase 13 的 smoke 绑定面，同时通过 `Shell` 暴露 Phase 14 可视状态。
+当前采用复制优先的迁移方式：先用 shell 命令把 legacy XAML 复制到 `Typedown.WinUI`，并在 `LegacyCopied` 保留原始对照件。生产启动结构已调整为 WinUI3 原生标题栏分层：`Window -> RootControl(title bar row + GlobalFrame) -> MainPage`；`MainPage.xaml` 继续挂载 `MenuBar`、`MainContent`、`StatusBar` 等同名 WinUI3 控件。标题栏只负责图标、应用名和系统窗口按钮区域，`MenuBar` 仍作为标题栏下方的 toolbar/command surface。
 
-`Typedown.WinUI\Views\MainPage.xaml` 已改为首批 `1:1` 可视骨架：顶部 app/document chrome、toolbar、左侧 document/side panel state、中部 `WinUIEditorHost`、右侧 migration/status panel、底部 status bar。页面绑定 `ViewModel.Shell`，但 `WinUIEditorHost`、Window/Dialog/FilePicker、Package、`launchSettings` 和启动入口仍由 `Typedown.WinUI` 持有。
+为先保证 WinUI3 项目可构建，部分复杂 legacy XAML 子树暂时从 XAML 编译中排除，使用同名 code-only stub 承载尚未恢复的结构。当前仍排除的是菜单项/上下文菜单项和 `FindReplace.xaml`；这些排除项是阶段性脚手架，不是最终 UI 重写方案。后续应继续从 `LegacyCopied` 或 legacy 源复制单个控件，再逐段修 namespace、绑定、attached property、converter 和平台 API 差异。
 
-新增 architecture tests 锁定 Phase 14 文档边界、`Typedown.UI` 平台中立 baseline state、WinUI visual shell 区域、横向 toolbar/status 布局和 ownership 边界。
+`MenuBar.xaml` 已作为第一段真实 XAML 恢复进 WinUI3 编译：保留 legacy 的 `muxc:MenuBar`、标题区、settings button 和 drag bar 占位；移除当前 WinUI3 项目不存在的 `ui:XamlWindow.Drag` attached property，避免 XamlCompiler pass2 失败。菜单项仍由同名 stub 承载，真实命令绑定留到后续行为迁移阶段。
+
+`StatusBar.xaml`、`MainContent.xaml`、`EditorContainer.xaml`、`LeftPane.xaml` 和 `SearchPane.xaml` 已恢复进 WinUI3 XAML 编译。当前主框架由真实 XAML 承载顶部菜单、中间三列布局、左侧 NavigationView/SearchPane、编辑器容器、滚动条占位和底部状态栏；`EditorContainer` 的 legacy context flyout 子树暂时移除，因为它会触发 XamlCompiler pass2 失败，后续应单独恢复上下文菜单项。
+
+`RootControl.xaml` 已恢复进 WinUI3 XAML 编译，`App.xaml.cs` 不再直接导航 `MainPage`，而是承载 `RootControl` 并把 `MainPageNavigationContext` 交给内部 `GlobalFrame` 导航。`RootControl` 暴露 `TitleBarElement`，`App.xaml.cs` 通过 `Window.SetTitleBar(...)` 使用 WinUI3 原生标题栏扩展区域；`Window.ExtendsContentIntoTitleBar`、`AppWindow.TitleBar.ExtendsContentIntoTitleBar` 和 `MicaBackdrop` 已启用。legacy `Caption.xaml` 保留为迁移对照/后续可删候选，不再作为内容层 title/toolbar 渲染。
+
+布局重叠问题已做基础修复：`SearchPane` 改为仅在 `IsSearchPaneOpen` 时加载，避免默认覆盖左栏；`EditorInitErrorView` 默认不加载，避免覆盖 `WinUIEditorHost` 并拦截鼠标；`FindReplace` 改为跟随 `IsFindReplaceLoad` 加载。左侧栏初始宽度恢复为 `300`，splitter 已改用 `CommunityToolkit.WinUI.Controls.Sizers` 提供的 WinUI `GridSplitter`，用于替代临时自定义 splitter。
+
+`StatusBar` 左侧侧栏按钮已恢复基础交互：按钮状态不再是静态 `False`，而是通过 `SidePaneOpenChanged` 事件通知 `MainPage`，再调用 `MainContent.SetSidePaneOpen(...)` 切换侧栏展开/收起。当前这是 WinUI3 迁移阶段的轻量状态桥，后续真实 settings/view-model 接入时再替换为原版 `Settings.SidePaneOpen` 双向绑定。
+
+architecture tests 现在区分生产 WinUI3 源与 `LegacyCopied` 对照源：生产源继续禁止 `Windows.UI.Xaml` / `Typedown.XamlUI` 边界泄漏，对照源允许保留 legacy 字符串作为迁移参照。`WinUIEditorHost` 的 ownership 仍锁定在 `Typedown.WinUI`，当前由 `EditorContainer` stub 承载，而不是要求 `MainPage.xaml` 直接包含 host。
+
+下一轮逐段恢复建议顺序：
+
+1. `FindReplace.xaml`：恢复搜索/替换浮层视觉，继续暂缓真实命令。
+2. `EditorContainer` context flyout：逐个恢复 `ContextFormatItem`、`ImageItem` 等菜单项，定位 pass2 失败来源。
+3. title bar polish：完善原生 title bar 命中区域、caption button 颜色和 Mica/非 Mica 背景细节。
 
 验证记录：
 
 ```text
 dotnet build .\Dev\Typedown.Core.Contracts\Typedown.Core.Contracts.csproj -c Debug /nologo /v:minimal /m:1 /nodeReuse:false: 0 warnings, 0 errors
 dotnet build .\Dev\Typedown.UI\Typedown.UI.csproj -c Debug /nologo /v:minimal /m:1 /nodeReuse:false: 0 warnings, 0 errors
-dotnet test .\Tests\Typedown.ArchitectureTests\Typedown.ArchitectureTests.csproj -c Debug /nologo /v:minimal: 75 passed
+dotnet test .\Tests\Typedown.ArchitectureTests\Typedown.ArchitectureTests.csproj -c Debug /nologo /v:minimal: 79 passed
 dotnet build .\Dev\Typedown.WinUI\Typedown.WinUI.csproj -c Debug -p:Platform=x64 /nologo /v:minimal /m:1 /nodeReuse:false: 0 warnings, 0 errors
-dotnet build .\Typedown.sln -c Debug_Local -p:Platform=x64 /nologo /v:minimal /m:1 /nodeReuse:false: 0 warnings, 0 errors
-Debug Resources\Statics\index.html: True
-Debug_Local Resources\Statics\index.html: True
 ```
