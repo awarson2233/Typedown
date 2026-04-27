@@ -76,7 +76,38 @@
                 </VisualState>
             </VisualStateGroup>
         </VisualStateManager.VisualStateGroups>
-        <ContentPresenter x:Name="MarkdownEditorPresenter" AllowDrop="True" DragEnter="OnDragEnter" Drop="OnDrop"/>
+        <ContentPresenter x:Name="MarkdownEditorPresenter" AllowDrop="True" DragEnter="OnDragEnter" Drop="OnDrop">
+            <ContentPresenter.ContextFlyout>
+                <MenuFlyout x:Name="Flyout">
+                    <items:ContextFormatItem x:Name="MenuFormatItem"/>
+                    <MenuFlyoutSeparator x:Name="MenuFormatItemSeparator"/>
+                    <MenuFlyoutSubItem x:Name="MenuImageItem" Text="Image">
+                        <MenuFlyoutSubItem.Icon>
+                            <FontIcon Glyph="&#xe91b;"/>
+                        </MenuFlyoutSubItem.Icon>
+                        <u:MenuItemCollection.Value>
+                            <items:ImageItem/>
+                        </u:MenuItemCollection.Value>
+                    </MenuFlyoutSubItem>
+                    <MenuFlyoutSeparator x:Name="MenuImageItemSeparator"/>
+                    <MenuFlyoutItem Text="Undo" Icon="Undo"/>
+                    <MenuFlyoutSeparator/>
+                    <MenuFlyoutItem x:Name="CutItem" Text="Cut" Icon="Cut" CommandParameter="normal"/>
+                    <MenuFlyoutItem x:Name="CopyItem" Text="Copy" Icon="Copy" CommandParameter="normal"/>
+                    <MenuFlyoutItem x:Name="PasteItem" Text="Paste" Icon="Paste" CommandParameter="normal"/>
+                    <MenuFlyoutSubItem Text="CopyPasteAs">
+                        <MenuFlyoutItem x:Name="CopyAsPlainTextItem" Text="CopyAsPlainText" CommandParameter="copyAsPlainText"/>
+                        <MenuFlyoutItem x:Name="CopyAsMarkdownItem" Text="CopyAsMarkdown" CommandParameter="copyAsMarkdown"/>
+                        <MenuFlyoutItem x:Name="CopyAsHTMLCodeItem" Text="CopyAsHTMLCode" CommandParameter="copyAsHtml"/>
+                        <MenuFlyoutItem x:Name="PasteAsPlainTextItem" Text="PasteAsPlainText" CommandParameter="pasteAsPlainText"/>
+                    </MenuFlyoutSubItem>
+                    <MenuFlyoutSeparator/>
+                    <MenuFlyoutItem x:Name="DeleteItem" Icon="Delete" Text="Delete"/>
+                    <MenuFlyoutSeparator/>
+                    <MenuFlyoutItem x:Name="SelectAllItem" Icon="SelectAll" Text="SelectAll"/>
+                </MenuFlyout>
+            </ContentPresenter.ContextFlyout>
+        </ContentPresenter>
         <ScrollViewer x:Name="EditorInitErrorView" x:Load="False">
             <StackPanel Margin="24" Spacing="8">
                 <TextBlock TextWrapping="Wrap" Text="EditorInitErrorMessage"/>

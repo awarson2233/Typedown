@@ -4,6 +4,7 @@ using System.IO;
 using System.Text.Json;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Windows.Foundation;
 using Microsoft.Web.WebView2.Core;
 using Typedown.Core.Contracts.Editor;
 
@@ -23,6 +24,8 @@ namespace Typedown.WinUI.Controls
         private bool isLoaded;
         private bool coreEventsAttached;
         private int loadVersion;
+
+        public event EventHandler<WinUIEditorContextMenuRequestedEventArgs>? ContextMenuRequested;
 
         public WinUIEditorHost()
         {
@@ -240,6 +243,7 @@ namespace Typedown.WinUI.Controls
 
             webView.CoreWebView2.WebMessageReceived += OnWebMessageReceived;
             webView.CoreWebView2.NavigationCompleted += OnNavigationCompleted;
+            webView.CoreWebView2.ContextMenuRequested += OnContextMenuRequested;
             coreEventsAttached = true;
         }
 
@@ -252,7 +256,14 @@ namespace Typedown.WinUI.Controls
 
             webView.CoreWebView2.WebMessageReceived -= OnWebMessageReceived;
             webView.CoreWebView2.NavigationCompleted -= OnNavigationCompleted;
+            webView.CoreWebView2.ContextMenuRequested -= OnContextMenuRequested;
             coreEventsAttached = false;
+        }
+
+        private void OnContextMenuRequested(CoreWebView2 sender, CoreWebView2ContextMenuRequestedEventArgs e)
+        {
+            e.Handled = true;
+            ContextMenuRequested?.Invoke(this, new WinUIEditorContextMenuRequestedEventArgs(new Point(e.Location.X, e.Location.Y)));
         }
 
         private void TrySendPendingLoadFile()
@@ -385,5 +396,15 @@ namespace Typedown.WinUI.Controls
 
             return null;
         }
+    }
+
+    public sealed class WinUIEditorContextMenuRequestedEventArgs : EventArgs
+    {
+        public WinUIEditorContextMenuRequestedEventArgs(Point position)
+        {
+            Position = position;
+        }
+
+        public Point Position { get; }
     }
 }

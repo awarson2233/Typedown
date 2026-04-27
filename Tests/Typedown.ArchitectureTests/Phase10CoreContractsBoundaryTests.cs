@@ -370,6 +370,9 @@ public class Phase10CoreContractsBoundaryTests
     public void WinUIEditorMenus_CompileXamlWhileLegacyCodeBehindStaysOutOfBuild()
     {
         var projectSource = File.ReadAllText(Path.Combine(RepoRoot, "Dev", "Typedown.WinUI", "Typedown.WinUI.csproj"));
+        var editorContainerSource = File.ReadAllText(Path.Combine(RepoRoot, "Dev", "Typedown.WinUI", "Controls", "EditorControls", "EditorContainer.xaml"));
+        var editorContainerCodeBehindSource = File.ReadAllText(Path.Combine(RepoRoot, "Dev", "Typedown.WinUI", "Controls", "EditorControls", "EditorContainer.xaml.cs"));
+        var editorHostSource = File.ReadAllText(Path.Combine(RepoRoot, "Dev", "Typedown.WinUI", "Controls", "WinUIEditorHost.cs"));
         var menuBarSource = File.ReadAllText(Path.Combine(RepoRoot, "Dev", "Typedown.WinUI", "Controls", "EditorControls", "MenuBar.xaml"));
         var menuStubSource = File.ReadAllText(Path.Combine(RepoRoot, "Dev", "Typedown.WinUI", "Controls", "EditorControls", "MenuBarItems", "MenuBarItemStubs.cs"));
         var contextStubSource = File.ReadAllText(Path.Combine(RepoRoot, "Dev", "Typedown.WinUI", "Controls", "EditorControls", "ContextMenuItems", "ContextMenuItemStubs.cs"));
@@ -392,6 +395,11 @@ public class Phase10CoreContractsBoundaryTests
         AssertHasTypeReference(menuStubSource, "InitializeComponent()");
         AssertHasTypeReference(contextStubSource, "partial class ImageItem");
         AssertHasTypeReference(contextStubSource, "InitializeComponent()");
+        AssertHasTypeReference(editorContainerSource, "<ContentPresenter.ContextFlyout>");
+        AssertHasTypeReference(editorContainerSource, "<items:ContextFormatItem");
+        AssertHasTypeReference(editorContainerCodeBehindSource, "Flyout.ShowAt(MarkdownEditorPresenter");
+        AssertHasTypeReference(editorHostSource, "CoreWebView2.ContextMenuRequested += OnContextMenuRequested");
+        AssertHasTypeReference(editorHostSource, "e.Handled = true");
     }
 
     [TestMethod]
