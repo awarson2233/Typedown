@@ -1,46 +1,91 @@
-# Core Decoupling and Slimming Implementation Plan
+# Core 解耦与精简实施计划
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **给 agent / subagent 的要求：** 执行本计划时优先使用 `superpowers:subagent-driven-development`，也可以使用 `superpowers:executing-plans` 逐项执行。每个阶段都要小步提交，禁止大范围重写。
 
-**Goal:** Turn `Dev/Typedown.Core` into the durable pure logic and MVVM contract layer for WinUI3, while shrinking `Dev/Typedown.Core.Legacy` to reference-only UWP compatibility code.
+**目标：** 将 `Dev/Typedown.Core` 固化为纯逻辑 + MVVM 合同层；将旧 UWP/WinUI2 实现收敛到 `Dev/Typedown.Core.Legacy`，仅作为兼容与迁移参考。
 
-**Architecture:** Keep `Typedown.Core` free of XAML, WinRT UI types, file pickers, WebView2, and shell services. Move reusable state, settings, editor commands, persistence DTOs, and platform-neutral services into Core; keep WinUI3 adapters in `Typedown.WinUI` and legacy UWP implementation in `Typedown.Core.Legacy`.
+**架构方向：** `Typedown.Core` 不允许依赖 XAML、WinRT UI 类型、WebView2、文件选择器、窗口服务或 legacy 项目。可复用的状态、设置、编辑器命令、持久化 DTO、平台无关服务接口进入 Core；WinUI3 适配放在 `Typedown.WinUI`；可复用 ViewModel 与资源读取放在 `Typedown.UI`。
 
-**Tech Stack:** .NET 9 class libraries, MSTest architecture tests, WinUI3 / Windows App SDK shell, legacy WinUI2/UWP reference project.
-
----
-
-## Current Baseline
-
-The main branch is now at `bb7d09a`. `Dev/Typedown.Core` already contains the former contracts surface: `Editor`, `EditorRuntime`, `Settings`, `Shell`, and platform interfaces. `Dev/Typedown.UI` contains shell-agnostic MVVM and resource helpers. `Dev/Typedown.WinUI` compiles against pure Core and UI; old copied XAML/code-behind lives under `LegacyCopied` and is excluded from build. `Dev/Typedown.Core.Legacy` is the renamed old UWP core.
-
-The biggest remaining coupling is in copied but currently excluded WinUI setting pages and setting controls. They still reference old namespaces such as `Typedown.Core.Models`, `Typedown.Core.Services`, and `Typedown.Core.ViewModels`. Treat those files as migration references until their models and ViewModels have been moved into pure Core/UI.
-
-## File Ownership Map
-
-- `Dev/Typedown.Core/Settings`: pure settings records, default values, shortcut definitions, validation helpers.
-- `Dev/Typedown.Core/EditorRuntime`: editor state snapshots such as paragraph, menu, format, toc, word count, content history DTOs.
-- `Dev/Typedown.Core/Shell`: shell chrome and document UI state.
-- `Dev/Typedown.Core/Interfaces`: platform-neutral service contracts only.
-- `Dev/Typedown.UI/ViewModels`: MVVM classes that compose Core state and contracts, with no XAML references.
-- `Dev/Typedown.UI/Resources`: resource loading/catalog helpers; may read legacy resources while migration is incomplete.
-- `Dev/Typedown.WinUI/Services`: WinUI3 adapters for dialogs, activation, dispatcher, file picker, window context.
-- `Dev/Typedown.WinUI/Controls` and `Dev/Typedown.WinUI/Pages`: XAML and view-only code-behind, no business logic.
-- `Dev/Typedown.Core.Legacy`: read-only migration source unless a legacy UWP build break must be fixed.
-- `Tests/Typedown.ArchitectureTests`: boundary tests for every migration slice.
+**技术栈：** .NET 9 class library、MSTest 架构测试、WinUI3 / Windows App SDK shell、旧 UWP 项目作为 legacy reference。
 
 ---
 
-### Task 1: Lock the Pure Core Boundary
+## 当前基线
 
-**Files:**
-- Modify: `Tests/Typedown.ArchitectureTests/Phase10CoreContractsBoundaryTests.cs`
-- Modify: `Tests/Typedown.ArchitectureTests/Phase13SettingsContractTests.cs`
-- Modify: `Tests/Typedown.ArchitectureTests/Phase13RuntimeStateContractTests.cs`
+主工作区当前在 `winui3-migration`，已合入：
 
-- [ ] **Step 1: Add failing boundary tests for Core dependencies**
+- `994a97e refactor: decouple core from legacy uwp shell`
+- `92442b8 feat: wire WinUI editor menu xaml baseline`
+- `fd8a8f7 fix: show WinUI editor context menu`
+- `bb7d09a fix: read legacy text resources from legacy core`
+- `1301277 docs: plan core decoupling and slimming`
 
-Add assertions that every `.cs` file under `Dev/Typedown.Core` rejects these references:
+当前结构：
+
+- `Dev/Typedown.Core`：已有 `Editor`、`EditorRuntime`、`Settings`、`Shell`、`Interfaces`，是新的纯 Core 起点。
+- `Dev/Typedown.UI`：承接 shell-agnostic MVVM、资源读取、组合逻辑。
+- `Dev/Typedown.WinUI`：WinUI3 shell、XAML、平台服务适配、WebView2 host。
+- `Dev/Typedown.Core.Legacy`：旧 UWP / WinUI2 Core，保留为迁移参考。
+- `Dev/Typedown.WinUI/LegacyCopied`：已复制的 legacy XAML/code-behind 参考文件，必须排除编译。
+
+当前最大剩余耦合：
+
+- WinUI3 setting 页面和 setting controls 仍有大量 legacy namespace 痕迹，例如 `Typedown.Core.Models`、`Typedown.Core.Services`、`Typedown.Core.ViewModels`。
+- 部分 setting XAML/code-behind 当前仍被 csproj 排除，后续需要按页面逐个恢复。
+- `Typedown.UI.Resources.LegacyTextResourceReader` 仍暂时读取 `Typedown.Core.Legacy/Resources/Strings`，这只是过渡方案，后续应迁出 legacy。
+
+---
+
+## 边界规则
+
+### Core 允许包含
+
+- 平台无关 record / enum / value object。
+- 编辑器 host 消息合同。
+- 编辑器运行态快照。
+- settings snapshot/defaults/shortcut 定义。
+- shell 状态。
+- 平台服务接口，例如 dispatcher、dialog、file picker、window context。
+
+### Core 禁止包含
+
+- `Microsoft.UI.Xaml`
+- `Windows.UI.Xaml`
+- `Microsoft.Web.WebView2`
+- `Windows.Storage.Pickers`
+- `Typedown.Core.Legacy`
+- 任何 WinUI/UWP 控件、窗口、页面、XAML code-behind。
+
+### UI 允许包含
+
+- 纯 MVVM ViewModel。
+- Core state 到 UI state 的组合。
+- 资源读取/catalog。
+- 不直接触碰 WinUI3 XAML 类型。
+
+### WinUI 允许包含
+
+- XAML / code-behind。
+- WebView2 host。
+- Windows App SDK 服务适配。
+- 把 UI ViewModel 绑定到页面和控件。
+
+---
+
+## 阶段 1：锁死 pure Core 边界
+
+**目标：** 先用架构测试防止后续迁移把 UI 依赖带回 Core。
+
+**重点文件：**
+
+- `Tests/Typedown.ArchitectureTests/Phase10CoreContractsBoundaryTests.cs`
+- `Tests/Typedown.ArchitectureTests/Phase13SettingsContractTests.cs`
+- `Tests/Typedown.ArchitectureTests/Phase13RuntimeStateContractTests.cs`
+
+**步骤：**
+
+1. 增加 Core 扫描测试，遍历 `Dev/Typedown.Core/**/*.cs`。
+2. 明确断言 Core 不包含：
 
 ```csharp
 AssertNoTypeReference(source, "Microsoft.UI.Xaml");
@@ -50,80 +95,78 @@ AssertNoTypeReference(source, "Windows.Storage.Pickers");
 AssertNoTypeReference(source, "Typedown.Core.Legacy");
 ```
 
-- [ ] **Step 2: Run the boundary tests**
-
-Run:
+3. 如果测试失败，先把 UI 依赖移动到 `Dev/Typedown.WinUI/Services`，Core 只保留接口。
+4. 验证：
 
 ```powershell
 dotnet test Tests\Typedown.ArchitectureTests\Typedown.ArchitectureTests.csproj -c Debug -p:UseSharedCompilation=false
 ```
 
-Expected before implementation: any accidental Core UI dependency fails with an explicit source file path.
-
-- [ ] **Step 3: Fix only the reported Core dependency**
-
-If a failure points to a UI type, move the type usage into `Dev/Typedown.WinUI/Services` and expose only a Core interface in `Dev/Typedown.Core/Interfaces`.
-
-- [ ] **Step 4: Verify and commit**
-
-Run the same test command. Expected: `80+` tests pass, `0` fail.
-
-Commit:
+5. 提交：
 
 ```powershell
 git add Tests\Typedown.ArchitectureTests Dev\Typedown.Core Dev\Typedown.WinUI
 git commit -m "test: lock pure core dependency boundary"
 ```
 
-### Task 2: Move Settings Models Out of Legacy Core
+---
 
-**Files:**
-- Create/modify: `Dev/Typedown.Core/Settings/*.cs`
-- Modify: `Dev/Typedown.UI/ViewModels/*Settings*.cs`
-- Modify: `Dev/Typedown.WinUI/Controls/SettingControls/**`
-- Test: `Tests/Typedown.ArchitectureTests/Phase13SettingsContractTests.cs`
+## 阶段 2：迁移 settings models
 
-- [ ] **Step 1: List legacy setting model dependencies**
+**目标：** 将设置相关 DTO、enum、默认值从 legacy Core 迁入 pure Core，使 setting 页面后续可以接 UI ViewModel，而不是旧 ViewModel。
 
-Run:
+**重点文件：**
+
+- `Dev/Typedown.Core/Settings/*.cs`
+- `Dev/Typedown.UI/ViewModels/*Settings*.cs`
+- `Dev/Typedown.WinUI/Controls/SettingControls/**`
+- `Dev/Typedown.WinUI/Pages/SettingPages/**`
+- `Tests/Typedown.ArchitectureTests/Phase13SettingsContractTests.cs`
+
+**迁移顺序：**
+
+1. 低风险 enum / DTO：
+
+```text
+ImageUploadMethod
+InsertImageAction
+ExportType
+PrintOrientation
+StartupAction
+AppTheme
+```
+
+2. 设置 snapshot：
+
+```text
+GeneralSettingsSnapshot
+ViewSettingsSnapshot
+EditorSettingsSnapshot
+ShortcutSettingsSnapshot
+ImageSettingsSnapshot
+ExportSettingsSnapshot
+UploadSettingsSnapshot
+```
+
+3. 默认值与校验：
+
+```text
+TypedownDefaultSettings
+TypedownDefaultShortcuts
+SettingsValidation
+```
+
+**步骤：**
+
+1. 先列出现有 legacy 引用：
 
 ```powershell
 rg -n "Typedown.Core.Models|Typedown.Core.ViewModels|Typedown.Core.Services" Dev\Typedown.WinUI\Controls\SettingControls Dev\Typedown.WinUI\Pages\SettingPages -g "*.cs" -g "*.xaml"
 ```
 
-Record each model type and owner file in the task notes before editing.
-
-- [ ] **Step 2: Add tests for pure setting snapshots**
-
-In `Phase13SettingsContractTests.cs`, add tests that verify default values and serialization-friendly shape for migrated settings, for example:
-
-```csharp
-AssertHasTypeReference(source, "public sealed record EditorSettingsSnapshot");
-AssertNoTypeReference(source, "DependencyObject");
-AssertNoTypeReference(source, "Windows.UI.Xaml");
-AssertNoTypeReference(source, "Microsoft.UI.Xaml");
-```
-
-- [ ] **Step 3: Move one settings model family at a time**
-
-Move only one family per commit, starting with low-risk enum/DTO groups:
-
-```text
-ImageUploadMethod / InsertImageAction
-ExportType / PrintOrientation
-StartupAction / AppTheme
-ShortcutKey equivalents already represented by EditorShortcutKey
-```
-
-Keep model names stable when possible. If names conflict with current Core contract names, add a small adapter in `Dev/Typedown.UI` rather than changing XAML-facing names and behavior in the same commit.
-
-- [ ] **Step 4: Update WinUI setting references**
-
-For each migrated type, change WinUI setting files from old namespaces to either `Typedown.Core.Settings` or `Typedown.UI.ViewModels`. Do not bind XAML directly to `Typedown.Core.Legacy`.
-
-- [ ] **Step 5: Verify and commit**
-
-Run:
+2. 每次只迁移一个 family。
+3. XAML 若暂时不能完整恢复，允许保留 stub/disabled handler，但不能新增 legacy 引用。
+4. 验证：
 
 ```powershell
 dotnet build Dev\Typedown.Core\Typedown.Core.csproj -c Debug -p:UseSharedCompilation=false
@@ -132,84 +175,74 @@ dotnet build Dev\Typedown.WinUI\Typedown.WinUI.csproj -c Debug -p:Platform=x64 -
 dotnet test Tests\Typedown.ArchitectureTests\Typedown.ArchitectureTests.csproj -c Debug -p:UseSharedCompilation=false
 ```
 
-Commit:
+5. 提交：
 
 ```powershell
 git add Dev\Typedown.Core Dev\Typedown.UI Dev\Typedown.WinUI Tests\Typedown.ArchitectureTests
 git commit -m "refactor: move settings models to pure core"
 ```
 
-### Task 3: Move Runtime Editor State Out of Legacy Core
+---
 
-**Files:**
-- Modify: `Dev/Typedown.Core/EditorRuntime/*.cs`
-- Modify: `Dev/Typedown.UI/ViewModels/*Editor*.cs`
-- Modify: `Dev/Typedown.WinUI/Controls/EditorControls/**`
-- Test: `Tests/Typedown.ArchitectureTests/Phase13RuntimeStateContractTests.cs`
+## 阶段 3：迁移 editor runtime state
 
-- [ ] **Step 1: Add tests for runtime state shape**
+**目标：** 将编辑器运行态从 legacy model 迁移到 `Typedown.Core/EditorRuntime`，让菜单栏、右键菜单、状态栏以后只消费 Core runtime state。
 
-For each runtime state type used by editor menus, assert that the Core type exists and avoids UI dependencies:
+**重点文件：**
 
-```csharp
-AssertHasTypeReference(source, "public sealed record EditorFormatState");
-AssertHasTypeReference(source, "public sealed record EditorParagraphState");
-AssertNoTypeReference(source, "MenuFlyoutItem");
-AssertNoTypeReference(source, "DependencyProperty");
+- `Dev/Typedown.Core/EditorRuntime/*.cs`
+- `Dev/Typedown.UI/ViewModels/*Editor*.cs`
+- `Dev/Typedown.WinUI/Controls/EditorControls/**`
+- `Tests/Typedown.ArchitectureTests/Phase13RuntimeStateContractTests.cs`
+
+**候选类型：**
+
+```text
+EditorContentState
+EditorFormatState
+EditorMenuItemState
+EditorMenuState
+EditorParagraphState
+EditorTocItem
+EditorWordCount
 ```
 
-- [ ] **Step 2: Map legacy runtime state to Core records**
+**步骤：**
 
-Compare these legacy files against current Core equivalents:
+1. 对照 legacy：
 
 ```powershell
 rg -n "class .*State|record .*State" Dev\Typedown.Core.Legacy\Models\RuntimeModels Dev\Typedown.Core\EditorRuntime
 ```
 
-Only add missing data fields that are required by WinUI3 menu state or editor bridge payloads.
-
-- [ ] **Step 3: Keep command execution outside Core**
-
-Represent menu state and command requests in Core. Keep actual command execution in `Dev/Typedown.UI/ViewModels` and `Dev/Typedown.WinUI/Controls/WinUIEditorHostController.cs`.
-
-- [ ] **Step 4: Verify and commit**
-
-Run Core, UI, WinUI build and architecture tests. Commit:
+2. 只补充 WinUI3 菜单状态和 editor bridge 真正需要的数据字段。
+3. 命令执行仍放在 `Typedown.UI.ViewModels` 或 `WinUIEditorHostController`，Core 只表达状态和 command request。
+4. 验证并提交：
 
 ```powershell
+dotnet build Dev\Typedown.Core\Typedown.Core.csproj -c Debug -p:UseSharedCompilation=false
+dotnet build Dev\Typedown.UI\Typedown.UI.csproj -c Debug -p:UseSharedCompilation=false
+dotnet build Dev\Typedown.WinUI\Typedown.WinUI.csproj -c Debug -p:Platform=x64 -p:UseSharedCompilation=false
+dotnet test Tests\Typedown.ArchitectureTests\Typedown.ArchitectureTests.csproj -c Debug -p:UseSharedCompilation=false
 git add Dev\Typedown.Core Dev\Typedown.UI Dev\Typedown.WinUI Tests\Typedown.ArchitectureTests
 git commit -m "refactor: move editor runtime state to pure core"
 ```
 
-### Task 4: Rebuild Settings MVVM on Pure Core
+---
 
-**Files:**
-- Modify/create: `Dev/Typedown.UI/ViewModels/Settings*.cs`
-- Modify: `Dev/Typedown.WinUI/Pages/SettingPages/*.xaml.cs`
-- Modify: `Dev/Typedown.WinUI/Controls/SettingControls/**/*.xaml`
-- Modify: `Dev/Typedown.WinUI/Controls/SettingControls/**/*.xaml.cs`
-- Test: `Tests/Typedown.ArchitectureTests/Phase10CoreContractsBoundaryTests.cs`
+## 阶段 4：重建 settings MVVM
 
-- [ ] **Step 1: Add tests that WinUI settings do not reference old Core namespaces**
+**目标：** 让 WinUI3 setting 页面绑定 `Typedown.UI.ViewModels`，不再绑定 legacy ViewModels/Services。
 
-Assert active WinUI settings files no longer contain:
+**重点文件：**
 
-```csharp
-AssertNoTypeReference(source, "Typedown.Core.Models");
-AssertNoTypeReference(source, "Typedown.Core.Services");
-AssertNoTypeReference(source, "Typedown.Core.ViewModels");
-AssertNoTypeReference(source, "Typedown.Core.Legacy");
-```
+- `Dev/Typedown.UI/ViewModels/Settings*.cs`
+- `Dev/Typedown.WinUI/Pages/SettingPages/*.xaml`
+- `Dev/Typedown.WinUI/Pages/SettingPages/*.xaml.cs`
+- `Dev/Typedown.WinUI/Controls/SettingControls/**/*.xaml`
+- `Dev/Typedown.WinUI/Controls/SettingControls/**/*.xaml.cs`
 
-Skip `Dev/Typedown.WinUI/LegacyCopied`.
-
-- [ ] **Step 2: Introduce setting page ViewModels in UI**
-
-Create or extend `Typedown.UI.ViewModels` classes so XAML binds to UI ViewModels, not legacy model/services. The ViewModel may depend on Core records and Core service interfaces.
-
-- [ ] **Step 3: Reactivate one setting page per commit**
-
-Recommended order:
+**恢复顺序：**
 
 ```text
 GeneralPage
@@ -224,108 +257,133 @@ UploadConfigPage
 AboutPage
 ```
 
-For each page, remove its `Page Remove` or `Compile Remove` exclusion only after the page compiles and has no legacy namespace references.
+**步骤：**
 
-- [ ] **Step 4: Verify and commit each page**
+1. 为 active WinUI settings 文件加测试，禁止：
 
-Run:
+```csharp
+AssertNoTypeReference(source, "Typedown.Core.Models");
+AssertNoTypeReference(source, "Typedown.Core.Services");
+AssertNoTypeReference(source, "Typedown.Core.ViewModels");
+AssertNoTypeReference(source, "Typedown.Core.Legacy");
+```
+
+2. 逐页恢复 csproj 中的 `Page Remove` / `Compile Remove`。
+3. 每页只接基础绑定和可编译 handler，复杂业务可以先通过 ViewModel command stub 承接。
+4. 每页独立验证、独立提交：
 
 ```powershell
 dotnet build Dev\Typedown.WinUI\Typedown.WinUI.csproj -c Debug -p:Platform=x64 -p:UseSharedCompilation=false
 dotnet test Tests\Typedown.ArchitectureTests\Typedown.ArchitectureTests.csproj -c Debug -p:UseSharedCompilation=false
-```
-
-Commit one page family at a time:
-
-```powershell
 git commit -m "feat: reconnect WinUI general settings page"
 ```
 
-### Task 5: Replace Legacy Resource Access
+---
 
-**Files:**
-- Modify/create: `Dev/Typedown.Core/Resources` or `Dev/Typedown.UI/Resources`
-- Modify: `Dev/Typedown.UI/Resources/LegacyTextResourceReader.cs`
-- Test: `Tests/Typedown.ArchitectureTests/Phase13LegacyTextResourceTests.cs`
+## 阶段 5：迁移文本资源，移除 legacy 资源读取
 
-- [ ] **Step 1: Decide resource ownership**
+**目标：** 不再从 `Typedown.Core.Legacy/Resources/Strings` 读取 UI 文案。
 
-If resources are UI text only, keep reader/catalog in `Typedown.UI`. If settings defaults need localized labels, keep only keys in Core and resolve text in UI/WinUI.
+**重点文件：**
 
-- [ ] **Step 2: Remove direct dependency on legacy resource folders**
+- `Dev/Typedown.UI/Resources/LegacyTextResourceReader.cs`
+- `Dev/Typedown.UI/Resources/TextResourceCatalog.cs`
+- `Tests/Typedown.ArchitectureTests/Phase13LegacyTextResourceTests.cs`
 
-Create a `Typedown.UI.Resources.TextResourceCatalog` that loads embedded or copied resources from a stable UI location. Do not read from `Typedown.Core.Legacy` after this task completes.
+**步骤：**
 
-- [ ] **Step 3: Update tests**
+1. 判断资源归属：UI 文案放 `Typedown.UI`，Core 只保留资源 key 或 enum。
+2. 把 `Resources/Strings` 复制/迁移到 `Dev/Typedown.UI/Resources/Strings` 或稳定的嵌入资源位置。
+3. 将测试命名从 `LegacyTextResources_*` 改为 `TextResources_*`。
+4. 保留 key count 和多语言 shape 测试：
 
-Change Phase13 resource tests from `LegacyTextResources_*` to neutral naming such as `TextResources_*`, while preserving key-count assertions for `en`, `zh-Hans`, and `zh-Hant`.
+```text
+en
+zh-Hans
+zh-Hant
+CommonResources
+DialogResources
+Resources
+SettingsResources
+```
 
-- [ ] **Step 4: Verify and commit**
-
-Run architecture tests and WinUI build. Commit:
+5. 验证并提交：
 
 ```powershell
+dotnet test Tests\Typedown.ArchitectureTests\Typedown.ArchitectureTests.csproj -c Debug -p:UseSharedCompilation=false
+dotnet build Dev\Typedown.WinUI\Typedown.WinUI.csproj -c Debug -p:Platform=x64 -p:UseSharedCompilation=false
 git add Dev\Typedown.UI Tests\Typedown.ArchitectureTests
 git commit -m "refactor: move text resources out of legacy core"
 ```
 
-### Task 6: Shrink Legacy Surface and Remove Dead References
+---
 
-**Files:**
-- Modify: `Typedown.sln`
-- Modify: `Dev/Typedown.Core.Legacy/Typedown.Core.Legacy.csproj`
-- Modify: `Dev/Typedown.WinUI/Typedown.WinUI.csproj`
-- Modify: `Tests/Typedown.ArchitectureTests/Phase10CoreContractsBoundaryTests.cs`
+## 阶段 6：收缩 legacy surface
 
-- [ ] **Step 1: Count remaining active references to legacy namespaces**
+**目标：** legacy 项目只作为旧 UWP 参考与兼容层，不参与 WinUI3 主路径。
 
-Run:
+**重点文件：**
+
+- `Typedown.sln`
+- `Dev/Typedown.Core.Legacy/Typedown.Core.Legacy.csproj`
+- `Dev/Typedown.WinUI/Typedown.WinUI.csproj`
+- `Tests/Typedown.ArchitectureTests/Phase10CoreContractsBoundaryTests.cs`
+
+**步骤：**
+
+1. 扫描剩余 legacy 依赖：
 
 ```powershell
 rg -n "Typedown.Core.Legacy|Typedown.Core.Models|Typedown.Core.ViewModels|Typedown.Core.Services" Dev Tests -g "*.cs" -g "*.xaml" -g "*.csproj"
 ```
 
-Expected before this task: references remain only in `Dev/Typedown.Core.Legacy`, `Dev/Typedown.WinUI/LegacyCopied`, and tests that explicitly mention legacy.
+2. 期望剩余引用只出现在：
 
-- [ ] **Step 2: Add a legacy allowlist test**
+```text
+Dev/Typedown.Core.Legacy
+Dev/Typedown.WinUI/LegacyCopied
+Tests/Typedown.ArchitectureTests 中明确检查 legacy 边界的测试
+```
 
-Assert that active WinUI and UI projects have no old namespace references except under `LegacyCopied`.
-
-- [ ] **Step 3: Reduce legacy project role**
-
-Do not delete `Typedown.Core.Legacy` yet. First mark it as reference-only in docs and ensure WinUI3 solution configs do not build/deploy legacy projects for `Debug_Local|x64`.
-
-- [ ] **Step 4: Verify and commit**
-
-Run:
+3. 确认 `Debug_Local|x64` 不 build/deploy legacy UWP 项目。
+4. 验证并提交：
 
 ```powershell
 dotnet test Tests\Typedown.ArchitectureTests\Typedown.ArchitectureTests.csproj -c Debug -p:UseSharedCompilation=false
 dotnet build Dev\Typedown.WinUI\Typedown.WinUI.csproj -c Debug -p:Platform=x64 -p:UseSharedCompilation=false
-```
-
-Commit:
-
-```powershell
 git add Typedown.sln Dev\Typedown.Core.Legacy Dev\Typedown.WinUI Tests\Typedown.ArchitectureTests
 git commit -m "chore: shrink legacy core integration surface"
 ```
 
 ---
 
-## Execution Notes
+## 建议执行方式
 
-Use a fresh worktree for each large task:
+每个大阶段使用独立 worktree，例如：
 
 ```powershell
 git worktree add .worktrees/core-settings-slice -b codex/core-settings-slice
 ```
 
-Keep each task as a separate commit. Do not edit files under `Dev/Typedown.WinUI/LegacyCopied` except to refresh reference copies with explicit approval. Do not reintroduce `Typedown.Core.Legacy` references into `Dev/Typedown.WinUI/Typedown.WinUI.csproj`.
+推荐拆分：
 
-## Final Verification Gate
+- subagent 1：settings models + settings contract tests。
+- subagent 2：editor runtime state + menu state。
+- subagent 3：text resources migration。
+- 主 agent：集成、编译、架构测试、解决冲突。
 
-Before declaring any phase complete, run:
+执行约束：
+
+- 不修改 `Dev/Typedown.WinUI/LegacyCopied`，除非明确刷新参考副本。
+- 不把 `Typedown.Core.Legacy` 引回 `Typedown.WinUI.csproj`。
+- setting 页面恢复必须一页一页做，不要一次恢复所有 excluded XAML/code-behind。
+- 每个阶段结束必须提交。
+
+---
+
+## 最终验证门槛
+
+任何阶段完成前必须运行：
 
 ```powershell
 dotnet build Dev\Typedown.Core\Typedown.Core.csproj -c Debug -p:UseSharedCompilation=false
@@ -334,4 +392,9 @@ dotnet build Dev\Typedown.WinUI\Typedown.WinUI.csproj -c Debug -p:Platform=x64 -
 dotnet test Tests\Typedown.ArchitectureTests\Typedown.ArchitectureTests.csproj -c Debug -p:UseSharedCompilation=false
 ```
 
-Expected result: all builds succeed, WinUI build has `0` warnings and `0` errors, architecture tests have `0` failures.
+期望：
+
+- Core build 通过。
+- UI build 通过。
+- WinUI3 build 通过，0 warning / 0 error。
+- 架构测试 0 failure。
