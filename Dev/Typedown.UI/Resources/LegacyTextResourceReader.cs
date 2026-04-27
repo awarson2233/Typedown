@@ -97,13 +97,25 @@ public static class LegacyTextResourceReader
 
     private static string? ResolveResourcePath(string cultureName, LegacyTextResourceGroup group)
     {
+        var outputCandidate = Path.Combine(
+            AppContext.BaseDirectory,
+            "Resources",
+            "Strings",
+            cultureName,
+            $"{group}.resw");
+
+        if (File.Exists(outputCandidate))
+        {
+            return outputCandidate;
+        }
+
         var current = new DirectoryInfo(AppContext.BaseDirectory);
         while (current is not null)
         {
             var candidate = Path.Combine(
                 current.FullName,
                 "Dev",
-                "Typedown.Core.Legacy",
+                "Typedown.UI",
                 "Resources",
                 "Strings",
                 cultureName,

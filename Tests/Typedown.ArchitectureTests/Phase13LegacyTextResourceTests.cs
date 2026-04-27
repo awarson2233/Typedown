@@ -19,7 +19,7 @@ public class Phase13LegacyTextResourceTests
     private static readonly string[] ReswTemplateKeys = ["Name1", "Color1", "Bitmap1", "Icon1"];
 
     [TestMethod]
-    public void LegacyTextResources_ReadsEnglishAppName()
+    public void TextResources_ReadsEnglishAppName()
     {
         Assert.AreEqual(
             "Typedown",
@@ -27,7 +27,7 @@ public class Phase13LegacyTextResourceTests
     }
 
     [TestMethod]
-    public void LegacyTextResources_ReadsCommonCommandText()
+    public void TextResources_ReadsCommonCommandText()
     {
         var common = LegacyTextResourceReader.GetGroup("en", LegacyTextResourceGroup.CommonResources);
 
@@ -37,7 +37,7 @@ public class Phase13LegacyTextResourceTests
     }
 
     [TestMethod]
-    public void LegacyTextResources_ReadsSettingsThemeText()
+    public void TextResources_ReadsSettingsThemeText()
     {
         var settings = LegacyTextResourceReader.GetGroup("en", LegacyTextResourceGroup.SettingsResources);
 
@@ -46,7 +46,7 @@ public class Phase13LegacyTextResourceTests
     }
 
     [TestMethod]
-    public void LegacyTextResources_ReadsDialogResourceText()
+    public void TextResources_ReadsDialogResourceText()
     {
         Assert.AreEqual(
             "You have unsaved changes",
@@ -54,7 +54,7 @@ public class Phase13LegacyTextResourceTests
     }
 
     [TestMethod]
-    public void LegacyTextResources_ReadsChineseSimplifiedValuesThatDifferFromEnglish()
+    public void TextResources_ReadsChineseSimplifiedValuesThatDifferFromEnglish()
     {
         Assert.AreEqual(
             "取消",
@@ -62,7 +62,7 @@ public class Phase13LegacyTextResourceTests
     }
 
     [TestMethod]
-    public void LegacyTextResources_ReadsChineseTraditionalValuesThatDifferFromEnglish()
+    public void TextResources_ReadsChineseTraditionalValuesThatDifferFromEnglish()
     {
         var english = LegacyTextResourceReader.GetString("en", LegacyTextResourceGroup.DialogResources, "AsKToSaveContent");
         var traditionalChinese = LegacyTextResourceReader.GetString("zh-Hant", LegacyTextResourceGroup.DialogResources, "AsKToSaveContent");
@@ -72,7 +72,7 @@ public class Phase13LegacyTextResourceTests
     }
 
     [TestMethod]
-    public void LegacyTextResources_AllSupportedCulturesAndGroupsHaveExpectedKeyCountsAndExcludeTemplateKeys()
+    public void TextResources_AllSupportedCulturesAndGroupsHaveExpectedKeyCountsAndExcludeTemplateKeys()
     {
         foreach (var culture in Cultures)
         {
@@ -92,7 +92,7 @@ public class Phase13LegacyTextResourceTests
     }
 
     [TestMethod]
-    public void LegacyTextResources_LocalizedGroupsHaveSameKeyShapeAsEnglish()
+    public void TextResources_LocalizedGroupsHaveSameKeyShapeAsEnglish()
     {
         foreach (var group in Groups)
         {
@@ -108,7 +108,7 @@ public class Phase13LegacyTextResourceTests
     }
 
     [TestMethod]
-    public void LegacyTextResources_FallsBackToEnglishForUnknownCulture()
+    public void TextResources_FallsBackToEnglishForUnknownCulture()
     {
         Assert.AreEqual(
             "Typedown",
@@ -116,14 +116,14 @@ public class Phase13LegacyTextResourceTests
     }
 
     [TestMethod]
-    public void LegacyTextResources_ReturnsNullForUnknownKey()
+    public void TextResources_ReturnsNullForUnknownKey()
     {
         Assert.IsNull(
             LegacyTextResourceReader.GetString("en", LegacyTextResourceGroup.Resources, "Missing.Key"));
     }
 
     [TestMethod]
-    public void LegacyTextResources_FallsBackToEnglishForMissingLocalizedKey()
+    public void TextResources_FallsBackToEnglishForMissingLocalizedKey()
     {
         var catalog = new LegacyTextResourceCatalog(new Dictionary<(string Culture, LegacyTextResourceGroup Group), IReadOnlyDictionary<string, string>>
         {
@@ -140,6 +140,43 @@ public class Phase13LegacyTextResourceTests
 
         Assert.AreEqual("取消", catalog.GetString("zh-Hans", LegacyTextResourceGroup.CommonResources, "Cancel"));
         Assert.AreEqual("OK", catalog.GetString("zh-Hans", LegacyTextResourceGroup.CommonResources, "Ok"));
+    }
+
+    [TestMethod]
+    public void TextResources_ProjectIncludesCopiedUiStringResources()
+    {
+        var projectSource = File.ReadAllText(Path.Combine(RepoRoot, "Dev", "Typedown.UI", "Typedown.UI.csproj"));
+
+        StringAssert.Contains(projectSource, @"Resources\Strings\**\*.resw");
+        Assert.IsFalse(projectSource.Contains("Typedown.Core.Legacy", StringComparison.Ordinal));
+    }
+
+    [TestMethod]
+    public void TextResources_ReaderDoesNotReferenceLegacyCoreResourcePath()
+    {
+        var readerSource = File.ReadAllText(Path.Combine(RepoRoot, "Dev", "Typedown.UI", "Resources", "LegacyTextResourceReader.cs"));
+
+        StringAssert.Contains(readerSource, @"Resources"",");
+        StringAssert.Contains(readerSource, @"""Strings""");
+        Assert.IsFalse(readerSource.Contains("Typedown.Core.Legacy", StringComparison.Ordinal));
+    }
+
+    private static string RepoRoot => ResolveRepoRoot();
+
+    private static string ResolveRepoRoot()
+    {
+        var current = new DirectoryInfo(AppContext.BaseDirectory);
+        while (current is not null)
+        {
+            if (File.Exists(Path.Combine(current.FullName, "Typedown.sln")))
+            {
+                return current.FullName;
+            }
+
+            current = current.Parent;
+        }
+
+        throw new DirectoryNotFoundException("Could not locate repo root from test base directory.");
     }
 
     private static int GetExpectedKeyCount(LegacyTextResourceGroup group)
