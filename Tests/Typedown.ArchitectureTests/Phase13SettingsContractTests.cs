@@ -27,8 +27,11 @@ public class Phase13SettingsContractTests
             AssertNoTypeReference(source, "Windows.System.VirtualKey");
             AssertNoTypeReference(source, "Windows.UI.Xaml");
             AssertNoTypeReference(source, "Microsoft.UI.Xaml");
+            AssertNoTypeReference(source, "Microsoft.Web.WebView2");
+            AssertNoTypeReference(source, "Windows.Storage.Pickers");
             AssertNoTypeReference(source, "Typedown.WinUI");
             AssertNoTypeReference(source, "Typedown.XamlUI");
+            AssertNoTypeReference(source, "Typedown.Core.Legacy");
             AssertNoTypeReference(source, "Typedown.Core.ViewModels");
             AssertNoTypeReference(source, "Typedown.Core.Models");
             AssertNoTypeReference(source, "Config.");

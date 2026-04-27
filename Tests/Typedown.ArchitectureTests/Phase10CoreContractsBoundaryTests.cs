@@ -63,6 +63,29 @@ public class Phase10CoreContractsBoundaryTests
     }
 
     [TestMethod]
+    public void PureCoreBoundary_SourceTreeAvoidsUiWinRtWebViewAndLegacyDependencies()
+    {
+        var coreFiles = Directory
+            .EnumerateFiles(Path.Combine(RepoRoot, "Dev", "Typedown.Core"), "*.cs", SearchOption.AllDirectories)
+            .Where(path => !path.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}", StringComparison.OrdinalIgnoreCase)
+                && !path.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}", StringComparison.OrdinalIgnoreCase))
+            .ToArray();
+
+        Assert.IsTrue(coreFiles.Length > 0, "Expected C# source files under Dev/Typedown.Core.");
+
+        foreach (var file in coreFiles)
+        {
+            var source = File.ReadAllText(file);
+
+            AssertNoTypeReference(source, "Microsoft.UI.Xaml");
+            AssertNoTypeReference(source, "Windows.UI.Xaml");
+            AssertNoTypeReference(source, "Microsoft.Web.WebView2");
+            AssertNoTypeReference(source, "Windows.Storage.Pickers");
+            AssertNoTypeReference(source, "Typedown.Core.Legacy");
+        }
+    }
+
+    [TestMethod]
     public void NewCoreIsNeutralAndLegacyAppReferencesLegacyCore()
     {
         var coreProject = File.ReadAllText(Path.Combine(RepoRoot, "Dev", "Typedown.Core", "Typedown.Core.csproj"));
