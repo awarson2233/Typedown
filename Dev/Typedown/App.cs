@@ -41,7 +41,7 @@ namespace Typedown
             window.Show(ShowWindowCommand.SW_HIDE);
 
             var activationService = Injection.ServiceProvider.GetRequiredService<IAppActivationService>();
-            // Phase 6 keeps the legacy boundary: the first window's scoped dispatcher owns pipe callbacks.
+            // Keep the legacy boundary: the first window's scoped dispatcher owns pipe callbacks.
             activationService.ActivationRequested += HandleActivationRequested;
             activationService.StartListening(window.ServiceProvider.GetRequiredService<IUiDispatcher>());
         }

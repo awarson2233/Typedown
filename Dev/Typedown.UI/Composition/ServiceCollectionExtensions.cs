@@ -7,7 +7,7 @@ public static class ServiceCollectionExtensions
 {
     public static IServiceCollection AddTypedownUI(this IServiceCollection services)
     {
-        services.AddTransient<Phase14ShellViewModel>();
+        services.AddTransient<ShellViewModel>();
         services.AddTransient<MainPageViewModel>();
         return services;
     }

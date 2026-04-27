@@ -6,17 +6,17 @@ using Typedown.UI.ViewModels;
 namespace Typedown.ArchitectureTests;
 
 [TestClass]
-public class Phase14ShellUiStateTests
+public class ShellUiStateTests
 {
     private static readonly string RepoRoot = FindRepoRoot();
 
     [TestMethod]
-    public void Phase14ShellViewModel_CanBeResolvedFromTypedownUiComposition()
+    public void ShellViewModel_CanBeResolvedFromTypedownUiComposition()
     {
         var services = new ServiceCollection()
             .AddTypedownUI();
 
-        var shellRegistration = services.SingleOrDefault(descriptor => descriptor.ServiceType == typeof(Phase14ShellViewModel));
+        var shellRegistration = services.SingleOrDefault(descriptor => descriptor.ServiceType == typeof(ShellViewModel));
         var mainPage = new MainPageViewModel();
 
         Assert.IsNotNull(shellRegistration);
@@ -25,9 +25,9 @@ public class Phase14ShellUiStateTests
     }
 
     [TestMethod]
-    public void Phase14ShellViewModel_ExposesBaselineVisibleShellCollections()
+    public void ShellViewModel_ExposesBaselineVisibleShellCollections()
     {
-        var shell = new Phase14ShellViewModel();
+        var shell = new ShellViewModel();
 
         CollectionAssert.AreEqual(new[] { "File", "Edit", "View" }, shell.CommandGroups.Select(group => group.Label).ToArray());
         CollectionAssert.IsSubsetOf(new[] { "NewFile", "OpenFile", "Save", "Undo", "Redo", "SidePane", "StatusBar" }, shell.CommandGroups
@@ -47,7 +47,7 @@ public class Phase14ShellUiStateTests
     }
 
     [TestMethod]
-    public void Phase14TypedownUi_SourceStaysPlatformNeutral()
+    public void TypedownUi_SourceStaysPlatformNeutral()
     {
         var uiRoot = Path.Combine(RepoRoot, "Dev", "Typedown.UI");
         var uiSources = Directory

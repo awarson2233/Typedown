@@ -4,13 +4,13 @@ using Typedown.UI.Resources;
 
 namespace Typedown.UI.ViewModels;
 
-public sealed class Phase14ShellViewModel
+public sealed class ShellViewModel
 {
-    public Phase14ShellViewModel()
+    public ShellViewModel()
     {
         File = FileUiState.FromValues(workFolder: null, filePath: null, defaultImageBasePath: null);
         Chrome = ShellChromeState.FromValues(
-            title: Phase14ShellTextResources.AppTitle,
+            title: ShellTextResources.AppTitle,
             isSaved: true,
             displaySaved: true,
             isTopmost: false,
@@ -18,10 +18,10 @@ public sealed class Phase14ShellViewModel
             compactMode: false,
             currentPageName: "Main");
 
-        AppTitle = Phase14ShellTextResources.AppTitle;
-        DocumentTitle = File.FileName ?? Phase14ShellTextResources.UntitledDocumentTitle;
-        EditorPanelTitle = Phase14ShellTextResources.EditorPanelTitle;
-        EditorPanelDescription = Phase14ShellTextResources.EditorPanelDescription;
+        AppTitle = ShellTextResources.AppTitle;
+        DocumentTitle = File.FileName ?? ShellTextResources.UntitledDocumentTitle;
+        EditorPanelTitle = ShellTextResources.EditorPanelTitle;
+        EditorPanelDescription = ShellTextResources.EditorPanelDescription;
         CommandGroups = CreateCommandGroups();
         SidePaneSections = CreateSidePaneSections();
         StatusItems = CreateStatusItems();
@@ -51,7 +51,7 @@ public sealed class Phase14ShellViewModel
         [
             new ShellCommandGroupViewModel(
                 "File",
-                Phase14ShellTextResources.FileGroupLabel,
+                ShellTextResources.FileGroupLabel,
                 [
                     CreateCommand("NewFile", "New", "NewFile"),
                     CreateCommand("OpenFile", "Open...", "OpenFile"),
@@ -59,14 +59,14 @@ public sealed class Phase14ShellViewModel
                 ]),
             new ShellCommandGroupViewModel(
                 "Edit",
-                Phase14ShellTextResources.EditGroupLabel,
+                ShellTextResources.EditGroupLabel,
                 [
                     CreateCommand("Undo", "Undo", "Undo"),
                     CreateCommand("Redo", "Redo", "Redo"),
                 ]),
             new ShellCommandGroupViewModel(
                 "View",
-                Phase14ShellTextResources.ViewGroupLabel,
+                ShellTextResources.ViewGroupLabel,
                 [
                     CreateCommand("SidePane", "Side Pane", "SidePane", isChecked: true),
                     CreateCommand("StatusBar", "Status Bar", "StatusBar", isChecked: true),
@@ -78,9 +78,9 @@ public sealed class Phase14ShellViewModel
     {
         return
         [
-            new ShellSidePaneSectionViewModel("Document", Phase14ShellTextResources.DocumentSectionTitle, "Document metadata and quick context."),
-            new ShellSidePaneSectionViewModel("Outline", Phase14ShellTextResources.OutlineSectionTitle, "A platform-neutral placeholder for heading structure."),
-            new ShellSidePaneSectionViewModel("Search", Phase14ShellTextResources.SearchSectionTitle, "A platform-neutral placeholder for find and replace state."),
+            new ShellSidePaneSectionViewModel("Document", ShellTextResources.DocumentSectionTitle, "Document metadata and quick context."),
+            new ShellSidePaneSectionViewModel("Outline", ShellTextResources.OutlineSectionTitle, "A platform-neutral placeholder for heading structure."),
+            new ShellSidePaneSectionViewModel("Search", ShellTextResources.SearchSectionTitle, "A platform-neutral placeholder for find and replace state."),
         ];
     }
 
@@ -88,10 +88,10 @@ public sealed class Phase14ShellViewModel
     {
         return
         [
-            new ShellStatusItemViewModel("FileName", "File", Phase14ShellTextResources.UntitledDocumentTitle),
-            new ShellStatusItemViewModel("SavedState", "Status", Phase14ShellTextResources.SavedStatusReady),
-            new ShellStatusItemViewModel("EditorMode", "Mode", Phase14ShellTextResources.EditorModeMarkdown),
-            new ShellStatusItemViewModel("Encoding", "Encoding", Phase14ShellTextResources.EncodingUtf8),
+            new ShellStatusItemViewModel("FileName", "File", ShellTextResources.UntitledDocumentTitle),
+            new ShellStatusItemViewModel("SavedState", "Status", ShellTextResources.SavedStatusReady),
+            new ShellStatusItemViewModel("EditorMode", "Mode", ShellTextResources.EditorModeMarkdown),
+            new ShellStatusItemViewModel("Encoding", "Encoding", ShellTextResources.EncodingUtf8),
         ];
     }
 

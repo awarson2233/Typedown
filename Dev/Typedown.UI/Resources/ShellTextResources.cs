@@ -1,6 +1,6 @@
 namespace Typedown.UI.Resources;
 
-public static class Phase14ShellTextResources
+public static class ShellTextResources
 {
     public static string AppTitle => "Typedown";
 
@@ -9,7 +9,7 @@ public static class Phase14ShellTextResources
     public static string EditorPanelTitle => "Editor";
 
     public static string EditorPanelDescription =>
-        "Phase 14 exposes a platform-neutral shell view of the current document, command surface, side panes, and status bar.";
+        "Typedown exposes a platform-neutral shell view of the current document, command surface, side panes, and status bar.";
 
     public static string FileGroupLabel => "File";
 

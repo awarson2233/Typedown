@@ -9,7 +9,7 @@
 		<SupportedOSPlatformVersion>10.0.18362.0</SupportedOSPlatformVersion>
 		<Nullable>enable</Nullable>
 		<UseUwp>true</UseUwp>
-		<Platforms>x86;x64;arm64</Platforms>
+		<Platforms>x86;x64</Platforms>
 		<RuntimeIdentifiers>win-x86;win-x64;win-arm64</RuntimeIdentifiers>
 		<DefaultLanguage>zh-CN</DefaultLanguage>
 		<DisableRuntimeMarshalling>true</DisableRuntimeMarshalling>
@@ -28,8 +28,7 @@
 	</PropertyGroup>
 
 	<Target Name="EnsureTypedownXamlUIDependency" BeforeTargets="PrepareForBuild">
-		<Error Condition="!Exists('$(TypedownXamlUIProject)')"
-			   Text="Missing required in-repo legacy XAML host: '$(TypedownXamlUIProject)'. See docs/xamlui-dependency.md for the expected repository layout." />
+		<Error Condition="!Exists('$(TypedownXamlUIProject)')" Text="Missing required in-repo legacy XAML host: '$(TypedownXamlUIProject)'. See docs/xamlui-dependency.md for the expected repository layout." />
 	</Target>
 
 	<PropertyGroup Condition="'$(Platform)' == 'x64'">
@@ -37,15 +36,18 @@
 		<RuntimeIdentifier>win-x64</RuntimeIdentifier>
 	</PropertyGroup>
 
-	<PropertyGroup Condition="'$(Platform)'=='ARM64'">
-		<SelfContained>true</SelfContained>
-		<RuntimeIdentifier>win-arm64</RuntimeIdentifier>
-	</PropertyGroup>
-
 	<PropertyGroup Condition="'$(Platform)' == 'x86'">
 		<SelfContained>true</SelfContained>
 		<RuntimeIdentifier>win-x86</RuntimeIdentifier>
 	</PropertyGroup>
+
+	<ItemGroup>
+	  <Compile Remove="obj_test\**" />
+	  <EmbeddedResource Remove="obj_test\**" />
+	  <None Remove="obj_test\**" />
+	  <Page Remove="obj_test\**" />
+	  <PRIResource Remove="obj_test\**" />
+	</ItemGroup>
 
 	<ItemGroup>
 		<PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="9.0.8" />

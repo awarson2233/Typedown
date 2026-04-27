@@ -53,7 +53,7 @@ namespace Typedown.WinUI.Views
             var services = ResolvePlatformServices(e.Parameter);
             ViewModel = ResolveViewModel(e.Parameter);
             ViewModel.ApplyPlatformServiceSummary(
-                Phase10ContractsProbe.Describe(services),
+                WinUIContractsProbe.Describe(services),
                 services.ServiceNames);
         }
 

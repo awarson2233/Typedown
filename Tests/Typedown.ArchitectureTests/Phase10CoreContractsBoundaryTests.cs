@@ -78,6 +78,9 @@ public class Phase10CoreContractsBoundaryTests
         var projectSource = File.ReadAllText(Path.Combine(RepoRoot, "Dev", "Typedown.WinUI", "Typedown.WinUI.csproj"));
 
         AssertHasTypeReference(projectSource, @"..\Typedown.Core.Contracts\Typedown.Core.Contracts.csproj");
+        AssertHasTypeReference(projectSource, "<Platforms>x64;ARM64</Platforms>");
+        AssertHasTypeReference(projectSource, "win-x64;win-arm64");
+        AssertHasTypeReference(projectSource, "<RuntimeIdentifier>win-arm64</RuntimeIdentifier>");
         AssertNoTypeReference(projectSource, @"..\Typedown.Core\Typedown.Core.csproj");
         AssertNoTypeReference(projectSource, @"..\Typedown.XamlUI\Typedown.XamlUI.csproj");
         AssertNoTypeReference(projectSource, "Typedown.XamlUI");
@@ -100,6 +103,12 @@ public class Phase10CoreContractsBoundaryTests
         AssertHasTypeReference(solutionSource, $"{contractsProjectGuid}.Debug|x64.Build.0");
         AssertHasTypeReference(solutionSource, $"{winuiProjectGuid}.Debug|x64.Build.0");
         AssertHasTypeReference(solutionSource, $"{winuiProjectGuid}.Debug|x64.Deploy.0");
+        AssertHasTypeReference(solutionSource, $"{winuiProjectGuid}.Debug|ARM64.ActiveCfg = Debug|ARM64");
+        AssertHasTypeReference(solutionSource, $"{winuiProjectGuid}.Debug|ARM64.Build.0 = Debug|ARM64");
+        AssertHasTypeReference(solutionSource, $"{winuiProjectGuid}.Debug|ARM64.Deploy.0 = Debug|ARM64");
+        AssertHasTypeReference(solutionSource, $"{winuiProjectGuid}.Release|ARM64.ActiveCfg = Release|ARM64");
+        AssertHasTypeReference(solutionSource, $"{winuiProjectGuid}.Release|ARM64.Build.0 = Release|ARM64");
+        AssertHasTypeReference(solutionSource, $"{winuiProjectGuid}.Release|ARM64.Deploy.0 = Release|ARM64");
         AssertDebugX64DoesNotBuildOrDeployLegacyProject(solutionSource, legacyAppGuid);
         AssertDebugX64DoesNotBuildOrDeployLegacyProject(solutionSource, legacyPackageGuid);
         AssertDebugX64DoesNotBuildOrDeployLegacyProject(solutionSource, xamlDesignGuid);
@@ -107,7 +116,12 @@ public class Phase10CoreContractsBoundaryTests
 
         AssertHasTypeReference(solutionSource, $"{contractsProjectGuid}.Debug_Local|x64.Build.0");
         AssertHasTypeReference(solutionSource, $"{winuiProjectGuid}.Debug_Local|x64.Build.0");
+        AssertHasTypeReference(solutionSource, $"{winuiProjectGuid}.Debug_Local|ARM64.ActiveCfg = Debug_Local|ARM64");
+        AssertHasTypeReference(solutionSource, $"{winuiProjectGuid}.Debug_Local|ARM64.Build.0 = Debug_Local|ARM64");
         AssertNoTypeReference(solutionSource, $"{winuiProjectGuid}.Debug_Local|ARM64.Deploy.0");
+        AssertNoTypeReference(solutionSource, $"{winuiProjectGuid}.Debug|ARM64.ActiveCfg = Debug|x64");
+        AssertNoTypeReference(solutionSource, $"{winuiProjectGuid}.Debug_Local|ARM64.ActiveCfg = Debug_Local|x64");
+        AssertNoTypeReference(solutionSource, $"{winuiProjectGuid}.Release|ARM64.ActiveCfg = Release|x64");
         AssertNoTypeReference(solutionSource, $"{winuiProjectGuid}.Debug_Local|x64.Deploy.0");
         AssertNoTypeReference(solutionSource, $"{winuiProjectGuid}.Debug_Local|x86.Deploy.0");
         AssertDebugLocalX64DoesNotBuildOrDeployLegacyProject(solutionSource, legacyAppGuid);
@@ -525,6 +539,9 @@ public class Phase10CoreContractsBoundaryTests
         AssertHasTypeReference(resourceSource, "DeferredItems");
         AssertHasTypeReference(viewModelSource, "MainPageTextResources");
         AssertNoTypeReference(viewModelSource, "Phase 12 MVVM shell is waiting for WinUI platform service initialization.");
+        AssertNoTypeReference(viewModelSource, "Phase 13");
+        AssertNoTypeReference(viewModelSource, "Phase 14");
+        AssertHasTypeReference(viewModelSource, "public ShellViewModel Shell { get; }");
     }
 
     private static void AssertContainsClass(string root, string fileName, string className)

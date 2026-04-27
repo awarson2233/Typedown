@@ -165,7 +165,7 @@ namespace Typedown.WinUI.Controls
                 args = new
                 {
                     shell = "Typedown.WinUI",
-                    phase = "Phase 11",
+                    capability = "EditorHost",
                     mode = "OpenAndEditSmoke"
                 }
             });

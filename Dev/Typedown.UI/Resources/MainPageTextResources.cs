@@ -5,16 +5,16 @@ public static class MainPageTextResources
     public static string Title => "Typedown WinUI3 Platform Services";
 
     public static string Subtitle =>
-        "Phase 13 keeps the Typedown.UI MVVM boundary while preserving the Phase 11 WebView2 editor host layout.";
+        "Typedown.UI keeps the MVVM boundary while preserving the WinUI WebView2 editor host layout.";
 
     public static string PendingContractsProbeSummary =>
-        "Phase 13 UI resources are waiting for WinUI platform service initialization.";
+        "UI resources are waiting for WinUI platform service initialization.";
 
     public static IReadOnlyList<string> ValidatedItems { get; } =
     [
         "WinUI3 shell keeps platform service implementations and activation behind Typedown.WinUI.",
         "Typedown.UI owns page-level MVVM state and composition, not process startup or package deployment.",
-        "The Phase 11 editor host remains in Typedown.WinUI while the UI boundary is introduced.",
+        "The editor host remains in Typedown.WinUI while the UI boundary is introduced.",
         "The same Resources\\Statics editor bundle remains the runtime editor asset source."
     ];
 

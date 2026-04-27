@@ -27,7 +27,7 @@
                 <ResourceDictionary Source="ms-appx:///Resources/Styles/Button.xaml" />
                 <!-- Other merged dictionaries here -->
             </ResourceDictionary.MergedDictionaries>
-            <!-- Phase 9 uses a minimal neutral shell; product UI moves later into Typedown.UI. -->
+            <!-- The WinUI shell stays neutral; product UI state lives in Typedown.UI. -->
             <Color x:Key="Primary">#24535B</Color>
 
             <SolidColorBrush x:Key="PrimaryBrush" Color="{StaticResource Primary}" />

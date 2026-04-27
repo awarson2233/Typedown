@@ -396,7 +396,7 @@ namespace Typedown.WinUI.Controls
 
         private static string GetDefaultSmokeMarkdown()
         {
-            return "# Typedown WinUI Phase 11\n\n"
+            return "# Typedown WinUI Editor Host\n\n"
                 + "This smoke document proves the WinUI editor host can open and edit markdown.\n\n"
                 + "- Bridge invoke handlers respond through a contract-backed local session.\n"
                 + "- `LoadFile` comes from the session document state after navigation.\n"
