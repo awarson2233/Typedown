@@ -15,7 +15,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\Dev\Typedown.Core.Contracts\Typedown.Core.Contracts.csproj" />
+    <ProjectReference Include="..\..\Dev\Typedown.Core\Typedown.Core.csproj" />
     <ProjectReference Include="..\..\Dev\Typedown.UI\Typedown.UI.csproj" />
     <Compile Include="..\..\Dev\Typedown.WinUI\Controls\WinUIEditorBridgeAdapter.cs" Link="TestImports\WinUIEditorBridgeAdapter.cs" />
     <Compile Include="..\..\Dev\Typedown.WinUI\Controls\WinUIEditorHostController.cs" Link="TestImports\WinUIEditorHostController.cs" />

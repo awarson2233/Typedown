@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
 		<TypedownXamlUIProjectDir Condition="'$(TypedownXamlUIProjectDir)' == ''">$(MSBuildProjectDirectory)\..\Typedown.XamlUI\</TypedownXamlUIProjectDir>
@@ -70,8 +70,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<ProjectReference Include="..\Typedown.Core.Contracts\Typedown.Core.Contracts.csproj" />
-		<ProjectReference Include="..\Typedown.Core\Typedown.Core.csproj" />
+		<ProjectReference Include="..\Typedown.Core.Legacy\Typedown.Core.Legacy.csproj" />
 		<ProjectReference Include="$(TypedownXamlUIProject)" />
 	</ItemGroup>
 

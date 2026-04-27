@@ -247,7 +247,7 @@ public class Phase13RuntimeStateContractTests
     public void RuntimeContracts_StayPlatformNeutralAndAvoidLegacyDependencies()
     {
         var runtimeFiles = Directory
-            .EnumerateFiles(Path.Combine(RepoRoot, "Dev", "Typedown.Core.Contracts", "EditorRuntime"), "*.cs", SearchOption.TopDirectoryOnly)
+            .EnumerateFiles(Path.Combine(RepoRoot, "Dev", "Typedown.Core", "EditorRuntime"), "*.cs", SearchOption.TopDirectoryOnly)
             .ToArray();
 
         Assert.IsTrue(runtimeFiles.Length >= 7, "Expected Phase 13 runtime UI state contracts.");

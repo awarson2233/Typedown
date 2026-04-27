@@ -30,6 +30,6 @@
 	</PropertyGroup>
 	
 	<ItemGroup>
-	  <ProjectReference Include="..\..\Dev\Typedown.Core\Typedown.Core.csproj" />
+	  <ProjectReference Include="..\..\Dev\Typedown.Core.Legacy\Typedown.Core.Legacy.csproj" />
 	</ItemGroup>
 </Project>

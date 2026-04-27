@@ -15,7 +15,7 @@ public class Phase13SettingsContractTests
     public void SettingsContracts_StayPlatformNeutralAndAvoidLegacyDependencies()
     {
         var settingsFiles = Directory
-            .EnumerateFiles(Path.Combine(RepoRoot, "Dev", "Typedown.Core.Contracts", "Settings"), "*.cs", SearchOption.TopDirectoryOnly)
+            .EnumerateFiles(Path.Combine(RepoRoot, "Dev", "Typedown.Core", "Settings"), "*.cs", SearchOption.TopDirectoryOnly)
             .ToArray();
 
         Assert.IsTrue(settingsFiles.Length >= 3, "Expected Phase 13 settings and shortcut contracts.");

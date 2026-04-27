@@ -14,7 +14,7 @@ public class Phase13EditorCommandContractTests
     public void EditorCommandContracts_StayPlatformNeutralAndAvoidUiFrameworkTypes()
     {
         var editorFiles = Directory
-            .EnumerateFiles(Path.Combine(RepoRoot, "Dev", "Typedown.Core.Contracts", "Editor"), "*.cs", SearchOption.TopDirectoryOnly)
+            .EnumerateFiles(Path.Combine(RepoRoot, "Dev", "Typedown.Core", "Editor"), "*.cs", SearchOption.TopDirectoryOnly)
             .ToArray();
 
         Assert.IsTrue(editorFiles.Length >= 18, "Expected Phase 13 editor command contracts.");

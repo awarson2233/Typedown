@@ -60,7 +60,7 @@
 
     <ItemGroup>
         <PackageReference Include="CommunityToolkit.WinUI.Controls.SettingsControls" Version="8.2.251219" />
-        <ProjectReference Include="..\\Typedown.Core.Contracts\\Typedown.Core.Contracts.csproj" />
+        <ProjectReference Include="..\Typedown.Core\Typedown.Core.csproj" />
         <ProjectReference Include="..\Typedown.UI\Typedown.UI.csproj" />
         <PackageReference Include="CommunityToolkit.WinUI.Controls.Sizers" Version="8.2.251219" />
         <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="9.0.8" />

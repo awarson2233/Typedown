@@ -46,7 +46,7 @@ public class Phase13ShellStateContractTests
     [TestMethod]
     public void ShellStateContracts_StayPlatformNeutralAndAvoidLegacyDependencies()
     {
-        var shellRoot = Path.Combine(RepoRoot, "Dev", "Typedown.Core.Contracts", "Shell");
+        var shellRoot = Path.Combine(RepoRoot, "Dev", "Typedown.Core", "Shell");
         var shellFiles = Directory
             .EnumerateFiles(shellRoot, "*.cs", SearchOption.TopDirectoryOnly)
             .ToArray();
