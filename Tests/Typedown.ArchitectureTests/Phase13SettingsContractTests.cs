@@ -151,6 +151,76 @@ public class Phase13SettingsContractTests
     }
 
     [TestMethod]
+    public void SettingsEnums_ExistInPureCoreWithLegacyStableValues()
+    {
+        AssertEnumMembers<ImageUploadMethod>(
+            ("None", 0),
+            ("FTP", 1),
+            ("Git", 2),
+            ("OSS", 3),
+            ("SCP", 4),
+            ("PowerShell", 1024));
+
+        AssertEnumMembers<InsertImageAction>(
+            ("None", 0),
+            ("CopyToPath", 1),
+            ("Upload", 2));
+
+        AssertEnumMembers<ExportType>(
+            ("None", 0),
+            ("PDF", 1),
+            ("HTML", 2),
+            ("Image", 3));
+
+        AssertEnumMembers<PrintOrientation>(
+            ("Portrait", 0),
+            ("Landscape", 1));
+
+        AssertEnumMembers<FileStartupAction>(
+            ("None", 0),
+            ("OpenLast", 1));
+
+        AssertEnumMembers<FolderStartupAction>(
+            ("None", 0),
+            ("OpenLast", 1),
+            ("OpenFolder", 2));
+
+        AssertEnumMembers<AppTheme>(
+            ("Default", 0),
+            ("Light", 1),
+            ("Dark", 2));
+    }
+
+    [TestMethod]
+    public void SettingsEnums_ArePureCoreTypesWithoutUiAttributes()
+    {
+        var enumTypes = new[]
+        {
+            typeof(ImageUploadMethod),
+            typeof(InsertImageAction),
+            typeof(ExportType),
+            typeof(PrintOrientation),
+            typeof(FileStartupAction),
+            typeof(FolderStartupAction),
+            typeof(AppTheme),
+        };
+
+        foreach (var enumType in enumTypes)
+        {
+            Assert.AreEqual("Typedown.Core.Contracts.Settings", enumType.Namespace, $"Unexpected namespace for {enumType.Name}.");
+            Assert.AreEqual(typeof(EditorShortcutKey).Assembly, enumType.Assembly, $"Expected {enumType.Name} to live in pure Typedown.Core.");
+
+            foreach (var field in enumType.GetFields(BindingFlags.Public | BindingFlags.Static))
+            {
+                Assert.AreEqual(
+                    0,
+                    field.GetCustomAttributesData().Count,
+                    $"Expected {enumType.Name}.{field.Name} to stay free of UI/localization attributes in pure core.");
+            }
+        }
+    }
+
+    [TestMethod]
     public void SettingsUiSnapshot_CoversPureSettingsWithLegacyJsonNames()
     {
         var snapshot = new SettingsUiSnapshot
@@ -241,6 +311,20 @@ public class Phase13SettingsContractTests
     {
         Assert.IsTrue(shortcuts.TryGetValue(name, out var shortcut), $"Missing shortcut: {name}");
         Assert.IsNull(shortcut, $"Expected {name} to preserve the legacy null shortcut default.");
+    }
+
+    private static void AssertEnumMembers<TEnum>(params (string Name, int Value)[] expectedMembers)
+        where TEnum : struct, Enum
+    {
+        var actualMembers = Enum
+            .GetValues<TEnum>()
+            .Select(value => (value.ToString(), Convert.ToInt32(value)))
+            .ToArray();
+
+        CollectionAssert.AreEqual(
+            expectedMembers.Select(member => $"{member.Name}:{member.Value}").ToArray(),
+            actualMembers.Select(member => $"{member.Item1}:{member.Item2}").ToArray(),
+            $"Unexpected enum shape for {typeof(TEnum).Name}.");
     }
 
     private static void AssertNoTypeReference(string source, string text)
