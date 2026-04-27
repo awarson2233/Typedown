@@ -8,23 +8,25 @@ public class Phase14UiVisualBoundaryTests
     private static readonly string RepoRoot = FindRepoRoot();
 
     [TestMethod]
-    public void Phase14Plan_DocumentExistsAndLocksVisualMigrationBoundary()
+    public void CoreDecouplingPlan_DocumentsCurrentPureCoreAndMvvmBoundary()
     {
-        var planPath = Path.Combine(RepoRoot, "docs", "phase14-ui-visual-migration-plan.md");
-        Assert.IsTrue(File.Exists(planPath), "Expected Phase 14 visual migration plan document.");
+        var planPath = Path.Combine(
+            RepoRoot,
+            "docs",
+            "superpowers",
+            "plans",
+            "2026-04-27-core-decoupling-slimming.md");
+        Assert.IsTrue(File.Exists(planPath), "Expected the current Core decoupling and slimming plan document.");
 
         var source = File.ReadAllText(planPath);
 
         AssertContainsInOrder(
             source,
-            "首批 `1:1` 可视 UI 迁移",
-            "`Typedown.UI` 继续作为平台中立 UI 编排层",
-            "`Typedown.WinUI` 继续拥有 WinUI3 页面/XAML、`WinUIEditorHost`",
-            "Phase 14 不是直接切默认启动",
-            "不删除 `Typedown.XamlUI`",
-            "不迁移 WebView2 host",
-            "不迁移 Window/Dialog/FilePicker/Package/`launchSettings`",
-            "不处理 ARM64");
+            "将 `Dev/Typedown.Core` 固化为纯逻辑 + MVVM 合同层",
+            "`Typedown.Core` 不允许依赖 XAML、WinRT UI 类型、WebView2、文件选择器、窗口服务或 legacy 项目",
+            "`Dev/Typedown.UI`：承接 shell-agnostic MVVM、资源读取、组合逻辑",
+            "`Dev/Typedown.WinUI`：WinUI3 shell、XAML、平台服务适配、WebView2 host",
+            "`Dev/Typedown.Core.Legacy`：旧 UWP / WinUI2 Core，保留为迁移参考");
     }
 
     [TestMethod]

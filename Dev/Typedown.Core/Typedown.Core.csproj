@@ -3,5 +3,12 @@
     <TargetFramework>net9.0</TargetFramework>
     <Nullable>enable</Nullable>
     <Configurations>Debug;Release;Debug_Local</Configurations>
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
+  <ItemGroup>
+    <Compile Remove="obj_test\**" />
+    <EmbeddedResource Remove="obj_test\**" />
+    <None Remove="obj_test\**" />
+  </ItemGroup>
 </Project>

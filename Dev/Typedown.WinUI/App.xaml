@@ -11,12 +11,10 @@
         <ResourceDictionary>
             <ResourceDictionary.ThemeDictionaries>
                 <ResourceDictionary x:Key="Light">
-                    <Color x:Key="TypedownEditorBackgroundColor">#F9F9F9</Color>
-                    <SolidColorBrush x:Key="TypedownEditorBackgroundBrush" Color="{StaticResource TypedownEditorBackgroundColor}" />
+                    <SolidColorBrush x:Key="TypedownEditorBackgroundBrush" Color="#F9F9F9" />
                 </ResourceDictionary>
                 <ResourceDictionary x:Key="Default">
-                    <Color x:Key="TypedownEditorBackgroundColor">#282828</Color>
-                    <SolidColorBrush x:Key="TypedownEditorBackgroundBrush" Color="{StaticResource TypedownEditorBackgroundColor}" />
+                    <SolidColorBrush x:Key="TypedownEditorBackgroundBrush" Color="#282828" />
                 </ResourceDictionary>
                 <ResourceDictionary x:Key="HighContrast">
                     <SolidColorBrush x:Key="TypedownEditorBackgroundBrush" Color="{ThemeResource SystemColorWindowColor}" />
@@ -28,9 +26,7 @@
                 <!-- Other merged dictionaries here -->
             </ResourceDictionary.MergedDictionaries>
             <!-- The WinUI shell stays neutral; product UI state lives in Typedown.UI. -->
-            <Color x:Key="Primary">#24535B</Color>
-
-            <SolidColorBrush x:Key="PrimaryBrush" Color="{StaticResource Primary}" />
+            <SolidColorBrush x:Key="PrimaryBrush" Color="#24535B" />
             <SolidColorBrush x:Key="WhiteBrush" Color="White" />
             <SolidColorBrush x:Key="BlackBrush" Color="Black" />
 
