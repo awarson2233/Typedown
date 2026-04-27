@@ -367,6 +367,34 @@ public class Phase10CoreContractsBoundaryTests
     }
 
     [TestMethod]
+    public void WinUIEditorMenus_CompileXamlWhileLegacyCodeBehindStaysOutOfBuild()
+    {
+        var projectSource = File.ReadAllText(Path.Combine(RepoRoot, "Dev", "Typedown.WinUI", "Typedown.WinUI.csproj"));
+        var menuBarSource = File.ReadAllText(Path.Combine(RepoRoot, "Dev", "Typedown.WinUI", "Controls", "EditorControls", "MenuBar.xaml"));
+        var menuStubSource = File.ReadAllText(Path.Combine(RepoRoot, "Dev", "Typedown.WinUI", "Controls", "EditorControls", "MenuBarItems", "MenuBarItemStubs.cs"));
+        var contextStubSource = File.ReadAllText(Path.Combine(RepoRoot, "Dev", "Typedown.WinUI", "Controls", "EditorControls", "ContextMenuItems", "ContextMenuItemStubs.cs"));
+
+        AssertNoTypeReference(projectSource, @"<Page Remove=""Controls\EditorControls\MenuBarItems\*.xaml""");
+        AssertNoTypeReference(projectSource, @"<Page Remove=""Controls\EditorControls\ContextMenuItems\*.xaml""");
+        AssertHasTypeReference(projectSource, @"<Compile Remove=""LegacyCopied\**\*.cs""");
+        AssertHasTypeReference(projectSource, @"<Compile Remove=""Controls\EditorControls\MenuBarItems\*.xaml.cs""");
+        AssertHasTypeReference(projectSource, @"<Compile Remove=""Controls\EditorControls\ContextMenuItems\*.xaml.cs""");
+        AssertHasTypeReference(projectSource, @"<Compile Remove=""Controls\EditorControls\MenuBarItems\MenuBarItemBase.cs""");
+        AssertNoTypeReference(projectSource, @"..\Typedown.Core.Legacy\Typedown.Core.Legacy.csproj");
+
+        AssertHasTypeReference(menuBarSource, "<items:FileItem");
+        AssertHasTypeReference(menuBarSource, "<items:EditItem");
+        AssertHasTypeReference(menuBarSource, "<items:ParagraphItem");
+        AssertHasTypeReference(menuBarSource, "<items:FormatItem");
+        AssertHasTypeReference(menuBarSource, "<items:ViewItem");
+
+        AssertHasTypeReference(menuStubSource, "partial class FileItem");
+        AssertHasTypeReference(menuStubSource, "InitializeComponent()");
+        AssertHasTypeReference(contextStubSource, "partial class ImageItem");
+        AssertHasTypeReference(contextStubSource, "InitializeComponent()");
+    }
+
+    [TestMethod]
     public void PickerContract_PreservesNullCancelSemantics()
     {
         var contractSource = File.ReadAllText(Path.Combine(RepoRoot, "Dev", "Typedown.Core", "Interfaces", "IFilePickerService.cs"));

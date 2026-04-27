@@ -1,26 +1,39 @@
 namespace Typedown.WinUI.Controls;
 
-public sealed class CodeFencesItem : MenuItemCollection
+public sealed partial class CodeFencesItem : MenuItemCollection
 {
     public CodeFencesItem()
     {
-        Items.Add(new MenuFlyoutItem { Text = "Format Code" });
+        InitializeComponent();
     }
 }
 
-public sealed class ContextFormatItem : MenuFlyoutItem
+public sealed partial class ContextFormatItem : MenuFlyoutItem
 {
     public ContextFormatItem()
     {
-        Text = "Format";
+        InitializeComponent();
     }
 }
 
-public sealed class ImageItem : MenuItemCollection
+public sealed partial class ImageItem : MenuItemCollection
 {
     public ImageItem()
     {
-        Items.Add(new MenuFlyoutItem { Text = "Open Image Location" });
-        Items.Add(new MenuFlyoutItem { Text = "Save Image As" });
+        InitializeComponent();
     }
+
+    private void OnOpenImageLocationItemLoaded(object sender, Microsoft.UI.Xaml.RoutedEventArgs e) { }
+
+    private void OnOpenImageLocationClick(object sender, Microsoft.UI.Xaml.RoutedEventArgs e) { }
+
+    private void OnCopyImageToClick(object sender, Microsoft.UI.Xaml.RoutedEventArgs e) { }
+
+    private void OnMoveImageToClick(object sender, Microsoft.UI.Xaml.RoutedEventArgs e) { }
+
+    private void OnImageUploadSettingsClick(object sender, Microsoft.UI.Xaml.RoutedEventArgs e) { }
+
+    private void OnSaveImageClick(object sender, Microsoft.UI.Xaml.RoutedEventArgs e) { }
+
+    private void OnDeleteImageFileClick(object sender, Microsoft.UI.Xaml.RoutedEventArgs e) { }
 }

@@ -2,7 +2,7 @@ using Microsoft.UI.Xaml.Controls;
 
 namespace Typedown.WinUI.Controls;
 
-public abstract class MenuBarItemBase : Microsoft.UI.Xaml.Controls.MenuBarItem
+public abstract partial class MenuBarItemBase : Microsoft.UI.Xaml.Controls.MenuBarItem
 {
     protected MenuBarItemBase(string title)
     {
@@ -15,51 +15,60 @@ public abstract class MenuBarItemBase : Microsoft.UI.Xaml.Controls.MenuBarItem
     }
 }
 
-public sealed class FileItem : MenuBarItemBase
+public sealed partial class FileItem : MenuBarItemBase
 {
     public FileItem() : base("File")
     {
-        AddPlaceholder("New");
-        AddPlaceholder("Open");
-        AddPlaceholder("Save");
+        InitializeComponent();
     }
+
+    private void OnLoaded(object sender, Microsoft.UI.Xaml.RoutedEventArgs e) { }
+
+    private void OnUnloaded(object sender, Microsoft.UI.Xaml.RoutedEventArgs e) { }
+
+    private void OnOpenRecentSubMenuLoaded(object sender, Microsoft.UI.Xaml.RoutedEventArgs e) { }
+
+    private void OnExportSubMenuLoaded(object sender, Microsoft.UI.Xaml.RoutedEventArgs e) { }
 }
 
-public sealed class EditItem : MenuBarItemBase
+public sealed partial class EditItem : MenuBarItemBase
 {
     public EditItem() : base("Edit")
     {
-        AddPlaceholder("Undo");
-        AddPlaceholder("Redo");
-        AddPlaceholder("Find");
+        InitializeComponent();
     }
+
+    private void OnLoaded(object sender, Microsoft.UI.Xaml.RoutedEventArgs e) { }
+
+    private void OnUnloaded(object sender, Microsoft.UI.Xaml.RoutedEventArgs e) { }
 }
 
-public sealed class ParagraphItem : MenuBarItemBase
+public sealed partial class ParagraphItem : MenuBarItemBase
 {
     public ParagraphItem() : base("Paragraph")
     {
-        AddPlaceholder("Heading");
-        AddPlaceholder("Paragraph");
-        AddPlaceholder("Table");
+        InitializeComponent();
     }
+
+    private void OnUnloaded(object sender, Microsoft.UI.Xaml.RoutedEventArgs e) { }
 }
 
-public sealed class FormatItem : MenuBarItemBase
+public sealed partial class FormatItem : MenuBarItemBase
 {
     public FormatItem() : base("Format")
     {
-        AddPlaceholder("Strong");
-        AddPlaceholder("Emphasis");
-        AddPlaceholder("Code");
+        InitializeComponent();
     }
+
+    private void OnUnloaded(object sender, Microsoft.UI.Xaml.RoutedEventArgs e) { }
 }
 
-public sealed class ViewItem : MenuBarItemBase
+public sealed partial class ViewItem : MenuBarItemBase
 {
     public ViewItem() : base("View")
     {
-        AddPlaceholder("Side Pane");
-        AddPlaceholder("Status Bar");
+        InitializeComponent();
     }
+
+    private void OnUnloaded(object sender, Microsoft.UI.Xaml.RoutedEventArgs e) { }
 }
