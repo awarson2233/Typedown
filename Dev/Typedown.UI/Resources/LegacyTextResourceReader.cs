@@ -103,7 +103,7 @@ public static class LegacyTextResourceReader
             var candidate = Path.Combine(
                 current.FullName,
                 "Dev",
-                "Typedown.Core",
+                "Typedown.Core.Legacy",
                 "Resources",
                 "Strings",
                 cultureName,
