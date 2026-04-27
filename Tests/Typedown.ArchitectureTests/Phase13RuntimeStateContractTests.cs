@@ -1,6 +1,7 @@
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System.Text.Json;
 using Typedown.Core.Contracts.EditorRuntime;
+using Typedown.UI.ViewModels;
 
 namespace Typedown.ArchitectureTests;
 
@@ -205,6 +206,37 @@ public class Phase13RuntimeStateContractTests
     }
 
     [TestMethod]
+    public void SelectionState_ExposesOnlyMenuAndImageContextFields()
+    {
+        var state = new EditorSelectionState
+        {
+            IsTextSelected = true,
+            SelectionText = "selected text",
+            SelectedImage = new EditorSelectedImageState
+            {
+                Src = "images/runtime-state.png",
+                Alt = "runtime-state",
+                Title = "Runtime State"
+            }
+        };
+
+        Assert.IsTrue(state.IsTextSelected);
+        Assert.AreEqual("selected text", state.SelectionText);
+        Assert.IsTrue(state.HasSelectedImage);
+        Assert.AreEqual("images/runtime-state.png", state.SelectedImage?.Src);
+
+        var json = JsonSerializer.Serialize(state);
+
+        StringAssert.Contains(json, "\"isTextSelected\"");
+        StringAssert.Contains(json, "\"selectionText\"");
+        StringAssert.Contains(json, "\"selectedImage\"");
+        StringAssert.Contains(json, "\"src\"");
+        StringAssert.Contains(json, "\"alt\"");
+        StringAssert.Contains(json, "\"title\"");
+        Assert.IsFalse(json.Contains("\"SelectedImage\"", StringComparison.Ordinal));
+    }
+
+    [TestMethod]
     public void RuntimeMenuFormatAndParagraphState_SerializeWithLegacyCamelCaseNames()
     {
         var paragraphState = EditorParagraphState.FromMenuState(new EditorMenuState
@@ -244,13 +276,76 @@ public class Phase13RuntimeStateContractTests
     }
 
     [TestMethod]
+    public void RuntimeViewModel_ProjectsCoreStateIntoPureUiState()
+    {
+        var current = new EditorTocItem
+        {
+            Slug = "child",
+            Level = 2,
+            Content = "Child",
+            IsSelected = true,
+        };
+
+        var runtime = new EditorRuntimeViewModel();
+        runtime.ApplyContentState(new EditorContentState
+        {
+            WordCount = new EditorWordCount { Word = 5, Character = 20 },
+            Toc =
+            [
+                new EditorTocItem { Slug = "root", Level = 1, Content = "Root" },
+                current,
+            ],
+            Current = current,
+        });
+        runtime.ApplyFormatState(new EditorFormatState { Image = true });
+        runtime.ApplySelectionState(new EditorSelectionState
+        {
+            SelectedImage = new EditorSelectedImageState
+            {
+                Src = "images/runtime-state.png",
+                Alt = "runtime-state",
+                Title = "Runtime State"
+            }
+        });
+        runtime.ApplyMenuState(new EditorMenuState
+        {
+            Affiliation = new Dictionary<string, bool> { ["h1"] = true },
+        });
+
+        Assert.AreEqual(1, runtime.TocNodes.Count);
+        Assert.AreEqual("root", runtime.TocNodes[0].Slug);
+        Assert.AreEqual(1, runtime.TocNodes[0].Depth);
+        Assert.AreEqual(1, runtime.TocNodes[0].Children.Count);
+        Assert.AreEqual("child", runtime.TocNodes[0].Children[0].Slug);
+        Assert.AreEqual(2, runtime.TocNodes[0].Children[0].Depth);
+        Assert.IsTrue(runtime.TocNodes[0].Children[0].IsSelected);
+        Assert.IsTrue(runtime.IsSelectionActive);
+        Assert.IsTrue(runtime.IsImageContextMenuVisible);
+        Assert.IsTrue(runtime.ParagraphState.Heading1.IsChecked);
+    }
+
+    [TestMethod]
     public void RuntimeContracts_StayPlatformNeutralAndAvoidLegacyDependencies()
     {
         var runtimeFiles = Directory
             .EnumerateFiles(Path.Combine(RepoRoot, "Dev", "Typedown.Core", "EditorRuntime"), "*.cs", SearchOption.TopDirectoryOnly)
             .ToArray();
 
-        Assert.IsTrue(runtimeFiles.Length >= 7, "Expected Phase 13 runtime UI state contracts.");
+        var runtimeFileNames = runtimeFiles.Select(Path.GetFileName).ToArray();
+        CollectionAssert.IsSubsetOf(
+            new[]
+            {
+                "EditorContentState.cs",
+                "EditorFormatState.cs",
+                "EditorMenuItemState.cs",
+                "EditorMenuState.cs",
+                "EditorParagraphState.cs",
+                "EditorSelectedImageState.cs",
+                "EditorSelectionState.cs",
+                "EditorTocItem.cs",
+                "EditorWordCount.cs",
+            },
+            runtimeFileNames);
 
         foreach (var file in runtimeFiles)
         {
@@ -267,6 +362,29 @@ public class Phase13RuntimeStateContractTests
             AssertNoTypeReference(source, "Typedown.Core.Models");
             AssertNoTypeReference(source, "PropertyChanged");
             AssertNoTypeReference(source, "ObservableCollection");
+        }
+
+        var uiRuntimeFiles = Directory
+            .EnumerateFiles(Path.Combine(RepoRoot, "Dev", "Typedown.UI", "ViewModels"), "Editor*.cs", SearchOption.TopDirectoryOnly)
+            .ToArray();
+
+        CollectionAssert.IsSubsetOf(
+            new[]
+            {
+                "EditorRuntimeViewModel.cs",
+                "EditorTocNodeViewModel.cs",
+            },
+            uiRuntimeFiles.Select(Path.GetFileName).ToArray());
+
+        foreach (var file in uiRuntimeFiles)
+        {
+            var source = File.ReadAllText(file);
+
+            AssertNoTypeReference(source, "Microsoft.UI");
+            AssertNoTypeReference(source, "Windows.UI.Xaml");
+            AssertNoTypeReference(source, "Typedown.WinUI");
+            AssertNoTypeReference(source, "Typedown.XamlUI");
+            AssertNoTypeReference(source, "Typedown.Core.Legacy");
         }
     }
 
