@@ -1,4 +1,4 @@
-﻿using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Web.WebView2.Core;
 using PropertyChanged;
 using System;
@@ -9,11 +9,13 @@ using System.Reactive.Disposables;
 using System.Reactive.Linq;
 using System.Threading.Tasks;
 using System.Web;
-using Typedown.Core.Controls;
+using Typedown.Controls;
 using Typedown.Core.Interfaces;
+using Typedown.Interfaces;
+using Typedown.Core.Models;
 using Typedown.Core.Services;
 using Typedown.Core.Utilities;
-using Typedown.Core.ViewModels;
+using Typedown.Presentation.ViewModels;
 using Typedown.Services;
 using Typedown.Utilities;
 using Typedown.XamlUI;
@@ -244,7 +246,7 @@ namespace Typedown.Controls
         private void OnNewWindowRequested(object sender, CoreWebView2NewWindowRequestedEventArgs args)
         {
             args.Handled = true;
-            if (PInvoke.GetIsKeyDown(VirtualKey.Control))
+            if (PInvoke.GetIsKeyDown(KeyboardKey.Control))
                 Core.Utilities.Common.OpenUrl(args.Uri);
         }
 
@@ -283,16 +285,16 @@ namespace Typedown.Controls
             disposables.Dispose();
         }
 
-        public Rectangle GetDummyRectangle(Rect rect)
+        public object GetDummyRectangle(UiRect rect)
         {
             dummyRectangle.Width = rect.Width;
             dummyRectangle.Height = rect.Height;
-            Canvas.SetLeft(dummyRectangle, rect.Left);
-            Canvas.SetTop(dummyRectangle, rect.Top);
+            Canvas.SetLeft(dummyRectangle, rect.X);
+            Canvas.SetTop(dummyRectangle, rect.Y);
             return dummyRectangle;
         }
 
-        public Rectangle MoveDummyRectangle(Point offset)
+        public object MoveDummyRectangle(UiPoint offset)
         {
             Canvas.SetLeft(dummyRectangle, Canvas.GetLeft(dummyRectangle) + offset.X);
             Canvas.SetTop(dummyRectangle, Canvas.GetTop(dummyRectangle) + offset.Y);

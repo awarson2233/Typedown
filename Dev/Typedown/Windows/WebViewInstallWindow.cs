@@ -1,7 +1,7 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using System.IO;
 using System.Threading.Tasks;
-using Typedown.Core.Controls;
+using Typedown.Controls;
 using Typedown.Core.Utilities;
 using Typedown.XamlUI;
 

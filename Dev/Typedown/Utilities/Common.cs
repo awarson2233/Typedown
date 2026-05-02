@@ -1,9 +1,10 @@
-﻿using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.Linq;
 using System.Reactive.Linq;
+using Typedown.Core.Enums;
 using Typedown.Core.Utilities;
-using Typedown.Core.ViewModels;
+using Typedown.Presentation.ViewModels;
 using Typedown.Windows;
 using Typedown.XamlUI;
 using Windows.Foundation;
@@ -27,7 +28,7 @@ namespace Typedown.Utilities
         {
             var ui = provider.GetService<UIViewModel>();
             var settings = provider.GetService<SettingsViewModel>();
-            var isDarkMode = ui.ActualTheme == ElementTheme.Dark;
+            var isDarkMode = ui.ActualTheme == AppTheme.Dark;
             var accentColor = new UISettings().GetColorValue(UIColorType.Accent);
             var solidBackground = isDarkMode ? Color.FromArgb(0xFF, 0x28, 0x28, 0x28) : Color.FromArgb(0xFF, 0xF9, 0xF9, 0xF9);
             var background = settings.UseMicaEffect && settings.UseEditorMicaEffect ? Colors.Transparent : solidBackground;

@@ -1,7 +1,9 @@
 using System;
 using System.Reactive.Subjects;
 using Typedown.Core.Interfaces;
+using Typedown.Core.Models;
 using Typedown.Core.Utilities;
+using Typedown.Presentation.Interfaces;
 using Typedown.XamlUI;
 using Windows.Foundation;
 using Windows.UI.Xaml;
@@ -25,23 +27,25 @@ namespace Typedown.Services
 
         public void RaiseWindowIsActivedChanged(nint hWnd) => WindowIsActivedChanged.OnNext(hWnd);
 
-        public nint GetWindow(UIElement element) => XamlWindow.GetWindow(element)?.Handle ?? windowContext.WindowHandle;
+        public nint GetWindow(object element) => XamlWindow.GetWindow((UIElement)element)?.Handle ?? windowContext.WindowHandle;
 
-        public nint GetXamlSourceHandle(UIElement element) => XamlWindow.GetWindow(element)?.XamlSourceHandle ?? default;
+        public nint GetXamlSourceHandle(object element) => XamlWindow.GetWindow((UIElement)element)?.XamlSourceHandle ?? default;
 
-        public Point GetCursorPos(UIElement relativeTo)
+        public UiPoint GetCursorPos(object relativeTo)
         {
             if (relativeTo == null)
                 throw new ArgumentNullException(nameof(relativeTo));
+            var relativeElement = (UIElement)relativeTo;
 
-            var window = XamlWindow.GetWindow(relativeTo);
-            if (window == null || relativeTo.XamlRoot?.Content == null)
+            var window = XamlWindow.GetWindow(relativeElement);
+            if (window == null || relativeElement.XamlRoot?.Content == null)
                 throw new InvalidOperationException("The specified UI element is not attached to a window.");
 
             PInvoke.GetCursorPos(out var screenPos);
             PInvoke.GetWindowRect(window.XamlSourceHandle, out var xamlRootRect);
             var pos = new Point((screenPos.X - xamlRootRect.left) / window.ScalingFactor, (screenPos.Y - xamlRootRect.top) / window.ScalingFactor);
-            return relativeTo.XamlRoot.Content.TransformToVisual(relativeTo).TransformPoint(pos);
+            var point = relativeElement.XamlRoot.Content.TransformToVisual(relativeElement).TransformPoint(pos);
+            return new(point.X, point.Y);
         }
     }
 }

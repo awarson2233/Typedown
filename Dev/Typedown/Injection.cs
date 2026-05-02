@@ -1,11 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
-using Typedown.Controls;
 using Typedown.Core;
-using Typedown.Core.Controls.FloatControls;
 using Typedown.Core.Interfaces;
-using Typedown.Core.Services;
-using Typedown.Core.ViewModels;
-using Typedown.Services;
+using Typedown.Presentation;
 
 namespace Typedown
 {
@@ -18,60 +14,12 @@ namespace Typedown
             if (ServiceProvider == null)
             {
                 var builder = new ServiceCollection();
-                RegisterViewModel(builder);
-                RegisterService(builder);
-                RegisterComponent(builder);
+                builder.AddTypedownCore();
+                builder.AddTypedownPresentation();
+                builder.AddTypedownWindowsShell();
                 ServiceProvider = builder.BuildServiceProvider();
                 Config.SetAppDataPathProvider(ServiceProvider.GetRequiredService<IAppDataPathProvider>());
             }
-        }
-
-        private static void RegisterViewModel(ServiceCollection builder)
-        {
-            builder.AddScoped<AppViewModel>();
-            builder.AddScoped<EditorViewModel>();
-            builder.AddScoped<FileViewModel>();
-            builder.AddScoped<FloatViewModel>();
-            builder.AddScoped<FormatViewModel>();
-            builder.AddScoped<ParagraphViewModel>();
-            builder.AddScoped<SettingsViewModel>();
-            builder.AddScoped<UIViewModel>();
-        }
-
-        private static void RegisterService(ServiceCollection builder)
-        {
-            builder.AddScoped<IClipboard, Clipboard>();
-            builder.AddSingleton<IAppActivationService, AppActivationService>();
-            builder.AddScoped<IDialogService, DialogService>();
-            builder.AddScoped<IFileConverter, FileConverter>();
-            builder.AddScoped<IFileExport, FileExport>();
-            builder.AddScoped<IFilePickerService, FilePickerService>();
-            builder.AddScoped<IFileOperation, FileOperation>();
-            builder.AddScoped<IKeyboardAccelerator, KeyboardAccelerator>();
-            builder.AddScoped<UiDispatcher>();
-            builder.AddScoped<IUiDispatcher>(sp => sp.GetRequiredService<UiDispatcher>());
-            builder.AddScoped<IPowerShellService, PowerShellService>();
-            builder.AddScoped<WindowContext>();
-            builder.AddScoped<IWindowContext>(sp => sp.GetRequiredService<WindowContext>());
-            builder.AddScoped<IWindowService, WindowService>();
-            builder.AddSingleton<IAppDataPathProvider, AppDataPathProvider>();
-            builder.AddScoped<AutoBackup>();
-            builder.AddScoped<EventCenter>();
-            builder.AddScoped<ImageAction>();
-            builder.AddScoped<ImageUpload>();
-            builder.AddScoped<RemoteInvoke>();
-            builder.AddScoped<Transport>();
-            builder.AddSingleton<AccessHistory>();
-        }
-
-        private static void RegisterComponent(ServiceCollection builder)
-        {
-            builder.AddScoped<IMarkdownEditor, MarkdownEditor>();
-            builder.AddTransient<FrontMenu>();
-            builder.AddTransient<TableTools>();
-            builder.AddTransient<ImageSelector>();
-            builder.AddTransient<ImageToolbar>();
-            builder.AddTransient<ToolTip>();
         }
     }
 }

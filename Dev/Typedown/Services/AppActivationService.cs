@@ -3,8 +3,8 @@ using System.IO;
 using System.IO.Pipes;
 using System.Threading;
 using System.Threading.Tasks;
-using Typedown.Core.Interfaces;
 using Typedown.Core.Utilities;
+using Typedown.Presentation.Interfaces;
 
 namespace Typedown.Services
 {

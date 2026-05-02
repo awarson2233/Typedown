@@ -7,6 +7,7 @@ using System.Reactive.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
 using Typedown.Core.Utilities;
+using Typedown.Services;
 using Typedown.XamlUI;
 using Windows.Devices.Input;
 using Windows.System;
@@ -85,7 +86,7 @@ namespace Typedown.Utilities
         {
             if (coreWebView2EnvironmentTask == null)
             {
-                var commandLineArgs = Core.Config.WebView2Args.ToList();
+                var commandLineArgs = EditorHostOptions.WebView2Args.ToList();
 #if DEBUG
                 commandLineArgs.Add("--remote-debugging-port=9222");
 #endif

@@ -1,4 +1,4 @@
-﻿using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.Diagnostics;
 using System.Linq;
@@ -7,11 +7,12 @@ using System.Reactive.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Typedown.Core;
-using Typedown.Core.Controls;
+using Typedown.Controls;
 using Typedown.Core.Enums;
 using Typedown.Core.Interfaces;
 using Typedown.Core.Utilities;
-using Typedown.Core.ViewModels;
+using Typedown.Presentation.Interfaces;
+using Typedown.Presentation.ViewModels;
 using Typedown.Services;
 using Typedown.Utilities;
 using Typedown.XamlUI;
@@ -70,6 +71,7 @@ namespace Typedown.Windows
             SizeChanged += OnSizeChanged;
             Closing += OnClosing;
             Closed += OnClosed;
+            ActualThemeChanged += OnActualThemeChanged;
             InitializeBinding();
             checkActiveTimer = new(CheckActiveTimerCallback, null, TimeSpan.FromSeconds(0), TimeSpan.FromSeconds(1));
         }
@@ -91,6 +93,17 @@ namespace Typedown.Windows
                 AppTheme.Dark => ElementTheme.Dark,
                 _ => ElementTheme.Default,
             };
+        }
+
+        private void OnActualThemeChanged(object sender, ActualThemeChangedEventArgs e)
+        {
+            var actualTheme = e.NewActualTheme switch
+            {
+                ElementTheme.Dark => AppTheme.Dark,
+                ElementTheme.Light => AppTheme.Light,
+                _ => AppTheme.Default,
+            };
+            AppViewModel.UIViewModel.SetActualTheme(actualTheme);
         }
 
         private void SetTitle(string title)
@@ -184,6 +197,7 @@ namespace Typedown.Windows
         private void OnClosed(object sender, ClosedEventArgs e)
         {
             var keepRun = AppViewModel.SettingsViewModel.KeepRun;
+            ActualThemeChanged -= OnActualThemeChanged;
             checkActiveTimer?.Dispose();
             checkActiveTimer = null;
             WindowContext?.Clear();

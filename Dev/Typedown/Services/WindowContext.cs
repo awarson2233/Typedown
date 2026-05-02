@@ -1,6 +1,6 @@
 using System;
-using Typedown.Core.Interfaces;
 using Typedown.Core.Utilities;
+using Typedown.Presentation.Interfaces;
 using Typedown.XamlUI;
 using Windows.UI.Xaml;
 

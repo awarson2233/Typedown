@@ -69,7 +69,7 @@ namespace Typedown.Services
 
         private bool OnKeyBoardEvent(PInvoke.KBDLLHOOKSTRUCT args)
         {
-            var key = (VirtualKey)args.vkCode;
+            var key = (KeyboardKey)args.vkCode;
             var modifiers = GetVirtualKeyModifiers();
             var eventArgs = new KeyEventArgs(key, modifiers);
             foreach (var action in globalRegistered)
@@ -80,17 +80,17 @@ namespace Typedown.Services
             return eventArgs.Handled;
         }
 
-        private VirtualKeyModifiers GetVirtualKeyModifiers()
+        private KeyboardModifiers GetVirtualKeyModifiers()
         {
-            var modifiers = VirtualKeyModifiers.None;
-            if (PInvoke.GetIsKeyDown(VirtualKey.Menu))
-                modifiers |= VirtualKeyModifiers.Menu;
-            if (PInvoke.GetIsKeyDown(VirtualKey.Control))
-                modifiers |= VirtualKeyModifiers.Control;
-            if (PInvoke.GetIsKeyDown(VirtualKey.Shift))
-                modifiers |= VirtualKeyModifiers.Shift;
-            if (PInvoke.GetIsKeyDown(VirtualKey.LeftWindows) || PInvoke.GetIsKeyDown(VirtualKey.RightWindows))
-                modifiers |= VirtualKeyModifiers.Windows;
+            var modifiers = KeyboardModifiers.None;
+            if (PInvoke.GetIsKeyDown(KeyboardKey.Menu))
+                modifiers |= KeyboardModifiers.Menu;
+            if (PInvoke.GetIsKeyDown(KeyboardKey.Control))
+                modifiers |= KeyboardModifiers.Control;
+            if (PInvoke.GetIsKeyDown(KeyboardKey.Shift))
+                modifiers |= KeyboardModifiers.Shift;
+            if (PInvoke.GetIsKeyDown(KeyboardKey.LeftWindows) || PInvoke.GetIsKeyDown(KeyboardKey.RightWindows))
+                modifiers |= KeyboardModifiers.Windows;
             return modifiers;
         }
 
@@ -122,7 +122,7 @@ namespace Typedown.Services
             return Common.GetShortcutKeyText(key);
         }
 
-        public string GetVirtualKeyNameText(VirtualKey key)
+        public string GetVirtualKeyNameText(KeyboardKey key)
         {
             return Common.GetVirtualKeyNameText(key);
         }

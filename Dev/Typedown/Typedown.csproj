@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
 		<TypedownXamlUIProjectDir Condition="'$(TypedownXamlUIProjectDir)' == ''">$(MSBuildProjectDirectory)\..\Typedown.XamlUI\</TypedownXamlUIProjectDir>
@@ -47,6 +47,10 @@
 		<DefineConstants>$(DefineConstants);DEBUG_LOCAL</DefineConstants>
 	</PropertyGroup>
 
+	<PropertyGroup>
+		<DefineConstants>$(DefineConstants);DISABLE_XAML_GENERATED_MAIN</DefineConstants>
+	</PropertyGroup>
+
 	<PropertyGroup Condition="'$(Platform)'=='ARM64'">
 	  <SelfContained>true</SelfContained>
 	  <RuntimeIdentifier>win-arm64</RuntimeIdentifier>
@@ -70,7 +74,8 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<ProjectReference Include="..\Typedown.Core.Legacy\Typedown.Core.Legacy.csproj" />
+		<ProjectReference Include="..\Typedown.Core\Typedown.Core.csproj" />
+		<ProjectReference Include="..\Typedown.Presentation\Typedown.Presentation.csproj" />
 		<ProjectReference Include="$(TypedownXamlUIProject)" />
 	</ItemGroup>
 
@@ -79,11 +84,17 @@
 	</ItemGroup>
 
 	<ItemGroup>
+		<ApplicationDefinition Include="XamlAppMarker.xaml" />
+		<Page Remove="XamlAppMarker.xaml" />
+	</ItemGroup>
+
+	<ItemGroup>
 		<Folder Include="Resources\" />
 	</ItemGroup>
 
 	<ItemGroup>
 		<None Include="Resources\Statics\**" CopyToOutputDirectory="Always" Link="Resources\Statics\%(RecursiveDir)\%(Filename)%(Extension)" />
+		<Content Include="..\Typedown.Presentation\Resources\Strings\**\*.resw" Link="Resources\Strings\%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
 	</ItemGroup>
 
 	<ItemGroup>

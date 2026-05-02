@@ -1,7 +1,7 @@
 using System;
 using System.Threading.Tasks;
-using Typedown.Core.Controls;
-using Typedown.Core.Interfaces;
+using Typedown.Controls;
+using Typedown.Presentation.Interfaces;
 using Windows.UI.Xaml.Controls;
 using Windows.UI.Xaml;
 

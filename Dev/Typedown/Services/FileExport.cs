@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.ObjectModel;
 using System.Linq;
@@ -10,7 +10,7 @@ using Typedown.Core.Interfaces;
 using Typedown.Core.Models;
 using Typedown.Core.Services;
 using Typedown.Core.Utilities;
-using Typedown.Core.ViewModels;
+using Typedown.Presentation.ViewModels;
 using Typedown.Utilities;
 
 namespace Typedown.Services
