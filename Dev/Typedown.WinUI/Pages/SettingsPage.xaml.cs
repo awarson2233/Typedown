@@ -6,16 +6,45 @@ using Typedown.WinUI.Pages.SettingPages;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Media.Animation;
 using Microsoft.UI.Xaml.Navigation;
+using Typedown.Presentation.ViewModels;
 
 namespace Typedown.WinUI.Pages
 {
+    public sealed class SettingsNavigationParameter
+    {
+        public SettingsNavigationParameter(AppViewModel appViewModel, SettingsViewModel settingsViewModel, string? pageName = null, string? query = null)
+        {
+            AppViewModel = appViewModel;
+            SettingsViewModel = settingsViewModel;
+            PageName = pageName;
+            Query = query;
+        }
+
+        public AppViewModel AppViewModel { get; }
+
+        public SettingsViewModel SettingsViewModel { get; }
+
+        public string? PageName { get; }
+
+        public string? Query { get; }
+
+        public SettingsNavigationParameter WithPage(string? pageName, string? query = null) => new(AppViewModel, SettingsViewModel, pageName, query);
+    }
+
     public sealed partial class SettingsPage : Page
     {
         public ObservableCollection<SettingsBreadcrumbBarItem> BreadcrumbBarItems { get; } = new();
 
+        public AppViewModel? ViewModel { get; private set; }
+
+        public SettingsViewModel? SettingsViewModel { get; private set; }
+
+        private SettingsNavigationParameter? navigationParameter;
+
         public SettingsPage()
         {
             InitializeComponent();
+            ApplyNavigationLabels();
             ContentFrame.Navigated += OnNavigated;
         }
 
@@ -31,7 +60,7 @@ namespace Typedown.WinUI.Pages
             if (pageType != null && pageType != ContentFrame.SourcePageType)
             {
                 BreadcrumbBarItems.Clear();
-                ContentFrame.Navigate(pageType, null, args.RecommendedNavigationTransitionInfo);
+                ContentFrame.Navigate(pageType, CreatePageParameter(pageName), args.RecommendedNavigationTransitionInfo);
                 ContentFrame.BackStack.Clear();
             }
         }
@@ -39,10 +68,15 @@ namespace Typedown.WinUI.Pages
         protected override void OnNavigatedTo(NavigationEventArgs e)
         {
             base.OnNavigatedTo(e);
-            var pageType = Route.GetSettingsPageType(e.Parameter as string) ?? typeof(GeneralPage);
+            navigationParameter = ResolveNavigationParameter(e.Parameter);
+            ViewModel = navigationParameter.AppViewModel;
+            SettingsViewModel = navigationParameter.SettingsViewModel;
+            DataContext = ViewModel;
+
+            var pageType = Route.GetSettingsPageType(navigationParameter.PageName) ?? typeof(GeneralPage);
             if (ContentFrame.SourcePageType != pageType)
             {
-                ContentFrame.Navigate(pageType, null, new SuppressNavigationTransitionInfo());
+                ContentFrame.Navigate(pageType, CreatePageParameter(navigationParameter.PageName), new SuppressNavigationTransitionInfo());
             }
         }
 
@@ -80,7 +114,7 @@ namespace Typedown.WinUI.Pages
             var query = args?.Contains("?") == true ? args.Substring(args.IndexOf("?") + 1) : "";
                 if (type != null && type != ContentFrame.SourcePageType)
                 {
-                    ContentFrame.Navigate(type, query, GetTransition());
+                    ContentFrame.Navigate(type, CreatePageParameter(path[1], query), GetTransition());
                 }
             }
         }
@@ -109,6 +143,45 @@ namespace Typedown.WinUI.Pages
             var item = BreadcrumbBarItems.Where(x => x.Page == page).FirstOrDefault();
             if (item != null)
                 item.Title = title;
+        }
+
+        private void ApplyNavigationLabels()
+        {
+            foreach (var item in NavigationView.MenuItems.OfType<NavigationViewItem>())
+            {
+                item.Content = Route.GetSettingsPageTitle(Route.GetSettingsPageType(item.Tag as string));
+            }
+        }
+
+        private SettingsNavigationParameter ResolveNavigationParameter(object? parameter)
+        {
+            if (parameter is SettingsNavigationParameter settingsParameter)
+            {
+                return settingsParameter;
+            }
+
+            if (parameter is string pageName && ViewModel != null && SettingsViewModel != null)
+            {
+                return navigationParameter?.WithPage(pageName) ?? new SettingsNavigationParameter(ViewModel, SettingsViewModel, pageName);
+            }
+
+            throw new InvalidOperationException("Typedown settings navigation requires presentation view models.");
+        }
+
+        private object? CreatePageParameter(string? pageName, string? query = null)
+        {
+            if (navigationParameter == null)
+            {
+                return query;
+            }
+
+            var pageType = Route.GetSettingsPageType(pageName);
+            if (pageType == typeof(GeneralPage) || pageType == typeof(ViewPage) || pageType == typeof(EditorPage))
+            {
+                return navigationParameter.WithPage(pageName, query);
+            }
+
+            return query;
         }
     }
 

@@ -38,7 +38,8 @@ namespace Typedown.WinUI.Views
 
             var parts = route.Split('/', StringSplitOptions.RemoveEmptyEntries);
             var pageName = parts.Length > 1 ? parts[1] : "General";
-            frame.Navigate(typeof(Pages.SettingsPage), pageName, new SlideNavigationTransitionInfo
+            var viewModel = ViewModel ?? throw new InvalidOperationException("Typedown presentation view model is not initialized.");
+            frame.Navigate(typeof(Pages.SettingsPage), new Pages.SettingsNavigationParameter(viewModel, viewModel.SettingsViewModel, pageName), new SlideNavigationTransitionInfo
             {
                 Effect = SlideNavigationTransitionEffect.FromRight
             });

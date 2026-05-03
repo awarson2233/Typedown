@@ -88,11 +88,11 @@
                         <ColumnDefinition Width="Auto"/>
                         <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
-                    <TextBox PlaceholderText="Find" x:Name="TextBoxSearch" KeyDown="OnTextBoxSearchKeyDown" Text=""/>
-                    <Button Grid.Column="1" Width="32" Height="32" Style="{ThemeResource EllipsisIconButtonStyle}" CommandParameter="next">
+                    <TextBox PlaceholderText="Find" x:Name="TextBoxSearch" KeyDown="OnTextBoxSearchKeyDown" TextChanged="OnSearchTextChanged" Text=""/>
+                    <Button Grid.Column="1" Width="32" Height="32" Style="{ThemeResource EllipsisIconButtonStyle}" CommandParameter="next" Click="OnFindNextButtonClick">
                         <FontIcon FontSize="14" Glyph="&#xE74B;"/>
                     </Button>
-                    <Button Grid.Column="2" Width="32" Height="32" Style="{ThemeResource EllipsisIconButtonStyle}" CommandParameter="prev">
+                    <Button Grid.Column="2" Width="32" Height="32" Style="{ThemeResource EllipsisIconButtonStyle}" CommandParameter="prev" Click="OnFindPreviousButtonClick">
                         <FontIcon FontSize="14" Glyph="&#xE74A;"/>
                     </Button>
                     <Button Grid.Column="3" Width="32" Height="32" Style="{ThemeResource EllipsisIconButtonStyle}">

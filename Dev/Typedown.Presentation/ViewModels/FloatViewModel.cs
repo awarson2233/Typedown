@@ -71,7 +71,7 @@ namespace Typedown.Presentation.ViewModels
 
         public void OnOpenFormatPicker(JToken args)
         {
-            throw new NotImplementedException();
+            FloatViewService.OpenFormatPicker(args);
         }
 
         public void OnOpenImageSelector(JToken args)

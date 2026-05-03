@@ -1,10 +1,22 @@
 using System;
+using System.Collections.Generic;
+using Typedown.Presentation.Utilities;
 using Typedown.WinUI.Pages.SettingPages;
 
 namespace Typedown.WinUI.Pages
 {
     public static class Route
     {
+        private static readonly IReadOnlyDictionary<Type, (string Key, string Fallback)> SettingsPageTitles = new Dictionary<Type, (string, string)>
+        {
+            [typeof(GeneralPage)] = ("General.Title", "General"),
+            [typeof(ViewPage)] = ("View.Title", "View"),
+            [typeof(EditorPage)] = ("Editor.Title", "Editor"),
+            [typeof(ImagePage)] = ("Image.Title", "Image"),
+            [typeof(ExportPage)] = ("Export.Title", "Export"),
+            [typeof(AboutPage)] = ("About.Title", "About")
+        };
+
         public static Type? GetRootPageType(string? name) => name switch
         {
             "Main" => typeof(MainPage),
@@ -25,13 +37,20 @@ namespace Typedown.WinUI.Pages
 
         public static string GetSettingsPageTitle(Type? type)
         {
-            if (type == typeof(GeneralPage)) return "General";
-            if (type == typeof(ViewPage)) return "View";
-            if (type == typeof(EditorPage)) return "Editor";
-            if (type == typeof(ImagePage)) return "Image";
-            if (type == typeof(ExportPage)) return "Export";
-            if (type == typeof(AboutPage)) return "About";
-            return "Settings";
+            if (type != null && SettingsPageTitles.TryGetValue(type, out var title))
+            {
+                return GetSettingsPageTitle(title.Key, title.Fallback);
+            }
+
+            return GetSettingsPageTitle("Settings", "Settings");
+        }
+
+        private static string GetSettingsPageTitle(string key, string fallback)
+        {
+            var title = Locale.GetString(key, Locale.ResourceSource.SettingsResources);
+            return string.IsNullOrWhiteSpace(title) || string.Equals(title, key, StringComparison.Ordinal)
+                ? fallback
+                : title;
         }
     }
 }

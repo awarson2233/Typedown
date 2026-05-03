@@ -8,11 +8,10 @@ public class Phase14WinUILayoutTests
     private static readonly string RepoRoot = FindRepoRoot();
 
     [TestMethod]
-    public void MainPageXaml_UsesCopiedLegacyMainPageVisualStructure()
+    public void MainPageXaml_UsesActiveEditorShellVisualStructure()
     {
         var winuiRoot = Path.Combine(RepoRoot, "Dev", "Typedown.WinUI");
         var mainPage = File.ReadAllText(Path.Combine(winuiRoot, "Views", "MainPage.xaml"));
-        var copiedMainPage = File.ReadAllText(Path.Combine(winuiRoot, "LegacyCopied", "Pages", "MainPage.xaml"));
 
         AssertContains(mainPage, "<controls:MenuBar");
         AssertContains(mainPage, "<controls:MainContent");
@@ -20,24 +19,19 @@ public class Phase14WinUILayoutTests
         AssertContains(mainPage, "Grid.Row=\"1\"");
         AssertContains(mainPage, "<controls:StatusBar");
         AssertContains(mainPage, "x:Class=\"Typedown.WinUI.Views.MainPage\"");
-        AssertContains(copiedMainPage, "<controls:MenuBar/>");
-        AssertContains(copiedMainPage, "<controls:MainContent Grid.Row=\"1\"/>");
-        AssertContains(copiedMainPage, "<controls:StatusBar");
         AssertDoesNotContain(mainPage, "MigrationStatusPanel");
         AssertDoesNotContain(mainPage, "Phase 14 migration status");
     }
 
     [TestMethod]
-    public void WinUICopiedLegacySources_AreStagedForIncrementalRepair()
+    public void WinUILegacyCopiedSources_AreRemoved()
     {
-        var copiedRoot = Path.Combine(RepoRoot, "Dev", "Typedown.WinUI", "LegacyCopied");
+        var winuiRoot = Path.Combine(RepoRoot, "Dev", "Typedown.WinUI");
+        var copiedRoot = Path.Combine(winuiRoot, "LegacyCopied");
+        var project = File.ReadAllText(Path.Combine(winuiRoot, "Typedown.WinUI.csproj"));
 
-        Assert.IsTrue(File.Exists(Path.Combine(copiedRoot, "Controls", "RootControl.xaml")));
-        Assert.IsTrue(File.Exists(Path.Combine(copiedRoot, "Controls", "CaptionControls", "Caption.xaml")));
-        Assert.IsTrue(File.Exists(Path.Combine(copiedRoot, "Controls", "EditorControls", "MenuBar.xaml")));
-        Assert.IsTrue(File.Exists(Path.Combine(copiedRoot, "Controls", "EditorControls", "MainContent.xaml")));
-        Assert.IsTrue(File.Exists(Path.Combine(copiedRoot, "Controls", "EditorControls", "EditorContainer.xaml")));
-        Assert.IsTrue(File.Exists(Path.Combine(copiedRoot, "Controls", "EditorControls", "StatusBar.xaml")));
+        Assert.IsFalse(Directory.Exists(copiedRoot), "LegacyCopied contains inactive migration copies and must stay out of the WinUI app.");
+        AssertDoesNotContain(project, "LegacyCopied");
     }
 
     [TestMethod]

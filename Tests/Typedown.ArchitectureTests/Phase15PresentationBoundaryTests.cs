@@ -65,6 +65,24 @@ public class Phase15PresentationBoundaryTests
     }
 
     [TestMethod]
+    public void WinUIFileExport_PersistsConfigurationCrudWithoutConverterRegistration()
+    {
+        var appSource = File.ReadAllText(Path.Combine(RepoRoot, "Dev", "Typedown.WinUI", "App.xaml.cs"));
+        var exportSource = File.ReadAllText(Path.Combine(RepoRoot, "Dev", "Typedown.WinUI", "Services", "WinUIFileExport.cs"));
+
+        AssertHasTypeReference(exportSource, "AppDbContext");
+        AssertHasTypeReference(exportSource, "IAppDataPathProvider");
+        AssertHasTypeReference(exportSource, "AddExportConfig");
+        AssertHasTypeReference(exportSource, "RemoveExportConfig");
+        AssertHasTypeReference(exportSource, "SaveExportConfig");
+        AssertHasTypeReference(exportSource, "GetExportConfig");
+        AssertHasTypeReference(exportSource, "UpdateExportConfigs");
+        AssertDoesNotContain(exportSource, "configuration is not wired");
+        AssertNoTypeReference(exportSource, "IFileConverter");
+        AssertNoTypeReference(appSource, "AddSingleton<IFileConverter");
+    }
+
+    [TestMethod]
     public void WinUILocale_InitializesPresentationLocalizationFromWinUIReswFallback()
     {
         var appSource = File.ReadAllText(Path.Combine(RepoRoot, "Dev", "Typedown.WinUI", "App.xaml.cs"));
@@ -124,6 +142,169 @@ public class Phase15PresentationBoundaryTests
         AssertHasTypeReference(hostSource, "WinUIEditorCommandSink");
         AssertHasTypeReference(commandSinkSource, "RegisterActiveHost");
         AssertNoTypeReference(commandSinkSource, "return false;");
+    }
+
+    [TestMethod]
+    public void WinUISettingsNavigation_PassesPresentationViewModelsIntoIncludedSettingPages()
+    {
+        var mainPageSource = File.ReadAllText(Path.Combine(RepoRoot, "Dev", "Typedown.WinUI", "Views", "MainPage.xaml.cs"));
+        var settingsPageSource = File.ReadAllText(Path.Combine(RepoRoot, "Dev", "Typedown.WinUI", "Pages", "SettingsPage.xaml.cs"));
+        var settingPagesRoot = Path.Combine(RepoRoot, "Dev", "Typedown.WinUI", "Pages", "SettingPages");
+
+        AssertContainsInOrder(
+            mainPageSource,
+            "frame.Navigate(typeof(Pages.SettingsPage)",
+            "new Pages.SettingsNavigationParameter(viewModel, viewModel.SettingsViewModel, pageName)");
+
+        AssertHasTypeReference(settingsPageSource, "SettingsNavigationParameter");
+        AssertHasTypeReference(settingsPageSource, "AppViewModel");
+        AssertHasTypeReference(settingsPageSource, "SettingsViewModel");
+        AssertContainsInOrder(settingsPageSource, "ViewModel = navigationParameter.AppViewModel;", "SettingsViewModel = navigationParameter.SettingsViewModel;");
+        AssertContainsInOrder(settingsPageSource, "typeof(GeneralPage)", "typeof(ViewPage)", "typeof(EditorPage)", "return navigationParameter.WithPage(pageName, query);");
+        AssertDoesNotContain(settingsPageSource, "LegacyCopied");
+
+        foreach (var pageName in new[] { "GeneralPage", "ViewPage", "EditorPage" })
+        {
+            var pageSource = File.ReadAllText(Path.Combine(settingPagesRoot, $"{pageName}.xaml.cs"));
+
+            AssertHasTypeReference(pageSource, "SettingsNavigationParameter");
+            AssertHasTypeReference(pageSource, "AppViewModel");
+            AssertHasTypeReference(pageSource, "SettingsViewModel");
+            AssertContainsInOrder(pageSource, "ViewModel = parameter.AppViewModel;", "SettingsViewModel = parameter.SettingsViewModel;");
+            AssertDoesNotContain(pageSource, "LegacyCopied");
+        }
+    }
+
+    [TestMethod]
+    public void WinUISettingsRoute_UsesPresentationLocaleForStableTitles()
+    {
+        var routeSource = File.ReadAllText(Path.Combine(RepoRoot, "Dev", "Typedown.WinUI", "Pages", "Route.cs"));
+        var settingsPageXaml = File.ReadAllText(Path.Combine(RepoRoot, "Dev", "Typedown.WinUI", "Pages", "SettingsPage.xaml"));
+        var settingsPageSource = File.ReadAllText(Path.Combine(RepoRoot, "Dev", "Typedown.WinUI", "Pages", "SettingsPage.xaml.cs"));
+
+        AssertHasTypeReference(routeSource, "Typedown.Presentation.Utilities");
+        AssertContainsInOrder(routeSource, "Locale.GetString(key, Locale.ResourceSource.SettingsResources)", "fallback");
+        AssertHasTypeReference(routeSource, "General.Title");
+        AssertHasTypeReference(routeSource, "View.Title");
+        AssertHasTypeReference(routeSource, "Editor.Title");
+        AssertDoesNotContain(routeSource, "LegacyCopied");
+
+        AssertDoesNotContain(settingsPageXaml, "Content=\"General\"");
+        AssertDoesNotContain(settingsPageXaml, "Content=\"View\"");
+        AssertDoesNotContain(settingsPageXaml, "Content=\"Editor\"");
+        AssertContainsInOrder(settingsPageSource, "ApplyNavigationLabels();", "item.Content = Route.GetSettingsPageTitle");
+    }
+
+    [TestMethod]
+    public void WinUIFindReplace_IsWiredToPresentationViewModelsWithoutLegacyCopied()
+    {
+        var winUIRoot = Path.Combine(RepoRoot, "Dev", "Typedown.WinUI");
+        var editorContainerXaml = File.ReadAllText(Path.Combine(winUIRoot, "Controls", "EditorControls", "EditorContainer.xaml"));
+        var editorContainerSource = File.ReadAllText(Path.Combine(winUIRoot, "Controls", "EditorControls", "EditorContainer.xaml.cs"));
+        var findReplaceXaml = File.ReadAllText(Path.Combine(winUIRoot, "Controls", "FloatControls", "FindReplace.xaml"));
+        var findReplaceSource = File.ReadAllText(Path.Combine(winUIRoot, "Controls", "FloatControls", "FindReplace.xaml.cs"));
+
+        foreach (var source in new[] { editorContainerXaml, editorContainerSource, findReplaceXaml, findReplaceSource })
+        {
+            AssertDoesNotContain(source, "LegacyCopied");
+        }
+
+        AssertHasTypeReference(editorContainerSource, "FloatViewModel");
+        AssertHasTypeReference(editorContainerSource, "FindReplaceDialogOpen");
+        AssertHasTypeReference(editorContainerSource, "PropertyChanged");
+        AssertContainsInOrder(editorContainerSource, "FindReplaceDialogOpen", "UpdateFindReplaceState");
+
+        AssertHasTypeReference(findReplaceSource, "FloatViewModel");
+        AssertHasTypeReference(findReplaceSource, "EditorViewModel");
+        AssertHasTypeReference(findReplaceSource, "EditorCommandSink");
+        AssertContainsInOrder(findReplaceSource, "OnSearchTextChanged", "Editor.SearchValue");
+        AssertContainsInOrder(findReplaceSource, "SendReplace", "EditorCommandSink", "\"Replace\"");
+
+        AssertHasTypeReference(findReplaceXaml, "FindReplace");
+        AssertHasTypeReference(editorContainerXaml, "FindReplaceDialog");
+    }
+
+    [TestMethod]
+    public void ActiveWinUIMenuBar_UsesPresentationViewModelsAndCommands()
+    {
+        var menuRoot = Path.Combine(RepoRoot, "Dev", "Typedown.WinUI", "Controls", "EditorControls");
+        var menuBarSource = File.ReadAllText(Path.Combine(menuRoot, "MenuBar.xaml.cs"));
+        var menuBarXaml = File.ReadAllText(Path.Combine(menuRoot, "MenuBar.xaml"));
+        var menuStubSource = File.ReadAllText(Path.Combine(menuRoot, "MenuBarItems", "MenuBarItemStubs.cs"));
+
+        AssertDoesNotContain(menuRoot, $"{Path.DirectorySeparatorChar}LegacyCopied{Path.DirectorySeparatorChar}");
+        AssertHasTypeReference(menuBarXaml, "FileMenuItem");
+        AssertHasTypeReference(menuBarXaml, "EditMenuItem");
+        AssertHasTypeReference(menuBarXaml, "ParagraphMenuItem");
+        AssertHasTypeReference(menuBarXaml, "FormatMenuItem");
+        AssertHasTypeReference(menuBarXaml, "ViewMenuItem");
+        AssertHasTypeReference(menuBarSource, "AppViewModel");
+        AssertHasTypeReference(menuBarSource, "ApplyDataContextToMenuItems");
+        AssertHasTypeReference(menuStubSource, "Typedown.Presentation.ViewModels");
+        AssertHasTypeReference(menuStubSource, "EditorViewModel");
+        AssertHasTypeReference(menuStubSource, "FileViewModel");
+        AssertHasTypeReference(menuStubSource, "ParagraphViewModel");
+        AssertHasTypeReference(menuStubSource, "FormatViewModel");
+        AssertHasTypeReference(menuStubSource, "FloatViewModel");
+        AssertHasTypeReference(menuStubSource, "SettingsViewModel");
+        AssertHasTypeReference(menuStubSource, "UndoCommand");
+        AssertHasTypeReference(menuStubSource, "RedoCommand");
+        AssertHasTypeReference(menuStubSource, "CutCommand");
+        AssertHasTypeReference(menuStubSource, "CopyCommand");
+        AssertHasTypeReference(menuStubSource, "PasteCommand");
+        AssertHasTypeReference(menuStubSource, "SelectAllCommand");
+        AssertHasTypeReference(menuStubSource, "FindCommand");
+        AssertHasTypeReference(menuStubSource, "UpdateParagraphCommand");
+        AssertHasTypeReference(menuStubSource, "SetFormatCommand");
+    }
+
+    [TestMethod]
+    public void ActiveWinUIMenuBar_DoesNotLeaveAllMenuHandlersAsEmptyStubs()
+    {
+        var menuStubPath = Path.Combine(
+            RepoRoot,
+            "Dev",
+            "Typedown.WinUI",
+            "Controls",
+            "EditorControls",
+            "MenuBarItems",
+            "MenuBarItemStubs.cs");
+        var menuStubSource = File.ReadAllText(menuStubPath);
+
+        AssertDoesNotContain(menuStubPath, $"{Path.DirectorySeparatorChar}LegacyCopied{Path.DirectorySeparatorChar}");
+        AssertNoTypeReference(menuStubSource, @"OnLoaded\(object sender, Microsoft\.UI\.Xaml\.RoutedEventArgs e\) \{ \}");
+        AssertNoTypeReference(menuStubSource, @"OnUnloaded\(object sender, Microsoft\.UI\.Xaml\.RoutedEventArgs e\) \{ \}");
+        AssertHasTypeReference(menuStubSource, "DisableUnsupportedActions");
+        AssertHasTypeReference(menuStubSource, "IsEnabled = false");
+        AssertHasTypeReference(menuStubSource, "Command =");
+    }
+
+    [TestMethod]
+    public void WinUIImageFloatControls_AreCopiedAndAdaptedToPresentationPorts()
+    {
+        var winUIRoot = Path.Combine(RepoRoot, "Dev", "Typedown.WinUI");
+        var floatControlsRoot = Path.Combine(winUIRoot, "Controls", "FloatControls");
+        var imageSelectorXaml = File.ReadAllText(Path.Combine(floatControlsRoot, "ImageSelector.xaml"));
+        var imageSelectorSource = File.ReadAllText(Path.Combine(floatControlsRoot, "ImageSelector.xaml.cs"));
+        var imageToolbarXaml = File.ReadAllText(Path.Combine(floatControlsRoot, "ImageToolbar.xaml"));
+        var imageToolbarSource = File.ReadAllText(Path.Combine(floatControlsRoot, "ImageToolbar.xaml.cs"));
+        var floatServiceSource = File.ReadAllText(Path.Combine(winUIRoot, "Services", "WinUIFloatViewService.cs"));
+
+        AssertHasTypeReference(imageSelectorXaml, "Typedown.WinUI.Controls.ImageSelector");
+        AssertHasTypeReference(imageToolbarXaml, "Typedown.WinUI.Controls.ImageToolbar");
+        AssertHasTypeReference(imageSelectorSource, "IEditorCommandSink");
+        AssertHasTypeReference(imageSelectorSource, "IFilePickerService");
+        AssertHasTypeReference(imageSelectorSource, "ImageAction");
+        AssertHasTypeReference(imageToolbarSource, "IEditorCommandSink");
+        AssertHasTypeReference(imageToolbarSource, "IKeyboardAccelerator");
+        AssertHasTypeReference(floatServiceSource, "new ImageSelector");
+        AssertHasTypeReference(floatServiceSource, "new ImageToolbar");
+        AssertDoesNotContain(floatServiceSource, "image selector float view is not wired");
+        AssertDoesNotContain(floatServiceSource, "image toolbar float view is not wired");
+        AssertDoesNotContain(imageSelectorSource, "IMarkdownEditor");
+        AssertDoesNotContain(imageToolbarSource, "IMarkdownEditor");
+        AssertDoesNotContain(imageSelectorSource, "Windows.UI.Xaml");
+        AssertDoesNotContain(imageToolbarSource, "Windows.UI.Xaml");
     }
 
     private static void AssertServiceImplementsPort(string servicesRoot, string fileName, string className, string portName)

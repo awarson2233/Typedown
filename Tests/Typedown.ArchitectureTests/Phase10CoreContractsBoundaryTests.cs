@@ -464,7 +464,7 @@ public class Phase10CoreContractsBoundaryTests
 
         AssertNoTypeReference(projectSource, @"<Page Remove=""Controls\EditorControls\MenuBarItems\*.xaml""");
         AssertNoTypeReference(projectSource, @"<Page Remove=""Controls\EditorControls\ContextMenuItems\*.xaml""");
-        AssertHasTypeReference(projectSource, @"<Compile Remove=""LegacyCopied\**\*.cs""");
+        AssertNoTypeReference(projectSource, "LegacyCopied");
         AssertHasTypeReference(projectSource, @"<Compile Remove=""Controls\EditorControls\MenuBarItems\*.xaml.cs""");
         AssertHasTypeReference(projectSource, @"<Compile Remove=""Controls\EditorControls\ContextMenuItems\*.xaml.cs""");
         AssertHasTypeReference(projectSource, @"<Compile Remove=""Controls\EditorControls\MenuBarItems\MenuBarItemBase.cs""");

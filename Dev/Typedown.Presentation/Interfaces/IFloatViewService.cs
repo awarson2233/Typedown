@@ -8,6 +8,8 @@ namespace Typedown.Presentation.Interfaces
 
         void OpenFrontMenu(JToken args);
 
+        void OpenFormatPicker(JToken args) => OpenFrontMenu(args);
+
         void OpenImageSelector(JToken args);
 
         void OpenTableTools(JToken args);

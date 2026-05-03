@@ -101,7 +101,6 @@
     </Target>
 
     <ItemGroup>
-        <Page Remove="LegacyCopied\**\*.xaml" />
         <Page Remove="Controls\FloatControls\FindReplace.xaml" />
         <Page Remove="Controls\SettingControls\AboutApp.xaml" />
         <Page Remove="Controls\SettingControls\SettingItems\**\*.xaml" />
@@ -109,7 +108,6 @@
         <Page Remove="Pages\SettingPages\ImageUploadPage.xaml" />
         <Page Remove="Pages\SettingPages\ShortcutPage.xaml" />
         <Page Remove="Pages\SettingPages\UploadConfigPage.xaml" />
-        <Compile Remove="LegacyCopied\**\*.cs" />
         <Compile Remove="Controls\SettingControls\SettingItems\**\*.cs" />
         <Compile Remove="Controls\EditorControls\MenuBarItems\MenuBarItemBase.cs" />
         <Compile Remove="Controls\EditorControls\MenuBarItems\*.xaml.cs" />
@@ -119,9 +117,6 @@
         <Compile Remove="Pages\SettingPages\ImageUploadPage.xaml.cs" />
         <Compile Remove="Pages\SettingPages\ShortcutPage.xaml.cs" />
         <Compile Remove="Pages\SettingPages\UploadConfigPage.xaml.cs" />
-        <ApplicationDefinition Remove="LegacyCopied\**\*.xaml" />
-        <None Include="LegacyCopied\**\*.xaml" />
-        <None Include="LegacyCopied\**\*.cs" />
         <None Include="Controls\SettingControls\SettingItems\**\*.xaml" />
         <None Include="Controls\SettingControls\SettingItems\**\*.cs" />
         <None Include="Controls\SettingControls\AboutApp.xaml" />

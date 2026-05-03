@@ -29,11 +29,11 @@
             <ColumnDefinition Width="Auto"/>
         </Grid.ColumnDefinitions>
         <muxc:MenuBar x:Name="MenuBarControl" PointerPressed="OnMenuBarPointerEvent" PointerReleased="OnMenuBarPointerEvent" IsEnabled="True">
-            <items:FileItem/>
-            <items:EditItem/>
-            <items:ParagraphItem Visibility="Visible"/>
-            <items:FormatItem Visibility="Visible"/>
-            <items:ViewItem/>
+            <items:FileItem x:Name="FileMenuItem"/>
+            <items:EditItem x:Name="EditMenuItem"/>
+            <items:ParagraphItem x:Name="ParagraphMenuItem" Visibility="Visible"/>
+            <items:FormatItem x:Name="FormatMenuItem" Visibility="Visible"/>
+            <items:ViewItem x:Name="ViewMenuItem"/>
         </muxc:MenuBar>
         <Grid x:Name="TitleGrid" Grid.Column="1" x:Load="True">
             <TextBlock
