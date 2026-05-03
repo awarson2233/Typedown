@@ -94,7 +94,7 @@
 
 	<ItemGroup>
 		<None Include="Resources\Statics\**" CopyToOutputDirectory="Always" Link="Resources\Statics\%(RecursiveDir)\%(Filename)%(Extension)" />
-		<Content Include="..\Typedown.Presentation\Resources\Strings\**\*.resw" Link="Resources\Strings\%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+		<Content Include="..\Typedown.WinUI\Resources\Strings\**\*.resw" Link="Resources\Strings\%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
 	</ItemGroup>
 
 	<ItemGroup>

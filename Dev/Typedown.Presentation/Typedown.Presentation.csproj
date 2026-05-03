@@ -18,10 +18,4 @@
 		<PackageReference Include="System.Reactive" Version="6.0.2" />
 	</ItemGroup>
 
-	<ItemGroup>
-		<None Update="Resources\Strings\**\*.resw">
-			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-		</None>
-	</ItemGroup>
-
 </Project>

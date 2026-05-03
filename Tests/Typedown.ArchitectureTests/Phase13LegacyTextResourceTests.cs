@@ -144,12 +144,20 @@ public class Phase13LegacyTextResourceTests
     }
 
     [TestMethod]
-    public void TextResources_ProjectIncludesCopiedPresentationStringResources()
+    public void TextResources_WinUIOwnsReswFilesAndLegacyAppEmbedsThemUnderItsOwnResourceScope()
     {
-        var projectSource = File.ReadAllText(Path.Combine(RepoRoot, "Dev", "Typedown.Presentation", "Typedown.Presentation.csproj"));
+        var winUIProjectSource = File.ReadAllText(Path.Combine(RepoRoot, "Dev", "Typedown.WinUI", "Typedown.WinUI.csproj"));
+        var legacyAppProjectSource = File.ReadAllText(Path.Combine(RepoRoot, "Dev", "Typedown", "Typedown.csproj"));
+        var presentationProjectSource = File.ReadAllText(Path.Combine(RepoRoot, "Dev", "Typedown.Presentation", "Typedown.Presentation.csproj"));
+        var legacyLocaleSource = File.ReadAllText(Path.Combine(RepoRoot, "Dev", "Typedown", "Utilities", "LocaleString.cs"));
 
-        StringAssert.Contains(projectSource, @"Resources\Strings\**\*.resw");
-        Assert.IsFalse(projectSource.Contains("Typedown.Core.Legacy", StringComparison.Ordinal));
+        StringAssert.Contains(winUIProjectSource, @"Resources\Strings\**\*.resw");
+        StringAssert.Contains(legacyAppProjectSource, @"..\Typedown.WinUI\Resources\Strings\**\*.resw");
+        StringAssert.Contains(legacyAppProjectSource, @"Link=""Resources\Strings\%(RecursiveDir)%(Filename)%(Extension)""");
+        StringAssert.Contains(legacyLocaleSource, @"Typedown/{source}");
+        Assert.IsFalse(legacyLocaleSource.Contains("Typedown.WinUI/", StringComparison.Ordinal));
+        Assert.IsFalse(presentationProjectSource.Contains(@".resw", StringComparison.Ordinal));
+        Assert.IsFalse(winUIProjectSource.Contains("Typedown.Core.Legacy", StringComparison.Ordinal));
     }
 
     [TestMethod]
@@ -318,7 +326,7 @@ public class Phase13LegacyTextResourceTests
             var path = Path.Combine(
                 RepoRoot,
                 "Dev",
-                "Typedown.Presentation",
+                "Typedown.WinUI",
                 "Resources",
                 "Strings",
                 cultureName,

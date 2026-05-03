@@ -32,7 +32,7 @@
 
 - WinUI3 setting 页面和 setting controls 仍有大量 legacy namespace 痕迹，例如 `Typedown.Core.Models`、`Typedown.Core.Services`、`Typedown.Core.ViewModels`。
 - 部分 setting XAML/code-behind 当前仍被 csproj 排除，后续需要按页面逐个恢复。
-- `Typedown.Presentation.Resources.LegacyTextResourceReader` 仍暂时读取迁入 Presentation 的资源目录；后续资源边界继续由架构测试固化。
+- `.resw` 文本资源已从 Presentation 移到 `Typedown.WinUI` app head；Presentation 只保留资源 key 和本地化抽象入口，资源边界继续由架构测试固化。
 
 ---
 
