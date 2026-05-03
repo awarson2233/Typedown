@@ -1,9 +1,10 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
 using System.Runtime.InteropServices;
 using Typedown.Core.Interfaces;
+using Typedown.Presentation.Interfaces;
 using Typedown.Core.Models;
 using Typedown.Core.Utilities;
 using Windows.System;

@@ -1,9 +1,9 @@
-﻿using System.Collections.ObjectModel;
+using System.Collections.ObjectModel;
 using System.Threading.Tasks;
 using Typedown.Core.Enums;
 using Typedown.Core.Models;
 
-namespace Typedown.Core.Interfaces
+namespace Typedown.Presentation.Interfaces
 {
     public interface IFileExport
     {

@@ -2,20 +2,32 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text.Json;
+using System.Threading.Tasks;
+using Microsoft.Extensions.DependencyInjection;
+using Newtonsoft.Json.Linq;
+using Typedown.Core.Models;
+using Typedown.Core.Services;
+using Typedown.Presentation.ViewModels;
 
 namespace Typedown.WinUI.Controls
 {
     internal sealed class WinUIEditorDocumentSession : IEditorDocumentSession
     {
         private readonly Func<EditorThemePayload> themeProvider;
+        private readonly RemoteInvoke? remoteInvoke;
+        private readonly EventCenter? eventCenter;
 
         public WinUIEditorDocumentSession(
             string? initialMarkdown = null,
             string? basePath = null,
             string? filePath = null,
-            Func<EditorThemePayload>? themeProvider = null)
+            Func<EditorThemePayload>? themeProvider = null,
+            IServiceProvider? serviceProvider = null)
         {
             this.themeProvider = themeProvider ?? CreateDefaultThemePayload;
+            remoteInvoke = serviceProvider?.GetService<RemoteInvoke>();
+            eventCenter = serviceProvider?.GetService<EventCenter>();
+            EnsurePresentationHandlers(serviceProvider);
             var seedMarkdown = string.IsNullOrWhiteSpace(initialMarkdown) ? GetDefaultSmokeMarkdown() : initialMarkdown;
             var seedBasePath = string.IsNullOrWhiteSpace(basePath) ? AppContext.BaseDirectory : basePath;
             var seedHash = ComputeHash(seedMarkdown);
@@ -169,6 +181,8 @@ namespace Typedown.WinUI.Controls
         {
             ArgumentNullException.ThrowIfNull(message);
 
+            ForwardPresentationEvent(message);
+
             switch (message.Name)
             {
                 case "FileLoaded":
@@ -188,21 +202,21 @@ namespace Typedown.WinUI.Controls
             }
         }
 
-        public object? HandleRemoteInvoke(string name, JsonElement? args)
+        public Task<object?> HandleRemoteInvokeAsync(string name, JsonElement? args)
         {
             return name switch
             {
-                "GetCurrentTheme" => themeProvider(),
-                "ContentLoaded" => HandleContentLoaded(),
-                "ExportCallback" => HandleStubInvoke(name),
-                "PrintHTML" => HandleStubInvoke(name),
-                "ResizeTable" => CreateResizeTablePayload(args),
-                "LoadImage" => CreateLoadImagePayload(args),
-                "GetSettings" => SettingsSnapshot.Payload,
-                "SetClipboard" => HandleStubInvoke(name),
-                "GetStringResources" => CreateStringResources(args),
-                "OpenNewWindow" => HandleStubInvoke(name),
-                "UnhandledException" => HandleUnhandledException(),
+                "GetCurrentTheme" => Task.FromResult<object?>(themeProvider()),
+                "ContentLoaded" => Task.FromResult<object?>(HandleContentLoaded()),
+                "ExportCallback" => InvokePresentationAsync(name, args),
+                "PrintHTML" => InvokePresentationAsync(name, args),
+                "ResizeTable" => InvokePresentationAsync(name, args),
+                "LoadImage" => Task.FromResult<object?>(CreateLoadImagePayload(args)),
+                "GetSettings" => InvokePresentationAsync(name, args),
+                "SetClipboard" => InvokePresentationAsync(name, args),
+                "GetStringResources" => InvokePresentationAsync(name, args),
+                "OpenNewWindow" => Task.FromResult<object?>(HandleOpenNewWindowUnsupported()),
+                "UnhandledException" => Task.FromResult<object?>(HandleUnhandledException()),
                 _ => throw new InvalidOperationException($"function [{name}] does not exist")
             };
         }
@@ -213,16 +227,82 @@ namespace Typedown.WinUI.Controls
             return "WinUI editor content loaded.";
         }
 
-        private bool HandleStubInvoke(string name)
+        private bool HandleOpenNewWindowUnsupported()
         {
-            State = State with { LastEventName = name };
-            return true;
+            State = State with { LastEventName = "OpenNewWindow" };
+            throw new NotSupportedException("OpenNewWindow is not wired in the WinUI editor host yet.");
         }
 
         private object? HandleUnhandledException()
         {
             State = State with { LastEventName = "UnhandledException" };
             return null;
+        }
+
+        private async Task<object?> InvokePresentationAsync(string name, JsonElement? args)
+        {
+            if (remoteInvoke is null)
+            {
+                throw new InvalidOperationException($"Presentation RemoteInvoke is not available for editor invoke [{name}].");
+            }
+
+            State = State with { LastEventName = name };
+            return await remoteInvoke.Invoke(name, ToJToken(args));
+        }
+
+        private void ForwardPresentationEvent(EditorEventMessage message)
+        {
+            if (eventCenter is null || !IsPresentationEvent(message.Name))
+            {
+                return;
+            }
+
+            eventCenter.EmitEvent(message.Name, new EditorEventArgs(message.Name, ToJToken(message.Args)));
+        }
+
+        private static bool IsPresentationEvent(string name)
+        {
+            return name is "MarkdownChange"
+                or "FileLoaded"
+                or "CursorChange"
+                or "SelectionChange"
+                or "CodeMirrorSelectionChange"
+                or "StateChange"
+                or "SelectionFormats"
+                or "OpenFrontMenu"
+                or "OpenFormatPicker"
+                or "OpenImageSelector"
+                or "OpenTableTools"
+                or "OpenImageToolbar"
+                or "OpenToolTip";
+        }
+
+        private static JToken ToJToken(JsonElement? args)
+        {
+            return args is JsonElement element
+                ? JToken.Parse(element.GetRawText())
+                : JValue.CreateNull();
+        }
+
+        private static void EnsurePresentationHandlers(IServiceProvider? serviceProvider)
+        {
+            if (serviceProvider is null)
+            {
+                return;
+            }
+
+            var appViewModel = serviceProvider.GetService<AppViewModel>();
+            if (appViewModel is null)
+            {
+                return;
+            }
+
+            _ = appViewModel.EditorViewModel;
+            _ = appViewModel.FileViewModel;
+            _ = appViewModel.FloatViewModel;
+            _ = appViewModel.FormatViewModel;
+            _ = appViewModel.ParagraphViewModel;
+            _ = appViewModel.UIViewModel;
         }
 
         private void ApplyLoadedState(JsonElement? args)

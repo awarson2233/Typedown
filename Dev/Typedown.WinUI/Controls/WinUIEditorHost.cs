@@ -2,10 +2,13 @@ using System;
 using System.Globalization;
 using System.IO;
 using System.Text.Json;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Windows.Foundation;
 using Microsoft.Web.WebView2.Core;
+using Typedown.Presentation.Interfaces;
+using Typedown.WinUI.Services;
 
 namespace Typedown.WinUI.Controls
 {
@@ -14,6 +17,8 @@ namespace Typedown.WinUI.Controls
         private readonly WebView2 webView;
 
         private readonly IEditorHostSink hostSink;
+        private readonly IServiceProvider? serviceProvider;
+        private readonly WinUIEditorCommandSink? commandSink;
         private IEditorDocumentSession documentSession;
         private WinUIEditorHostController hostController;
         private WinUIEditorBridgeAdapter bridgeAdapter;
@@ -26,10 +31,12 @@ namespace Typedown.WinUI.Controls
 
         public event EventHandler<WinUIEditorContextMenuRequestedEventArgs>? ContextMenuRequested;
 
-        public WinUIEditorHost()
+        public WinUIEditorHost(IServiceProvider? serviceProvider = null)
         {
+            this.serviceProvider = serviceProvider;
+            commandSink = serviceProvider?.GetService<IEditorCommandSink>() as WinUIEditorCommandSink;
             hostSink = new WinUIEditorHostSink(this);
-            documentSession = new WinUIEditorDocumentSession(themeProvider: CreateCurrentThemePayload);
+            documentSession = CreateDocumentSession();
             hostController = new WinUIEditorHostController(documentSession, hostSink);
             bridgeAdapter = new WinUIEditorBridgeAdapter(documentSession);
             webView = new WebView2
@@ -62,6 +69,7 @@ namespace Typedown.WinUI.Controls
         private async void OnLoaded(object sender, RoutedEventArgs e)
         {
             isLoaded = true;
+            commandSink?.RegisterActiveHost(this);
             var currentLoadVersion = ++loadVersion;
 
             var editorIndex = ResolveEditorIndexPath();
@@ -89,7 +97,7 @@ namespace Typedown.WinUI.Controls
                 }
 
                 AttachCoreWebView();
-                documentSession = new WinUIEditorDocumentSession(basePath: ResolveBasePath(editorIndex), themeProvider: CreateCurrentThemePayload);
+                documentSession = CreateDocumentSession(ResolveBasePath(editorIndex));
                 hostController = new WinUIEditorHostController(documentSession, hostSink)
                 {
                     InitialFilePath = InitialFilePath
@@ -128,13 +136,14 @@ namespace Typedown.WinUI.Controls
         {
             isLoaded = false;
             loadVersion++;
+            commandSink?.UnregisterActiveHost(this);
             DetachCoreWebView();
         }
 
-        private void OnWebMessageReceived(CoreWebView2 sender, CoreWebView2WebMessageReceivedEventArgs e)
+        private async void OnWebMessageReceived(CoreWebView2 sender, CoreWebView2WebMessageReceivedEventArgs e)
         {
             var wasContentLoaded = bridgeAdapter.IsContentLoaded;
-            bridgeAdapter.Receive(e.TryGetWebMessageAsString(), SendRawMessage);
+            await bridgeAdapter.ReceiveAsync(e.TryGetWebMessageAsString(), SendRawMessage);
             status = bridgeAdapter.StatusText;
             latestRawWebMessage = bridgeAdapter.LastRawMessage;
 
@@ -179,6 +188,14 @@ namespace Typedown.WinUI.Controls
         {
             var payload = JsonSerializer.Serialize(new { name, args });
             return SendRawMessage(payload);
+        }
+
+        private WinUIEditorDocumentSession CreateDocumentSession(string? basePath = null)
+        {
+            return new WinUIEditorDocumentSession(
+                basePath: basePath,
+                themeProvider: CreateCurrentThemePayload,
+                serviceProvider: serviceProvider);
         }
 
         private EditorThemePayload CreateCurrentThemePayload()
@@ -352,6 +369,11 @@ namespace Typedown.WinUI.Controls
         internal bool SendExport(EditorExportRequest request)
         {
             return hostSink.Send(EditorHostCommands.CreateExport(request));
+        }
+
+        internal bool SendCommand(string name, object args)
+        {
+            return SendMessage(name, args);
         }
 
         internal bool SendRawMessage(string payload)

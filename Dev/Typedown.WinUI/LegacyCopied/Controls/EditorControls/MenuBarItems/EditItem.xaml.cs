@@ -1,6 +1,7 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.Reactive.Disposables;
 using Typedown.Core.Interfaces;
+using Typedown.Presentation.Interfaces;
 using Typedown.Core.Models;
 using Typedown.Core.Services;
 using Typedown.Core.Utilities;
@@ -34,7 +35,7 @@ namespace Typedown.Core.Controls.EditorControls.MenuBarItems
 
         private void OnLoaded(object sender, RoutedEventArgs e)
         {
-            var acc = this.GetService<Typedown.Core.Interfaces.IKeyboardAccelerator>();
+            var acc = this.GetService<Typedown.Presentation.Interfaces.IKeyboardAccelerator>();
             disposables.Add(acc.RegisterGlobal((s, e) =>
             {
                 handledKey ??= new()

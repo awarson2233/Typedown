@@ -3,6 +3,7 @@ using Newtonsoft.Json.Linq;
 using System;
 using Typedown.Controls.FloatControls;
 using Typedown.Core.Interfaces;
+using Typedown.Presentation.Interfaces;
 using Typedown.Core.Utilities;
 using Windows.Foundation;
 

@@ -1,9 +1,10 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.IO;
 using System.Threading.Tasks;
 using Typedown.Core.Interfaces;
+using Typedown.Presentation.Interfaces;
 using Typedown.Core.Utilities;
 
 namespace Typedown.Services

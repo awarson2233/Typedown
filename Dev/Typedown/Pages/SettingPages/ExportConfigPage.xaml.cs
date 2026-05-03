@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Typedown.Controls.SettingControls.SettingItems.ExportConfigItems;
 using Typedown.Core.Enums;
 using Typedown.Core.Interfaces;
+using Typedown.Presentation.Interfaces;
 using Typedown.Core.Models;
 using Typedown.Core.Utilities;
 using Typedown.Presentation.ViewModels;

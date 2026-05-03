@@ -1,4 +1,4 @@
-﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -22,7 +22,7 @@ namespace Typedown.Test.ServiceTests
             var clipboard = GetDefaultClipboardService();
             var text = new Random().Next().ToString();
             clipboard.SetText(text);
-            Assert.AreEqual(text, await clipboard.GetTextAsync(Core.Interfaces.TextDataFormat.UnicodeText));
+            Assert.AreEqual(text, await clipboard.GetTextAsync(Presentation.Interfaces.TextDataFormat.UnicodeText));
         }
     }
 }

@@ -1,6 +1,7 @@
 using System;
 using System.Linq;
 using Typedown.Core.Interfaces;
+using Typedown.Presentation.Interfaces;
 using Typedown.Core.Models;
 using Typedown.WinUI.Pages.SettingPages;
 using Typedown.WinUI.Controls;

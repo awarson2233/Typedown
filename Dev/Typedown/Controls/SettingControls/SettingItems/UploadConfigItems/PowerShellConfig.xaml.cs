@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using Typedown.Core.Interfaces;
+using Typedown.Presentation.Interfaces;
 using Typedown.Core.Models;
 using Typedown.Core.Models.UploadConfigModels;
 using Typedown.Core.Utilities;

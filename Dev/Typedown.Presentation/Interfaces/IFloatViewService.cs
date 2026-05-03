@@ -1,6 +1,6 @@
 using Newtonsoft.Json.Linq;
 
-namespace Typedown.Core.Interfaces
+namespace Typedown.Presentation.Interfaces
 {
     public interface IFloatViewService
     {

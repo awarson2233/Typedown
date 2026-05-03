@@ -1,6 +1,7 @@
 using System;
 using System.Reactive.Disposables;
 using Typedown.Core.Interfaces;
+using Typedown.Presentation.Interfaces;
 using Typedown.Interfaces;
 using Typedown.Core.Models;
 using Typedown.Core.Utilities;
@@ -44,7 +45,7 @@ namespace Typedown.Controls.EditorControls.MenuBarItems
 
         private void RegisterMenuItemShortcut(Func<MenuFlyoutItem, bool> handler, ShortcutKey key, MenuFlyoutItem item)
         {
-            var acc = this.GetService<Typedown.Core.Interfaces.IKeyboardAccelerator>();
+            var acc = this.GetService<Typedown.Presentation.Interfaces.IKeyboardAccelerator>();
             item.KeyboardAcceleratorTextOverride = acc.GetShortcutKeyText(key);
             disposables.Add(acc.Register(key, (s, e) =>
             {

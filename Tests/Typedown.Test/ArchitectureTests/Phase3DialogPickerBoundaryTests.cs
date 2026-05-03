@@ -1,4 +1,5 @@
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using System;
 using System.IO;
 using System.Text.RegularExpressions;
 
@@ -7,9 +8,25 @@ namespace Typedown.Test.ArchitectureTests
     [TestClass]
     public class Phase3DialogPickerBoundaryTests
     {
-        private static readonly string RepoRoot = Path.GetFullPath(Path.Combine(TestContext.TestRunDirectory, "..", "..", "..", ".."));
+        private static readonly string RepoRoot = FindRepoRoot();
 
         public TestContext TestContext { get; set; }
+
+        private static string FindRepoRoot()
+        {
+            var directory = new DirectoryInfo(AppContext.BaseDirectory);
+            while (directory != null)
+            {
+                if (Directory.Exists(Path.Combine(directory.FullName, "Dev", "Typedown.Core")))
+                {
+                    return directory.FullName;
+                }
+
+                directory = directory.Parent;
+            }
+
+            throw new DirectoryNotFoundException("Could not locate Typedown repository root.");
+        }
 
         [TestMethod]
         public void FileViewModel_DoesNotReferenceConcreteDialogOrPickerTypes()

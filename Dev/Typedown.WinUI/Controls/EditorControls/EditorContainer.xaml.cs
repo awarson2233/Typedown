@@ -1,3 +1,5 @@
+using Typedown.Presentation.ViewModels;
+
 namespace Typedown.WinUI.Controls;
 
 public sealed partial class EditorContainer : UserControl
@@ -22,7 +24,8 @@ public sealed partial class EditorContainer : UserControl
     {
         if (editorHost is null)
         {
-            editorHost = new WinUIEditorHost();
+            var serviceProvider = (DataContext as AppViewModel)?.ServiceProvider;
+            editorHost = new WinUIEditorHost(serviceProvider);
             editorHost.ContextMenuRequested += OnEditorContextMenuRequested;
         }
 

@@ -1,9 +1,12 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml.Navigation;
 using Microsoft.UI.Xaml.Media;
+using Typedown.Core;
 using Typedown.Presentation;
+using Typedown.Presentation.Interfaces;
 using Typedown.WinUI.Controls;
 using Typedown.WinUI.Services;
+using Typedown.WinUI.Utilities;
 using Typedown.WinUI.Views;
 
 namespace Typedown.WinUI
@@ -33,6 +36,7 @@ namespace Typedown.WinUI
         /// <param name="e">Details about the launch request and process.</param>
         protected override void OnLaunched(LaunchActivatedEventArgs e)
         {
+            WinUILocale.Initialize();
             window ??= new Window();
             platformServices ??= new WinUIPlatformServices(window);
             uiServices ??= new ServiceCollection()
@@ -42,6 +46,16 @@ namespace Typedown.WinUI
                 .AddSingleton(platformServices.FilePickerService)
                 .AddSingleton(platformServices.AppActivationService)
                 .AddSingleton(platformServices.AppDataPathProvider)
+                .AddSingleton<IClipboard, WinUIClipboard>()
+                .AddSingleton<IFileExport, WinUIFileExport>()
+                .AddSingleton<IFileOperation, WinUIFileOperation>()
+                .AddSingleton<IFloatViewService, WinUIFloatViewService>()
+                .AddSingleton<IKeyboardAccelerator, WinUIKeyboardAccelerator>()
+                .AddSingleton<IEditorCommandSink, WinUIEditorCommandSink>()
+                .AddSingleton<IEditorSettingsNotifier, WinUIEditorSettingsNotifier>()
+                .AddSingleton<ITableDialogService, WinUITableDialogService>()
+                .AddSingleton<IWindowService, WinUIWindowService>()
+                .AddTypedownCore()
                 .AddTypedownPresentation()
                 .BuildServiceProvider();
             platformServices.WindowContext.Title = "Typedown";

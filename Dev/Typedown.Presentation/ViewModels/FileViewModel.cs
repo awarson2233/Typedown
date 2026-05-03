@@ -10,7 +10,6 @@ using System.Reactive.Disposables;
 using System.Timers;
 using System.Threading.Tasks;
 using Typedown.Core.Enums;
-using Typedown.Core.Interfaces;
 using Typedown.Core.Models;
 using Typedown.Core.Services;
 using Typedown.Core.Utilities;

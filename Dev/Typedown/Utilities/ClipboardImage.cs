@@ -1,7 +1,8 @@
-﻿using System;
+using System;
 using System.IO;
 using System.Threading.Tasks;
 using Typedown.Core.Interfaces;
+using Typedown.Presentation.Interfaces;
 using Windows.Graphics.Imaging;
 using Windows.Storage.Streams;
 

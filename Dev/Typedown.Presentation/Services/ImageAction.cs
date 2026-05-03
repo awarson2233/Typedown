@@ -1,4 +1,4 @@
-﻿using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.IO;
 using System.Linq;
@@ -6,7 +6,6 @@ using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
 using Typedown.Core.Enums;
-using Typedown.Core.Interfaces;
 using Typedown.Core.Utilities;
 using Typedown.Presentation.Interfaces;
 using Typedown.Presentation.Utilities;

@@ -1,7 +1,7 @@
 using System.Reactive.Subjects;
 using Typedown.Core.Models;
 
-namespace Typedown.Core.Interfaces
+namespace Typedown.Presentation.Interfaces
 {
     public interface IWindowService
     {

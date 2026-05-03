@@ -4,6 +4,8 @@
 
 当前状态：Phase 9、Phase 10 和 Phase 11 已完成到 WinUI3 smoke/editor-host 基线。`Dev\Typedown.WinUI` 已成为 WinUI3 shell spike、平台服务、WebView2 editor host 和 Package/Unpackaged 双入口基线；日常启动入口为 `Debug_Local|x64 + Typedown.WinUI (Unpackaged)`，Package/MSIX 入口保留为 `Debug|x64 + Typedown.WinUI (Package)` 的部署验证路径。
 
+后续架构命名以当前分支为准：历史文档中的 `Typedown.UI` 职责已由 `Dev\Typedown.Presentation` 替代。`Typedown.Presentation` 负责 shell-agnostic MVVM、应用编排、资源 key / 本地化抽象和平台端口；`Typedown.WinUI` 负责 WinUI3 XAML、WebView2 host、Window/App/Package 和平台端口实现。
+
 ## 总原则
 
 - Phase 9 之后不再继续扩大 legacy `Typedown.XamlUI` 能力，只修阻塞性基线问题。
@@ -284,3 +286,148 @@ winui3-migration
 ## 下一步建议
 
 下一步进入 Phase 14：先完成首批 `1:1` 可视 UI 迁移准备，明确 shell chrome、command surface、status、side panel 的可视骨架和平台中立状态来源。`WinUIEditorHost` 仍留在 `Typedown.WinUI`，默认启动路径切换顺延到 Phase 15；仍不处理 ARM64。
+
+## 当前 WinUI3 未接入功能清单
+
+本清单反映 `winui3-migration` 当前工作区的实际状态，用于后续接入计划排序。它不是抽象目标，而是当前 `Dev\Typedown.WinUI` 相对旧 App `Dev\Typedown` 的功能缺口。
+
+### 1. DI composition root 缺口
+
+`Dev\Typedown.WinUI\App.xaml.cs` 当前只注册了最小平台服务：
+
+- `IWindowContext`
+- `IUiDispatcher`
+- `IDialogService`
+- `IFilePickerService`
+- `IAppActivationService`
+- `IAppDataPathProvider`
+- `AddTypedownPresentation()`
+
+旧 App 在 `Dev\Typedown\WindowsShellServiceCollectionExtensions.cs` 中还注册了以下能力，WinUI 当前未接入：
+
+- `IClipboard`
+- `IFloatViewService`
+- `IFileConverter`
+- `IFileExport`
+- `IFileOperation`
+- `IKeyboardAccelerator`
+- `IEditorCommandSink`
+- `IEditorSettingsNotifier`
+- `IPowerShellService`
+- `ITableDialogService`
+- `IWindowService`
+
+这些缺口会直接影响剪贴板、图片粘贴、导出/打印、文件树操作、快捷键、菜单命令、设置同步、浮层、表格对话框和窗口相关行为。
+
+### 2. Editor/WebView2 bridge 仍是 WinUI 本地 smoke session
+
+`Dev\Typedown.WinUI\Controls\WinUIEditorDocumentSession.cs` 当前仍用本地 session 承接 editor 消息。以下 invoke 仍是 stub 或 smoke-safe 行为：
+
+- `ExportCallback`
+- `PrintHTML`
+- `SetClipboard`
+- `OpenNewWindow`
+
+`Dev\Typedown.WinUI\Controls\WinUIEditorBridgeAdapter.cs` 只把部分 editor events 写入本地 session，没有把消息转给 `Typedown.Presentation` 的 `RemoteInvoke` / `EventCenter`。因此 `EditorViewModel.GetSettings`、`EditorViewModel.SetClipboard`、`FileViewModel.ExportCallback`、`FileViewModel.PrintHTML` 还没有成为 WinUI WebView2 的真实后端。
+
+### 3. Presentation 命令没有稳定发送到 WinUI editor host
+
+`Typedown.Presentation` 中 `EditorViewModel`、`FileViewModel`、`FormatViewModel`、`ParagraphViewModel` 都依赖 `IEditorCommandSink` 将命令发送到 editor。WinUI 当前没有注册该接口的真实实现，导致下列能力无法完整工作：
+
+- open/load markdown 后同步到 WebView editor
+- save/save as 后刷新 editor saved state
+- undo/redo/cut/copy/paste/select all
+- format / paragraph command
+- search / replace
+- export / print request
+- settings changed notification
+
+### 4. 菜单与右键菜单仍是空壳
+
+`Dev\Typedown.WinUI\Controls\EditorControls\MenuBarItems\MenuBarItemStubs.cs` 中 `FileItem`、`EditItem`、`ParagraphItem`、`FormatItem`、`ViewItem` 仅初始化 XAML，事件为空。
+
+`Dev\Typedown.WinUI\Controls\EditorControls\ContextMenuItems\ContextMenuItemStubs.cs` 中图片右键菜单仍为空事件：
+
+- open image location
+- copy image to
+- move image to
+- image upload settings
+- save image as
+- delete image file
+
+### 5. 设置页仍有大量静态占位或被排除编译
+
+当前可编译设置页中，`GeneralPage.xaml`、`ViewPage.xaml`、`ExportPage.xaml` 仍使用硬编码英文文本和未绑定控件。它们没有真正绑定 `SettingsViewModel`。
+
+`Typedown.WinUI.csproj` 仍排除了多类设置页面和 setting items：
+
+- `Controls\SettingControls\SettingItems\**`
+- `Pages\SettingPages\ExportConfigPage.*`
+- `Pages\SettingPages\ImageUploadPage.*`
+- `Pages\SettingPages\ShortcutPage.*`
+- `Pages\SettingPages\UploadConfigPage.*`
+
+因此快捷键设置、图片上传配置、导出配置编辑、上传配置编辑还没有进入 WinUI 主路径。
+
+### 6. App activation / single instance 未完整接入
+
+`Dev\Typedown.WinUI\Services\WinUIAppActivationService.cs` 的 `StartListening` 当前为空实现。旧 App 的 mutex + named pipe + 二次启动转发逻辑尚未迁入 WinUI。
+
+缺少的行为：
+
+- 单实例互斥
+- 第二次启动转发到已有实例
+- 文件路径命令行打开已有窗口
+- 转发成功后窗口前置
+- 转发失败后启动新实例
+
+### 7. Window service / HWND 辅助能力未完整接入
+
+WinUI 当前只有基础 `WinUIWindowContext`。旧 App 的 `IWindowService` 行为还没有对应实现：
+
+- 从 UI element 获取窗口句柄
+- 获取 XAML source handle 或等价上下文
+- 获取鼠标相对坐标
+- 窗口状态变化通知
+- 激活状态变化通知
+
+这会影响浮层定位、图片工具条、表格工具条、file picker owner window、快捷键和窗口前置。
+
+### 8. Float view system 未接入
+
+旧 App 的 `FloatViewService` 负责：
+
+- `ImageToolbar`
+- `FrontMenu`
+- `ImageSelector`
+- `TableTools`
+- tooltip
+
+WinUI 当前只保留了 `FindReplace` XAML 外观，且 `EditorContainer` 没有订阅 `FloatViewModel.FindReplaceDialogOpen`，也没有把 replace/search 命令打回 editor。
+
+### 9. 文件/导出/图片上传链路缺平台实现
+
+`FileViewModel`、`ImageAction`、`ImageUpload` 需要下列服务协作：
+
+- `IFileExport`
+- `IFileConverter`
+- `IFileOperation`
+- `IClipboard`
+- `IPowerShellService`
+- `IWindowService`
+
+WinUI 当前未注册这些能力，因此 PDF/HTML/Image 导出、打印、打开导出目录、文件树复制/移动/删除、图片保存/移动/上传、剪贴板图片粘贴都不完整。
+
+### 10. 本地化入口未完整接入 WinUI
+
+`.resw` 源文件已移动到 `Dev\Typedown.WinUI\Resources\Strings`，旧 App 通过构建链接嵌入自己的资源路径。但 WinUI app head 还没有等价旧 App `AppLocale.Initialize()` 的正式初始化逻辑。
+
+现状：
+
+- `Typedown.Presentation.Utilities.Locale.StringResolver` 默认仍可能返回 key。
+- WinUI 中部分已编译页面仍硬编码英文。
+- XAML 里已有大量 `{u:LocaleString ...}` 迁移残留，但当前 WinUI 没有正式 `LocaleString` markup extension 实现。
+
+### 11. WebView2 环境检查与失败 UI 未完整接入
+
+旧 App 启动时通过 `EnvCheck.EnsureWebView2Installed()` 进行 WebView2 runtime 检查。WinUI 当前 editor host 内部捕获初始化失败并写入状态文本，但还没有旧 App 等价的启动前检查、安装提示窗口、退出路径和本地化错误 UI。

@@ -1,12 +1,15 @@
 using System;
 using System.Collections.Generic;
 using System.Text.Json;
+using System.Threading.Tasks;
 
 namespace Typedown.WinUI.Controls
 {
     internal sealed class WinUIEditorBridgeAdapter
     {
-        private static readonly HashSet<string> SessionBackedEvents = new(StringComparer.Ordinal)
+        private const string RemoteInvokeBoundaryName = "HandleRemoteInvoke";
+
+        private static readonly HashSet<string> LocallyMirroredEvents = new(StringComparer.Ordinal)
         {
             "FileLoaded",
             "MarkdownChange",
@@ -47,6 +50,11 @@ namespace Typedown.WinUI.Controls
 
         public void Receive(string? rawMessage, Func<string, bool> sender)
         {
+            ReceiveAsync(rawMessage, sender).GetAwaiter().GetResult();
+        }
+
+        public async Task ReceiveAsync(string? rawMessage, Func<string, bool> sender)
+        {
             LastRawMessage = rawMessage ?? string.Empty;
 
             if (string.IsNullOrWhiteSpace(rawMessage))
@@ -70,7 +78,7 @@ namespace Typedown.WinUI.Controls
                 switch (type)
                 {
                     case "invoke":
-                        HandleInvoke(root, sender);
+                        await HandleInvokeAsync(root, sender);
                         break;
                     case "message":
                         HandleMessage(root);
@@ -89,7 +97,7 @@ namespace Typedown.WinUI.Controls
             }
         }
 
-        private void HandleInvoke(JsonElement root, Func<string, bool> sender)
+        private async Task HandleInvokeAsync(JsonElement root, Func<string, bool> sender)
         {
             var id = root.TryGetProperty("id", out var idElement) && idElement.ValueKind == JsonValueKind.String
                 ? idElement.GetString()
@@ -109,7 +117,7 @@ namespace Typedown.WinUI.Controls
 
             try
             {
-                var data = documentSession.HandleRemoteInvoke(name, args);
+                var data = await HandleRemoteInvokeAsync(name, args);
                 if (string.Equals(name, "ContentLoaded", StringComparison.Ordinal))
                 {
                     IsContentLoaded = true;
@@ -121,6 +129,12 @@ namespace Typedown.WinUI.Controls
             {
                 Send(sender, id, new { code = 1, msg = ex.Message });
             }
+        }
+
+        private Task<object?> HandleRemoteInvokeAsync(string name, JsonElement? args)
+        {
+            _ = RemoteInvokeBoundaryName;
+            return documentSession.HandleRemoteInvokeAsync(name, args);
         }
 
         private void HandleMessage(JsonElement root)
@@ -212,9 +226,11 @@ namespace Typedown.WinUI.Controls
 
         private void HandleEditorEvent(EditorEventMessage message)
         {
-            if (SessionBackedEvents.Contains(message.Name))
+            documentSession.HandleEditorEvent(message);
+            if (LocallyMirroredEvents.Contains(message.Name))
             {
-                documentSession.HandleEditorEvent(message);
+                LastEventName = message.Name;
+                return;
             }
 
             LastEventName = message.Name;

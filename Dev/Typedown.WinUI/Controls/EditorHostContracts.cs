@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Threading.Tasks;
 
 namespace Typedown.WinUI.Controls
 {
@@ -19,7 +20,15 @@ namespace Typedown.WinUI.Controls
 
         void HandleEditorEvent(EditorEventMessage message);
 
-        object? HandleRemoteInvoke(string name, JsonElement? args);
+        object? HandleRemoteInvoke(string name, JsonElement? args)
+        {
+            return HandleRemoteInvokeAsync(name, args).GetAwaiter().GetResult();
+        }
+
+        Task<object?> HandleRemoteInvokeAsync(string name, JsonElement? args)
+        {
+            return Task.FromResult(HandleRemoteInvoke(name, args));
+        }
     }
 
     internal interface IEditorHostSink

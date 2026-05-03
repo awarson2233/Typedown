@@ -4,7 +4,6 @@ using System.ComponentModel;
 using System.Reactive;
 using System.Reactive.Disposables;
 using System.Threading.Tasks;
-using Typedown.Core.Interfaces;
 using Typedown.Core.Services;
 using Typedown.Core.Utilities;
 using Typedown.Presentation.Interfaces;

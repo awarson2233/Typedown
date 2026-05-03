@@ -7,6 +7,16 @@ namespace Typedown.ArchitectureTests;
 public class Phase10CoreContractsBoundaryTests
 {
     private static readonly string RepoRoot = FindRepoRoot();
+    private static readonly string[] PresentationOwnedPorts =
+    [
+        "IClipboard.cs",
+        "IFileExport.cs",
+        "IFileOperation.cs",
+        "IFloatViewService.cs",
+        "IKeyboardAccelerator.cs",
+        "ITableDialogService.cs",
+        "IWindowService.cs"
+    ];
 
     [TestMethod]
     public void ContractsProject_ExistsAndTargetsPlatformNeutralNet9()
@@ -26,10 +36,9 @@ public class Phase10CoreContractsBoundaryTests
     public void ContractsProject_OwnsTheNeutralInterfaceSurface()
     {
         Assert.IsTrue(File.Exists(Path.Combine(RepoRoot, "Dev", "Typedown.Core", "Interfaces", "IAppDataPathProvider.cs")));
-        Assert.IsTrue(File.Exists(Path.Combine(RepoRoot, "Dev", "Typedown.Core", "Interfaces", "IClipboard.cs")));
         Assert.IsTrue(File.Exists(Path.Combine(RepoRoot, "Dev", "Typedown.Core", "Interfaces", "IEditorBridge.cs")));
-        Assert.IsTrue(File.Exists(Path.Combine(RepoRoot, "Dev", "Typedown.Core", "Interfaces", "IFileExport.cs")));
-        Assert.IsTrue(File.Exists(Path.Combine(RepoRoot, "Dev", "Typedown.Core", "Interfaces", "IFileOperation.cs")));
+        Assert.IsTrue(File.Exists(Path.Combine(RepoRoot, "Dev", "Typedown.Core", "Interfaces", "IFileConverter.cs")));
+        Assert.IsTrue(File.Exists(Path.Combine(RepoRoot, "Dev", "Typedown.Core", "Interfaces", "IPowerShellService.cs")));
 
         var presentationInterfacesRoot = Path.Combine(RepoRoot, "Dev", "Typedown.Presentation", "Interfaces");
         Assert.IsTrue(File.Exists(Path.Combine(presentationInterfacesRoot, "IWindowContext.cs")));
@@ -39,11 +48,26 @@ public class Phase10CoreContractsBoundaryTests
         Assert.IsTrue(File.Exists(Path.Combine(presentationInterfacesRoot, "IAppActivationService.cs")));
         Assert.IsTrue(File.Exists(Path.Combine(presentationInterfacesRoot, "IEditorCommandSink.cs")));
         Assert.IsTrue(File.Exists(Path.Combine(presentationInterfacesRoot, "IEditorSettingsNotifier.cs")));
+        foreach (var fileName in PresentationOwnedPorts)
+        {
+            Assert.IsTrue(File.Exists(Path.Combine(presentationInterfacesRoot, fileName)), $"{fileName} must be owned by Typedown.Presentation.");
+        }
 
         Assert.IsTrue(File.Exists(Path.Combine(RepoRoot, "Dev", "Typedown.WinUI", "Controls", "EditorHostContracts.cs")));
 
         Assert.IsFalse(Directory.Exists(Path.Combine(RepoRoot, "Dev", "Typedown.Core", "Editor")));
         Assert.IsFalse(Directory.Exists(Path.Combine(RepoRoot, "Dev", "Typedown.Core", "Contracts")));
+    }
+
+    [TestMethod]
+    public void Core_DoesNotOwnPresentationViewModelPorts()
+    {
+        var coreInterfacesRoot = Path.Combine(RepoRoot, "Dev", "Typedown.Core", "Interfaces");
+
+        foreach (var fileName in PresentationOwnedPorts)
+        {
+            Assert.IsFalse(File.Exists(Path.Combine(coreInterfacesRoot, fileName)), $"{fileName} belongs in Typedown.Presentation.");
+        }
     }
 
     [TestMethod]

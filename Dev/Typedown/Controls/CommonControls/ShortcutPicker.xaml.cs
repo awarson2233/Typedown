@@ -4,6 +4,7 @@ using System.Reactive.Disposables;
 using System.Reflection;
 using Typedown.Controls.SettingControls.SettingItems;
 using Typedown.Core.Interfaces;
+using Typedown.Presentation.Interfaces;
 using Typedown.Core.Models;
 using Typedown.Core.Utilities;
 using Typedown.Presentation.ViewModels;

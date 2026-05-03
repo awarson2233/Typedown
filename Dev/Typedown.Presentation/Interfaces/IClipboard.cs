@@ -1,7 +1,7 @@
-﻿using System.Collections.Specialized;
+using System.Collections.Specialized;
 using System.Threading.Tasks;
 
-namespace Typedown.Core.Interfaces
+namespace Typedown.Presentation.Interfaces
 {
     public enum TextDataFormat
     {
