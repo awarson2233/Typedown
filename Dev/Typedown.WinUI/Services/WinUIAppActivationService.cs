@@ -1,7 +1,7 @@
 using System;
 using System.IO;
 using System.Linq;
-using Typedown.Core.Interfaces;
+using Typedown.Presentation.Interfaces;
 
 namespace Typedown.WinUI.Services
 {

@@ -1,7 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml.Navigation;
 using Microsoft.UI.Xaml.Media;
-using Typedown.UI.Composition;
+using Typedown.Presentation;
 using Typedown.WinUI.Controls;
 using Typedown.WinUI.Services;
 using Typedown.WinUI.Views;
@@ -36,7 +36,13 @@ namespace Typedown.WinUI
             window ??= new Window();
             platformServices ??= new WinUIPlatformServices(window);
             uiServices ??= new ServiceCollection()
-                .AddTypedownUI()
+                .AddSingleton(platformServices.WindowContext)
+                .AddSingleton(platformServices.UiDispatcher)
+                .AddSingleton(platformServices.DialogService)
+                .AddSingleton(platformServices.FilePickerService)
+                .AddSingleton(platformServices.AppActivationService)
+                .AddSingleton(platformServices.AppDataPathProvider)
+                .AddTypedownPresentation()
                 .BuildServiceProvider();
             platformServices.WindowContext.Title = "Typedown";
             ConfigureNativeTitleBar(window);

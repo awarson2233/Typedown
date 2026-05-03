@@ -26,40 +26,43 @@ public class Phase10CoreContractsBoundaryTests
     public void ContractsProject_OwnsTheNeutralInterfaceSurface()
     {
         Assert.IsTrue(File.Exists(Path.Combine(RepoRoot, "Dev", "Typedown.Core", "Interfaces", "IAppDataPathProvider.cs")));
-        Assert.IsTrue(File.Exists(Path.Combine(RepoRoot, "Dev", "Typedown.Core", "Interfaces", "IDialogService.cs")));
-        Assert.IsTrue(File.Exists(Path.Combine(RepoRoot, "Dev", "Typedown.Core", "Interfaces", "IFilePickerService.cs")));
-        Assert.IsTrue(File.Exists(Path.Combine(RepoRoot, "Dev", "Typedown.Core", "Interfaces", "IUiDispatcher.cs")));
-        Assert.IsTrue(File.Exists(Path.Combine(RepoRoot, "Dev", "Typedown.Core", "Interfaces", "IWindowContext.cs")));
-        Assert.IsTrue(File.Exists(Path.Combine(RepoRoot, "Dev", "Typedown.Core", "Interfaces", "IAppActivationService.cs")));
-        Assert.IsTrue(File.Exists(Path.Combine(RepoRoot, "Dev", "Typedown.Core", "Editor", "IEditorDocumentSession.cs")));
-        Assert.IsTrue(File.Exists(Path.Combine(RepoRoot, "Dev", "Typedown.Core", "Editor", "EditorDocumentState.cs")));
-        Assert.IsTrue(File.Exists(Path.Combine(RepoRoot, "Dev", "Typedown.Core", "Editor", "EditorSettingsSnapshot.cs")));
-        Assert.IsTrue(File.Exists(Path.Combine(RepoRoot, "Dev", "Typedown.Core", "Editor", "EditorSettingsPayload.cs")));
-        Assert.IsTrue(File.Exists(Path.Combine(RepoRoot, "Dev", "Typedown.Core", "Editor", "EditorEventMessage.cs")));
-        Assert.IsTrue(File.Exists(Path.Combine(RepoRoot, "Dev", "Typedown.Core", "Editor", "EditorHostMessage.cs")));
-        Assert.IsTrue(File.Exists(Path.Combine(RepoRoot, "Dev", "Typedown.Core", "Editor", "EditorHostCommands.cs")));
-        Assert.IsTrue(File.Exists(Path.Combine(RepoRoot, "Dev", "Typedown.Core", "Editor", "EditorPersistenceResult.cs")));
+        Assert.IsTrue(File.Exists(Path.Combine(RepoRoot, "Dev", "Typedown.Core", "Interfaces", "IClipboard.cs")));
+        Assert.IsTrue(File.Exists(Path.Combine(RepoRoot, "Dev", "Typedown.Core", "Interfaces", "IEditorBridge.cs")));
+        Assert.IsTrue(File.Exists(Path.Combine(RepoRoot, "Dev", "Typedown.Core", "Interfaces", "IFileExport.cs")));
+        Assert.IsTrue(File.Exists(Path.Combine(RepoRoot, "Dev", "Typedown.Core", "Interfaces", "IFileOperation.cs")));
+
+        var presentationInterfacesRoot = Path.Combine(RepoRoot, "Dev", "Typedown.Presentation", "Interfaces");
+        Assert.IsTrue(File.Exists(Path.Combine(presentationInterfacesRoot, "IWindowContext.cs")));
+        Assert.IsTrue(File.Exists(Path.Combine(presentationInterfacesRoot, "IUiDispatcher.cs")));
+        Assert.IsTrue(File.Exists(Path.Combine(presentationInterfacesRoot, "IDialogService.cs")));
+        Assert.IsTrue(File.Exists(Path.Combine(presentationInterfacesRoot, "IFilePickerService.cs")));
+        Assert.IsTrue(File.Exists(Path.Combine(presentationInterfacesRoot, "IAppActivationService.cs")));
+        Assert.IsTrue(File.Exists(Path.Combine(presentationInterfacesRoot, "IEditorCommandSink.cs")));
+        Assert.IsTrue(File.Exists(Path.Combine(presentationInterfacesRoot, "IEditorSettingsNotifier.cs")));
+
+        Assert.IsTrue(File.Exists(Path.Combine(RepoRoot, "Dev", "Typedown.WinUI", "Controls", "EditorHostContracts.cs")));
+
+        Assert.IsFalse(Directory.Exists(Path.Combine(RepoRoot, "Dev", "Typedown.Core", "Editor")));
+        Assert.IsFalse(Directory.Exists(Path.Combine(RepoRoot, "Dev", "Typedown.Core", "Contracts")));
     }
 
     [TestMethod]
     public void EditorContracts_StayPlatformNeutralAndAvoidLegacyDependencies()
     {
-        var editorFiles = Directory
-            .EnumerateFiles(Path.Combine(RepoRoot, "Dev", "Typedown.Core", "Editor"), "*.cs", SearchOption.TopDirectoryOnly)
-            .ToArray();
+        var source = File.ReadAllText(Path.Combine(RepoRoot, "Dev", "Typedown.WinUI", "Controls", "EditorHostContracts.cs"));
 
-        Assert.IsTrue(editorFiles.Length >= 6, "Expected the Phase 11 editor contract surface.");
-
-        foreach (var file in editorFiles)
-        {
-            var source = File.ReadAllText(file);
-
-            AssertNoTypeReference(source, "Microsoft.UI");
-            AssertNoTypeReference(source, "Windows.UI.Xaml");
-            AssertNoTypeReference(source, "WebView2");
-            AssertNoTypeReference(source, "Typedown.XamlUI");
-            AssertNoTypeReference(source, "Newtonsoft");
-        }
+        AssertHasTypeReference(source, "IEditorDocumentSession");
+        AssertHasTypeReference(source, "IEditorHostSink");
+        AssertHasTypeReference(source, "EditorHostMessage");
+        AssertHasTypeReference(source, "EditorHostCommands");
+        AssertHasTypeReference(source, "EditorSettingsPayload");
+        AssertHasTypeReference(source, "EditorPersistenceResult");
+        AssertNoTypeReference(source, "Typedown.Core.Contracts");
+        AssertNoTypeReference(source, "Typedown.Presentation.ViewModels");
+        AssertNoTypeReference(source, "Microsoft.UI.Xaml");
+        AssertNoTypeReference(source, "Windows.UI.Xaml");
+        AssertNoTypeReference(source, "Microsoft.Web.WebView2");
+        AssertNoTypeReference(source, "Typedown.XamlUI");
     }
 
     [TestMethod]
@@ -86,15 +89,29 @@ public class Phase10CoreContractsBoundaryTests
     }
 
     [TestMethod]
-    public void NewCoreIsNeutralAndLegacyAppReferencesLegacyCore()
+    public void CorePresentationAndShellProjects_FollowCurrentDependencyBoundary()
     {
         var coreProject = File.ReadAllText(Path.Combine(RepoRoot, "Dev", "Typedown.Core", "Typedown.Core.csproj"));
-        var legacyCoreProject = File.ReadAllText(Path.Combine(RepoRoot, "Dev", "Typedown.Core.Legacy", "Typedown.Core.Legacy.csproj"));
+        var presentationProject = File.ReadAllText(Path.Combine(RepoRoot, "Dev", "Typedown.Presentation", "Typedown.Presentation.csproj"));
+        var winuiProject = File.ReadAllText(Path.Combine(RepoRoot, "Dev", "Typedown.WinUI", "Typedown.WinUI.csproj"));
         var appProject = File.ReadAllText(Path.Combine(RepoRoot, "Dev", "Typedown", "Typedown.csproj"));
 
         AssertNoTypeReference(coreProject, "<ProjectReference");
-        AssertHasTypeReference(legacyCoreProject, @"..\Typedown.Core\Typedown.Core.csproj");
-        AssertHasTypeReference(appProject, @"..\Typedown.Core.Legacy\Typedown.Core.Legacy.csproj");
+        AssertHasTypeReference(presentationProject, @"..\Typedown.Core\Typedown.Core.csproj");
+        AssertNoTypeReference(presentationProject, @"..\Typedown.WinUI\Typedown.WinUI.csproj");
+        AssertNoTypeReference(presentationProject, @"..\Typedown.XamlUI\Typedown.XamlUI.csproj");
+        AssertNoTypeReference(presentationProject, @"..\Typedown.UI\Typedown.UI.csproj");
+
+        AssertHasTypeReference(winuiProject, @"..\Typedown.Core\Typedown.Core.csproj");
+        AssertHasTypeReference(winuiProject, @"..\Typedown.Presentation\Typedown.Presentation.csproj");
+        AssertNoTypeReference(winuiProject, @"..\Typedown.UI\Typedown.UI.csproj");
+        AssertNoTypeReference(winuiProject, @"..\Typedown.Core.Legacy\Typedown.Core.Legacy.csproj");
+        AssertNoTypeReference(winuiProject, @"..\Typedown.XamlUI\Typedown.XamlUI.csproj");
+
+        AssertHasTypeReference(appProject, @"..\Typedown.Core\Typedown.Core.csproj");
+        AssertHasTypeReference(appProject, @"..\Typedown.Presentation\Typedown.Presentation.csproj");
+        AssertHasTypeReference(appProject, "$(TypedownXamlUIProject)");
+        AssertNoTypeReference(appProject, @"..\Typedown.Core.Legacy\Typedown.Core.Legacy.csproj");
     }
 
     [TestMethod]
@@ -121,7 +138,6 @@ public class Phase10CoreContractsBoundaryTests
         var legacyPackageGuid = FindProjectGuid(solutionSource, "Typedown.Package");
         var editorGuid = FindProjectGuid(solutionSource, "Typedown.Editor");
         var legacyTestGuid = FindProjectGuid(solutionSource, "Typedown.Test");
-        var legacyCoreGuid = FindProjectGuid(solutionSource, "Typedown.Core.Legacy");
         var xamlDesignGuid = FindProjectGuid(solutionSource, "XamlDesignApp");
         var xamlUiGuid = FindProjectGuid(solutionSource, "Typedown.XamlUI");
 
@@ -153,9 +169,29 @@ public class Phase10CoreContractsBoundaryTests
         AssertDebugLocalX64DoesNotBuildOrDeployLegacyProject(solutionSource, legacyPackageGuid);
         AssertDebugLocalX64DoesNotBuildOrDeployLegacyProject(solutionSource, editorGuid);
         AssertDebugLocalX64DoesNotBuildOrDeployLegacyProject(solutionSource, legacyTestGuid);
-        AssertDebugLocalX64DoesNotBuildOrDeployLegacyProject(solutionSource, legacyCoreGuid);
         AssertDebugLocalX64DoesNotBuildOrDeployLegacyProject(solutionSource, xamlDesignGuid);
         AssertDebugLocalX64DoesNotBuildOrDeployLegacyProject(solutionSource, xamlUiGuid);
+    }
+
+    [TestMethod]
+    public void RemovedLegacyCoreAndTypedownUiProjects_DoNotExistInSourceOrSolution()
+    {
+        var solutionSource = File.ReadAllText(Path.Combine(RepoRoot, "Typedown.sln"));
+        var testProjectSource = File.ReadAllText(Path.Combine(RepoRoot, "Tests", "Typedown.Universal.Test", "Typedown.Core.Test.csproj"));
+        var databaseMigrationProjectSource = File.ReadAllText(Path.Combine(RepoRoot, "Tools", "DatabaseMigration", "DatabaseMigration.csproj"));
+        var xamlDesignProjectSource = File.ReadAllText(Path.Combine(RepoRoot, "Tools", "XamlDesignApp", "XamlDesignApp.csproj"));
+
+        Assert.IsFalse(Directory.Exists(Path.Combine(RepoRoot, "Dev", "Typedown.Core.Legacy")));
+        Assert.IsFalse(Directory.Exists(Path.Combine(RepoRoot, "Dev", "Typedown.UI")));
+        AssertNoTypeReference(solutionSource, "Typedown.Core.Legacy");
+        AssertNoTypeReference(solutionSource, @"Dev\Typedown.Core.Legacy\Typedown.Core.Legacy.csproj");
+        AssertNoTypeReference(solutionSource, "Typedown.UI");
+        AssertNoTypeReference(solutionSource, @"Dev\Typedown.UI\Typedown.UI.csproj");
+        AssertNoTypeReference(testProjectSource, @"..\..\Dev\Typedown.Core.Legacy\Typedown.Core.Legacy.csproj");
+        AssertNoTypeReference(databaseMigrationProjectSource, @"..\..\Dev\Typedown.Core.Legacy\Typedown.Core.Legacy.csproj");
+        AssertNoTypeReference(xamlDesignProjectSource, @"..\..\Dev\Typedown.Core.Legacy\Typedown.Core.Legacy.csproj");
+        AssertHasTypeReference(testProjectSource, @"..\..\Dev\Typedown.Core\Typedown.Core.csproj");
+        AssertHasTypeReference(databaseMigrationProjectSource, @"..\..\Dev\Typedown.Core\Typedown.Core.csproj");
     }
 
     [TestMethod]
@@ -215,28 +251,30 @@ public class Phase10CoreContractsBoundaryTests
     }
 
     [TestMethod]
-    public void TypedownXamlUI_UsesOnlyExistingAnyCpuSolutionMappings()
+    public void TypedownXamlUI_RemainsLegacySolutionProjectButOutsideWinUIBoundary()
     {
         var solutionSource = File.ReadAllText(Path.Combine(RepoRoot, "Typedown.sln"));
         var projectGuid = FindProjectGuid(solutionSource, "Typedown.XamlUI");
+        var winuiProject = File.ReadAllText(Path.Combine(RepoRoot, "Dev", "Typedown.WinUI", "Typedown.WinUI.csproj"));
 
-        AssertHasTypeReference(solutionSource, $"{projectGuid}.Debug_Local|ARM64.ActiveCfg = Debug|AnyCPU");
-        AssertHasTypeReference(solutionSource, $"{projectGuid}.Debug_Local|x64.ActiveCfg = Debug|AnyCPU");
-        AssertHasTypeReference(solutionSource, $"{projectGuid}.Debug_Local|x86.ActiveCfg = Debug|AnyCPU");
-        AssertHasTypeReference(solutionSource, $"{projectGuid}.Debug|ARM64.ActiveCfg = Debug|AnyCPU");
-        AssertHasTypeReference(solutionSource, $"{projectGuid}.Debug|x64.ActiveCfg = Debug|AnyCPU");
-        AssertHasTypeReference(solutionSource, $"{projectGuid}.Debug|x86.ActiveCfg = Debug|AnyCPU");
+        AssertHasTypeReference(solutionSource, $"{projectGuid}.Debug_Local|ARM64.ActiveCfg = Debug|Any CPU");
+        AssertHasTypeReference(solutionSource, $"{projectGuid}.Debug_Local|x64.ActiveCfg = Debug|Any CPU");
+        AssertHasTypeReference(solutionSource, $"{projectGuid}.Debug_Local|x86.ActiveCfg = Debug|Any CPU");
+        AssertHasTypeReference(solutionSource, $"{projectGuid}.Debug|ARM64.ActiveCfg = Debug|Any CPU");
+        AssertHasTypeReference(solutionSource, $"{projectGuid}.Debug|x64.ActiveCfg = Debug|Any CPU");
+        AssertHasTypeReference(solutionSource, $"{projectGuid}.Debug|x86.ActiveCfg = Debug|Any CPU");
         AssertNoTypeReference(solutionSource, $"{projectGuid}.Debug|x64.Build.0");
         AssertNoTypeReference(solutionSource, $"{projectGuid}.Debug|x64.Deploy.0");
         AssertNoTypeReference(solutionSource, $"{projectGuid}.Debug_Local|ARM64.ActiveCfg = Debug_Local|Any CPU");
         AssertNoTypeReference(solutionSource, $"{projectGuid}.Debug_Local|x64.ActiveCfg = Debug_Local|Any CPU");
         AssertNoTypeReference(solutionSource, $"{projectGuid}.Debug_Local|x86.ActiveCfg = Debug_Local|Any CPU");
-        AssertNoTypeReference(solutionSource, $"{projectGuid}.Debug|ARM64.ActiveCfg = Debug|Any CPU");
-        AssertNoTypeReference(solutionSource, $"{projectGuid}.Debug|x64.ActiveCfg = Debug|Any CPU");
-        AssertNoTypeReference(solutionSource, $"{projectGuid}.Debug|x86.ActiveCfg = Debug|Any CPU");
+        AssertNoTypeReference(solutionSource, $"{projectGuid}.Debug|ARM64.ActiveCfg = Debug_Local|Any CPU");
+        AssertNoTypeReference(solutionSource, $"{projectGuid}.Debug|x64.ActiveCfg = Debug_Local|Any CPU");
+        AssertNoTypeReference(solutionSource, $"{projectGuid}.Debug|x86.ActiveCfg = Debug_Local|Any CPU");
         AssertNoTypeReference(solutionSource, $"{projectGuid}.Debug_Local|ARM64.ActiveCfg = Debug_Local|AnyCPU");
         AssertNoTypeReference(solutionSource, $"{projectGuid}.Debug_Local|x64.ActiveCfg = Debug_Local|AnyCPU");
         AssertNoTypeReference(solutionSource, $"{projectGuid}.Debug_Local|x86.ActiveCfg = Debug_Local|AnyCPU");
+        AssertNoTypeReference(winuiProject, "Typedown.XamlUI");
     }
 
     [TestMethod]
@@ -428,7 +466,7 @@ public class Phase10CoreContractsBoundaryTests
     [TestMethod]
     public void PickerContract_PreservesNullCancelSemantics()
     {
-        var contractSource = File.ReadAllText(Path.Combine(RepoRoot, "Dev", "Typedown.Core", "Interfaces", "IFilePickerService.cs"));
+        var contractSource = File.ReadAllText(Path.Combine(RepoRoot, "Dev", "Typedown.Presentation", "Interfaces", "IFilePickerService.cs"));
         var legacySource = File.ReadAllText(Path.Combine(RepoRoot, "Dev", "Typedown", "Services", "FilePickerService.cs"));
         var winuiSource = File.ReadAllText(Path.Combine(RepoRoot, "Dev", "Typedown.WinUI", "Services", "WinUIFilePickerService.cs"));
 
@@ -465,7 +503,9 @@ public class Phase10CoreContractsBoundaryTests
             appSource,
             "platformServices ??= new WinUIPlatformServices(window);",
             "uiServices ??= new ServiceCollection()",
-            ".AddTypedownUI()",
+            ".AddSingleton(platformServices.WindowContext)",
+            ".AddSingleton(platformServices.AppDataPathProvider)",
+            ".AddTypedownPresentation()",
             ".BuildServiceProvider();",
             "rootControl.MainPageNavigationParameter = new MainPageNavigationContext(platformServices, uiServices);",
             "platformServices.WindowContext.ViewRoot = rootControl;",
@@ -495,65 +535,78 @@ public class Phase10CoreContractsBoundaryTests
         AssertHasTypeReference(appSource, "private sealed record MainPageNavigationContext");
         AssertHasTypeReference(appSource, "RootControl");
         AssertHasTypeReference(rootSource, "Frame.Navigate(typeof(Views.MainPage), MainPageNavigationParameter)");
-        AssertHasTypeReference(pageSource, "MainPageViewModel");
+        AssertHasTypeReference(pageSource, "AppViewModel");
+        AssertHasTypeReference(pageSource, "DataContext = ViewModel");
+        AssertNoTypeReference(pageSource, "MainPageViewModel");
     }
 
     [TestMethod]
-    public void Phase12TypedownUI_ProvidesMvvmBoundaryWithoutWinUIShellDependency()
+    public void Phase12TypedownPresentation_ProvidesMvvmBoundaryWithoutWinUIShellDependency()
     {
-        var uiProjectPath = Path.Combine(RepoRoot, "Dev", "Typedown.UI", "Typedown.UI.csproj");
+        var presentationProjectPath = Path.Combine(RepoRoot, "Dev", "Typedown.Presentation", "Typedown.Presentation.csproj");
         var winuiProjectSource = File.ReadAllText(Path.Combine(RepoRoot, "Dev", "Typedown.WinUI", "Typedown.WinUI.csproj"));
         var solutionSource = File.ReadAllText(Path.Combine(RepoRoot, "Typedown.sln"));
 
-        Assert.IsTrue(File.Exists(uiProjectPath), "Expected Phase 12 Typedown.UI project.");
+        Assert.IsTrue(File.Exists(presentationProjectPath), "Expected Typedown.Presentation project.");
 
-        var uiProjectSource = File.ReadAllText(uiProjectPath);
-        AssertHasTypeReference(solutionSource, "Typedown.UI");
-        AssertHasTypeReference(uiProjectSource, "<TargetFramework>net9.0</TargetFramework>");
-        AssertHasTypeReference(uiProjectSource, @"..\Typedown.Core\Typedown.Core.csproj");
-        AssertNoTypeReference(uiProjectSource, @"..\Typedown.WinUI\Typedown.WinUI.csproj");
-        AssertNoTypeReference(uiProjectSource, @"..\Typedown.XamlUI\Typedown.XamlUI.csproj");
-        AssertNoTypeReference(uiProjectSource, "Microsoft.UI.Xaml");
-        AssertNoTypeReference(uiProjectSource, "Windows.UI.Xaml");
-        AssertHasTypeReference(winuiProjectSource, @"..\Typedown.UI\Typedown.UI.csproj");
+        var presentationProjectSource = File.ReadAllText(presentationProjectPath);
+        AssertHasTypeReference(solutionSource, "Typedown.Presentation");
+        AssertHasTypeReference(presentationProjectSource, "<TargetFramework>net9.0</TargetFramework>");
+        AssertHasTypeReference(presentationProjectSource, @"..\Typedown.Core\Typedown.Core.csproj");
+        AssertNoTypeReference(presentationProjectSource, @"..\Typedown.WinUI\Typedown.WinUI.csproj");
+        AssertNoTypeReference(presentationProjectSource, @"..\Typedown.XamlUI\Typedown.XamlUI.csproj");
+        AssertNoTypeReference(presentationProjectSource, "Microsoft.UI.Xaml");
+        AssertNoTypeReference(presentationProjectSource, "Windows.UI.Xaml");
+        AssertHasTypeReference(winuiProjectSource, @"..\Typedown.Presentation\Typedown.Presentation.csproj");
+        AssertNoTypeReference(winuiProjectSource, @"..\Typedown.UI\Typedown.UI.csproj");
     }
 
     [TestMethod]
-    public void Phase12TypedownUI_OwnsMainPageMvvmRegistration()
+    public void Phase12TypedownPresentation_OwnsCheckpointApplicationMvvmRegistration()
     {
-        var uiRoot = Path.Combine(RepoRoot, "Dev", "Typedown.UI");
+        var presentationRoot = Path.Combine(RepoRoot, "Dev", "Typedown.Presentation");
         var mainPageSource = File.ReadAllText(Path.Combine(RepoRoot, "Dev", "Typedown.WinUI", "Views", "MainPage.xaml.cs"));
         var appSource = File.ReadAllText(Path.Combine(RepoRoot, "Dev", "Typedown.WinUI", "App.xaml.cs"));
 
-        Assert.IsTrue(File.Exists(Path.Combine(uiRoot, "Mvvm", "ObservableObject.cs")));
-        Assert.IsTrue(File.Exists(Path.Combine(uiRoot, "Mvvm", "RelayCommand.cs")));
-        Assert.IsTrue(File.Exists(Path.Combine(uiRoot, "ViewModels", "MainPageViewModel.cs")));
-        Assert.IsTrue(File.Exists(Path.Combine(uiRoot, "ViewModels", "MigrationBoundaryItem.cs")));
-        Assert.IsTrue(File.Exists(Path.Combine(uiRoot, "Composition", "ServiceCollectionExtensions.cs")));
+        Assert.IsTrue(File.Exists(Path.Combine(presentationRoot, "ViewModels", "AppViewModel.cs")));
+        Assert.IsTrue(File.Exists(Path.Combine(presentationRoot, "ViewModels", "EditorViewModel.cs")));
+        Assert.IsTrue(File.Exists(Path.Combine(presentationRoot, "ViewModels", "FileViewModel.cs")));
+        Assert.IsTrue(File.Exists(Path.Combine(presentationRoot, "ViewModels", "FloatViewModel.cs")));
+        Assert.IsTrue(File.Exists(Path.Combine(presentationRoot, "ViewModels", "FormatViewModel.cs")));
+        Assert.IsTrue(File.Exists(Path.Combine(presentationRoot, "ViewModels", "ParagraphViewModel.cs")));
+        Assert.IsTrue(File.Exists(Path.Combine(presentationRoot, "ViewModels", "SettingsViewModel.cs")));
+        Assert.IsTrue(File.Exists(Path.Combine(presentationRoot, "ViewModels", "SettingsViewModel.Shortcut.cs")));
+        Assert.IsTrue(File.Exists(Path.Combine(presentationRoot, "ViewModels", "UIViewModel.cs")));
+        Assert.IsTrue(File.Exists(Path.Combine(presentationRoot, "PresentationServiceCollectionExtensions.cs")));
 
-        AssertHasTypeReference(File.ReadAllText(Path.Combine(uiRoot, "Composition", "ServiceCollectionExtensions.cs")), "AddTypedownUI");
-        AssertHasTypeReference(File.ReadAllText(Path.Combine(uiRoot, "ViewModels", "MainPageViewModel.cs")), "ObservableObject");
-        AssertHasTypeReference(File.ReadAllText(Path.Combine(uiRoot, "ViewModels", "MainPageViewModel.cs")), "ApplyPlatformServiceSummary");
-        AssertHasTypeReference(appSource, "AddTypedownUI()");
-        AssertHasTypeReference(mainPageSource, "MainPageViewModel");
-        AssertHasTypeReference(mainPageSource, "ViewModel.ApplyPlatformServiceSummary");
-        AssertNoTypeReference(mainPageSource, "public string[] ValidatedItems");
-        AssertNoTypeReference(mainPageSource, "public string[] DeferredItems");
+        var compositionSource = File.ReadAllText(Path.Combine(presentationRoot, "PresentationServiceCollectionExtensions.cs"));
+        AssertHasTypeReference(compositionSource, "AddTypedownPresentation");
+        AssertHasTypeReference(compositionSource, "AddScoped<AppViewModel>");
+        AssertHasTypeReference(compositionSource, "AddScoped<SettingsViewModel>");
+        AssertNoTypeReference(compositionSource, "AddScoped<MainPageViewModel>");
+        AssertNoTypeReference(compositionSource, "AddScoped<ShellViewModel>");
+        AssertNoTypeReference(compositionSource, "AddScoped<EditorRuntimeViewModel>");
+        AssertHasTypeReference(appSource, "AddTypedownPresentation()");
+        AssertNoTypeReference(appSource, "AddTypedownUI()");
+        AssertHasTypeReference(mainPageSource, "AppViewModel");
+        AssertHasTypeReference(mainPageSource, "DataContext = ViewModel");
+        AssertNoTypeReference(mainPageSource, "MainPageViewModel");
+        AssertNoTypeReference(mainPageSource, "ApplyPlatformServiceSummary");
     }
 
     [TestMethod]
-    public void Phase13TypedownUI_KeepsFrameworkAndShellReferencesOutOfSource()
+    public void Phase13TypedownPresentation_KeepsFrameworkAndShellReferencesOutOfSource()
     {
-        var uiRoot = Path.Combine(RepoRoot, "Dev", "Typedown.UI");
-        var uiSources = Directory
-            .EnumerateFiles(uiRoot, "*.*", SearchOption.AllDirectories)
+        var presentationRoot = Path.Combine(RepoRoot, "Dev", "Typedown.Presentation");
+        var presentationSources = Directory
+            .EnumerateFiles(presentationRoot, "*.*", SearchOption.AllDirectories)
             .Where(path => path.EndsWith(".cs", StringComparison.OrdinalIgnoreCase)
                 || path.EndsWith(".csproj", StringComparison.OrdinalIgnoreCase))
             .Where(path => !path.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}", StringComparison.OrdinalIgnoreCase)
                 && !path.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}", StringComparison.OrdinalIgnoreCase))
             .Select(File.ReadAllText);
 
-        foreach (var source in uiSources)
+        foreach (var source in presentationSources)
         {
             AssertNoTypeReference(source, "using Microsoft.UI.Xaml");
             AssertNoTypeReference(source, "using Windows.UI.Xaml");
@@ -584,26 +637,17 @@ public class Phase10CoreContractsBoundaryTests
     }
 
     [TestMethod]
-    public void Phase13TypedownUI_OwnsMainPageStaticTextResources()
+    public void Phase13TypedownPresentation_DoesNotRetainTypedownUiShellViewModels()
     {
-        var uiRoot = Path.Combine(RepoRoot, "Dev", "Typedown.UI");
-        var resourcePath = Path.Combine(uiRoot, "Resources", "MainPageTextResources.cs");
-        var viewModelSource = File.ReadAllText(Path.Combine(uiRoot, "ViewModels", "MainPageViewModel.cs"));
+        var presentationRoot = Path.Combine(RepoRoot, "Dev", "Typedown.Presentation");
 
-        Assert.IsTrue(File.Exists(resourcePath), "Expected Phase 13 main page text resources to live in Typedown.UI.");
-
-        var resourceSource = File.ReadAllText(resourcePath);
-        AssertHasTypeReference(resourceSource, "MainPageTextResources");
-        AssertHasTypeReference(resourceSource, "Title");
-        AssertHasTypeReference(resourceSource, "Subtitle");
-        AssertHasTypeReference(resourceSource, "PendingContractsProbeSummary");
-        AssertHasTypeReference(resourceSource, "ValidatedItems");
-        AssertHasTypeReference(resourceSource, "DeferredItems");
-        AssertHasTypeReference(viewModelSource, "MainPageTextResources");
-        AssertNoTypeReference(viewModelSource, "Phase 12 MVVM shell is waiting for WinUI platform service initialization.");
-        AssertNoTypeReference(viewModelSource, "Phase 13");
-        AssertNoTypeReference(viewModelSource, "Phase 14");
-        AssertHasTypeReference(viewModelSource, "public ShellViewModel Shell { get; }");
+        Assert.IsFalse(File.Exists(Path.Combine(presentationRoot, "ViewModels", "MainPageViewModel.cs")));
+        Assert.IsFalse(File.Exists(Path.Combine(presentationRoot, "ViewModels", "MigrationBoundaryItem.cs")));
+        Assert.IsFalse(File.Exists(Path.Combine(presentationRoot, "ViewModels", "ShellViewModel.cs")));
+        Assert.IsFalse(File.Exists(Path.Combine(presentationRoot, "ViewModels", "EditorRuntimeViewModel.cs")));
+        Assert.IsFalse(File.Exists(Path.Combine(presentationRoot, "ViewModels", "EditorTocNodeViewModel.cs")));
+        Assert.IsFalse(File.Exists(Path.Combine(presentationRoot, "Resources", "MainPageTextResources.cs")));
+        Assert.IsFalse(File.Exists(Path.Combine(presentationRoot, "Resources", "ShellTextResources.cs")));
     }
 
     private static void AssertContainsClass(string root, string fileName, string className)

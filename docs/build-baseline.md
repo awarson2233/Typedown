@@ -108,13 +108,13 @@ D:\source\repos\Typedown\Dev\Typedown\bin\x64\Debug_Local\net9.0-windows10.0.261
 
 ## 当前风险
 
-- XamlUI 已纳入主仓库，但仍是 legacy XAML host，不是长期 `Typedown.UI` 模块。
+- XamlUI 已纳入主仓库，但仍是 legacy XAML host，不是长期 `Typedown.Presentation` 模块。
 - legacy `Dev\Typedown` 的 `Debug|x64` 依赖前端 dev server，不能作为稳定基线。
 - legacy `Dev\Typedown` 的 `Debug_Local|x64` 依赖 `Resources\Statics` 已存在且可加载。
 - WinUI3 当前日常基线是 `Debug_Local|x64 + Typedown.WinUI (Unpackaged)`；Package 验证基线是 `Debug|x64 + Typedown.WinUI (Package)`。
 - WinUI3 Package 路径必须验证 `Resources\Statics\index.html` 同时存在于 `Debug` 输出和 package payload。
 - Phase 14 当前只做首批 `1:1` 可视 UI 迁移，不切默认 `Debug_Local` 主启动路径。
-- `WinUIEditorHost`、Window/Dialog/FilePicker、`Package.appxmanifest`、`launchSettings.json` 仍由 `Typedown.WinUI` 持有；不要提前迁入 `Typedown.UI`。
+- `WinUIEditorHost`、Window/Dialog/FilePicker、`Package.appxmanifest`、`launchSettings.json` 仍由 `Typedown.WinUI` 持有；不要提前迁入 `Typedown.Presentation`。
 - ARM64 配置不能从 solution 下拉框推断；正式 ARM64 适配推迟到 WinUI3 shell 切换后。
 - Packaging 仍是 Desktop Bridge / WAP，后续需要独立治理。
 
@@ -122,7 +122,7 @@ D:\source\repos\Typedown\Dev\Typedown\bin\x64\Debug_Local\net9.0-windows10.0.261
 
 Phase 14 当前定义为首批 `1:1` 可视 UI 迁移，不是默认启动路径切换。进入代码实现前，应先锁定以下边界：
 
-- `Typedown.UI` 继续只承接平台中立状态来源和 view-model 组合，不引用 `Microsoft.UI.Xaml`、`Windows.UI.Xaml`、`Typedown.WinUI`、`Typedown.XamlUI`。
+- `Typedown.Presentation` 继续只承接平台中立状态来源和 view-model 组合，不引用 `Microsoft.UI.Xaml`、`Windows.UI.Xaml`、`Typedown.WinUI`、`Typedown.XamlUI`。
 - `Typedown.WinUI` 继续拥有 `WinUIEditorHost`、Window/Dialog/FilePicker、`Package.appxmanifest`、`launchSettings.json`。
 - `WebView2` host 仍留在 `Typedown.WinUI`；本阶段不迁移 editor host，不删除 legacy `Typedown.XamlUI`，不处理 ARM64。
 

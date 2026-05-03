@@ -6,7 +6,7 @@
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:float="using:Typedown.WinUI.Controls"
-    xmlns:viewmodels="using:Typedown.UI.ViewModels"
+    xmlns:viewmodels="using:Typedown.Presentation.ViewModels"
     xmlns:items="using:Typedown.WinUI.Controls"
     xmlns:u="using:Typedown.WinUI.Controls"
     d:DataContext="{d:DesignInstance Type=viewmodels:AppViewModel}"

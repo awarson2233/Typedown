@@ -6,7 +6,7 @@
     xmlns:toolkit="using:CommunityToolkit.WinUI.Controls"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-    xmlns:viewmodels="using:Typedown.UI.ViewModels" xmlns:converters="using:Typedown.WinUI.Controls"
+    xmlns:viewmodels="using:Typedown.Presentation.ViewModels" xmlns:converters="using:Typedown.WinUI.Controls"
     d:DataContext="{d:DesignInstance Type=viewmodels:AppViewModel}"
     mc:Ignorable="d"
     x:Name="ThisControl"

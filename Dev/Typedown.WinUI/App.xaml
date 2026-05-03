@@ -25,7 +25,7 @@
                 <ResourceDictionary Source="ms-appx:///Resources/Styles/Button.xaml" />
                 <!-- Other merged dictionaries here -->
             </ResourceDictionary.MergedDictionaries>
-            <!-- The WinUI shell stays neutral; product UI state lives in Typedown.UI. -->
+            <!-- The WinUI shell stays neutral; product UI state lives in Typedown.Presentation. -->
             <SolidColorBrush x:Key="PrimaryBrush" Color="#24535B" />
             <SolidColorBrush x:Key="WhiteBrush" Color="White" />
             <SolidColorBrush x:Key="BlackBrush" Color="Black" />

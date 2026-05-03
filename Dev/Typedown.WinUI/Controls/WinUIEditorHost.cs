@@ -6,7 +6,6 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Windows.Foundation;
 using Microsoft.Web.WebView2.Core;
-using Typedown.Core.Contracts.Editor;
 
 namespace Typedown.WinUI.Controls
 {

@@ -1,7 +1,5 @@
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using System.Text.Json;
-using Typedown.Core.Contracts.EditorRuntime;
-using Typedown.UI.ViewModels;
+using Typedown.Core.Models;
 
 namespace Typedown.ArchitectureTests;
 
@@ -11,9 +9,9 @@ public class Phase13RuntimeStateContractTests
     private static readonly string RepoRoot = FindRepoRoot();
 
     [TestMethod]
-    public void FormatState_MapsLegacySelectionFormats()
+    public void FormatState_MapsLegacySelectionFormatsFromCore()
     {
-        var state = EditorFormatState.FromSelectionFormats(
+        var state = new FormatState(
         [
             new("strong", string.Empty),
             new("em", string.Empty),
@@ -38,9 +36,9 @@ public class Phase13RuntimeStateContractTests
     }
 
     [TestMethod]
-    public void ParagraphState_PreservesTaskListListHeadingCodeAndTableSemantics()
+    public void ParagraphState_PreservesTaskListListHeadingCodeAndTableSemanticsFromCore()
     {
-        var taskList = EditorParagraphState.FromMenuState(new EditorMenuState
+        var taskList = new ParagraphState(new MenuState
         {
             IsTaskList = true,
             Affiliation = new Dictionary<string, bool> { ["ul"] = true },
@@ -51,7 +49,7 @@ public class Phase13RuntimeStateContractTests
         Assert.IsTrue(taskList.TaskList.IsEnable);
         Assert.IsTrue(taskList.ImageIsEnable);
 
-        var bulletList = EditorParagraphState.FromMenuState(new EditorMenuState
+        var bulletList = new ParagraphState(new MenuState
         {
             Affiliation = new Dictionary<string, bool> { ["ul"] = true },
         });
@@ -60,7 +58,7 @@ public class Phase13RuntimeStateContractTests
         Assert.IsFalse(bulletList.TaskList.IsChecked);
         Assert.IsTrue(bulletList.OrderList.IsEnable);
 
-        var heading = EditorParagraphState.FromMenuState(new EditorMenuState
+        var heading = new ParagraphState(new MenuState
         {
             Affiliation = new Dictionary<string, bool> { ["h2"] = true },
         });
@@ -76,7 +74,7 @@ public class Phase13RuntimeStateContractTests
         Assert.IsTrue(heading.HyperlinkIsEnable);
         Assert.IsFalse(heading.ImageIsEnable);
 
-        var code = EditorParagraphState.FromMenuState(new EditorMenuState
+        var code = new ParagraphState(new MenuState
         {
             IsCodeFences = true,
             Affiliation = new Dictionary<string, bool> { ["code"] = true },
@@ -89,7 +87,7 @@ public class Phase13RuntimeStateContractTests
         Assert.IsFalse(code.HyperlinkIsEnable);
         Assert.IsFalse(code.ImageIsEnable);
 
-        var table = EditorParagraphState.FromMenuState(new EditorMenuState
+        var table = new ParagraphState(new MenuState
         {
             IsTable = true,
             Affiliation = new Dictionary<string, bool> { ["p"] = true },
@@ -101,9 +99,9 @@ public class Phase13RuntimeStateContractTests
     }
 
     [TestMethod]
-    public void ParagraphState_CoversBlockAndInlineEnableSemantics()
+    public void ParagraphState_CoversBlockAndInlineEnableSemanticsFromCore()
     {
-        var blockState = EditorParagraphState.FromMenuState(new EditorMenuState
+        var blockState = new ParagraphState(new MenuState
         {
             IsFootnote = true,
             Affiliation = new Dictionary<string, bool>
@@ -126,7 +124,7 @@ public class Phase13RuntimeStateContractTests
         Assert.IsTrue(blockState.HyperlinkIsEnable);
         Assert.IsTrue(blockState.ImageIsEnable);
 
-        var multiline = EditorParagraphState.FromMenuState(new EditorMenuState
+        var multiline = new ParagraphState(new MenuState
         {
             IsMultiline = true,
             Affiliation = new Dictionary<string, bool> { ["p"] = true },
@@ -141,209 +139,48 @@ public class Phase13RuntimeStateContractTests
     }
 
     [TestMethod]
-    public void ContentState_AggregatesWordCountTocAndCurrent()
+    public void ContentState_AggregatesWordCountTocAndCurrentFromCore()
     {
-        var current = new EditorTocItem
+        var current = new TocItem
         {
             Slug = "runtime-state",
-            Level = 2,
+            Lvl = 2,
             Content = "Runtime State",
             IsSelected = true,
         };
 
-        var state = new EditorContentState
+        var state = new ContentState
         {
-            WordCount = new EditorWordCount { Word = 42, Character = 128 },
-            Toc = [new EditorTocItem { Slug = "intro", Level = 1, Content = "Intro" }, current],
-            Current = current,
+            WordCount = new WordCount { Word = 42, Character = 128 },
+            Toc = [new TocItem { Slug = "intro", Lvl = 1, Content = "Intro" }, current],
+            Cur = current,
         };
 
         Assert.AreEqual(42, state.WordCount.Word);
         Assert.AreEqual(128, state.WordCount.Character);
         Assert.AreEqual(2, state.Toc.Count);
-        Assert.AreSame(current, state.Current);
-        Assert.IsTrue(state.Current.IsSelected);
-    }
-
-    [TestMethod]
-    public void ContentState_RoundTripsLegacyJsonShape()
-    {
-        const string legacyJson = """
-            {
-              "wordCount": { "word": 42, "character": 128 },
-              "toc": [
-                { "slug": "intro", "lvl": 1, "content": "Intro", "isSelected": false },
-                { "slug": 123, "lvl": 2, "content": "Runtime State", "isSelected": true }
-              ],
-              "cur": { "slug": 123, "lvl": 2, "content": "Runtime State", "isSelected": true }
-            }
-            """;
-
-        var state = JsonSerializer.Deserialize<EditorContentState>(legacyJson);
-
-        Assert.IsNotNull(state);
-        Assert.AreEqual(42, state.WordCount.Word);
-        Assert.AreEqual(128, state.WordCount.Character);
-        Assert.AreEqual("intro", state.Toc[0].Slug);
-        Assert.AreEqual("123", state.Toc[1].Slug);
-        Assert.AreEqual(2, state.Current?.Level);
-        Assert.AreEqual("123", state.Current?.Slug);
-
-        var json = JsonSerializer.Serialize(state);
-
-        StringAssert.Contains(json, "\"wordCount\"");
-        StringAssert.Contains(json, "\"word\"");
-        StringAssert.Contains(json, "\"character\"");
-        StringAssert.Contains(json, "\"toc\"");
-        StringAssert.Contains(json, "\"cur\"");
-        StringAssert.Contains(json, "\"slug\"");
-        StringAssert.Contains(json, "\"lvl\"");
-        StringAssert.Contains(json, "\"content\"");
-        StringAssert.Contains(json, "\"isSelected\"");
-        Assert.IsFalse(json.Contains("\"WordCount\"", StringComparison.Ordinal));
-        Assert.IsFalse(json.Contains("\"Current\"", StringComparison.Ordinal));
-        Assert.IsFalse(json.Contains("\"Level\"", StringComparison.Ordinal));
-    }
-
-    [TestMethod]
-    public void SelectionState_ExposesOnlyMenuAndImageContextFields()
-    {
-        var state = new EditorSelectionState
-        {
-            IsTextSelected = true,
-            SelectionText = "selected text",
-            SelectedImage = new EditorSelectedImageState
-            {
-                Src = "images/runtime-state.png",
-                Alt = "runtime-state",
-                Title = "Runtime State"
-            }
-        };
-
-        Assert.IsTrue(state.IsTextSelected);
-        Assert.AreEqual("selected text", state.SelectionText);
-        Assert.IsTrue(state.HasSelectedImage);
-        Assert.AreEqual("images/runtime-state.png", state.SelectedImage?.Src);
-
-        var json = JsonSerializer.Serialize(state);
-
-        StringAssert.Contains(json, "\"isTextSelected\"");
-        StringAssert.Contains(json, "\"selectionText\"");
-        StringAssert.Contains(json, "\"selectedImage\"");
-        StringAssert.Contains(json, "\"src\"");
-        StringAssert.Contains(json, "\"alt\"");
-        StringAssert.Contains(json, "\"title\"");
-        Assert.IsFalse(json.Contains("\"SelectedImage\"", StringComparison.Ordinal));
-    }
-
-    [TestMethod]
-    public void RuntimeMenuFormatAndParagraphState_SerializeWithLegacyCamelCaseNames()
-    {
-        var paragraphState = EditorParagraphState.FromMenuState(new EditorMenuState
-        {
-            IsDisabled = true,
-            IsLooseListItem = true,
-            Affiliation = new Dictionary<string, bool> { ["h1"] = true },
-        });
-        var formatState = new EditorFormatState
-        {
-            Bold = true,
-            InlineCode = true,
-            InlineMath = true,
-        };
-
-        var paragraphJson = JsonSerializer.Serialize(paragraphState);
-        var formatJson = JsonSerializer.Serialize(formatState);
-
-        StringAssert.Contains(paragraphJson, "\"menuState\"");
-        StringAssert.Contains(paragraphJson, "\"isDisabled\"");
-        StringAssert.Contains(paragraphJson, "\"isLooseListItem\"");
-        StringAssert.Contains(paragraphJson, "\"affiliation\"");
-        StringAssert.Contains(paragraphJson, "\"heading1\"");
-        StringAssert.Contains(paragraphJson, "\"isEnable\"");
-        StringAssert.Contains(paragraphJson, "\"isChecked\"");
-        StringAssert.Contains(paragraphJson, "\"formatIsEnable\"");
-        StringAssert.Contains(paragraphJson, "\"hyperlinkIsEnable\"");
-        StringAssert.Contains(paragraphJson, "\"imageIsEnable\"");
-        StringAssert.Contains(formatJson, "\"bold\"");
-        StringAssert.Contains(formatJson, "\"inlineCode\"");
-        StringAssert.Contains(formatJson, "\"inlineMath\"");
-        Assert.IsFalse(paragraphJson.Contains("\"MenuState\"", StringComparison.Ordinal));
-        Assert.IsFalse(paragraphJson.Contains("\"IsDisabled\"", StringComparison.Ordinal));
-        Assert.IsFalse(paragraphJson.Contains("\"IsEnable\"", StringComparison.Ordinal));
-        Assert.IsFalse(formatJson.Contains("\"InlineCode\"", StringComparison.Ordinal));
-        Assert.IsFalse(formatJson.Contains("\"InlineMath\"", StringComparison.Ordinal));
-    }
-
-    [TestMethod]
-    public void RuntimeViewModel_ProjectsCoreStateIntoPureUiState()
-    {
-        var current = new EditorTocItem
-        {
-            Slug = "child",
-            Level = 2,
-            Content = "Child",
-            IsSelected = true,
-        };
-
-        var runtime = new EditorRuntimeViewModel();
-        runtime.ApplyContentState(new EditorContentState
-        {
-            WordCount = new EditorWordCount { Word = 5, Character = 20 },
-            Toc =
-            [
-                new EditorTocItem { Slug = "root", Level = 1, Content = "Root" },
-                current,
-            ],
-            Current = current,
-        });
-        runtime.ApplyFormatState(new EditorFormatState { Image = true });
-        runtime.ApplySelectionState(new EditorSelectionState
-        {
-            SelectedImage = new EditorSelectedImageState
-            {
-                Src = "images/runtime-state.png",
-                Alt = "runtime-state",
-                Title = "Runtime State"
-            }
-        });
-        runtime.ApplyMenuState(new EditorMenuState
-        {
-            Affiliation = new Dictionary<string, bool> { ["h1"] = true },
-        });
-
-        Assert.AreEqual(1, runtime.TocNodes.Count);
-        Assert.AreEqual("root", runtime.TocNodes[0].Slug);
-        Assert.AreEqual(1, runtime.TocNodes[0].Depth);
-        Assert.AreEqual(1, runtime.TocNodes[0].Children.Count);
-        Assert.AreEqual("child", runtime.TocNodes[0].Children[0].Slug);
-        Assert.AreEqual(2, runtime.TocNodes[0].Children[0].Depth);
-        Assert.IsTrue(runtime.TocNodes[0].Children[0].IsSelected);
-        Assert.IsTrue(runtime.IsSelectionActive);
-        Assert.IsTrue(runtime.IsImageContextMenuVisible);
-        Assert.IsTrue(runtime.ParagraphState.Heading1.IsChecked);
+        Assert.AreSame(current, state.Cur);
+        Assert.IsTrue(state.Cur.IsSelected);
     }
 
     [TestMethod]
     public void RuntimeContracts_StayPlatformNeutralAndAvoidLegacyDependencies()
     {
         var runtimeFiles = Directory
-            .EnumerateFiles(Path.Combine(RepoRoot, "Dev", "Typedown.Core", "EditorRuntime"), "*.cs", SearchOption.TopDirectoryOnly)
+            .EnumerateFiles(Path.Combine(RepoRoot, "Dev", "Typedown.Core", "Models", "RuntimeModels"), "*.cs", SearchOption.TopDirectoryOnly)
             .ToArray();
 
         var runtimeFileNames = runtimeFiles.Select(Path.GetFileName).ToArray();
         CollectionAssert.IsSubsetOf(
             new[]
             {
-                "EditorContentState.cs",
-                "EditorFormatState.cs",
-                "EditorMenuItemState.cs",
-                "EditorMenuState.cs",
-                "EditorParagraphState.cs",
-                "EditorSelectedImageState.cs",
-                "EditorSelectionState.cs",
-                "EditorTocItem.cs",
-                "EditorWordCount.cs",
+                "ContentState.cs",
+                "FormatState.cs",
+                "MenuItemState.cs",
+                "MenuState.cs",
+                "ParagraphState.cs",
+                "TocItem.cs",
+                "WordCount.cs",
             },
             runtimeFileNames);
 
@@ -359,33 +196,17 @@ public class Phase13RuntimeStateContractTests
             AssertNoTypeReference(source, "Typedown.WinUI");
             AssertNoTypeReference(source, "Typedown.XamlUI");
             AssertNoTypeReference(source, "Typedown.Core.Legacy");
-            AssertNoTypeReference(source, "Typedown.Core.Models");
-            AssertNoTypeReference(source, "PropertyChanged");
-            AssertNoTypeReference(source, "ObservableCollection");
         }
+    }
 
-        var uiRuntimeFiles = Directory
-            .EnumerateFiles(Path.Combine(RepoRoot, "Dev", "Typedown.UI", "ViewModels"), "Editor*.cs", SearchOption.TopDirectoryOnly)
-            .ToArray();
+    [TestMethod]
+    public void Presentation_DoesNotCarryDuplicateRuntimeStateModels()
+    {
+        var presentationRoot = Path.Combine(RepoRoot, "Dev", "Typedown.Presentation");
 
-        CollectionAssert.IsSubsetOf(
-            new[]
-            {
-                "EditorRuntimeViewModel.cs",
-                "EditorTocNodeViewModel.cs",
-            },
-            uiRuntimeFiles.Select(Path.GetFileName).ToArray());
-
-        foreach (var file in uiRuntimeFiles)
-        {
-            var source = File.ReadAllText(file);
-
-            AssertNoTypeReference(source, "Microsoft.UI");
-            AssertNoTypeReference(source, "Windows.UI.Xaml");
-            AssertNoTypeReference(source, "Typedown.WinUI");
-            AssertNoTypeReference(source, "Typedown.XamlUI");
-            AssertNoTypeReference(source, "Typedown.Core.Legacy");
-        }
+        Assert.IsFalse(File.Exists(Path.Combine(presentationRoot, "Models", "EditorRuntimeState.cs")));
+        Assert.IsFalse(File.Exists(Path.Combine(presentationRoot, "ViewModels", "EditorRuntimeViewModel.cs")));
+        Assert.IsFalse(File.Exists(Path.Combine(presentationRoot, "ViewModels", "EditorTocNodeViewModel.cs")));
     }
 
     private static string FindRepoRoot()

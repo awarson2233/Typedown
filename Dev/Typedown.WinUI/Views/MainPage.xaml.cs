@@ -2,19 +2,17 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Animation;
 using Microsoft.UI.Xaml.Navigation;
-using Typedown.UI.ViewModels;
-using Typedown.WinUI.Services;
+using Typedown.Presentation.ViewModels;
 
 namespace Typedown.WinUI.Views
 {
     public partial class MainPage : Page
     {
-        public MainPageViewModel ViewModel { get; private set; }
+        public AppViewModel? ViewModel { get; private set; }
 
         public MainPage()
         {
             this.InitializeComponent();
-            ViewModel = new MainPageViewModel();
             MenuBar.NavigateRequested += OnMenuBarNavigateRequested;
             StatusBar.SidePaneOpenChanged += OnStatusBarSidePaneOpenChanged;
             StatusBar.SetSidePaneOpen(MainContent.IsSidePaneOpen);
@@ -50,26 +48,16 @@ namespace Typedown.WinUI.Views
         {
             base.OnNavigatedTo(e);
 
-            var services = ResolvePlatformServices(e.Parameter);
             ViewModel = ResolveViewModel(e.Parameter);
-            ViewModel.ApplyPlatformServiceSummary(
-                WinUIContractsProbe.Describe(services),
-                services.ServiceNames);
+            DataContext = ViewModel;
         }
 
-        private static WinUIPlatformServices ResolvePlatformServices(object? parameter)
-        {
-            var platformProperty = parameter?.GetType().GetProperty("PlatformServices");
-            return platformProperty?.GetValue(parameter) as WinUIPlatformServices
-                ?? parameter as WinUIPlatformServices
-                ?? ((App)Application.Current).PlatformServices;
-        }
-
-        private static MainPageViewModel ResolveViewModel(object? parameter)
+        private static AppViewModel ResolveViewModel(object? parameter)
         {
             var providerProperty = parameter?.GetType().GetProperty("UiServices");
             var provider = providerProperty?.GetValue(parameter) as IServiceProvider;
-            return provider?.GetService<MainPageViewModel>() ?? new MainPageViewModel();
+            return provider?.GetRequiredService<AppViewModel>()
+                ?? throw new InvalidOperationException("Typedown presentation services are not initialized.");
         }
 
         private static Frame? FindParentFrame(DependencyObject element)

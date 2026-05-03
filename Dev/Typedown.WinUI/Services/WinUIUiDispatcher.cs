@@ -1,7 +1,7 @@
 using System;
 using System.Threading.Tasks;
 using Microsoft.UI.Dispatching;
-using Typedown.Core.Interfaces;
+using Typedown.Presentation.Interfaces;
 
 namespace Typedown.WinUI.Services
 {

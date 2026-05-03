@@ -5,11 +5,11 @@ namespace Typedown.Presentation.Interfaces
 {
     public interface IFilePickerService
     {
-        Task<string> PickOpenFileAsync(OpenFileRequest request);
+        Task<string?> PickOpenFileAsync(OpenFileRequest request);
 
-        Task<string> PickSaveFileAsync(SaveFileRequest request);
+        Task<string?> PickSaveFileAsync(SaveFileRequest request);
 
-        Task<string> PickFolderAsync(PickFolderRequest request);
+        Task<string?> PickFolderAsync(PickFolderRequest request);
     }
 
     public class OpenFileRequest

@@ -24,9 +24,9 @@ public class Phase14UiVisualBoundaryTests
             source,
             "将 `Dev/Typedown.Core` 固化为纯逻辑 + MVVM 合同层",
             "`Typedown.Core` 不允许依赖 XAML、WinRT UI 类型、WebView2、文件选择器、窗口服务或 legacy 项目",
-            "`Dev/Typedown.UI`：承接 shell-agnostic MVVM、资源读取、组合逻辑",
+            "`Dev/Typedown.Presentation`：承接 shell-agnostic MVVM、资源读取、组合逻辑",
             "`Dev/Typedown.WinUI`：WinUI3 shell、XAML、平台服务适配、WebView2 host",
-            "`Dev/Typedown.Core.Legacy`：旧 UWP / WinUI2 Core，保留为迁移参考");
+            "`Dev/Typedown.Core.Legacy` 与 `Dev/Typedown.UI` 已退场");
     }
 
     [TestMethod]
@@ -60,7 +60,7 @@ public class Phase14UiVisualBoundaryTests
         AssertContainsInOrder(
             source,
             "Phase 14 当前只做首批 `1:1` 可视 UI 迁移，不切默认 `Debug_Local` 主启动路径。",
-            "`WinUIEditorHost`、Window/Dialog/FilePicker、`Package.appxmanifest`、`launchSettings.json` 仍由 `Typedown.WinUI` 持有；不要提前迁入 `Typedown.UI`。",
+            "`WinUIEditorHost`、Window/Dialog/FilePicker、`Package.appxmanifest`、`launchSettings.json` 仍由 `Typedown.WinUI` 持有；不要提前迁入 `Typedown.Presentation`。",
             "## WinUI3 Phase 14 文档与边界准备",
             "Phase 14 当前定义为首批 `1:1` 可视 UI 迁移，不是默认启动路径切换。",
             "dotnet test .\\Tests\\Typedown.ArchitectureTests\\Typedown.ArchitectureTests.csproj -c Debug /nologo /v:minimal");

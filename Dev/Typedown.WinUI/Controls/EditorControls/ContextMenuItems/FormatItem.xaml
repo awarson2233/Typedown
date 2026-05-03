@@ -6,7 +6,7 @@
     xmlns:controls="using:Typedown.WinUI.Controls"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-    xmlns:viewmodels="using:Typedown.UI.ViewModels"
+    xmlns:viewmodels="using:Typedown.Presentation.ViewModels"
     mc:Ignorable="d">
     <MenuFlyoutItem.Template>
         <ControlTemplate TargetType="MenuFlyoutItem">

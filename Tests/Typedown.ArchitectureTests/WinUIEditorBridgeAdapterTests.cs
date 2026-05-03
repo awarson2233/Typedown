@@ -1,6 +1,5 @@
 using System.Text.Json;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using Typedown.Core.Contracts.Editor;
 using Typedown.WinUI.Controls;
 
 namespace Typedown.ArchitectureTests;
@@ -109,7 +108,7 @@ public class WinUIEditorBridgeAdapterTests
         Assert.AreEqual(2, searchOpen.GetProperty("args").GetProperty("open").GetInt32());
         Assert.AreEqual("ThemeChanged", theme.GetProperty("name").GetString());
         Assert.AreEqual("Dark", theme.GetProperty("args").GetProperty("theme").GetString());
-        Assert.AreEqual(10, theme.GetProperty("args").GetProperty("accentColor").GetProperty("r").GetInt32());
+        Assert.AreEqual(10, theme.GetProperty("args").GetProperty("accentColor").GetProperty("R").GetInt32());
         Assert.AreEqual(40, theme.GetProperty("args").GetProperty("background").GetProperty("R").GetInt32());
         Assert.AreEqual(50, theme.GetProperty("args").GetProperty("background").GetProperty("G").GetInt32());
         Assert.AreEqual(60, theme.GetProperty("args").GetProperty("background").GetProperty("B").GetInt32());

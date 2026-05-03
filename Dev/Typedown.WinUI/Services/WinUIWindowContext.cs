@@ -1,6 +1,6 @@
 using System;
 using Microsoft.UI.Xaml;
-using Typedown.Core.Interfaces;
+using Typedown.Presentation.Interfaces;
 using WinRT.Interop;
 
 namespace Typedown.WinUI.Services

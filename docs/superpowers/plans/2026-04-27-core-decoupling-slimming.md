@@ -2,11 +2,11 @@
 
 > **给 agent / subagent 的要求：** 执行本计划时优先使用 `superpowers:subagent-driven-development`，也可以使用 `superpowers:executing-plans` 逐项执行。每个阶段都要小步提交，禁止大范围重写。
 
-**目标：** 将 `Dev/Typedown.Core` 固化为纯逻辑 + MVVM 合同层；将旧 UWP/WinUI2 实现收敛到 `Dev/Typedown.Core.Legacy`，仅作为兼容与迁移参考。
+**目标：** 将 `Dev/Typedown.Core` 固化为纯逻辑 + MVVM 合同层；完成后删除旧 `Dev/Typedown.Core.Legacy` 与过渡期 `Dev/Typedown.UI`，避免继续保留重复边界。
 
-**架构方向：** `Typedown.Core` 不允许依赖 XAML、WinRT UI 类型、WebView2、文件选择器、窗口服务或 legacy 项目。可复用的状态、设置、编辑器命令、持久化 DTO、平台无关服务接口进入 Core；WinUI3 适配放在 `Typedown.WinUI`；可复用 ViewModel 与资源读取放在 `Typedown.UI`。
+**架构方向：** `Typedown.Core` 不允许依赖 XAML、WinRT UI 类型、WebView2、文件选择器、窗口服务或 legacy 项目。可复用的纯逻辑与平台无关服务接口进入 Core；shell-agnostic ViewModel、资源读取、编辑器命令组合进入 `Typedown.Presentation`；WinUI3 适配放在 `Typedown.WinUI`。
 
-**技术栈：** .NET 9 class library、MSTest 架构测试、WinUI3 / Windows App SDK shell、旧 UWP 项目作为 legacy reference。
+**技术栈：** .NET 9 class library、MSTest 架构测试、WinUI3 / Windows App SDK shell。
 
 ---
 
@@ -23,16 +23,16 @@
 当前结构：
 
 - `Dev/Typedown.Core`：已有 `Editor`、`EditorRuntime`、`Settings`、`Shell`、`Interfaces`，是新的纯 Core 起点。
-- `Dev/Typedown.UI`：承接 shell-agnostic MVVM、资源读取、组合逻辑。
+- `Dev/Typedown.Presentation`：承接 shell-agnostic MVVM、资源读取、组合逻辑。
 - `Dev/Typedown.WinUI`：WinUI3 shell、XAML、平台服务适配、WebView2 host。
-- `Dev/Typedown.Core.Legacy`：旧 UWP / WinUI2 Core，保留为迁移参考。
+- `Dev/Typedown.Core.Legacy` 与 `Dev/Typedown.UI` 已退场；当前主线不再把它们作为源码模块或 solution 项目保留。
 - `Dev/Typedown.WinUI/LegacyCopied`：已复制的 legacy XAML/code-behind 参考文件，必须排除编译。
 
 当前最大剩余耦合：
 
 - WinUI3 setting 页面和 setting controls 仍有大量 legacy namespace 痕迹，例如 `Typedown.Core.Models`、`Typedown.Core.Services`、`Typedown.Core.ViewModels`。
 - 部分 setting XAML/code-behind 当前仍被 csproj 排除，后续需要按页面逐个恢复。
-- `Typedown.UI.Resources.LegacyTextResourceReader` 仍暂时读取 `Typedown.Core.Legacy/Resources/Strings`，这只是过渡方案，后续应迁出 legacy。
+- `Typedown.Presentation.Resources.LegacyTextResourceReader` 仍暂时读取迁入 Presentation 的资源目录；后续资源边界继续由架构测试固化。
 
 ---
 

@@ -40,7 +40,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
-	  <ProjectReference Include="..\..\Dev\Typedown.Core.Legacy\Typedown.Core.Legacy.csproj" />
+	  <ProjectReference Include="..\..\Dev\Typedown.Core\Typedown.Core.csproj" />
 	</ItemGroup>
 
 </Project>

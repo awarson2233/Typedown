@@ -1,5 +1,4 @@
 using System.Text.Json;
-using Typedown.Core.Contracts.Editor;
 
 namespace Typedown.WinUI.Controls
 {

@@ -1,7 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using Typedown.UI.Composition;
-using Typedown.UI.ViewModels;
+using Typedown.Presentation;
+using Typedown.Presentation.ViewModels;
 
 namespace Typedown.ArchitectureTests;
 
@@ -11,55 +11,48 @@ public class ShellUiStateTests
     private static readonly string RepoRoot = FindRepoRoot();
 
     [TestMethod]
-    public void ShellViewModel_CanBeResolvedFromTypedownUiComposition()
+    public void CheckpointApplicationViewModels_AreRegisteredByTypedownPresentationComposition()
     {
         var services = new ServiceCollection()
-            .AddTypedownUI();
+            .AddTypedownPresentation();
 
-        var shellRegistration = services.SingleOrDefault(descriptor => descriptor.ServiceType == typeof(ShellViewModel));
-        var mainPage = new MainPageViewModel();
+        var expectedViewModels = new[]
+        {
+            typeof(AppViewModel),
+            typeof(EditorViewModel),
+            typeof(FileViewModel),
+            typeof(FloatViewModel),
+            typeof(FormatViewModel),
+            typeof(ParagraphViewModel),
+            typeof(SettingsViewModel),
+            typeof(UIViewModel),
+        };
 
-        Assert.IsNotNull(shellRegistration);
-        Assert.AreEqual(ServiceLifetime.Transient, shellRegistration.Lifetime);
-        Assert.IsNotNull(mainPage.Shell);
+        foreach (var viewModelType in expectedViewModels)
+        {
+            var registration = services.SingleOrDefault(descriptor => descriptor.ServiceType == viewModelType);
+
+            Assert.IsNotNull(registration, $"Expected registration for {viewModelType.Name}.");
+            Assert.AreEqual(ServiceLifetime.Scoped, registration.Lifetime, $"{viewModelType.Name} lifetime changed.");
+        }
+
+        Assert.IsFalse(services.Any(descriptor => descriptor.ServiceType.Name is "ShellViewModel" or "MainPageViewModel" or "EditorRuntimeViewModel"));
     }
 
     [TestMethod]
-    public void ShellViewModel_ExposesBaselineVisibleShellCollections()
+    public void TypedownPresentation_SourceStaysPlatformNeutral()
     {
-        var shell = new ShellViewModel();
-
-        CollectionAssert.AreEqual(new[] { "File", "Edit", "View" }, shell.CommandGroups.Select(group => group.Label).ToArray());
-        CollectionAssert.IsSubsetOf(new[] { "NewFile", "OpenFile", "Save", "Undo", "Redo", "SidePane", "StatusBar" }, shell.CommandGroups
-            .SelectMany(group => group.Items)
-            .Select(item => item.CommandName)
-            .ToArray());
-
-        CollectionAssert.AreEqual(new[] { "Document", "Outline", "Search" }, shell.SidePaneSections.Select(section => section.Key).ToArray());
-        CollectionAssert.IsSubsetOf(new[] { "FileName", "SavedState", "EditorMode", "Encoding" }, shell.StatusItems.Select(item => item.Key).ToArray());
-
-        Assert.AreEqual("Typedown", shell.AppTitle);
-        Assert.AreEqual("Untitled", shell.DocumentTitle);
-        Assert.IsFalse(string.IsNullOrWhiteSpace(shell.EditorPanelTitle));
-        Assert.IsFalse(string.IsNullOrWhiteSpace(shell.EditorPanelDescription));
-        Assert.IsTrue(shell.CommandGroups.SelectMany(group => group.Items).Any(item => item.ShortcutDisplayText == "Ctrl+N"));
-        Assert.IsTrue(shell.CommandGroups.SelectMany(group => group.Items).Any(item => item.ShortcutDisplayText == "Ctrl+S"));
-    }
-
-    [TestMethod]
-    public void TypedownUi_SourceStaysPlatformNeutral()
-    {
-        var uiRoot = Path.Combine(RepoRoot, "Dev", "Typedown.UI");
-        var uiSources = Directory
-            .EnumerateFiles(uiRoot, "*.cs", SearchOption.AllDirectories)
+        var presentationRoot = Path.Combine(RepoRoot, "Dev", "Typedown.Presentation");
+        var presentationSources = Directory
+            .EnumerateFiles(presentationRoot, "*.cs", SearchOption.AllDirectories)
             .Where(path => !path.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}", StringComparison.OrdinalIgnoreCase)
                 && !path.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}", StringComparison.OrdinalIgnoreCase))
             .Select(File.ReadAllText)
             .ToArray();
 
-        Assert.IsTrue(uiSources.Length > 0, "Expected Typedown.UI source files.");
+        Assert.IsTrue(presentationSources.Length > 0, "Expected Typedown.Presentation source files.");
 
-        foreach (var source in uiSources)
+        foreach (var source in presentationSources)
         {
             AssertNoReference(source, "using Microsoft.UI.Xaml");
             AssertNoReference(source, "using Windows.UI.Xaml");

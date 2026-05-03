@@ -56,7 +56,7 @@ namespace Typedown.Presentation.ViewModels
         public Command<Unit> PrintCommand { get; } = new();
         public Command<Unit> ExitCommand { get; } = new();
 
-        private readonly Timer saveFileTimer = new();
+        private readonly System.Timers.Timer saveFileTimer = new();
 
         public AutoBackup AutoBackup => ServiceProvider.GetService<AutoBackup>();
 

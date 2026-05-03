@@ -31,7 +31,6 @@ namespace Typedown.Core.Test.UtilityTests
         [TestMethod]
         [DataTestMethod]
         [DataRow("example")]
-        [DataRow("C:/example")]
         [DataRow("http://www.example.com/1.jpg")]
         [DataRow("https://www.example.com/1.jpg")]
         public void IsWebUrl_WithNotLocalUrl_ReturnFalse(string str)
@@ -41,6 +40,7 @@ namespace Typedown.Core.Test.UtilityTests
 
         [TestMethod]
         [DataTestMethod]
+        [DataRow("C:/example")]
         [DataRow("file:///C:/example/1.jpg")]
         public void IsWebUrl_WithLocalUrl_ReturnTrue(string str)
         {

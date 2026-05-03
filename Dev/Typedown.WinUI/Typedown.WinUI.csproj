@@ -61,7 +61,7 @@
     <ItemGroup>
         <PackageReference Include="CommunityToolkit.WinUI.Controls.SettingsControls" Version="8.2.251219" />
         <ProjectReference Include="..\Typedown.Core\Typedown.Core.csproj" />
-        <ProjectReference Include="..\Typedown.UI\Typedown.UI.csproj" />
+        <ProjectReference Include="..\Typedown.Presentation\Typedown.Presentation.csproj" />
         <PackageReference Include="CommunityToolkit.WinUI.Controls.Sizers" Version="8.2.251219" />
         <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="9.0.8" />
         <PackageReference Include="Microsoft.WindowsAppSDK" Version="1.8.260416003" />
