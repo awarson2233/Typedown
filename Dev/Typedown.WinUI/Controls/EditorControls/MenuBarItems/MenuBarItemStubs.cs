@@ -1,3 +1,4 @@
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
 using System;
@@ -6,6 +7,7 @@ using System.Windows.Input;
 using Microsoft.UI.Xaml;
 using Typedown.Core.Models;
 using Typedown.Core.Utilities;
+using Typedown.Presentation.Interfaces;
 using Typedown.Presentation.ViewModels;
 using Windows.System;
 
@@ -230,6 +232,8 @@ public sealed partial class FileItem : MenuBarItemBase
             SetCommand(importItem, files?.ImportCommand);
         }
 
+        UpdateOpenRecentItem();
+        UpdateExportItem();
         DisableUnsupportedActions();
     }
 
@@ -251,13 +255,12 @@ public sealed partial class FileItem : MenuBarItemBase
 
     private void OnOpenRecentSubMenuLoaded(object sender, Microsoft.UI.Xaml.RoutedEventArgs e)
     {
-        NoRecentFilesItem.IsEnabled = false;
+        UpdateOpenRecentItem();
     }
 
     private void OnExportSubMenuLoaded(object sender, Microsoft.UI.Xaml.RoutedEventArgs e)
     {
-        NoExportConfigItem.IsEnabled = false;
-        DisableUnsupportedActions();
+        UpdateExportItem();
     }
 
     private void OnNavigateItemClick(object sender, Microsoft.UI.Xaml.RoutedEventArgs e)
@@ -271,9 +274,66 @@ public sealed partial class FileItem : MenuBarItemBase
     private void DisableUnsupportedActions()
     {
         SetCommand(NewWindowItem, null);
-        DisableMenuItem("PDF");
-        DisableMenuItem("HTML");
-        DisableMenuItem("TEXT");
+    }
+
+    private void UpdateOpenRecentItem()
+    {
+        var files = ViewModel?.FileViewModel;
+
+        RemoveDynamicSubMenuItems(OpenRecentSubMenu);
+        if (files is null)
+        {
+            NoRecentFilesItem.Visibility = Visibility.Visible;
+            ClearRecentFilesItem.IsEnabled = false;
+            return;
+        }
+
+        var recentFiles = files.AccessHistory.FileRecentlyOpened.ToList();
+        foreach (var file in recentFiles.AsEnumerable().Reverse())
+        {
+            OpenRecentSubMenu.Items.Insert(1, new MenuFlyoutItem
+            {
+                Text = file,
+                Command = files.OpenFileCommand,
+                CommandParameter = file
+            });
+        }
+
+        NoRecentFilesItem.Visibility = recentFiles.Any() ? Visibility.Collapsed : Visibility.Visible;
+        ClearRecentFilesItem.IsEnabled = recentFiles.Any() && ClearRecentFilesItem.Command is not null;
+    }
+
+    private void UpdateExportItem()
+    {
+        var files = ViewModel?.FileViewModel;
+
+        RemoveDynamicSubMenuItems(ExportSubMenu);
+        if (files is null)
+        {
+            NoExportConfigItem.Visibility = Visibility.Visible;
+            return;
+        }
+
+        var exportConfigs = files.ServiceProvider.GetService<IFileExport>()?.ExportConfigs.ToList() ?? [];
+        foreach (var config in exportConfigs.AsEnumerable().Reverse())
+        {
+            ExportSubMenu.Items.Insert(1, new MenuFlyoutItem
+            {
+                Text = config.Name,
+                Command = files.ExportCommand,
+                CommandParameter = config
+            });
+        }
+
+        NoExportConfigItem.Visibility = exportConfigs.Any() ? Visibility.Collapsed : Visibility.Visible;
+    }
+
+    private static void RemoveDynamicSubMenuItems(MenuFlyoutSubItem subMenu)
+    {
+        while (subMenu.Items.Count > 1 && subMenu.Items[1] is not MenuFlyoutSeparator)
+        {
+            subMenu.Items.RemoveAt(1);
+        }
     }
 }
 

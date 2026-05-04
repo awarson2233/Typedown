@@ -125,6 +125,31 @@ public class Phase14WinUILayoutTests
         AssertContains(mainPageCode, "MainContent.SetSidePaneOpen(isOpen)");
     }
 
+    [TestMethod]
+    public void WinUIFileMenu_UsesDynamicRecentFilesAndExportConfigs()
+    {
+        var winuiRoot = Path.Combine(RepoRoot, "Dev", "Typedown.WinUI");
+        var fileItemXaml = File.ReadAllText(Path.Combine(winuiRoot, "Controls", "EditorControls", "MenuBarItems", "FileItem.xaml"));
+        var menuCode = File.ReadAllText(Path.Combine(winuiRoot, "Controls", "EditorControls", "MenuBarItems", "MenuBarItemStubs.cs"));
+
+        AssertContains(fileItemXaml, "Loaded=\"OnOpenRecentSubMenuLoaded\"");
+        AssertContains(fileItemXaml, "Loaded=\"OnExportSubMenuLoaded\"");
+        AssertDoesNotContain(fileItemXaml, "CommandParameter=\"pdf\"");
+        AssertDoesNotContain(fileItemXaml, "CommandParameter=\"html\"");
+        AssertDoesNotContain(fileItemXaml, "CommandParameter=\"text\"");
+
+        AssertContains(menuCode, "UpdateOpenRecentItem();");
+        AssertContains(menuCode, "UpdateExportItem();");
+        AssertContains(menuCode, "FileRecentlyOpened");
+        AssertContains(menuCode, "ExportConfigs");
+        AssertContains(menuCode, "files.OpenFileCommand");
+        AssertContains(menuCode, "files.ExportCommand");
+        AssertContains(menuCode, "CommandParameter = file");
+        AssertContains(menuCode, "CommandParameter = config");
+        AssertDoesNotContain(menuCode, "NoRecentFilesItem.IsEnabled = false;");
+        AssertDoesNotContain(menuCode, "NoExportConfigItem.IsEnabled = false;");
+    }
+
     private static void AssertContains(string source, string snippet)
     {
         StringAssert.Contains(source, snippet);

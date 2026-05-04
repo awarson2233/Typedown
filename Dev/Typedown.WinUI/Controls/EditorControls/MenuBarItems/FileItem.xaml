@@ -28,9 +28,6 @@
     <MenuFlyoutItem Text="Import"/>
     <MenuFlyoutSubItem x:Name="ExportSubMenu" Text="Export" Loaded="OnExportSubMenuLoaded">
         <MenuFlyoutItem x:Name="NoExportConfigItem" Text="NoExportConfigs" IsEnabled="False"/>
-        <MenuFlyoutItem Text="PDF" CommandParameter="pdf"/>
-        <MenuFlyoutItem Text="HTML" CommandParameter="html"/>
-        <MenuFlyoutItem Text="TEXT" CommandParameter="text"/>
         <MenuFlyoutSeparator/>
         <MenuFlyoutItem x:Name="ExportSettingsItem" Text="ExportSettings" CommandParameter="Settings/Export"/>
     </MenuFlyoutSubItem>
