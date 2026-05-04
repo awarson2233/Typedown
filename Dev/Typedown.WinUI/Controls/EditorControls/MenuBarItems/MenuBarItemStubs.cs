@@ -63,13 +63,18 @@ public abstract partial class MenuBarItemBase : Microsoft.UI.Xaml.Controls.MenuB
 
         var activeShortcut = shortcut!;
         item.KeyboardAcceleratorTextOverride = activeShortcut.GetShortcutKeyText();
-        item.KeyboardAccelerators.Add(CreateKeyboardAccelerator(activeShortcut, () =>
+        var accelerator = CreateKeyboardAccelerator(activeShortcut, () =>
         {
             if (item.Command?.CanExecute(item.CommandParameter) == true)
             {
                 item.Command.Execute(item.CommandParameter);
             }
-        }));
+        });
+
+        if (accelerator is not null)
+        {
+            item.KeyboardAccelerators.Add(accelerator);
+        }
     }
 
     protected static void SetCommand(ToggleMenuFlyoutItem item, ICommand? command, object? parameter = null)
@@ -95,7 +100,7 @@ public abstract partial class MenuBarItemBase : Microsoft.UI.Xaml.Controls.MenuB
 
         var activeShortcut = shortcut!;
         item.KeyboardAcceleratorTextOverride = activeShortcut.GetShortcutKeyText();
-        item.KeyboardAccelerators.Add(CreateKeyboardAccelerator(activeShortcut, () =>
+        var accelerator = CreateKeyboardAccelerator(activeShortcut, () =>
         {
             if (invoke is not null)
             {
@@ -105,7 +110,12 @@ public abstract partial class MenuBarItemBase : Microsoft.UI.Xaml.Controls.MenuB
             {
                 item.Command.Execute(item.CommandParameter);
             }
-        }));
+        });
+
+        if (accelerator is not null)
+        {
+            item.KeyboardAccelerators.Add(accelerator);
+        }
     }
 
     private static bool HasShortcutKey(ShortcutKey? shortcut)
@@ -113,11 +123,17 @@ public abstract partial class MenuBarItemBase : Microsoft.UI.Xaml.Controls.MenuB
         return shortcut is not null && shortcut.Key != KeyboardKey.None;
     }
 
-    private static KeyboardAccelerator CreateKeyboardAccelerator(ShortcutKey shortcut, Action invoke)
+    private static KeyboardAccelerator? CreateKeyboardAccelerator(ShortcutKey shortcut, Action invoke)
     {
+        var key = (VirtualKey)(int)shortcut.Key;
+        if (!Enum.IsDefined(key))
+        {
+            return null;
+        }
+
         var accelerator = new KeyboardAccelerator
         {
-            Key = (VirtualKey)(int)shortcut.Key,
+            Key = key,
             Modifiers = ToVirtualKeyModifiers(shortcut.Modifiers)
         };
 

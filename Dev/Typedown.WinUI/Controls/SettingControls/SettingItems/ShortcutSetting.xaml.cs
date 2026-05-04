@@ -43,8 +43,13 @@ namespace Typedown.WinUI.Controls.SettingControls.SettingItems
             LoadAllShortcutSettingItems();
             disposables.Add(this.Binding(new(nameof(SearchText))).Merge(this.Binding(new(nameof(FliterCategory))))
                 .Throttle(TimeSpan.FromMilliseconds(100))
-                .Subscribe(_ => _ = Dispatcher.RunIdleAsync(_ => UpdateFilteredSettingItems())));
-            _ = Dispatcher.RunIdleAsync(_ => UpdateFilteredSettingItems());
+                .Subscribe(_ => QueueUpdateFilteredSettingItems()));
+            QueueUpdateFilteredSettingItems();
+        }
+
+        private void QueueUpdateFilteredSettingItems()
+        {
+            DispatcherQueue?.TryEnqueue(UpdateFilteredSettingItems);
         }
 
         private void OnUnloaded(object sender, RoutedEventArgs e)
