@@ -237,6 +237,33 @@ public class Phase15PresentationBoundaryTests
     }
 
     [TestMethod]
+    public void WinUIEditorContainer_ConnectsDragScrollZoomAndImageMenuLifecycle()
+    {
+        var winUIRoot = Path.Combine(RepoRoot, "Dev", "Typedown.WinUI");
+        var editorContainerXaml = File.ReadAllText(Path.Combine(winUIRoot, "Controls", "EditorControls", "EditorContainer.xaml"));
+        var editorContainerSource = File.ReadAllText(Path.Combine(winUIRoot, "Controls", "EditorControls", "EditorContainer.xaml.cs"));
+        var sessionSource = File.ReadAllText(Path.Combine(winUIRoot, "Controls", "WinUIEditorDocumentSession.cs"));
+
+        AssertDoesNotContain(editorContainerSource, "private void OnDragEnter(object sender, DragEventArgs e) { }");
+        AssertDoesNotContain(editorContainerSource, "private void OnDrop(object sender, DragEventArgs e) { }");
+        AssertDoesNotContain(editorContainerSource, "private void OnScroll(object sender, Microsoft.UI.Xaml.Controls.Primitives.ScrollEventArgs e) { }");
+
+        AssertContainsInOrder(editorContainerSource, "OnDragEnter", "StandardDataFormats.StorageItems", "FileTypeHelper.GetFileType", "DataPackageOperation.Link");
+        AssertContainsInOrder(editorContainerSource, "OnDrop", "FileTypeHelper.IsMarkdownFile", "OpenFileCommand.Execute");
+        AssertContainsInOrder(editorContainerSource, "OnDrop", "FileTypeHelper.IsImageFile", "IEditorCommandSink", "\"InsertImage\"");
+        AssertContainsInOrder(editorContainerSource, "OnScroll", "\"OnScroll\"", "scrollX", "scrollY");
+        AssertContainsInOrder(editorContainerSource, "PointerWheelChangedEvent", "OnPointerWheelChanged");
+        AssertContainsInOrder(editorContainerSource, "OnPointerWheelChanged", "VirtualKeyModifiers.Control", "SettingsViewModel.FontSize");
+        AssertHasTypeReference(sessionSource, "OnScroll");
+
+        AssertContainsInOrder(editorContainerXaml, "x:Name=\"Flyout\"", "Opening=\"OnFlyoutOpening\"");
+        AssertContainsInOrder(editorContainerXaml, "x:Name=\"MenuImageItem\"", "x:Load=\"{x:Bind local:EditorContainer.IsLoadImageMenu(Format.FormatState.Image, Editor.Selection), Mode=OneWay}\"");
+        AssertContainsInOrder(editorContainerXaml, "x:Name=\"MenuImageItemSeparator\"", "x:Load=\"{x:Bind local:EditorContainer.IsLoadImageMenu(Format.FormatState.Image, Editor.Selection), Mode=OneWay}\"");
+        AssertContainsInOrder(editorContainerSource, "OnFlyoutOpening", "Bindings.Update()");
+        AssertContainsInOrder(editorContainerSource, "IsLoadImageMenu", "isImageFormat", "selection?[\"selectedImage\"]?.HasValues");
+    }
+
+    [TestMethod]
     public void ActiveWinUIMenuBar_UsesPresentationViewModelsAndCommands()
     {
         var menuRoot = Path.Combine(RepoRoot, "Dev", "Typedown.WinUI", "Controls", "EditorControls");
@@ -360,6 +387,49 @@ public class Phase15PresentationBoundaryTests
         AssertDoesNotContain(imageToolbarSource, "IMarkdownEditor");
         AssertDoesNotContain(imageSelectorSource, "Windows.UI.Xaml");
         AssertDoesNotContain(imageToolbarSource, "Windows.UI.Xaml");
+    }
+
+    [TestMethod]
+    public void WinUIImageContextMenu_UsesImageItemPartialAndRefreshesSelectionForActions()
+    {
+        var contextMenuRoot = Path.Combine(
+            RepoRoot,
+            "Dev",
+            "Typedown.WinUI",
+            "Controls",
+            "EditorControls",
+            "ContextMenuItems");
+        var imageItemXaml = File.ReadAllText(Path.Combine(contextMenuRoot, "ImageItem.xaml"));
+        var imageItemSource = File.ReadAllText(Path.Combine(contextMenuRoot, "ImageItem.Actions.cs"));
+        var contextMenuStubSource = File.ReadAllText(Path.Combine(contextMenuRoot, "ContextMenuItemStubs.cs"));
+
+        AssertHasTypeReference(imageItemXaml, "Typedown.WinUI.Controls.ImageItem");
+        AssertHasTypeReference(imageItemXaml, "MenuFlyoutItem");
+        AssertHasTypeReference(imageItemXaml, "MenuFlyoutSubItem");
+        AssertNoTypeReference(contextMenuStubSource, "class ImageItem");
+
+        AssertHasTypeReference(imageItemSource, "partial class ImageItem");
+        AssertHasTypeReference(imageItemSource, "IFilePickerService");
+        AssertHasTypeReference(imageItemSource, "IFileOperation");
+        AssertHasTypeReference(imageItemSource, "IEditorCommandSink");
+        AssertHasTypeReference(imageItemSource, "ImageAction");
+        AssertHasTypeReference(imageItemSource, "ImageUpload");
+
+        AssertContainsInOrder(imageItemSource, "OnOpenImageLocationItemLoaded", "RefreshSelectedImage()");
+        AssertContainsInOrder(imageItemSource, "OnOpenImageLocationClick", "RefreshSelectedImage()", "ImageSrc");
+        AssertContainsInOrder(imageItemSource, "OnCopyImageToClick", "RefreshSelectedImage()", "GetImageBytes");
+        AssertContainsInOrder(imageItemSource, "OnMoveImageToClick", "RefreshSelectedImage()", "GetImageBytes", "DeleteOriginalLocalImageFile");
+        AssertContainsInOrder(imageItemSource, "OnUploadImageClick", "RefreshSelectedImage()", "ImageUpload.Upload");
+        AssertContainsInOrder(imageItemSource, "OnSaveImageClick", "RefreshSelectedImage()", "GetImageBytes");
+        AssertContainsInOrder(imageItemSource, "OnDeleteImageFileClick", "RefreshSelectedImage()", "DeleteOriginalLocalImageFile");
+        AssertContainsInOrder(imageItemSource, "RefreshSelectedImage", "EditorViewModel.Selection?[\"selectedImage\"]", "UpdateMenuItemState");
+
+        AssertContainsInOrder(imageItemSource, "DeleteOriginalLocalImageFile", "FileOperation.Delete");
+        AssertDoesNotContain(imageItemSource, "File.Delete(");
+        AssertContainsInOrder(imageItemSource, "ReplaceImage", "\"ReplaceImage\"", "src", "alt", "title", "isReplaceSelected");
+        AssertDoesNotContain(imageItemSource, "IMarkdownEditor");
+        AssertDoesNotContain(imageItemSource, "Windows.UI.Xaml");
+        AssertDoesNotContain(imageItemSource, "Windows.Storage.Pickers");
     }
 
     private static void AssertServiceImplementsPort(string servicesRoot, string fileName, string className, string portName)

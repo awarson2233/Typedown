@@ -1,5 +1,14 @@
-using Typedown.Presentation.ViewModels;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.UI.Xaml.Input;
+using Newtonsoft.Json.Linq;
 using System.ComponentModel;
+using System.Reactive.Linq;
+using Typedown.Core.Models;
+using Typedown.Core.Utilities;
+using Typedown.Presentation.Interfaces;
+using Typedown.Presentation.ViewModels;
+using Windows.ApplicationModel.DataTransfer;
+using Windows.System;
 
 namespace Typedown.WinUI.Controls;
 
@@ -8,6 +17,7 @@ public sealed partial class EditorContainer : UserControl
     private WinUIEditorHost? editorHost;
     private FindReplace? findReplaceDialog;
     private AppViewModel? viewModel;
+    private IDisposable? scrollSubscription;
 
     public static readonly DependencyProperty IsFindReplaceLoadProperty =
         DependencyProperty.Register(nameof(IsFindReplaceLoad), typeof(bool), typeof(EditorContainer), new PropertyMetadata(false));
@@ -18,12 +28,27 @@ public sealed partial class EditorContainer : UserControl
         set => SetValue(IsFindReplaceLoadProperty, value);
     }
 
+    public static readonly DependencyProperty ScrollStateProperty =
+        DependencyProperty.Register(nameof(ScrollState), typeof(ScrollState), typeof(EditorContainer), new PropertyMetadata(new ScrollState(), OnScrollStateChanged));
+
+    private ScrollState ScrollState
+    {
+        get => (ScrollState)GetValue(ScrollStateProperty);
+        set => SetValue(ScrollStateProperty, value);
+    }
+
+    public EditorViewModel? Editor => viewModel?.EditorViewModel;
+
+    public FormatViewModel? Format => viewModel?.FormatViewModel;
+
     public EditorContainer()
     {
         InitializeComponent();
         DataContextChanged += OnDataContextChanged;
         SizeChanged += OnSizeChanged;
         FindReplacePopup.Opened += OnFindReplacePopupOpened;
+        AddHandler(PointerMovedEvent, new PointerEventHandler(OnPointerPointerMoved), true);
+        AddHandler(PointerWheelChangedEvent, new PointerEventHandler(OnPointerWheelChanged), true);
     }
 
     private void OnLoaded(object sender, RoutedEventArgs e)
@@ -69,6 +94,8 @@ public sealed partial class EditorContainer : UserControl
         if (viewModel is not null)
         {
             viewModel.FloatViewModel.PropertyChanged -= OnFloatViewModelPropertyChanged;
+            scrollSubscription?.Dispose();
+            scrollSubscription = null;
         }
 
         viewModel = nextViewModel;
@@ -76,6 +103,9 @@ public sealed partial class EditorContainer : UserControl
         if (viewModel is not null)
         {
             viewModel.FloatViewModel.PropertyChanged += OnFloatViewModelPropertyChanged;
+            scrollSubscription = viewModel.EditorViewModel.EventCenter
+                .GetObservable<EditorEventArgs>("OnScroll")
+                .Subscribe(OnEditorScrollStateChanged);
             if (findReplaceDialog is not null)
             {
                 findReplaceDialog.DataContext = viewModel;
@@ -165,11 +195,142 @@ public sealed partial class EditorContainer : UserControl
         FindReplacePopup.Child = findReplaceDialog;
     }
 
-    private void OnDragEnter(object sender, DragEventArgs e) { }
+    private void OnFlyoutOpening(object sender, object e)
+    {
+        Bindings.Update();
+    }
 
-    private void OnDrop(object sender, DragEventArgs e) { }
+    private async void OnDragEnter(object sender, DragEventArgs e)
+    {
+        var deferral = e.GetDeferral();
+        try
+        {
+            e.AcceptedOperation = DataPackageOperation.None;
+            if (!e.DataView.Contains(StandardDataFormats.StorageItems))
+            {
+                return;
+            }
 
-    private void OnScroll(object sender, Microsoft.UI.Xaml.Controls.Primitives.ScrollEventArgs e) { }
+            var items = await e.DataView.GetStorageItemsAsync();
+            if (items.Count != 1)
+            {
+                return;
+            }
+
+            switch (FileTypeHelper.GetFileType(items[0].Path))
+            {
+                case FileTypeHelper.FileType.Markdown:
+                    e.AcceptedOperation = DataPackageOperation.Link;
+                    e.DragUIOverride.Caption = "Open";
+                    break;
+                case FileTypeHelper.FileType.Image:
+                    e.AcceptedOperation = DataPackageOperation.Link;
+                    e.DragUIOverride.Caption = "InsertImage";
+                    break;
+            }
+        }
+        catch
+        {
+            e.AcceptedOperation = DataPackageOperation.None;
+        }
+        finally
+        {
+            deferral.Complete();
+        }
+    }
+
+    private async void OnDrop(object sender, DragEventArgs e)
+    {
+        if (viewModel is null || !e.DataView.Contains(StandardDataFormats.StorageItems))
+        {
+            return;
+        }
+
+        var items = await e.DataView.GetStorageItemsAsync();
+        if (items.Count != 1)
+        {
+            return;
+        }
+
+        var path = items[0].Path;
+        if (FileTypeHelper.IsMarkdownFile(path))
+        {
+            viewModel.FileViewModel.OpenFileCommand.Execute(path);
+        }
+        else if (FileTypeHelper.IsImageFile(path))
+        {
+            viewModel.ServiceProvider.GetService<IEditorCommandSink>()?.Send("InsertImage", new { src = path });
+        }
+    }
+
+    private void OnScroll(object sender, Microsoft.UI.Xaml.Controls.Primitives.ScrollEventArgs e)
+    {
+        viewModel?.ServiceProvider.GetService<IEditorCommandSink>()?.Send("OnScroll", new
+        {
+            scrollX = HorizontalScrollBar.Value,
+            scrollY = VerticalScrollBar.Value
+        });
+    }
+
+    private void OnPointerPointerMoved(object sender, PointerRoutedEventArgs e)
+    {
+        if (e.Pointer.PointerDeviceType == Microsoft.UI.Input.PointerDeviceType.Touch)
+        {
+            HorizontalScrollBar.IndicatorMode = Microsoft.UI.Xaml.Controls.Primitives.ScrollingIndicatorMode.TouchIndicator;
+            VerticalScrollBar.IndicatorMode = Microsoft.UI.Xaml.Controls.Primitives.ScrollingIndicatorMode.TouchIndicator;
+        }
+        else
+        {
+            HorizontalScrollBar.IndicatorMode = Microsoft.UI.Xaml.Controls.Primitives.ScrollingIndicatorMode.MouseIndicator;
+            VerticalScrollBar.IndicatorMode = Microsoft.UI.Xaml.Controls.Primitives.ScrollingIndicatorMode.MouseIndicator;
+        }
+    }
+
+    private void OnPointerWheelChanged(object sender, PointerRoutedEventArgs e)
+    {
+        if (viewModel is null || !e.KeyModifiers.HasFlag(VirtualKeyModifiers.Control))
+        {
+            return;
+        }
+
+        var delta = e.GetCurrentPoint(this).Properties.MouseWheelDelta;
+        var settings = viewModel.SettingsViewModel;
+        viewModel.SettingsViewModel.FontSize = Math.Max(8, Math.Min(48, Math.Round(settings.FontSize * (1 + delta / 1200d), 1)));
+        e.Handled = true;
+    }
+
+    private void OnEditorScrollStateChanged(EditorEventArgs args)
+    {
+        if (args.Args is null || args.Args.Type == JTokenType.Null)
+        {
+            return;
+        }
+
+        ScrollState = args.Args.ToObject<ScrollState>() ?? new ScrollState();
+    }
+
+    private static void OnScrollStateChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+    {
+        if (d is not EditorContainer container || e.NewValue is not ScrollState scrollState)
+        {
+            return;
+        }
+
+        container.HorizontalScrollBar.Maximum = Math.Max(0, scrollState.MaximumX);
+        container.HorizontalScrollBar.ViewportSize = Math.Max(0, scrollState.ViewportWidth);
+        container.HorizontalScrollBar.Value = Math.Max(0, Math.Min(container.HorizontalScrollBar.Maximum, scrollState.ScrollX));
+        container.HorizontalScrollBar.Visibility = scrollState.MaximumX <= 0 ? Visibility.Collapsed : Visibility.Visible;
+
+        container.VerticalScrollBar.Maximum = Math.Max(0, scrollState.MaximumY);
+        container.VerticalScrollBar.ViewportSize = Math.Max(0, scrollState.ViewportHeight);
+        container.VerticalScrollBar.Value = Math.Max(0, Math.Min(container.VerticalScrollBar.Maximum, scrollState.ScrollY));
+        container.VerticalScrollBar.Visibility = scrollState.MaximumY <= 0 ? Visibility.Collapsed : Visibility.Visible;
+    }
+
+    public static bool IsLoadImageMenu(bool isImageFormat, JToken? selection)
+    {
+        return isImageFormat && (selection?["selectedImage"]?.HasValues ?? false);
+    }
 
     private void OnEditorContextMenuRequested(object? sender, WinUIEditorContextMenuRequestedEventArgs e)
     {

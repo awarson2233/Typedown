@@ -475,6 +475,7 @@ public class Phase10CoreContractsBoundaryTests
         var menuBarSource = File.ReadAllText(Path.Combine(RepoRoot, "Dev", "Typedown.WinUI", "Controls", "EditorControls", "MenuBar.xaml"));
         var menuStubSource = File.ReadAllText(Path.Combine(RepoRoot, "Dev", "Typedown.WinUI", "Controls", "EditorControls", "MenuBarItems", "MenuBarItemStubs.cs"));
         var contextStubSource = File.ReadAllText(Path.Combine(RepoRoot, "Dev", "Typedown.WinUI", "Controls", "EditorControls", "ContextMenuItems", "ContextMenuItemStubs.cs"));
+        var imageItemSource = File.ReadAllText(Path.Combine(RepoRoot, "Dev", "Typedown.WinUI", "Controls", "EditorControls", "ContextMenuItems", "ImageItem.Actions.cs"));
 
         AssertNoTypeReference(projectSource, @"<Page Remove=""Controls\EditorControls\MenuBarItems\*.xaml""");
         AssertNoTypeReference(projectSource, @"<Page Remove=""Controls\EditorControls\ContextMenuItems\*.xaml""");
@@ -492,8 +493,9 @@ public class Phase10CoreContractsBoundaryTests
 
         AssertHasTypeReference(menuStubSource, "partial class FileItem");
         AssertHasTypeReference(menuStubSource, "InitializeComponent()");
-        AssertHasTypeReference(contextStubSource, "partial class ImageItem");
-        AssertHasTypeReference(contextStubSource, "InitializeComponent()");
+        AssertNoTypeReference(contextStubSource, "partial class ImageItem");
+        AssertHasTypeReference(imageItemSource, "partial class ImageItem");
+        AssertHasTypeReference(imageItemSource, "InitializeComponent()");
         AssertHasTypeReference(editorContainerSource, "<ContentPresenter.ContextFlyout>");
         AssertHasTypeReference(editorContainerSource, "<items:ContextFormatItem");
         AssertHasTypeReference(editorContainerCodeBehindSource, "Flyout.ShowAt(MarkdownEditorPresenter");

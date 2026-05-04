@@ -269,6 +269,7 @@ namespace Typedown.WinUI.Controls
                 or "CodeMirrorSelectionChange"
                 or "StateChange"
                 or "SelectionFormats"
+                or "OnScroll"
                 or "OpenFindReplace"
                 or "OpenFrontMenu"
                 or "OpenFormatPicker"
