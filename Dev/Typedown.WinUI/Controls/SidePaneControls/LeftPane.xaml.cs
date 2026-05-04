@@ -35,6 +35,20 @@ public sealed partial class LeftPane : UserControl
         Microsoft.UI.Xaml.Controls.NavigationView sender,
         Microsoft.UI.Xaml.Controls.NavigationViewSelectionChangedEventArgs args)
     {
+        if (args.SelectedItem is not Microsoft.UI.Xaml.Controls.NavigationViewItem item ||
+            item.Tag is not string pageName)
+        {
+            return;
+        }
+
+        var pageType = SidePaneControls.Pages.Route.GetSidePanePageType(pageName);
+        if (pageType is null)
+        {
+            return;
+        }
+
+        var transition = args.RecommendedNavigationTransitionInfo ?? new Microsoft.UI.Xaml.Media.Animation.SuppressNavigationTransitionInfo();
+        Frame.Navigate(pageType, DataContext, transition);
     }
 
     private void OnSearchPaneClose(object? sender, EventArgs e)

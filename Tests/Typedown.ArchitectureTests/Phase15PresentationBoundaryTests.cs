@@ -432,6 +432,55 @@ public class Phase15PresentationBoundaryTests
         AssertDoesNotContain(imageItemSource, "Windows.Storage.Pickers");
     }
 
+    [TestMethod]
+    public void WinUISidePaneFolderTocAndFileOperations_AreCopiedLocalizedAndWired()
+    {
+        var winUIRoot = Path.Combine(RepoRoot, "Dev", "Typedown.WinUI");
+        var sidePaneRoot = Path.Combine(winUIRoot, "Controls", "SidePaneControls");
+        var pagesRoot = Path.Combine(sidePaneRoot, "Pages");
+        var folderPageXaml = File.ReadAllText(Path.Combine(pagesRoot, "FolderPage.xaml"));
+        var folderPageSource = File.ReadAllText(Path.Combine(pagesRoot, "FolderPage.xaml.cs"));
+        var tocPageXaml = File.ReadAllText(Path.Combine(pagesRoot, "TocPage.xaml"));
+        var tocPageSource = File.ReadAllText(Path.Combine(pagesRoot, "TocPage.xaml.cs"));
+        var routeSource = File.ReadAllText(Path.Combine(pagesRoot, "Route.cs"));
+        var leftPaneSource = File.ReadAllText(Path.Combine(sidePaneRoot, "LeftPane.xaml.cs"));
+        var fileOperationSource = File.ReadAllText(Path.Combine(winUIRoot, "Services", "WinUIFileOperation.cs"));
+
+        AssertHasTypeReference(folderPageXaml, "Typedown.WinUI.Controls.SidePaneControls.Pages.FolderPage");
+        AssertHasTypeReference(folderPageSource, "FolderPage");
+        AssertHasTypeReference(folderPageSource, "FileViewModel");
+        AssertHasTypeReference(folderPageSource, "IFileOperation");
+        AssertHasTypeReference(folderPageSource, "IClipboard");
+        AssertDoesNotContain(folderPageSource, "Windows.UI.Xaml");
+        AssertDoesNotContain(folderPageXaml, "Typedown.Controls");
+
+        foreach (var key in new[] { "NewFile", "NewFolder", "OpenFileLocation", "Cut", "Copy", "Paste", "CopyAsPath", "Rename", "Delete", "Open", "OpenInNewWindow" })
+        {
+            AssertHasTypeReference(folderPageXaml, $"{{u:LocaleString Key={key}}}");
+        }
+
+        foreach (var text in new[] { "New File", "New Folder", "Open File Location", "Copy as Path", "Open in New Window" })
+        {
+            AssertDoesNotContain(folderPageXaml, $"Text=\"{text}\"");
+        }
+
+        AssertHasTypeReference(tocPageXaml, "Typedown.WinUI.Controls.SidePaneControls.Pages.TocPage");
+        AssertHasTypeReference(tocPageSource, "TocPage");
+        AssertHasTypeReference(tocPageSource, "EditorViewModel");
+        AssertDoesNotContain(tocPageSource, "Windows.UI.Xaml");
+        AssertDoesNotContain(tocPageXaml, "Typedown.Controls");
+
+        AssertContainsInOrder(routeSource, "\"Toc\"", "typeof(TocPage)");
+        AssertContainsInOrder(routeSource, "\"Folder\"", "typeof(FolderPage)");
+        AssertContainsInOrder(leftPaneSource, "OnSelectionChanged", "Route.GetSidePanePageType", "Frame.Navigate");
+
+        AssertContainsInOrder(fileOperationSource, "public bool Delete", "RunShellFileOperation(PInvoke.FileFuncFlags.FO_DELETE");
+        AssertContainsInOrder(fileOperationSource, "public void PasteFromClipboard", "Clipboard.GetContent()", "GetStorageItemsAsync().AsTask().GetAwaiter().GetResult()");
+        AssertDoesNotContain(fileOperationSource, "WinUI file delete shell operation is not wired");
+        AssertDoesNotContain(fileOperationSource, "WinUI file paste shell operation is not wired");
+        AssertDoesNotContain(fileOperationSource, "throw new NotSupportedException");
+    }
+
     private static void AssertServiceImplementsPort(string servicesRoot, string fileName, string className, string portName)
     {
         var path = Path.Combine(servicesRoot, fileName);

@@ -50,7 +50,7 @@ namespace Typedown.WinUI.Services
 
         public bool Delete(StringCollection files)
         {
-            throw new NotSupportedException("WinUI file delete shell operation is not wired in this migration slice.");
+            return RunShellFileOperation(PInvoke.FileFuncFlags.FO_DELETE, files, null);
         }
 
         public bool IsFilenameValid(string sourceFolder, string fileName)
@@ -69,7 +69,32 @@ namespace Typedown.WinUI.Services
 
         public void PasteFromClipboard(string to)
         {
-            throw new NotSupportedException("WinUI file paste shell operation is not wired in this migration slice.");
+            if (string.IsNullOrEmpty(to) || !IsPasteEnabled)
+            {
+                return;
+            }
+
+            var view = Clipboard.GetContent();
+            var storageItems = view.GetStorageItemsAsync().AsTask().GetAwaiter().GetResult();
+            var files = new StringCollection();
+            foreach (var item in storageItems)
+            {
+                files.Add(item.Path);
+            }
+
+            if (files.Count == 0)
+            {
+                return;
+            }
+
+            if (view.RequestedOperation.HasFlag(DataPackageOperation.Move))
+            {
+                Move(files, to);
+            }
+            else
+            {
+                Copy(files, to);
+            }
         }
 
         public bool Rename(string from, string to)
@@ -109,7 +134,12 @@ namespace Typedown.WinUI.Services
         private static bool RunShellFileOperation(PInvoke.FileFuncFlags fileFunc, StringCollection files, string? to)
         {
             var pFrom = CreateShellPathList(files);
-            if (string.IsNullOrEmpty(pFrom) || string.IsNullOrEmpty(to))
+            if (string.IsNullOrEmpty(pFrom))
+            {
+                return false;
+            }
+
+            if (fileFunc != PInvoke.FileFuncFlags.FO_DELETE && string.IsNullOrEmpty(to))
             {
                 return false;
             }
@@ -119,7 +149,7 @@ namespace Typedown.WinUI.Services
                 wFunc = fileFunc,
                 fFlags = PInvoke.FILEOP_FLAGS.FOF_ALLOWUNDO,
                 pFrom = pFrom,
-                pTo = to + "\0"
+                pTo = string.IsNullOrEmpty(to) ? null : to + "\0"
             };
 
             return PInvoke.SHFileOperation(ref operation) == 0 && !operation.fAnyOperationsAborted;
