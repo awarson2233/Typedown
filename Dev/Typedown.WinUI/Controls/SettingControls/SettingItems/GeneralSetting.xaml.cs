@@ -1,6 +1,7 @@
 using Typedown.Core.Enums;
 using Typedown.WinUI.Controls;
-using Typedown.Core.ViewModels;
+using Typedown.Presentation.Utilities;
+using Typedown.Presentation.ViewModels;
 using Windows.Globalization;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;

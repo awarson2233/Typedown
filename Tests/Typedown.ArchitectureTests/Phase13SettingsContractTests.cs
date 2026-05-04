@@ -30,6 +30,69 @@ public class Phase13SettingsContractTests
         AssertNoTypeReference(source, "Windows.UI.Xaml");
     }
 
+    [TestMethod]
+    public void WinUISettingsPages_AreRoutedAndIncludedInProject()
+    {
+        var winUIRoot = Path.Combine(RepoRoot, "Dev", "Typedown.WinUI");
+        var routeSource = File.ReadAllText(Path.Combine(winUIRoot, "Pages", "Route.cs"));
+        var settingsPageXaml = File.ReadAllText(Path.Combine(winUIRoot, "Pages", "SettingsPage.xaml"));
+        var projectSource = File.ReadAllText(Path.Combine(winUIRoot, "Typedown.WinUI.csproj"));
+        var settingItemExtensionsSource = File.ReadAllText(Path.Combine(winUIRoot, "Controls", "SettingControls", "SettingItemExtensions.cs"));
+
+        foreach (var pageName in new[] { "ExportConfig", "ImageUpload", "Shortcut", "UploadConfig" })
+        {
+            AssertHasTypeReference(routeSource, $"\"{pageName}\" => typeof({pageName}Page)");
+        }
+
+        foreach (var pageName in new[] { "ImageUpload", "Shortcut" })
+        {
+            AssertHasTypeReference(settingsPageXaml, $"Tag=\"{pageName}\"");
+        }
+
+        foreach (var relativePath in new[]
+        {
+            @"Pages\SettingPages\ExportConfigPage.xaml",
+            @"Pages\SettingPages\ExportConfigPage.xaml.cs",
+            @"Pages\SettingPages\ImageUploadPage.xaml",
+            @"Pages\SettingPages\ImageUploadPage.xaml.cs",
+            @"Pages\SettingPages\ShortcutPage.xaml",
+            @"Pages\SettingPages\ShortcutPage.xaml.cs",
+            @"Pages\SettingPages\UploadConfigPage.xaml",
+            @"Pages\SettingPages\UploadConfigPage.xaml.cs",
+            @"Controls\SettingControls\SettingItems\**\*.xaml",
+            @"Controls\SettingControls\SettingItems\**\*.cs"
+        })
+        {
+            AssertNoTypeReference(projectSource, $@"Remove=""{relativePath}""");
+            AssertNoTypeReference(projectSource, $@"Include=""{relativePath}""");
+        }
+
+        AssertNoTypeReference(settingItemExtensionsSource, "public class EnumNameBlock");
+        AssertNoTypeReference(settingItemExtensionsSource, "public sealed partial class UnitNumberBox");
+        AssertNoTypeReference(settingItemExtensionsSource, "public class PathPickerButton");
+        AssertNoTypeReference(settingItemExtensionsSource, "public sealed partial class ShortcutPickerButton");
+
+        foreach (var relativePath in new[]
+        {
+            @"Controls\SettingControls\CommonControls\EnumNameBlock.cs",
+            @"Controls\SettingControls\CommonControls\PathPickerButton.cs",
+            @"Controls\SettingControls\CommonControls\ShortcutPicker.xaml",
+            @"Controls\SettingControls\CommonControls\ShortcutPicker.xaml.cs",
+            @"Controls\SettingControls\CommonControls\ShortcutPickerButton.xaml",
+            @"Controls\SettingControls\CommonControls\ShortcutPickerButton.xaml.cs",
+            @"Controls\SettingControls\CommonControls\UnitNumberBox.xaml",
+            @"Controls\SettingControls\CommonControls\UnitNumberBox.xaml.cs"
+        })
+        {
+            Assert.IsTrue(File.Exists(Path.Combine(winUIRoot, relativePath)), $"Expected copied WinUI setting control: {relativePath}");
+        }
+
+        var shortcutPickerButtonSource = File.ReadAllText(Path.Combine(winUIRoot, "Controls", "SettingControls", "CommonControls", "ShortcutPickerButton.xaml.cs"));
+        var shortcutPickerSource = File.ReadAllText(Path.Combine(winUIRoot, "Controls", "SettingControls", "CommonControls", "ShortcutPicker.xaml.cs"));
+        AssertHasTypeReference(shortcutPickerButtonSource, "var picker = new ShortcutPicker(ShortcutKey)");
+        AssertHasTypeReference(shortcutPickerSource, "private void OnKeyDown(object sender, KeyRoutedEventArgs args)");
+    }
+
     private static void AssertEnumMembers<TEnum>(params (string Name, int Value)[] expectedMembers)
         where TEnum : struct, Enum
     {
@@ -47,6 +110,11 @@ public class Phase13SettingsContractTests
     private static void AssertNoTypeReference(string source, string text)
     {
         Assert.IsFalse(source.Contains(text, StringComparison.Ordinal), $"Unexpected reference: {text}");
+    }
+
+    private static void AssertHasTypeReference(string source, string text)
+    {
+        Assert.IsTrue(source.Contains(text, StringComparison.Ordinal), $"Expected reference: {text}");
     }
 
     private static string FindRepoRoot()

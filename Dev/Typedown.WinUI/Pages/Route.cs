@@ -12,8 +12,12 @@ namespace Typedown.WinUI.Pages
             [typeof(GeneralPage)] = ("General.Title", "General"),
             [typeof(ViewPage)] = ("View.Title", "View"),
             [typeof(EditorPage)] = ("Editor.Title", "Editor"),
+            [typeof(ExportConfigPage)] = ("ExportConfig.Title", "Export config"),
             [typeof(ImagePage)] = ("Image.Title", "Image"),
+            [typeof(ImageUploadPage)] = ("ImageUpload.Title", "Image upload"),
             [typeof(ExportPage)] = ("Export.Title", "Export"),
+            [typeof(ShortcutPage)] = ("Shortcut.Title", "Shortcut"),
+            [typeof(UploadConfigPage)] = ("UploadConfig.Title", "Upload config"),
             [typeof(AboutPage)] = ("About.Title", "About")
         };
 
@@ -28,9 +32,13 @@ namespace Typedown.WinUI.Pages
         {
             "About" => typeof(AboutPage),
             "Editor" => typeof(EditorPage),
+            "ExportConfig" => typeof(ExportConfigPage),
             "Export" => typeof(ExportPage),
             "General" => typeof(GeneralPage),
             "Image" => typeof(ImagePage),
+            "ImageUpload" => typeof(ImageUploadPage),
+            "Shortcut" => typeof(ShortcutPage),
+            "UploadConfig" => typeof(UploadConfigPage),
             "View" => typeof(ViewPage),
             _ => null
         };

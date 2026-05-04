@@ -9,7 +9,7 @@
     xmlns:enums="using:Typedown.Core.Enums"
     xmlns:muxc="using:Microsoft.UI.Xaml.Controls"
     xmlns:converters="using:Typedown.WinUI.Controls"
-    xmlns:viewmodels="using:Typedown.Core.ViewModels"
+    xmlns:viewmodels="using:Typedown.Presentation.ViewModels"
     xmlns:app="using:Typedown.Core"
     xmlns:u="using:Typedown.WinUI.Controls"
     Unloaded="OnUnloaded"

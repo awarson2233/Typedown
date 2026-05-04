@@ -6,9 +6,10 @@ using System.Threading.Tasks;
 using Typedown.WinUI.Controls.SettingControls.SettingItems.UploadConfigItems;
 using Typedown.Core.Enums;
 using Typedown.Core.Models;
-using Typedown.Core.Services;
+using Typedown.Core.Utilities;
+using Typedown.Presentation.Services;
 using Typedown.WinUI.Controls;
-using Typedown.Core.ViewModels;
+using Typedown.Presentation.ViewModels;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Navigation;
@@ -37,7 +38,14 @@ namespace Typedown.WinUI.Pages.SettingPages
         protected override void OnNavigatedTo(NavigationEventArgs e)
         {
             base.OnNavigatedTo(e);
-            int.TryParse(e.Parameter.ToString(), out configId);
+            if (e.Parameter is SettingsNavigationParameter parameter)
+            {
+                DataContext = parameter.AppViewModel;
+                int.TryParse(parameter.Query, out configId);
+                return;
+            }
+
+            int.TryParse(e.Parameter?.ToString(), out configId);
         }
 
         private async void OnLoaded(object sender, RoutedEventArgs e)
@@ -49,7 +57,7 @@ namespace Typedown.WinUI.Pages.SettingPages
 
         private void OnUnloaded(object sender, RoutedEventArgs e)
         {
-            _ = Dispatcher.RunIdleAsync(async () =>
+            _ = Dispatcher.RunIdleAsync(async _ =>
             {
                 if (ImageUploadConfig != null)
                     await UploadService.Value.SaveImageUploadConfig(ImageUploadConfig);

@@ -176,7 +176,15 @@ namespace Typedown.WinUI.Pages
             }
 
             var pageType = Route.GetSettingsPageType(pageName);
-            if (pageType == typeof(GeneralPage) || pageType == typeof(ViewPage) || pageType == typeof(EditorPage))
+            if (pageType == typeof(GeneralPage)
+                || pageType == typeof(ViewPage)
+                || pageType == typeof(EditorPage)
+                || pageType == typeof(ImagePage)
+                || pageType == typeof(ImageUploadPage)
+                || pageType == typeof(ExportPage)
+                || pageType == typeof(ExportConfigPage)
+                || pageType == typeof(ShortcutPage)
+                || pageType == typeof(UploadConfigPage))
             {
                 return navigationParameter.WithPage(pageName, query);
             }

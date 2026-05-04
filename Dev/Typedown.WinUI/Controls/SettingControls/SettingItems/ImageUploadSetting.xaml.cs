@@ -3,12 +3,13 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Reflection;
-using Typedown.WinUI.Controls.DialogControls;
 using Typedown.Core.Enums;
 using Typedown.Core.Models;
-using Typedown.Core.Services;
+using Typedown.Core.Utilities;
+using Typedown.Presentation.Services;
 using Typedown.WinUI.Controls;
-using Typedown.Core.ViewModels;
+using Typedown.Presentation.Utilities;
+using Typedown.Presentation.ViewModels;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 
@@ -34,10 +35,39 @@ namespace Typedown.WinUI.Controls.SettingControls.SettingItems
 
         private async void AddConfigItem()
         {
-            var result = await AddUploadConfigDialog.OpenAddUploadConfigDialog(XamlRoot);
-            if (result == null)
+            var nameTextBox = new TextBox
+            {
+                Header = Locale.GetDialogString("Name"),
+                Text = Locale.GetString("New")
+            };
+            var methodComboBox = new ComboBox
+            {
+                Header = Locale.GetString("Type"),
+                MinWidth = 240,
+                ItemsSource = Typedown.Core.Enums.Enumerable.ImageUploadMethods.Where(method => method != ImageUploadMethod.None),
+                SelectedItem = ImageUploadMethod.FTP
+            };
+
+            var content = new StackPanel { Spacing = 12 };
+            content.Children.Add(nameTextBox);
+            content.Children.Add(methodComboBox);
+
+            var dialog = new ContentDialog
+            {
+                XamlRoot = XamlRoot,
+                Title = Locale.GetString("View.Image.UploadConfigs.Title", Locale.ResourceSource.SettingsResources),
+                Content = content,
+                PrimaryButtonText = Locale.GetDialogString("OK"),
+                CloseButtonText = Locale.GetDialogString("Cancel"),
+                DefaultButton = ContentDialogButton.Primary
+            };
+
+            if (await dialog.ShowAsync() != ContentDialogResult.Primary)
                 return;
-            await ImageUpload.AddImageUploadConfig(result.ConfigName, result.UploadMethod);
+
+            var configName = string.IsNullOrWhiteSpace(nameTextBox.Text) ? string.Empty : nameTextBox.Text;
+            var method = methodComboBox.SelectedItem is ImageUploadMethod selectedMethod ? selectedMethod : ImageUploadMethod.FTP;
+            await ImageUpload.AddImageUploadConfig(configName, method);
         }
 
         internal static void OnConfigItemClick(object sender, EventArgs e)

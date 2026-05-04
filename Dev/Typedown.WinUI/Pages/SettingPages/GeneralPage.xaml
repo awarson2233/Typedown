@@ -2,64 +2,6 @@
     x:Class="Typedown.WinUI.Pages.SettingPages.GeneralPage"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    xmlns:toolkit="using:CommunityToolkit.WinUI.Controls">
-    <StackPanel Spacing="8">
-        <TextBlock Text="Application" Margin="0,0,0,4"/>
-        <toolkit:SettingsExpander Header="Startup action" Description="Choose what Typedown opens at startup.">
-            <toolkit:SettingsExpander.HeaderIcon>
-                <FontIcon Glyph="&#xe7b5;"/>
-            </toolkit:SettingsExpander.HeaderIcon>
-            <toolkit:SettingsExpander.Items>
-                <toolkit:SettingsCard Header="File" IsActionIconVisible="False">
-                    <ComboBox MinWidth="200" SelectedIndex="0">
-                        <ComboBoxItem Content="Open blank file"/>
-                        <ComboBoxItem Content="Restore last file"/>
-                    </ComboBox>
-                </toolkit:SettingsCard>
-                <toolkit:SettingsCard Header="Folder" IsActionIconVisible="False">
-                    <ComboBox MinWidth="200" SelectedIndex="0">
-                        <ComboBoxItem Content="None"/>
-                        <ComboBoxItem Content="Open last folder"/>
-                    </ComboBox>
-                </toolkit:SettingsCard>
-            </toolkit:SettingsExpander.Items>
-        </toolkit:SettingsExpander>
-        <toolkit:SettingsCard Header="Auto save" Description="Automatically save document changes." IsActionIconVisible="False">
-            <toolkit:SettingsCard.HeaderIcon>
-                <FontIcon Glyph="&#xe74e;"/>
-            </toolkit:SettingsCard.HeaderIcon>
-            <ToggleSwitch/>
-        </toolkit:SettingsCard>
-        <toolkit:SettingsCard Header="Keep running" Description="Continue running in the background after close." IsActionIconVisible="False">
-            <toolkit:SettingsCard.HeaderIcon>
-                <FontIcon Glyph="&#xe945;"/>
-            </toolkit:SettingsCard.HeaderIcon>
-            <ToggleSwitch/>
-        </toolkit:SettingsCard>
-        <toolkit:SettingsCard Header="Language" Description="Restart is required after changing language." IsActionIconVisible="False">
-            <toolkit:SettingsCard.HeaderIcon>
-                <FontIcon Glyph="&#xf2b7;"/>
-            </toolkit:SettingsCard.HeaderIcon>
-            <ComboBox MinWidth="200" SelectedIndex="0">
-                <ComboBoxItem Content="System default"/>
-                <ComboBoxItem Content="English"/>
-                <ComboBoxItem Content="简体中文"/>
-            </ComboBox>
-        </toolkit:SettingsCard>
-
-        <TextBlock Text="Custom" Margin="0,16,0,4"/>
-        <toolkit:SettingsCard Header="Shortcut keys" Description="Configure editor keyboard shortcuts." IsClickEnabled="True">
-            <toolkit:SettingsCard.HeaderIcon>
-                <FontIcon Glyph="&#xe765;"/>
-            </toolkit:SettingsCard.HeaderIcon>
-        </toolkit:SettingsCard>
-
-        <TextBlock Text="Data" Margin="0,16,0,4"/>
-        <toolkit:SettingsCard Header="Restore default" Description="Reset Typedown settings to their default values." IsActionIconVisible="False">
-            <toolkit:SettingsCard.HeaderIcon>
-                <FontIcon Glyph="&#xe72c;"/>
-            </toolkit:SettingsCard.HeaderIcon>
-            <Button MinWidth="120" Content="Restore"/>
-        </toolkit:SettingsCard>
-    </StackPanel>
+    xmlns:settingitems="using:Typedown.WinUI.Controls.SettingControls.SettingItems">
+    <settingitems:GeneralSetting/>
 </Page>

@@ -7,8 +7,10 @@ using System.Reactive.Disposables;
 using System.Reactive.Linq;
 using System.Reflection;
 using Typedown.Core.Models;
+using Typedown.Core.Utilities;
 using Typedown.WinUI.Controls;
-using Typedown.Core.ViewModels;
+using Typedown.Presentation.Utilities;
+using Typedown.Presentation.ViewModels;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 
@@ -41,8 +43,8 @@ namespace Typedown.WinUI.Controls.SettingControls.SettingItems
             LoadAllShortcutSettingItems();
             disposables.Add(this.Binding(new(nameof(SearchText))).Merge(this.Binding(new(nameof(FliterCategory))))
                 .Throttle(TimeSpan.FromMilliseconds(100))
-                .Subscribe(_ => _ = Dispatcher.RunIdleAsync(() => UpdateFilteredSettingItems())));
-            _ = Dispatcher.RunIdleAsync(() => UpdateFilteredSettingItems());
+                .Subscribe(_ => _ = Dispatcher.RunIdleAsync(_ => UpdateFilteredSettingItems())));
+            _ = Dispatcher.RunIdleAsync(_ => UpdateFilteredSettingItems());
         }
 
         private void OnUnloaded(object sender, RoutedEventArgs e)
@@ -85,6 +87,8 @@ namespace Typedown.WinUI.Controls.SettingControls.SettingItems
 
     public partial class ShortcutSettingItemModel : INotifyPropertyChanged
     {
+        public event PropertyChangedEventHandler PropertyChanged;
+
         public SettingsViewModel Target { get; }
 
         public PropertyInfo Property { get; }

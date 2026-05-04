@@ -3,13 +3,14 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Reflection;
-using Typedown.WinUI.Controls.DialogControls;
 using Typedown.Core.Enums;
 using Typedown.Core.Interfaces;
 using Typedown.Presentation.Interfaces;
 using Typedown.Core.Models;
+using Typedown.Core.Utilities;
 using Typedown.WinUI.Controls;
-using Typedown.Core.ViewModels;
+using Typedown.Presentation.Utilities;
+using Typedown.Presentation.ViewModels;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 
@@ -35,10 +36,39 @@ namespace Typedown.WinUI.Controls.SettingControls.SettingItems
 
         private async void AddConfigItem()
         {
-            var result = await AddExportConfigDialog.OpenAddExportConfigDialog(XamlRoot);
-            if (result == null)
+            var nameTextBox = new TextBox
+            {
+                Header = Locale.GetDialogString("Name"),
+                Text = Locale.GetString("New")
+            };
+            var typeComboBox = new ComboBox
+            {
+                Header = Locale.GetString("Type"),
+                MinWidth = 240,
+                ItemsSource = Typedown.Core.Enums.Enumerable.ExportTypes,
+                SelectedItem = ExportType.PDF
+            };
+
+            var content = new StackPanel { Spacing = 12 };
+            content.Children.Add(nameTextBox);
+            content.Children.Add(typeComboBox);
+
+            var dialog = new ContentDialog
+            {
+                XamlRoot = XamlRoot,
+                Title = Locale.GetString("Export.AddConfig.Title", Locale.ResourceSource.SettingsResources),
+                Content = content,
+                PrimaryButtonText = Locale.GetDialogString("OK"),
+                CloseButtonText = Locale.GetDialogString("Cancel"),
+                DefaultButton = ContentDialogButton.Primary
+            };
+
+            if (await dialog.ShowAsync() != ContentDialogResult.Primary)
                 return;
-            await FileExport.AddExportConfig(result.ConfigName, result.ExportType);
+
+            var configName = string.IsNullOrWhiteSpace(nameTextBox.Text) ? string.Empty : nameTextBox.Text;
+            var exportType = typeComboBox.SelectedItem is ExportType selectedType ? selectedType : ExportType.PDF;
+            await FileExport.AddExportConfig(configName, exportType);
         }
 
         internal static void OnConfigItemClick(object sender, EventArgs e)

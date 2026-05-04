@@ -6,9 +6,11 @@ using System.Reactive.Disposables;
 using System.Reactive.Linq;
 using System.Threading.Tasks;
 using Typedown.Core.Enums;
-using Typedown.Core.Services;
+using Typedown.Core.Utilities;
+using Typedown.Presentation.Services;
 using Typedown.WinUI.Controls;
-using Typedown.Core.ViewModels;
+using Typedown.Presentation.Utilities;
+using Typedown.Presentation.ViewModels;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 
@@ -29,6 +31,8 @@ namespace Typedown.WinUI.Controls.SettingControls.SettingItems
         public UploadConfigOption LocalImageUploadConfig { get; set; }
 
         public UploadConfigOption WebImageUploadConfig { get; set; }
+
+        public event PropertyChangedEventHandler PropertyChanged;
 
         private readonly CompositeDisposable disposables = new();
 

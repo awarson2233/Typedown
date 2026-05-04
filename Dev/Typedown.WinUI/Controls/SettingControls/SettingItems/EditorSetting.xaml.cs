@@ -1,4 +1,4 @@
-using Typedown.Core.ViewModels;
+using Typedown.Presentation.ViewModels;
 using Windows.Globalization.NumberFormatting;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;

@@ -7,7 +7,7 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:controls="using:Typedown.WinUI.Controls"
     xmlns:enums="using:Typedown.Core.Enums"
-    xmlns:viewmodels="using:Typedown.Core.ViewModels"
+    xmlns:viewmodels="using:Typedown.Presentation.ViewModels"
     xmlns:models="using:Typedown.Core.Models"
     xmlns:u="using:Typedown.WinUI.Controls"
     Loaded="OnLoaded"

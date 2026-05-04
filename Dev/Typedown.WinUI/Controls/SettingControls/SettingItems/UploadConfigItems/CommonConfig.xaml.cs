@@ -3,8 +3,10 @@ using System.Linq;
 using Typedown.Core.Interfaces;
 using Typedown.Presentation.Interfaces;
 using Typedown.Core.Models;
+using Typedown.Core.Utilities;
 using Typedown.WinUI.Pages.SettingPages;
 using Typedown.WinUI.Controls;
+using Typedown.Presentation.Utilities;
 using Windows.Storage.Pickers;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
@@ -44,11 +46,11 @@ namespace Typedown.WinUI.Controls.SettingControls.SettingItems.UploadConfigItems
                 if (file == null)
                     return;
                 var res = await ImageUploadConfig.LoadUploadConfig().Upload(this.GetService<IServiceProvider>(), file.Path);
-                await AppContentDialog.Create(Locale.GetDialogString("UploadSuccessfulTitle"), res, "Ok").ShowAsync(XamlRoot);
+                await ShowMessageAsync(Locale.GetDialogString("UploadSuccessfulTitle"), res);
             }
             catch (Exception ex)
             {
-                await AppContentDialog.Create(Locale.GetDialogString("UploadFailedTitle"), ex.Message, "Ok").ShowAsync(XamlRoot);
+                await ShowMessageAsync(Locale.GetDialogString("UploadFailedTitle"), ex.Message);
             }
             finally
             {
@@ -59,6 +61,19 @@ namespace Typedown.WinUI.Controls.SettingControls.SettingItems.UploadConfigItems
         private void OnUnloaded(object sender, RoutedEventArgs e)
         {
              Bindings?.StopTracking();
+        }
+
+        private async System.Threading.Tasks.Task ShowMessageAsync(string title, string message)
+        {
+            var dialog = new ContentDialog
+            {
+                XamlRoot = XamlRoot,
+                Title = title,
+                Content = message,
+                CloseButtonText = Locale.GetDialogString("Ok")
+            };
+
+            await dialog.ShowAsync();
         }
     }
 }
