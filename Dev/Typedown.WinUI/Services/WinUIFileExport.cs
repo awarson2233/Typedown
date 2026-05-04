@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using System.Diagnostics;
 using System.Collections.ObjectModel;
 using Typedown.Core.Enums;
 using Typedown.Core.Interfaces;
@@ -12,12 +13,14 @@ namespace Typedown.WinUI.Services
     internal sealed class WinUIFileExport : IFileExport
     {
         private readonly IAppDataPathProvider appDataPathProvider;
+        private readonly IFileConverter fileConverter;
 
         public ObservableCollection<ExportConfig> ExportConfigs { get; } = new();
 
-        public WinUIFileExport(IAppDataPathProvider appDataPathProvider)
+        public WinUIFileExport(IAppDataPathProvider appDataPathProvider, IFileConverter fileConverter)
         {
             this.appDataPathProvider = appDataPathProvider ?? throw new ArgumentNullException(nameof(appDataPathProvider));
+            this.fileConverter = fileConverter ?? throw new ArgumentNullException(nameof(fileConverter));
             Initialize();
         }
 
@@ -39,9 +42,16 @@ namespace Typedown.WinUI.Services
             return (await ctx.ExportConfigs.Where(x => x.Id == id).FirstOrDefaultAsync())!;
         }
 
-        public Task Print(string basePath, string html, string? documentName = null)
+        public async Task Print(string basePath, string html, string? documentName = null)
         {
-            throw new NotSupportedException("WinUI print/export still requires the WebView-backed HTML-to-PDF conversion pipeline, which is not wired into the WinUI app head in this migration slice.");
+            using var stream = await fileConverter.HtmlToPdf(html);
+            var pdfPath = CreateTemporaryPdfPath(documentName);
+
+            await File.WriteAllBytesAsync(pdfPath, stream.ToArray());
+            if (!TryShellExecute(pdfPath, "print"))
+            {
+                TryShellExecute(pdfPath, null);
+            }
         }
 
         public async Task RemoveExportConfig(int id)
@@ -86,6 +96,36 @@ namespace Typedown.WinUI.Services
         private async void Initialize()
         {
             await UpdateExportConfigs();
+        }
+
+        private static string CreateTemporaryPdfPath(string? documentName)
+        {
+            var safeName = string.Join(
+                "_",
+                (string.IsNullOrWhiteSpace(documentName) ? "Typedown" : Path.GetFileNameWithoutExtension(documentName))
+                    .Split(Path.GetInvalidFileNameChars(), StringSplitOptions.RemoveEmptyEntries));
+
+            var path = Path.Combine(Path.GetTempPath(), $"{safeName}-{Guid.NewGuid():N}.pdf");
+            return path;
+        }
+
+        private static bool TryShellExecute(string filePath, string? verb)
+        {
+            try
+            {
+                Process.Start(new ProcessStartInfo
+                {
+                    FileName = filePath,
+                    UseShellExecute = true,
+                    Verb = verb ?? string.Empty
+                });
+
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
         }
     }
 }

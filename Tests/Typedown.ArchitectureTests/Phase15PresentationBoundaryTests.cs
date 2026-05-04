@@ -31,18 +31,20 @@ public class Phase15PresentationBoundaryTests
             AssertHasTypeReference(appSource, $"AddSingleton<{port},");
         }
 
-        AssertNoTypeReference(appSource, "AddSingleton<IFileConverter");
-        AssertNoTypeReference(appSource, "AddSingleton<IPowerShellService");
+        AssertHasTypeReference(appSource, "AddSingleton<IFileConverter, WinUIFileConverter>()");
+        AssertHasTypeReference(appSource, "AddSingleton<IPowerShellService, WinUIPowerShellService>()");
         AssertContainsInOrder(
             appSource,
             "Config.SetAppDataPathProvider(platformServices.AppDataPathProvider);",
             "new ServiceCollection()",
             ".AddSingleton<IClipboard, WinUIClipboard>()",
+            ".AddSingleton<IFileConverter, WinUIFileConverter>()",
             ".AddSingleton<IFileExport, WinUIFileExport>()",
             ".AddSingleton<IFileOperation, WinUIFileOperation>()",
             ".AddSingleton<IFloatViewService, WinUIFloatViewService>()",
             ".AddSingleton<IKeyboardAccelerator, WinUIKeyboardAccelerator>()",
             ".AddSingleton<IEditorCommandSink, WinUIEditorCommandSink>()",
+            ".AddSingleton<IPowerShellService, WinUIPowerShellService>()",
             ".AddSingleton<IEditorSettingsNotifier, WinUIEditorSettingsNotifier>()",
             ".AddSingleton<ITableDialogService, WinUITableDialogService>()",
             ".AddSingleton<IWindowService, WinUIWindowService>()",
@@ -56,18 +58,20 @@ public class Phase15PresentationBoundaryTests
         var servicesRoot = Path.Combine(RepoRoot, "Dev", "Typedown.WinUI", "Services");
 
         AssertServiceImplementsPort(servicesRoot, "WinUIClipboard.cs", "WinUIClipboard", "IClipboard");
+        AssertServiceImplementsCorePort(servicesRoot, "WinUIFileConverter.cs", "WinUIFileConverter", "IFileConverter");
         AssertServiceImplementsPort(servicesRoot, "WinUIFileExport.cs", "WinUIFileExport", "IFileExport");
         AssertServiceImplementsPort(servicesRoot, "WinUIFileOperation.cs", "WinUIFileOperation", "IFileOperation");
         AssertServiceImplementsPort(servicesRoot, "WinUIFloatViewService.cs", "WinUIFloatViewService", "IFloatViewService");
         AssertServiceImplementsPort(servicesRoot, "WinUIKeyboardAccelerator.cs", "WinUIKeyboardAccelerator", "IKeyboardAccelerator");
         AssertServiceImplementsPort(servicesRoot, "WinUIEditorCommandSink.cs", "WinUIEditorCommandSink", "IEditorCommandSink");
+        AssertServiceImplementsCorePort(servicesRoot, "WinUIPowerShellService.cs", "WinUIPowerShellService", "IPowerShellService");
         AssertServiceImplementsPort(servicesRoot, "WinUIEditorSettingsNotifier.cs", "WinUIEditorSettingsNotifier", "IEditorSettingsNotifier");
         AssertServiceImplementsPort(servicesRoot, "WinUITableDialogService.cs", "WinUITableDialogService", "ITableDialogService");
         AssertServiceImplementsPort(servicesRoot, "WinUIWindowService.cs", "WinUIWindowService", "IWindowService");
     }
 
     [TestMethod]
-    public void WinUIFileExport_PersistsConfigurationCrudWithoutConverterRegistration()
+    public void WinUIFileExport_PersistsConfigurationCrudAndPrintUsesConverter()
     {
         var appSource = File.ReadAllText(Path.Combine(RepoRoot, "Dev", "Typedown.WinUI", "App.xaml.cs"));
         var exportSource = File.ReadAllText(Path.Combine(RepoRoot, "Dev", "Typedown.WinUI", "Services", "WinUIFileExport.cs"));
@@ -80,8 +84,10 @@ public class Phase15PresentationBoundaryTests
         AssertHasTypeReference(exportSource, "GetExportConfig");
         AssertHasTypeReference(exportSource, "UpdateExportConfigs");
         AssertDoesNotContain(exportSource, "configuration is not wired");
-        AssertNoTypeReference(exportSource, "IFileConverter");
-        AssertNoTypeReference(appSource, "AddSingleton<IFileConverter");
+        AssertHasTypeReference(exportSource, "IFileConverter");
+        AssertHasTypeReference(exportSource, "HtmlToPdf");
+        AssertDoesNotContain(exportSource, "NotSupportedException");
+        AssertHasTypeReference(appSource, "AddSingleton<IFileConverter");
     }
 
     [TestMethod]
@@ -491,6 +497,18 @@ public class Phase15PresentationBoundaryTests
         AssertHasTypeReference(source, className);
         AssertHasTypeReference(source, portName);
         AssertHasTypeReference(source, "Typedown.Presentation.Interfaces");
+    }
+
+    private static void AssertServiceImplementsCorePort(string servicesRoot, string fileName, string className, string portName)
+    {
+        var path = Path.Combine(servicesRoot, fileName);
+
+        Assert.IsTrue(File.Exists(path), $"Expected WinUI service adapter {path}.");
+
+        var source = File.ReadAllText(path);
+        AssertHasTypeReference(source, className);
+        AssertHasTypeReference(source, portName);
+        AssertHasTypeReference(source, "Typedown.Core.Interfaces");
     }
 
     private static void AssertContainsInOrder(string source, params string[] snippets)

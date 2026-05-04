@@ -2,6 +2,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml.Navigation;
 using Microsoft.UI.Xaml.Media;
 using Typedown.Core;
+using Typedown.Core.Interfaces;
 using Typedown.Presentation;
 using Typedown.Presentation.Interfaces;
 using Typedown.WinUI.Controls;
@@ -62,11 +63,13 @@ namespace Typedown.WinUI
                 .AddSingleton(platformServices.AppActivationService)
                 .AddSingleton(platformServices.AppDataPathProvider)
                 .AddSingleton<IClipboard, WinUIClipboard>()
+                .AddSingleton<IFileConverter, WinUIFileConverter>()
                 .AddSingleton<IFileExport, WinUIFileExport>()
                 .AddSingleton<IFileOperation, WinUIFileOperation>()
                 .AddSingleton<IFloatViewService, WinUIFloatViewService>()
                 .AddSingleton<IKeyboardAccelerator, WinUIKeyboardAccelerator>()
                 .AddSingleton<IEditorCommandSink, WinUIEditorCommandSink>()
+                .AddSingleton<IPowerShellService, WinUIPowerShellService>()
                 .AddSingleton<IEditorSettingsNotifier, WinUIEditorSettingsNotifier>()
                 .AddSingleton<ITableDialogService, WinUITableDialogService>()
                 .AddSingleton<IWindowService, WinUIWindowService>()
