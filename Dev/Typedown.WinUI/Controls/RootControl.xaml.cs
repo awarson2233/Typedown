@@ -1,5 +1,8 @@
 namespace Typedown.WinUI.Controls;
 
+using Typedown.Presentation.Interfaces;
+using Typedown.WinUI.Services;
+
 public sealed partial class RootControl : UserControl
 {
     public object? MainPageNavigationParameter { get; set; }
@@ -10,6 +13,14 @@ public sealed partial class RootControl : UserControl
     {
         InitializeComponent();
         Frame.Navigated += OnFrameNavigated;
+    }
+
+    public void AttachKeyboardAccelerator(IKeyboardAccelerator keyboardAccelerator)
+    {
+        if (keyboardAccelerator is WinUIKeyboardAccelerator winUIKeyboardAccelerator)
+        {
+            winUIKeyboardAccelerator.Attach(this);
+        }
     }
 
     private void OnLoaded(object sender, RoutedEventArgs e)

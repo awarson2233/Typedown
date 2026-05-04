@@ -292,6 +292,45 @@ public class Phase15PresentationBoundaryTests
     }
 
     [TestMethod]
+    public void WinUIKeyboardShortcuts_UseWinUIRoutingAndSkipClearedShortcuts()
+    {
+        var winUIRoot = Path.Combine(RepoRoot, "Dev", "Typedown.WinUI");
+        var keyboardSource = File.ReadAllText(Path.Combine(winUIRoot, "Services", "WinUIKeyboardAccelerator.cs"));
+        var rootControlSource = File.ReadAllText(Path.Combine(winUIRoot, "Controls", "RootControl.xaml.cs"));
+        var appSource = File.ReadAllText(Path.Combine(winUIRoot, "App.xaml.cs"));
+        var menuStubSource = File.ReadAllText(Path.Combine(
+            winUIRoot,
+            "Controls",
+            "EditorControls",
+            "MenuBarItems",
+            "MenuBarItemStubs.cs"));
+
+        foreach (var source in new[] { keyboardSource, rootControlSource, appSource, menuStubSource })
+        {
+            AssertDoesNotContain(source, "SetWindowsHookEx");
+            AssertDoesNotContain(source, "WH_KEYBOARD_LL");
+            AssertDoesNotContain(source, "LoadLibrary(\"User32\")");
+        }
+
+        AssertHasTypeReference(keyboardSource, "Microsoft.UI.Xaml.Input");
+        AssertHasTypeReference(keyboardSource, "KeyDown");
+        AssertHasTypeReference(keyboardSource, "Subject<KeyEventArgs>");
+        AssertDoesNotContain(keyboardSource, "Observable.Empty<KeyEventArgs>()");
+        AssertContainsInOrder(rootControlSource, "AttachKeyboardAccelerator", "WinUIKeyboardAccelerator", "Attach(this)");
+        AssertContainsInOrder(appSource, "rootControl.AttachKeyboardAccelerator", "GetRequiredService<IKeyboardAccelerator>()");
+
+        AssertHasTypeReference(menuStubSource, "KeyboardAccelerator");
+        AssertHasTypeReference(menuStubSource, "KeyboardAcceleratorTextOverride");
+        AssertContainsInOrder(menuStubSource, "HasShortcutKey", "shortcut is not null", "shortcut.Key != KeyboardKey.None");
+        AssertContainsInOrder(menuStubSource, "SetShortcut(MenuFlyoutItem", "if (!HasShortcutKey(shortcut))", "return;", "KeyboardAcceleratorTextOverride");
+        AssertContainsInOrder(menuStubSource, "SetShortcut(ToggleMenuFlyoutItem", "if (!HasShortcutKey(shortcut))", "return;", "KeyboardAcceleratorTextOverride");
+        AssertContainsInOrder(menuStubSource, "SetShortcut(FindItem", "settings?.ShortcutFind");
+        AssertContainsInOrder(menuStubSource, "SetShortcut(StrongItem", "settings?.ShortcutStrong");
+
+        AssertContainsInOrder(keyboardSource, "Register(ShortcutKey key", "key.Key == KeyboardKey.None", "return Disposable.Empty");
+    }
+
+    [TestMethod]
     public void WinUIImageFloatControls_AreCopiedAndAdaptedToPresentationPorts()
     {
         var winUIRoot = Path.Combine(RepoRoot, "Dev", "Typedown.WinUI");

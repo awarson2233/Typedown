@@ -83,6 +83,7 @@ namespace Typedown.WinUI
                 window.SetTitleBar(rootControl.TitleBarElement);
             }
 
+            rootControl.AttachKeyboardAccelerator(uiServices.GetRequiredService<IKeyboardAccelerator>());
             rootControl.MainPageNavigationParameter = new MainPageNavigationContext(platformServices, uiServices);
             platformServices.WindowContext.ViewRoot = rootControl;
             platformServices.AppActivationService.StartListening(platformServices.UiDispatcher);
