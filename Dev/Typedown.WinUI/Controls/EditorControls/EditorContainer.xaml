@@ -5,6 +5,7 @@
     xmlns:local="using:Typedown.WinUI.Controls"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:primitives="using:Microsoft.UI.Xaml.Controls.Primitives"
     xmlns:float="using:Typedown.WinUI.Controls"
     xmlns:viewmodels="using:Typedown.Presentation.ViewModels"
     xmlns:items="using:Typedown.WinUI.Controls"
@@ -138,9 +139,8 @@
             Value="0"
             ViewportSize="100"
             Maximum="0"/>
-        <float:FindReplace
-            x:Name="FindReplaceDialog"
-            x:Load="{x:Bind IsFindReplaceLoad, Mode=OneWay}"
-            RenderTransform="{StaticResource FindReplaceTransform}"/>
+        <primitives:Popup
+            x:Name="FindReplacePopup"
+            IsLightDismissEnabled="False"/>
     </Grid>
 </UserControl>

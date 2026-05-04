@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Runtime.InteropServices;
 using Typedown.Core.Interfaces;
 using Windows.Storage;
 
@@ -39,16 +40,19 @@ namespace Typedown.WinUI.Services
 
         private static string ResolveLocalFolderPath()
         {
-            try
+            if (HasPackageIdentity())
             {
-                var path = ApplicationData.Current.LocalFolder.Path;
-                if (!string.IsNullOrWhiteSpace(path))
+                try
                 {
-                    return path;
+                    var path = ApplicationData.Current.LocalFolder.Path;
+                    if (!string.IsNullOrWhiteSpace(path))
+                    {
+                        return path;
+                    }
                 }
-            }
-            catch
-            {
+                catch
+                {
+                }
             }
 
             return Path.Combine(
@@ -56,5 +60,16 @@ namespace Typedown.WinUI.Services
                 "Typedown",
                 "WinUI");
         }
+
+        private static bool HasPackageIdentity()
+        {
+            var length = 0;
+            return GetCurrentPackageFullName(ref length, IntPtr.Zero) == ERROR_INSUFFICIENT_BUFFER;
+        }
+
+        [DllImport("kernel32.dll", ExactSpelling = true)]
+        private static extern int GetCurrentPackageFullName(ref int packageFullNameLength, IntPtr packageFullName);
+
+        private const int ERROR_INSUFFICIENT_BUFFER = 122;
     }
 }

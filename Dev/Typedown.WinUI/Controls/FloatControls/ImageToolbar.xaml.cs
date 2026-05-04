@@ -21,9 +21,9 @@ namespace Typedown.WinUI.Controls
 
         public IKeyboardAccelerator KeyboardAccelerator { get; }
 
-        private readonly CompositeDisposable disposables = new();
+        private CompositeDisposable? disposables;
 
-        private JToken attrs;
+        private JToken attrs = new JObject();
 
         public ImageToolbar(AppViewModel viewModel, IEditorCommandSink editorCommandSink, IKeyboardAccelerator keyboardAccelerator)
         {
@@ -38,6 +38,12 @@ namespace Typedown.WinUI.Controls
             this.attrs = attrs;
             AreOpenCloseAnimationsEnabled = ViewModel.SettingsViewModel.AnimationEnable;
             OverlayInputPassThroughElement = overlayInputPassThroughElement;
+            if (rect == default)
+            {
+                ShowAt(anchor);
+                return;
+            }
+
             ShowAt(anchor, new FlyoutShowOptions
             {
                 Position = new Point(rect.X, rect.Y + rect.Height),
@@ -77,7 +83,11 @@ namespace Typedown.WinUI.Controls
 
         private void ZoomClick(object sender, RoutedEventArgs e)
         {
-            var zoom = (sender as MenuFlyoutItem).Tag as string;
+            if (sender is not MenuFlyoutItem { Tag: string zoom })
+            {
+                return;
+            }
+
             var style = (attrs["style"]?.ToString() ?? "").Split(';').Where(x => !x.StartsWith("zoom:") && !string.IsNullOrWhiteSpace(x)).ToList();
             style.Add($"zoom:{zoom}");
             PostEditImageMessage(new { type = "updateImage", attrName = "style", attrValue = $"{string.Join(';', style)};" });
@@ -91,6 +101,8 @@ namespace Typedown.WinUI.Controls
 
         private void OnOpened(object sender, object e)
         {
+            disposables?.Dispose();
+            disposables = new CompositeDisposable();
             disposables.Add(KeyboardAccelerator.GetObservable().Where(e => e.Key == KeyboardKey.Back || e.Key == KeyboardKey.Delete).Subscribe(e =>
             {
                 DispatcherQueue.TryEnqueue(() => DeleteClick(this, new RoutedEventArgs()));
@@ -100,7 +112,8 @@ namespace Typedown.WinUI.Controls
 
         private void OnClosed(object sender, object e)
         {
-            disposables.Dispose();
+            disposables?.Dispose();
+            disposables = null;
         }
     }
 }

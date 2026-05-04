@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using System.Globalization;
 using System.Xml.Linq;
+using Typedown.Core;
 using Typedown.Core.Utilities;
 using Windows.ApplicationModel.Resources.Core;
 using PresentationLocale = Typedown.Presentation.Utilities.Locale;
@@ -18,8 +19,6 @@ internal static class WinUILocale
     ];
 
     private static readonly IReadOnlyDictionary<PresentationLocale.ResourceSource, ResourceMap> ResourceMaps = CreateResourceMaps();
-
-    private static readonly ResourceContext ResourceContext = new();
 
     private static readonly ConcurrentDictionary<string, IReadOnlyDictionary<string, string>> ReswCache = new();
 
@@ -47,6 +46,11 @@ internal static class WinUILocale
 
     private static ResourceMap? TryGetResourceMap(PresentationLocale.ResourceSource source)
     {
+        if (!Config.IsPackaged)
+        {
+            return null;
+        }
+
         foreach (var subtree in GetResourceMapSubtrees(source))
         {
             try
@@ -98,7 +102,13 @@ internal static class WinUILocale
         {
             try
             {
-                var value = map.GetValue(candidate, ResourceContext)?.ValueAsString;
+                var resourceContext = TryCreateResourceContext();
+                if (resourceContext is null)
+                {
+                    return null;
+                }
+
+                var value = map.GetValue(candidate, resourceContext)?.ValueAsString;
                 if (!string.IsNullOrEmpty(value))
                 {
                     return value;
@@ -111,6 +121,18 @@ internal static class WinUILocale
         }
 
         return null;
+    }
+
+    private static ResourceContext? TryCreateResourceContext()
+    {
+        try
+        {
+            return new ResourceContext();
+        }
+        catch
+        {
+            return null;
+        }
     }
 
     private static string? GetReswString(string key, PresentationLocale.ResourceSource source)

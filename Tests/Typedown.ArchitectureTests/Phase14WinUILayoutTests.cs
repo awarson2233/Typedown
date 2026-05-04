@@ -83,7 +83,7 @@ public class Phase14WinUILayoutTests
         AssertContains(leftPane, "x:Load=\"{x:Bind IsSearchPaneOpen, Mode=OneWay}\"");
         AssertContains(leftPane, "Background=\"{ThemeResource TypedownEditorBackgroundBrush}\"");
         AssertContains(editorContainer, "x:Name=\"EditorInitErrorView\" x:Load=\"False\"");
-        AssertContains(editorContainer, "x:Load=\"{x:Bind IsFindReplaceLoad, Mode=OneWay}\"");
+        AssertContains(editorContainer, "x:Name=\"FindReplacePopup\"");
         AssertContains(editorContainer, "Background=\"{ThemeResource TypedownEditorBackgroundBrush}\"");
         AssertContains(mainContent, "<ColumnDefinition x:Name=\"LeftPaneColumn\" Width=\"300\"/>");
         AssertContains(mainContent, "Background=\"{ThemeResource TypedownEditorBackgroundBrush}\"");

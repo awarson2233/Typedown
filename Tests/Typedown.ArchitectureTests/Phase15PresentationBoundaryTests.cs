@@ -35,6 +35,8 @@ public class Phase15PresentationBoundaryTests
         AssertNoTypeReference(appSource, "AddSingleton<IPowerShellService");
         AssertContainsInOrder(
             appSource,
+            "Config.SetAppDataPathProvider(platformServices.AppDataPathProvider);",
+            "new ServiceCollection()",
             ".AddSingleton<IClipboard, WinUIClipboard>()",
             ".AddSingleton<IFileExport, WinUIFileExport>()",
             ".AddSingleton<IFileOperation, WinUIFileOperation>()",
@@ -201,8 +203,11 @@ public class Phase15PresentationBoundaryTests
         var winUIRoot = Path.Combine(RepoRoot, "Dev", "Typedown.WinUI");
         var editorContainerXaml = File.ReadAllText(Path.Combine(winUIRoot, "Controls", "EditorControls", "EditorContainer.xaml"));
         var editorContainerSource = File.ReadAllText(Path.Combine(winUIRoot, "Controls", "EditorControls", "EditorContainer.xaml.cs"));
+        var editorHostSource = File.ReadAllText(Path.Combine(winUIRoot, "Controls", "WinUIEditorHost.cs"));
+        var sessionSource = File.ReadAllText(Path.Combine(winUIRoot, "Controls", "WinUIEditorDocumentSession.cs"));
         var findReplaceXaml = File.ReadAllText(Path.Combine(winUIRoot, "Controls", "FloatControls", "FindReplace.xaml"));
         var findReplaceSource = File.ReadAllText(Path.Combine(winUIRoot, "Controls", "FloatControls", "FindReplace.xaml.cs"));
+        var floatViewModelSource = File.ReadAllText(Path.Combine(RepoRoot, "Dev", "Typedown.Presentation", "ViewModels", "FloatViewModel.cs"));
 
         foreach (var source in new[] { editorContainerXaml, editorContainerSource, findReplaceXaml, findReplaceSource })
         {
@@ -213,15 +218,22 @@ public class Phase15PresentationBoundaryTests
         AssertHasTypeReference(editorContainerSource, "FindReplaceDialogOpen");
         AssertHasTypeReference(editorContainerSource, "PropertyChanged");
         AssertContainsInOrder(editorContainerSource, "FindReplaceDialogOpen", "UpdateFindReplaceState");
+        AssertContainsInOrder(editorHostSource, "BuildFindShortcutScript", "OpenFindReplace");
+        AssertHasTypeReference(sessionSource, "OpenFindReplace");
+        AssertContainsInOrder(floatViewModelSource, "\"OpenFindReplace\"", "OnOpenFindReplace");
+        AssertContainsInOrder(floatViewModelSource, "OnFindReplaceDialogOpenChange", "open == FindReplaceDialogState.None", "\"SearchOpenChange\"");
 
         AssertHasTypeReference(findReplaceSource, "FloatViewModel");
         AssertHasTypeReference(findReplaceSource, "EditorViewModel");
         AssertHasTypeReference(findReplaceSource, "EditorCommandSink");
         AssertContainsInOrder(findReplaceSource, "OnSearchTextChanged", "Editor.SearchValue");
         AssertContainsInOrder(findReplaceSource, "SendReplace", "EditorCommandSink", "\"Replace\"");
+        AssertContainsInOrder(findReplaceSource, "searchTextBox.Focus", "searchTextBox.SelectAll");
 
         AssertHasTypeReference(findReplaceXaml, "FindReplace");
-        AssertHasTypeReference(editorContainerXaml, "FindReplaceDialog");
+        AssertHasTypeReference(editorContainerXaml, "FindReplacePopup");
+        AssertContainsInOrder(editorContainerSource, "EnsureFindReplaceDialog", "new FindReplace");
+        AssertContainsInOrder(editorContainerSource, "FindReplacePopup.IsOpen", "VisualStateManager.GoToState");
     }
 
     [TestMethod]
@@ -295,8 +307,12 @@ public class Phase15PresentationBoundaryTests
         AssertHasTypeReference(imageSelectorSource, "IEditorCommandSink");
         AssertHasTypeReference(imageSelectorSource, "IFilePickerService");
         AssertHasTypeReference(imageSelectorSource, "ImageAction");
+        AssertContainsInOrder(imageSelectorSource, "\"ReplaceImage\"", "new { src, alt, title }");
+        AssertHasTypeReference(imageSelectorSource, "anchor?.XamlRoot");
         AssertHasTypeReference(imageToolbarSource, "IEditorCommandSink");
         AssertHasTypeReference(imageToolbarSource, "IKeyboardAccelerator");
+        AssertContainsInOrder(imageToolbarSource, "\"ImageEditToolbarClick\"", "Hide();");
+        AssertContainsInOrder(imageToolbarSource, "disposables?.Dispose();", "new CompositeDisposable()");
         AssertHasTypeReference(floatServiceSource, "new ImageSelector");
         AssertHasTypeReference(floatServiceSource, "new ImageToolbar");
         AssertDoesNotContain(floatServiceSource, "image selector float view is not wired");

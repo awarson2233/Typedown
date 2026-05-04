@@ -6,6 +6,7 @@ namespace Typedown.WinUI.Controls;
 public sealed partial class EditorContainer : UserControl
 {
     private WinUIEditorHost? editorHost;
+    private FindReplace? findReplaceDialog;
     private AppViewModel? viewModel;
 
     public static readonly DependencyProperty IsFindReplaceLoadProperty =
@@ -21,6 +22,8 @@ public sealed partial class EditorContainer : UserControl
     {
         InitializeComponent();
         DataContextChanged += OnDataContextChanged;
+        SizeChanged += OnSizeChanged;
+        FindReplacePopup.Opened += OnFindReplacePopupOpened;
     }
 
     private void OnLoaded(object sender, RoutedEventArgs e)
@@ -73,7 +76,19 @@ public sealed partial class EditorContainer : UserControl
         if (viewModel is not null)
         {
             viewModel.FloatViewModel.PropertyChanged += OnFloatViewModelPropertyChanged;
+            if (findReplaceDialog is not null)
+            {
+                findReplaceDialog.DataContext = viewModel;
+            }
+
             UpdateFindReplaceState(viewModel.FloatViewModel.FindReplaceDialogOpen, false);
+        }
+        else
+        {
+            if (findReplaceDialog is not null)
+            {
+                findReplaceDialog.DataContext = null;
+            }
         }
     }
 
@@ -87,11 +102,67 @@ public sealed partial class EditorContainer : UserControl
 
     private void UpdateFindReplaceState(FloatViewModel.FindReplaceDialogState findReplaceOpen, bool useTransitions = true)
     {
+        var isOpen = findReplaceOpen != FloatViewModel.FindReplaceDialogState.None;
+        IsFindReplaceLoad = isOpen;
+
+        if (isOpen)
+        {
+            EnsureFindReplaceDialog();
+            UpdateFindReplacePopupPlacement();
+        }
+
+        FindReplacePopup.IsOpen = isOpen;
+
         var state = findReplaceOpen == FloatViewModel.FindReplaceDialogState.None
             ? "FindReplaceCollapsed"
             : "FindReplaceVisible";
 
         VisualStateManager.GoToState(this, state, useTransitions && (viewModel?.SettingsViewModel.AnimationEnable ?? true));
+    }
+
+    private void OnSizeChanged(object sender, SizeChangedEventArgs e)
+    {
+        if (findReplaceDialog is not null)
+        {
+            findReplaceDialog.Width = ActualWidth;
+            findReplaceDialog.Height = ActualHeight;
+        }
+
+        UpdateFindReplacePopupPlacement();
+    }
+
+    private void OnFindReplaceDialogSizeChanged(object sender, SizeChangedEventArgs e)
+    {
+        UpdateFindReplacePopupPlacement();
+    }
+
+    private void OnFindReplacePopupOpened(object? sender, object e)
+    {
+        UpdateFindReplacePopupPlacement();
+    }
+
+    private void UpdateFindReplacePopupPlacement()
+    {
+        FindReplacePopup.HorizontalOffset = 0;
+        FindReplacePopup.VerticalOffset = 0;
+    }
+
+    private void EnsureFindReplaceDialog()
+    {
+        if (findReplaceDialog is not null)
+        {
+            return;
+        }
+
+        findReplaceDialog = new FindReplace
+        {
+            DataContext = viewModel,
+            RenderTransform = FindReplaceTransform,
+            Width = ActualWidth,
+            Height = ActualHeight
+        };
+        findReplaceDialog.SizeChanged += OnFindReplaceDialogSizeChanged;
+        FindReplacePopup.Child = findReplaceDialog;
     }
 
     private void OnDragEnter(object sender, DragEventArgs e) { }

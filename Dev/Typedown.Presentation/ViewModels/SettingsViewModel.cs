@@ -112,7 +112,19 @@ namespace Typedown.Presentation.ViewModels
         {
             try
             {
-                store = JToken.Parse(File.ReadAllText(settingsFile));
+                var settingsDirectory = Path.GetDirectoryName(settingsFile);
+                if (!string.IsNullOrEmpty(settingsDirectory))
+                    Directory.CreateDirectory(settingsDirectory);
+
+                if (!File.Exists(settingsFile))
+                {
+                    store = new JObject();
+                    SaveAllSettings();
+                    return;
+                }
+
+                var json = File.ReadAllText(settingsFile);
+                store = string.IsNullOrWhiteSpace(json) ? new JObject() : JToken.Parse(json);
             }
             catch
             {
@@ -120,11 +132,15 @@ namespace Typedown.Presentation.ViewModels
             }
         }
 
-        private async void SaveAllSettings()
+        private void SaveAllSettings()
         {
             try
             {
-                await File.WriteAllTextAsync(settingsFile, store.ToString());
+                var settingsDirectory = Path.GetDirectoryName(settingsFile);
+                if (!string.IsNullOrEmpty(settingsDirectory))
+                    Directory.CreateDirectory(settingsDirectory);
+
+                File.WriteAllText(settingsFile, store.ToString());
             }
             catch
             {

@@ -8,6 +8,7 @@ using Typedown.WinUI.Controls;
 using Typedown.WinUI.Services;
 using Typedown.WinUI.Utilities;
 using Typedown.WinUI.Views;
+using SQLitePCL;
 
 namespace Typedown.WinUI
 {
@@ -37,8 +38,22 @@ namespace Typedown.WinUI
         protected override void OnLaunched(LaunchActivatedEventArgs e)
         {
             WinUILocale.Initialize();
+
+            // Set SQLite temp directory before any connection is created, so
+            // Microsoft.Data.Sqlite does not probe ApplicationData.Current (which
+            // throws APPMODEL_ERROR_NO_PACKAGE in unpackaged WinUI 3 apps).
+            var tmp = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                "Typedown",
+                "temp");
+            Directory.CreateDirectory(tmp);
+            Environment.SetEnvironmentVariable("SQLITE_TMPDIR", tmp);
+
+            Batteries.Init();
+
             window ??= new Window();
             platformServices ??= new WinUIPlatformServices(window);
+            Config.SetAppDataPathProvider(platformServices.AppDataPathProvider);
             uiServices ??= new ServiceCollection()
                 .AddSingleton(platformServices.WindowContext)
                 .AddSingleton(platformServices.UiDispatcher)

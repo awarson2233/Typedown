@@ -126,10 +126,13 @@ namespace Typedown.Presentation.ViewModels
 
         private async Task<bool> AutoBackupFile()
         {
+            if (string.IsNullOrWhiteSpace(FilePath))
+                return true;
+
             if (EditorViewModel.FileHash != EditorViewModel.CurrentHash && !string.IsNullOrWhiteSpace(EditorViewModel.Markdown))
                 return await AutoBackup.Backup(FilePath, EditorViewModel.Markdown);
-            else
-                AutoBackup.DeleteBackup(FilePath);
+
+            AutoBackup.DeleteBackup(FilePath);
             return true;
         }
 
@@ -138,27 +141,11 @@ namespace Typedown.Presentation.ViewModels
             if (!await AskToSave()) return;
             FilePath = null;
             EditorViewModel.FileHash = Common.SimpleHash(Common.DefaultMarkdwn);
-            string backup = null;
-            if (AppViewModel.GetInstances().Where(x => x != AppViewModel).All(x => !string.IsNullOrEmpty(x.FileViewModel.FilePath)))
-            {
-                backup = await CheckBackup(FilePath, EditorViewModel.FileHash);
-            }
-            if (backup == null)
-            {
-                EditorViewModel.Markdown = Common.DefaultMarkdwn;
-                EditorViewModel.CurrentHash = EditorViewModel.FileHash;
-                EditorViewModel.Saved = true;
-                EditorViewModel.AutoSavedSucc = true;
-                EditorViewModel.FileLoaded = false;
-            }
-            else
-            {
-                EditorViewModel.Markdown = backup;
-                EditorViewModel.CurrentHash = Common.SimpleHash(backup);
-                EditorViewModel.Saved = false;
-                EditorViewModel.AutoSavedSucc = false;
-                EditorViewModel.FileLoaded = true;
-            }
+            EditorViewModel.Markdown = Common.DefaultMarkdwn;
+            EditorViewModel.CurrentHash = EditorViewModel.FileHash;
+            EditorViewModel.Saved = true;
+            EditorViewModel.AutoSavedSucc = true;
+            EditorViewModel.FileLoaded = false;
             EditorViewModel.History.InitHistory(Common.DefaultMarkdwn);
             if (postMessage)
             {

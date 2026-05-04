@@ -7,7 +7,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Controls.Primitives;
-using Typedown.Core.Models.RuntimeModels;
 using Typedown.Core.Utilities;
 using Typedown.Presentation.Interfaces;
 using Typedown.Presentation.Services;
@@ -80,7 +79,7 @@ namespace Typedown.WinUI.Controls
                     Title = Locale.GetString("Error"),
                     Content = ex.Message,
                     CloseButtonText = Locale.GetDialogString("Ok"),
-                    XamlRoot = XamlRoot
+                    XamlRoot = XamlRoot ?? anchor?.XamlRoot
                 }.ShowAsync();
             }
             finally
@@ -115,7 +114,7 @@ namespace Typedown.WinUI.Controls
                 {
                     // TODO
                 }
-                EditorCommandSink.Send("ReplaceImage", new HtmlImgTag(src, alt, title));
+                EditorCommandSink.Send("ReplaceImage", new { src, alt, title });
             }
         }
 
@@ -148,6 +147,12 @@ namespace Typedown.WinUI.Controls
         {
             if (anchor is null)
             {
+                return;
+            }
+
+            if (rect == default)
+            {
+                flyout.ShowAt(anchor);
                 return;
             }
 

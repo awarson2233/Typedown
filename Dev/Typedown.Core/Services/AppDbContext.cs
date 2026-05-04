@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore.Diagnostics;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Reflection;
 using System.Threading.Tasks;
 using Typedown.Core.Interfaces;
 using Typedown.Core.Models;
@@ -64,8 +65,34 @@ namespace Typedown.Core.Services
 
         private async Task EnsureMigrateCoreAsync()
         {
+            EnsureDatabaseDirectory();
+            MigrateLegacyDatabaseFileIfNeeded();
+
             await BootstrapLegacyMigrationHistoryAsync();
             await Database.MigrateAsync();
+        }
+
+        private void EnsureDatabaseDirectory()
+        {
+            var directory = Path.GetDirectoryName(dbPath);
+            if (!string.IsNullOrWhiteSpace(directory))
+                Directory.CreateDirectory(directory);
+        }
+
+        private void MigrateLegacyDatabaseFileIfNeeded()
+        {
+            if (File.Exists(dbPath))
+                return;
+
+            var legacyDbPath = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
+                Config.AppName,
+                "Storage.db");
+
+            if (!File.Exists(legacyDbPath))
+                return;
+
+            File.Copy(legacyDbPath, dbPath);
         }
 
         private async Task BootstrapLegacyMigrationHistoryAsync()
@@ -73,29 +100,40 @@ namespace Typedown.Core.Services
             if (!File.Exists(dbPath))
                 return;
 
-            var builder = new SqliteConnectionStringBuilder() { DataSource = dbPath };
-            await using var connection = new SqliteConnection(builder.ConnectionString);
-            await connection.OpenAsync();
-
-            var initialTables = new[] { "ExportConfig", "FileAccessHistory", "FolderAccessHistory", "ImageUploadConfig" };
-            foreach (var tableName in initialTables)
+            try
             {
-                if (!await TableExistsAsync(connection, tableName))
-                    return;
+                var builder = new SqliteConnectionStringBuilder() { DataSource = dbPath };
+                await using var connection = new SqliteConnection(builder.ConnectionString);
+                await connection.OpenAsync();
+
+                var initialTables = new[] { "ExportConfig", "FileAccessHistory", "FolderAccessHistory", "ImageUploadConfig" };
+                foreach (var tableName in initialTables)
+                {
+                    if (!await TableExistsAsync(connection, tableName))
+                        return;
+                }
+
+                await using var createHistory = connection.CreateCommand();
+                createHistory.CommandText =
+                    "CREATE TABLE IF NOT EXISTS \"__EFMigrationsHistory\" (" +
+                    "\"MigrationId\" TEXT NOT NULL CONSTRAINT \"PK___EFMigrationsHistory\" PRIMARY KEY, " +
+                    "\"ProductVersion\" TEXT NOT NULL);";
+                await createHistory.ExecuteNonQueryAsync();
+
+                await using var insertInitialMigration = connection.CreateCommand();
+                insertInitialMigration.CommandText =
+                    "INSERT OR IGNORE INTO \"__EFMigrationsHistory\" (\"MigrationId\", \"ProductVersion\") " +
+                    "VALUES ('20230226122314_InitialCreate', '3.1.30');";
+                await insertInitialMigration.ExecuteNonQueryAsync();
             }
-
-            await using var createHistory = connection.CreateCommand();
-            createHistory.CommandText =
-                "CREATE TABLE IF NOT EXISTS \"__EFMigrationsHistory\" (" +
-                "\"MigrationId\" TEXT NOT NULL CONSTRAINT \"PK___EFMigrationsHistory\" PRIMARY KEY, " +
-                "\"ProductVersion\" TEXT NOT NULL);";
-            await createHistory.ExecuteNonQueryAsync();
-
-            await using var insertInitialMigration = connection.CreateCommand();
-            insertInitialMigration.CommandText =
-                "INSERT OR IGNORE INTO \"__EFMigrationsHistory\" (\"MigrationId\", \"ProductVersion\") " +
-                "VALUES ('20230226122314_InitialCreate', '3.1.30');";
-            await insertInitialMigration.ExecuteNonQueryAsync();
+            catch (Exception ex) when (ex is InvalidOperationException or TargetInvocationException)
+            {
+                // Microsoft.Data.Sqlite internally probes ApplicationData.Current via reflection
+                // to resolve the native SQLite library. In unpackaged WinUI 3 apps this throws
+                // InvalidOperationException (HRESULT 0x80073D54: APPMODEL_ERROR_NO_PACKAGE).
+                // When the probe is wrapped in reflection, the inner exception surfaces as
+                // TargetInvocationException. In either case the legacy bootstrap must be skipped.
+            }
         }
 
         private static async Task<bool> TableExistsAsync(SqliteConnection connection, string tableName)

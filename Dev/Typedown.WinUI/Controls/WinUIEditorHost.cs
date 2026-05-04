@@ -94,6 +94,7 @@ namespace Typedown.WinUI.Controls
 
                     coreInitialized = true;
                     await webView.CoreWebView2.AddScriptToExecuteOnDocumentCreatedAsync(BuildInitialEditorBackgroundScript(themePayload.Background));
+                    await webView.CoreWebView2.AddScriptToExecuteOnDocumentCreatedAsync(BuildFindShortcutScript());
                 }
 
                 AttachCoreWebView();
@@ -243,6 +244,27 @@ namespace Typedown.WinUI.Controls
                     document.addEventListener('DOMContentLoaded', apply, { once: true });
                 })();
                 """);
+        }
+
+        private static string BuildFindShortcutScript()
+        {
+            return """
+                (() => {
+                    document.addEventListener('keydown', event => {
+                        if (!event.ctrlKey || event.shiftKey || event.altKey || String(event.key).toLowerCase() !== 'f') {
+                            return;
+                        }
+
+                        event.preventDefault();
+                        event.stopPropagation();
+                        window.chrome.webview.postMessage(JSON.stringify({
+                            type: 'message',
+                            name: 'OpenFindReplace',
+                            args: {}
+                        }));
+                    }, true);
+                })();
+                """;
         }
 
         private static byte ToByte(double value)

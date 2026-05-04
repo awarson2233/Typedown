@@ -10,9 +10,12 @@ namespace Typedown.Core.Services
 
         public string GetBackupFilePath(string sourcePath)
         {
+            if (string.IsNullOrWhiteSpace(sourcePath))
+                return null;
+
             if (!Directory.Exists(backupPath))
                 Directory.CreateDirectory(backupPath);
-            sourcePath ??= "";
+
             var pathHash = Common.SimpleHash2(sourcePath);
             var pathFilename = Path.GetFileName(sourcePath);
             return Path.Combine(backupPath, $"{pathHash}_{pathFilename}");
@@ -22,7 +25,11 @@ namespace Typedown.Core.Services
         {
             try
             {
-                await File.WriteAllTextAsync(GetBackupFilePath(path), markdown);
+                var backupFilePath = GetBackupFilePath(path);
+                if (backupFilePath == null)
+                    return false;
+
+                await File.WriteAllTextAsync(backupFilePath, markdown);
                 return true;
             }
             catch
@@ -35,7 +42,11 @@ namespace Typedown.Core.Services
         {
             try
             {
-                return await File.ReadAllTextAsync(GetBackupFilePath(path));
+                var backupFilePath = GetBackupFilePath(path);
+                if (backupFilePath == null || !File.Exists(backupFilePath))
+                    return null;
+
+                return await File.ReadAllTextAsync(backupFilePath);
             }
             catch
             {
@@ -47,7 +58,9 @@ namespace Typedown.Core.Services
         {
             try
             {
-                File.Delete(GetBackupFilePath(path));
+                var backupFilePath = GetBackupFilePath(path);
+                if (backupFilePath != null)
+                    File.Delete(backupFilePath);
             }
             catch
             {

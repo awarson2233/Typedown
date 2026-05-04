@@ -258,6 +258,20 @@ public class Phase10CoreContractsBoundaryTests
     }
 
     [TestMethod]
+    public void WinUIAppDataPathProvider_AvoidsApplicationDataWhenUnpackaged()
+    {
+        var source = File.ReadAllText(Path.Combine(RepoRoot, "Dev", "Typedown.WinUI", "Services", "WinUIAppDataPathProvider.cs"));
+        var packageIdentityProbe = source.IndexOf("HasPackageIdentity", StringComparison.Ordinal);
+        var applicationDataAccess = source.IndexOf("ApplicationData.Current.LocalFolder.Path", StringComparison.Ordinal);
+
+        Assert.IsTrue(packageIdentityProbe >= 0, "WinUI app-data paths must probe package identity before using ApplicationData.Current.");
+        Assert.IsTrue(applicationDataAccess >= 0, "Packaged WinUI app-data paths should still use ApplicationData.Current.LocalFolder.");
+        Assert.IsTrue(packageIdentityProbe < applicationDataAccess, "Unpackaged Debug_Local must avoid throwing WinRT 0x80073D54 before falling back.");
+        AssertHasTypeReference(source, "GetCurrentPackageFullName");
+        AssertHasTypeReference(source, "ERROR_INSUFFICIENT_BUFFER");
+    }
+
+    [TestMethod]
     public void XamlDesignApp_DebugLocalMappingsPointToExistingDebugConfigurations()
     {
         var solutionSource = File.ReadAllText(Path.Combine(RepoRoot, "Typedown.sln"));
