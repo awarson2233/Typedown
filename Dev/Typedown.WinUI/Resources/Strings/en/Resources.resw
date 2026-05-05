@@ -121,4 +121,37 @@
     <value>Typedown</value>
     <comment>应用程序名称</comment>
   </data>
+  <data name="MenuBar_File_New.Text" xml:space="preserve">
+    <value>New</value>
+  </data>
+  <data name="MenuBar_File_NewWindow.Text" xml:space="preserve">
+    <value>New Window</value>
+  </data>
+  <data name="MenuBar_File_Open.Text" xml:space="preserve">
+    <value>Open...</value>
+  </data>
+  <data name="MenuBar_File_OpenFolder.Text" xml:space="preserve">
+    <value>Open Folder...</value>
+  </data>
+  <data name="MenuBar_File_OpenRecent.Text" xml:space="preserve">
+    <value>Open Recent</value>
+  </data>
+  <data name="MenuBar_File_NoRecentFiles.Text" xml:space="preserve">
+    <value>No Recent Files</value>
+  </data>
+  <data name="MenuBar_File_ClearRecentFiles.Text" xml:space="preserve">
+    <value>Clear Recent Files</value>
+  </data>
+  <data name="MenuBar_File_Save.Text" xml:space="preserve">
+    <value>Save</value>
+  </data>
+  <data name="MenuBar_File_SaveAs.Text" xml:space="preserve">
+    <value>Save As...</value>
+  </data>
+  <data name="MenuBar_File_Import.Text" xml:space="preserve">
+    <value>Import</value>
+  </data>
+  <data name="MenuBar_File_Export.Text" xml:space="preserve">
+    <value>Export</value>
+  </data>
 </root>

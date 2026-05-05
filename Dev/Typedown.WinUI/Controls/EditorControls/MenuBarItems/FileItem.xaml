@@ -11,22 +11,22 @@
     Loaded="OnLoaded"
     Unloaded="OnUnloaded"
     mc:Ignorable="d">
-    <MenuFlyoutItem x:Name="NewFileItem" Text="New"/>
-    <MenuFlyoutItem x:Name="NewWindowItem" Text="NewWindow"/>
+    <MenuFlyoutItem x:Name="NewFileItem" x:Uid="MenuBar_File_New"/>
+    <MenuFlyoutItem x:Name="NewWindowItem" x:Uid="MenuBar_File_NewWindow"/>
     <MenuFlyoutSeparator/>
-    <MenuFlyoutItem x:Name="OpenFileItem" Text="Open"/>
-    <MenuFlyoutItem x:Name="OpenFolderItem" Text="OpenFolder"/>
-    <MenuFlyoutSubItem x:Name="OpenRecentSubMenu" Text="OpenRecent" Loaded="OnOpenRecentSubMenuLoaded">
-        <MenuFlyoutItem x:Name="NoRecentFilesItem" Text="NoRecentFiles" IsEnabled="False"/>
+    <MenuFlyoutItem x:Name="OpenFileItem" x:Uid="MenuBar_File_Open"/>
+    <MenuFlyoutItem x:Name="OpenFolderItem" x:Uid="MenuBar_File_OpenFolder"/>
+    <MenuFlyoutSubItem x:Name="OpenRecentSubMenu" x:Uid="MenuBar_File_OpenRecent" Loaded="OnOpenRecentSubMenuLoaded">
+        <MenuFlyoutItem x:Name="NoRecentFilesItem" x:Uid="MenuBar_File_NoRecentFiles" IsEnabled="False"/>
         <MenuFlyoutSeparator/>
-        <MenuFlyoutItem x:Name="ClearRecentFilesItem" Text="ClearRecentFiles"/>
+        <MenuFlyoutItem x:Name="ClearRecentFilesItem" x:Uid="MenuBar_File_ClearRecentFiles"/>
     </MenuFlyoutSubItem>
     <MenuFlyoutSeparator/>
-    <MenuFlyoutItem x:Name="SaveItem" Text="Save"/>
-    <MenuFlyoutItem x:Name="SaveAsItem" Text="SaveAs"/>
+    <MenuFlyoutItem x:Name="SaveItem" x:Uid="MenuBar_File_Save"/>
+    <MenuFlyoutItem x:Name="SaveAsItem" x:Uid="MenuBar_File_SaveAs"/>
     <MenuFlyoutSeparator/>
-    <MenuFlyoutItem Text="Import"/>
-    <MenuFlyoutSubItem x:Name="ExportSubMenu" Text="Export" Loaded="OnExportSubMenuLoaded">
+    <MenuFlyoutItem x:Uid="MenuBar_File_Import"/>
+    <MenuFlyoutSubItem x:Name="ExportSubMenu" x:Uid="MenuBar_File_Export" Loaded="OnExportSubMenuLoaded">
         <MenuFlyoutItem x:Name="NoExportConfigItem" Text="NoExportConfigs" IsEnabled="False"/>
         <MenuFlyoutSeparator/>
         <MenuFlyoutItem x:Name="ExportSettingsItem" Text="ExportSettings" CommandParameter="Settings/Export"/>
