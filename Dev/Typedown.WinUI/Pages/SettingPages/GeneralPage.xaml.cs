@@ -12,6 +12,7 @@ namespace Typedown.WinUI.Pages.SettingPages
 
         public GeneralPage()
         {
+            NavigationCacheMode = NavigationCacheMode.Enabled;
             this.InitializeComponent();
         }
 

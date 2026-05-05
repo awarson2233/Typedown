@@ -1,4 +1,5 @@
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Navigation;
 
 namespace Typedown.WinUI.Pages.SettingPages
 {
@@ -8,6 +9,7 @@ namespace Typedown.WinUI.Pages.SettingPages
 
         public AboutPage()
         {
+            NavigationCacheMode = NavigationCacheMode.Enabled;
             this.InitializeComponent();
         }
     }

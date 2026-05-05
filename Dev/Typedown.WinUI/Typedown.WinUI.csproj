@@ -104,12 +104,8 @@
 
     <ItemGroup>
         <Page Remove="Controls\FloatControls\FindReplace.xaml" />
-        <Page Remove="Controls\SettingControls\AboutApp.xaml" />
         <Compile Remove="Controls\EditorControls\MenuBarItems\MenuBarItemBase.cs" />
         <Compile Remove="Controls\EditorControls\MenuBarItems\*.xaml.cs" />
         <Compile Remove="Controls\EditorControls\ContextMenuItems\*.xaml.cs" />
-        <Compile Remove="Controls\SettingControls\AboutApp.xaml.cs" />
-        <None Include="Controls\SettingControls\AboutApp.xaml" />
-        <None Include="Controls\SettingControls\AboutApp.xaml.cs" />
     </ItemGroup>
 </Project>

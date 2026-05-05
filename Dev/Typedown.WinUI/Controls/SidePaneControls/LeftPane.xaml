@@ -37,8 +37,8 @@
                 </Button>
             </muxc:NavigationView.PaneFooter>-->
             <muxc:NavigationView.MenuItems>
-                <muxc:NavigationViewItem Content="Files" Tag="Folder" Name="Folder"/>
-                <muxc:NavigationViewItem Content="Outline" Tag="Toc" Name="Toc"/>
+                <muxc:NavigationViewItem Content="{u:LocaleString Key=Files}" Tag="Folder" Name="Folder"/>
+                <muxc:NavigationViewItem Content="{u:LocaleString Key=Outline}" Tag="Toc" Name="Toc"/>
             </muxc:NavigationView.MenuItems>
         </muxc:NavigationView>
         <Frame Margin="0,50,0,0" Visibility="Visible" x:Name="Frame">

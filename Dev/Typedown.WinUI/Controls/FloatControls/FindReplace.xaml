@@ -88,7 +88,7 @@
                         <ColumnDefinition Width="Auto"/>
                         <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
-                    <TextBox PlaceholderText="Find" x:Name="TextBoxSearch" KeyDown="OnTextBoxSearchKeyDown" TextChanged="OnSearchTextChanged" Text=""/>
+                    <TextBox PlaceholderText="{u:LocaleString Key=Find}" x:Name="TextBoxSearch" KeyDown="OnTextBoxSearchKeyDown" TextChanged="OnSearchTextChanged" Text=""/>
                     <Button Grid.Column="1" Width="32" Height="32" Style="{ThemeResource EllipsisIconButtonStyle}" CommandParameter="next" Click="OnFindNextButtonClick">
                         <FontIcon FontSize="14" Glyph="&#xE74B;"/>
                     </Button>
@@ -99,9 +99,9 @@
                         <FontIcon FontSize="14" Glyph="&#xE9E9;"/>
                         <Button.Flyout>
                             <MenuFlyout Placement="Top">
-                                <ToggleMenuFlyoutItem Text="CaseSensitive" IsChecked="False"/>
-                                <ToggleMenuFlyoutItem Text="WholeWord" IsChecked="False"/>
-                                <ToggleMenuFlyoutItem Text="UseRegexp" IsChecked="False"/>
+                                <ToggleMenuFlyoutItem Text="{u:LocaleString Key=CaseSensitive}" IsChecked="False"/>
+                                <ToggleMenuFlyoutItem Text="{u:LocaleString Key=WholeWord}" IsChecked="False"/>
+                                <ToggleMenuFlyoutItem Text="{u:LocaleString Key=UseRegexp}" IsChecked="False"/>
                             </MenuFlyout>
                         </Button.Flyout>
                     </Button>
@@ -115,9 +115,9 @@
                         <ColumnDefinition Width="Auto"/>
                         <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
-                    <TextBox PlaceholderText="Replace" x:Name="TextBoxReplace" KeyDown="OnTextBoxReplaceKeyDown"/>
-                    <Button Grid.Column="1" MinWidth="100" Content="Replace" Click="OnReplaceButtonClick"/>
-                    <Button Grid.Column="2" MinWidth="100" Content="ReplaceAll" Click="OnReplaceAllButtonClick"/>
+                    <TextBox PlaceholderText="{u:LocaleString Key=Replace}" x:Name="TextBoxReplace" KeyDown="OnTextBoxReplaceKeyDown"/>
+                    <Button Grid.Column="1" MinWidth="100" Content="{u:LocaleString Key=Replace}" Click="OnReplaceButtonClick"/>
+                    <Button Grid.Column="2" MinWidth="100" Content="{u:LocaleString Key=ReplaceAll}" Click="OnReplaceAllButtonClick"/>
                 </Grid>
             </Grid>
             <controls:GridSplitter

@@ -1,5 +1,5 @@
 <local:MenuBarItemBase
-    Title="Format"
+    Title="{u:LocaleString Key=Format}"
     x:Class="Typedown.WinUI.Controls.FormatItem"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
@@ -9,17 +9,17 @@
     xmlns:u="using:Typedown.WinUI.Controls"
     Unloaded="OnUnloaded"
     mc:Ignorable="d">
-    <ToggleMenuFlyoutItem x:Name="StrongItem" Text="Strong" CommandParameter="strong" IsEnabled="True" IsChecked="False"/>
-    <ToggleMenuFlyoutItem x:Name="EmphasisItem" Text="Emphasis" CommandParameter="em" IsEnabled="True" IsChecked="False"/>
-    <ToggleMenuFlyoutItem x:Name="UnderlineItem" Text="Underline" CommandParameter="u" IsEnabled="True" IsChecked="False"/>
-    <ToggleMenuFlyoutItem x:Name="InlineCodeItem" Text="InlineCode" CommandParameter="inline_code" IsEnabled="True" IsChecked="False"/>
-    <ToggleMenuFlyoutItem x:Name="InlineMathItem" Text="InlineMath" CommandParameter="inline_math" IsEnabled="True" IsChecked="False"/>
+    <ToggleMenuFlyoutItem x:Name="StrongItem" Text="{u:LocaleString Key=Strong}" CommandParameter="strong" IsEnabled="True" IsChecked="False"/>
+    <ToggleMenuFlyoutItem x:Name="EmphasisItem" Text="{u:LocaleString Key=Emphasis}" CommandParameter="em" IsEnabled="True" IsChecked="False"/>
+    <ToggleMenuFlyoutItem x:Name="UnderlineItem" Text="{u:LocaleString Key=Underline}" CommandParameter="u" IsEnabled="True" IsChecked="False"/>
+    <ToggleMenuFlyoutItem x:Name="InlineCodeItem" Text="{u:LocaleString Key=InlineCode}" CommandParameter="inline_code" IsEnabled="True" IsChecked="False"/>
+    <ToggleMenuFlyoutItem x:Name="InlineMathItem" Text="{u:LocaleString Key=InlineMath}" CommandParameter="inline_math" IsEnabled="True" IsChecked="False"/>
     <MenuFlyoutSeparator/>
-    <ToggleMenuFlyoutItem x:Name="StrikethroughItem" Text="Strikethrough" CommandParameter="del" IsEnabled="True" IsChecked="False"/>
-    <ToggleMenuFlyoutItem x:Name="HighlightItem" Text="Highlight" CommandParameter="mark" IsChecked="False" IsEnabled="True"/>
+    <ToggleMenuFlyoutItem x:Name="StrikethroughItem" Text="{u:LocaleString Key=Strikethrough}" CommandParameter="del" IsEnabled="True" IsChecked="False"/>
+    <ToggleMenuFlyoutItem x:Name="HighlightItem" Text="{u:LocaleString Key=Highlight}" CommandParameter="mark" IsChecked="False" IsEnabled="True"/>
     <MenuFlyoutSeparator/>
-    <ToggleMenuFlyoutItem x:Name="HyperlinkItem" Text="Hyperlink" CommandParameter="link" IsEnabled="True" IsChecked="False"/>
-    <ToggleMenuFlyoutItem x:Name="ImageItem" Text="Image" CommandParameter="image" IsEnabled="True" IsChecked="False"/>
+    <ToggleMenuFlyoutItem x:Name="HyperlinkItem" Text="{u:LocaleString Key=Hyperlink}" CommandParameter="link" IsEnabled="True" IsChecked="False"/>
+    <ToggleMenuFlyoutItem x:Name="ImageItem" Text="{u:LocaleString Key=Image}" CommandParameter="image" IsEnabled="True" IsChecked="False"/>
     <MenuFlyoutSeparator/>
-    <MenuFlyoutItem x:Name="ClearFormatItem" Text="ClearFormat" CommandParameter="clear" IsEnabled="True"/>
+    <MenuFlyoutItem x:Name="ClearFormatItem" Text="{u:LocaleString Key=ClearFormat}" CommandParameter="clear" IsEnabled="True"/>
 </local:MenuBarItemBase>

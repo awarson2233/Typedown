@@ -243,10 +243,7 @@ public sealed partial class FileItem : MenuBarItemBase
         SetShortcut(PrintItem, settings?.ShortcutPrint);
         SetShortcut(CloseItem, settings?.ShortcutClose);
 
-        if (FindMenuItem("Import") is { } importItem)
-        {
-            SetCommand(importItem, files?.ImportCommand);
-        }
+        SetCommand(ImportItem, files?.ImportCommand);
 
         UpdateOpenRecentItem();
         UpdateExportItem();

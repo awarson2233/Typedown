@@ -4,9 +4,10 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:local="using:Typedown.WinUI.Controls"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
-    xmlns:muxc="using:Microsoft.UI.Xaml.Controls" 
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:muxc="using:Microsoft.UI.Xaml.Controls"
     xmlns:animatedvisuals="using:Microsoft.UI.Xaml.Controls.AnimatedVisuals"
+    xmlns:u="using:Typedown.WinUI.Controls"
     Unloaded="OnUnloaded"
     mc:Ignorable="d"
     d:DesignHeight="300"
@@ -18,16 +19,16 @@
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
-        <TextBlock x:Name="TitleTextBlock" FontWeight="SemiBold" FontSize="20" Text="Edit image"/>
+        <TextBlock x:Name="TitleTextBlock" FontWeight="SemiBold" FontSize="20" Text="{u:LocaleString Key=EditImage}"/>
         <StackPanel Grid.Row="1" Spacing="8">
-            <TextBlock x:Name="PathTextBlock" Text="Path"/>
+            <TextBlock x:Name="PathTextBlock" Text="{u:LocaleString Key=Path}"/>
             <Grid ColumnSpacing="8">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
                 <TextBox x:Name="TextBoxSrc"/>
-                <Button x:Name="ImagePickerButton" MinWidth="80" Grid.Column="1" Content="Browse" Click="OnImagePickerButtonClick"/>
+                <Button x:Name="ImagePickerButton" MinWidth="80" Grid.Column="1" Content="{u:LocaleString Key=Browse}" Click="OnImagePickerButtonClick"/>
             </Grid>
             <Grid Margin="0,8,0,0" RowSpacing="8" ColumnSpacing="8">
                 <Grid.RowDefinitions>
@@ -38,9 +39,9 @@
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="*"/>
                 </Grid.ColumnDefinitions>
-                <TextBlock x:Name="ImageAltTextBlock" Text="Alt"/>
+                <TextBlock x:Name="ImageAltTextBlock" Text="{u:LocaleString Key=ImageAlt}"/>
                 <TextBox x:Name="TextBoxAlt" Grid.Row="1"/>
-                <TextBlock x:Name="ImageTitleTextBlock" Grid.Column="1" Text="Title"/>
+                <TextBlock x:Name="ImageTitleTextBlock" Grid.Column="1" Text="{u:LocaleString Key=Title}"/>
                 <TextBox x:Name="TextBoxTitle" Grid.Column="1" Grid.Row="1"/>
             </Grid>
         </StackPanel>
@@ -62,8 +63,8 @@
                     </muxc:AnimatedIcon>
                 </Viewbox>
             </Button>
-            <Button x:Name="SaveButton" Content="OK" Grid.Column="1" MinWidth="100" Click="OnSaveButtonClick" Style="{ThemeResource AccentButtonStyle}"/>
-            <Button x:Name="CancelButton" Grid.Column="2" Content="Cancel" MinWidth="100" Click="OnCancelButtonClick"/>
+            <Button x:Name="SaveButton" Content="{u:LocaleString Key=Ok}" Grid.Column="1" MinWidth="100" Click="OnSaveButtonClick" Style="{ThemeResource AccentButtonStyle}"/>
+            <Button x:Name="CancelButton" Grid.Column="2" Content="{u:LocaleString Key=Cancel}" MinWidth="100" Click="OnCancelButtonClick"/>
         </Grid>
     </Grid>
 </UserControl>

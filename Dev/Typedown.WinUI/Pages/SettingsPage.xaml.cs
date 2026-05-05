@@ -41,6 +41,8 @@ namespace Typedown.WinUI.Pages
 
         private SettingsNavigationParameter? navigationParameter;
 
+        private bool isUpdatingNavigationSelection;
+
         public SettingsPage()
         {
             InitializeComponent();
@@ -50,6 +52,11 @@ namespace Typedown.WinUI.Pages
 
         private void OnNavigationViewSelectionChanged(NavigationView sender, NavigationViewSelectionChangedEventArgs args)
         {
+            if (isUpdatingNavigationSelection)
+            {
+                return;
+            }
+
             if (sender.SelectedItem is not NavigationViewItem item)
             {
                 return;
@@ -88,16 +95,32 @@ namespace Typedown.WinUI.Pages
 
         private void OnNavigated(object sender, NavigationEventArgs e)
         {
-            var item = NavigationView.MenuItems.OfType<NavigationViewItem>().Where(x => Route.GetSettingsPageType(x.Tag as string) == ContentFrame.SourcePageType).FirstOrDefault();
-            if (item != null) NavigationView.SelectedItem = item;
+            var item = NavigationView.MenuItems
+                .OfType<NavigationViewItem>()
+                .Where(x => Route.GetSettingsPageType(x.Tag as string) == GetNavigationSelectionPageType(ContentFrame.SourcePageType))
+                .FirstOrDefault();
+
+            if (item != null)
+            {
+                isUpdatingNavigationSelection = true;
+                try
+                {
+                    NavigationView.SelectedItem = item;
+                }
+                finally
+                {
+                    isUpdatingNavigationSelection = false;
+                }
+            }
+
             switch (e.NavigationMode)
             {
                 case NavigationMode.Forward:
                 case NavigationMode.New:
-            if (e.Content is Page page)
-            {
-                BreadcrumbBarItems.Add(new(page));
-            }
+                    if (e.Content is Page page)
+                    {
+                        BreadcrumbBarItems.Add(new(page));
+                    }
                     break;
                 case NavigationMode.Back:
                     BreadcrumbBarItems.RemoveAt(BreadcrumbBarItems.Count - 1);
@@ -190,6 +213,21 @@ namespace Typedown.WinUI.Pages
             }
 
             return query;
+        }
+
+        private static Type? GetNavigationSelectionPageType(Type? pageType)
+        {
+            if (pageType == typeof(ShortcutPage))
+            {
+                return typeof(GeneralPage);
+            }
+
+            if (pageType == typeof(ImageUploadPage) || pageType == typeof(UploadConfigPage))
+            {
+                return typeof(ImagePage);
+            }
+
+            return pageType;
         }
     }
 

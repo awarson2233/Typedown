@@ -48,15 +48,9 @@
             <muxc:NavigationViewItem Icon="Globe" Tag="General"/>
             <muxc:NavigationViewItem Icon="View" Tag="View"/>
             <muxc:NavigationViewItem Icon="Edit" Tag="Editor"/>
-            <muxc:NavigationViewItem Icon="Keyboard" Tag="Shortcut"/>
             <muxc:NavigationViewItem Tag="Image">
                 <muxc:NavigationViewItem.Icon>
                     <FontIcon Glyph="&#xe91b;"/>
-                </muxc:NavigationViewItem.Icon>
-            </muxc:NavigationViewItem>
-            <muxc:NavigationViewItem Tag="ImageUpload">
-                <muxc:NavigationViewItem.Icon>
-                    <FontIcon Glyph="&#xee71;"/>
                 </muxc:NavigationViewItem.Icon>
             </muxc:NavigationViewItem>
             <muxc:NavigationViewItem Tag="Export">
@@ -93,7 +87,7 @@
             </Grid>
             <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
                 <Grid>
-                    <controls:GlobalFrame x:Name="ContentFrame" MaxWidth="1200"/>
+                    <controls:GlobalFrame x:Name="ContentFrame" MaxWidth="1200" CacheSize="6"/>
                 </Grid>
             </ScrollViewer>
         </Grid>

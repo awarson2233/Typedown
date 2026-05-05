@@ -1,6 +1,7 @@
 using Windows.ApplicationModel;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Typedown.Core;
 
 namespace Typedown.WinUI.Controls
 {

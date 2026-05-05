@@ -1,5 +1,5 @@
 <local:MenuBarItemBase
-    Title="Edit"
+    Title="{u:LocaleString Key=Edit}"
     x:Class="Typedown.WinUI.Controls.EditItem"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
@@ -10,27 +10,27 @@
     Loaded="OnLoaded"
     Unloaded="OnUnloaded"
     mc:Ignorable="d">
-    <MenuFlyoutItem x:Name="UndoItem" Text="Undo" IsEnabled="True"/>
-    <MenuFlyoutItem x:Name="RedoItem" Text="Redo" IsEnabled="True"/>
+    <MenuFlyoutItem x:Name="UndoItem" Text="{u:LocaleString Key=Undo}" IsEnabled="True"/>
+    <MenuFlyoutItem x:Name="RedoItem" Text="{u:LocaleString Key=Redo}" IsEnabled="True"/>
     <MenuFlyoutSeparator/>
-    <MenuFlyoutItem x:Name="CutItem" Text="Cut" IsEnabled="True" CommandParameter="normal"/>
-    <MenuFlyoutItem x:Name="CopyItem" Text="Copy" IsEnabled="True" CommandParameter="normal"/>
-    <MenuFlyoutItem x:Name="PasteItem" Text="Paste" CommandParameter="normal"/>
+    <MenuFlyoutItem x:Name="CutItem" Text="{u:LocaleString Key=Cut}" IsEnabled="True" CommandParameter="normal"/>
+    <MenuFlyoutItem x:Name="CopyItem" Text="{u:LocaleString Key=Copy}" IsEnabled="True" CommandParameter="normal"/>
+    <MenuFlyoutItem x:Name="PasteItem" Text="{u:LocaleString Key=Paste}" CommandParameter="normal"/>
     <MenuFlyoutSeparator Visibility="Visible"/>
-    <MenuFlyoutItem x:Name="CopyAsPlainTextItem" Text="CopyAsPlainText" Visibility="Visible" CommandParameter="copyAsPlainText" IsEnabled="True"/>
-    <MenuFlyoutItem x:Name="CopyAsMarkdownItem" Text="CopyAsMarkdown" Visibility="Visible" CommandParameter="copyAsMarkdown" IsEnabled="True"/>
-    <MenuFlyoutItem x:Name="CopyAsHTMLCodeItem" Text="CopyAsHTMLCode" Visibility="Visible" CommandParameter="copyAsHtml" IsEnabled="True"/>
-    <MenuFlyoutItem x:Name="PasteAsPlainTextItem" Text="PasteAsPlainText" Visibility="Visible" CommandParameter="pasteAsPlainText"/>
+    <MenuFlyoutItem x:Name="CopyAsPlainTextItem" Text="{u:LocaleString Key=CopyAsPlainText}" Visibility="Visible" CommandParameter="copyAsPlainText" IsEnabled="True"/>
+    <MenuFlyoutItem x:Name="CopyAsMarkdownItem" Text="{u:LocaleString Key=CopyAsMarkdown}" Visibility="Visible" CommandParameter="copyAsMarkdown" IsEnabled="True"/>
+    <MenuFlyoutItem x:Name="CopyAsHTMLCodeItem" Text="{u:LocaleString Key=CopyAsHTMLCode}" Visibility="Visible" CommandParameter="copyAsHtml" IsEnabled="True"/>
+    <MenuFlyoutItem x:Name="PasteAsPlainTextItem" Text="{u:LocaleString Key=PasteAsPlainText}" Visibility="Visible" CommandParameter="pasteAsPlainText"/>
     <MenuFlyoutSeparator/>
-    <MenuFlyoutItem x:Name="DeleteItem" Text="Delete" IsEnabled="True"/>
+    <MenuFlyoutItem x:Name="DeleteItem" Text="{u:LocaleString Key=Delete}" IsEnabled="True"/>
     <MenuFlyoutSeparator/>
-    <MenuFlyoutItem x:Name="SelectAllItem" Text="SelectAll"/>
+    <MenuFlyoutItem x:Name="SelectAllItem" Text="{u:LocaleString Key=SelectAll}"/>
     <MenuFlyoutSeparator/>
-    <MenuFlyoutSubItem Text="FindAndReplace">
-        <MenuFlyoutItem x:Name="FindItem" Text="Find" CommandParameter="Search"/>
-        <MenuFlyoutItem x:Name="FindNextItem" Text="FindNext" CommandParameter="next"/>
-        <MenuFlyoutItem x:Name="FindPreviousItem" Text="FindPrevious" CommandParameter="prev"/>
+    <MenuFlyoutSubItem Text="{u:LocaleString Key=FindAndReplace}">
+        <MenuFlyoutItem x:Name="FindItem" Text="{u:LocaleString Key=Find}" CommandParameter="Search"/>
+        <MenuFlyoutItem x:Name="FindNextItem" Text="{u:LocaleString Key=FindNext}" CommandParameter="next"/>
+        <MenuFlyoutItem x:Name="FindPreviousItem" Text="{u:LocaleString Key=FindPrevious}" CommandParameter="prev"/>
         <MenuFlyoutSeparator/>
-        <MenuFlyoutItem x:Name="ReplaceItem" Text="Replace" CommandParameter="Replace"/>
+        <MenuFlyoutItem x:Name="ReplaceItem" Text="{u:LocaleString Key=Replace}" CommandParameter="Replace"/>
     </MenuFlyoutSubItem>
 </local:MenuBarItemBase>

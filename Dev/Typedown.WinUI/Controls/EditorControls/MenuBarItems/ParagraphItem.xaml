@@ -1,5 +1,5 @@
 <local:MenuBarItemBase
-    Title="Paragraph"
+    Title="{u:LocaleString Key=Paragraph}"
     x:Class="Typedown.WinUI.Controls.ParagraphItem"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
@@ -9,47 +9,47 @@
     xmlns:u="using:Typedown.WinUI.Controls"
     Unloaded="OnUnloaded"
     mc:Ignorable="d">
-    <MenuFlyoutSubItem Text="Heading">
+    <MenuFlyoutSubItem Text="{u:LocaleString Key=Heading}">
         <MenuFlyoutSubItem.Items>
-            <ToggleMenuFlyoutItem x:Name="Heading1Item" Text="Heading1" CommandParameter="heading 1" IsEnabled="True" IsChecked="False"/>
-            <ToggleMenuFlyoutItem x:Name="Heading2Item" Text="Heading2" CommandParameter="heading 2" IsEnabled="True" IsChecked="False"/>
-            <ToggleMenuFlyoutItem x:Name="Heading3Item" Text="Heading3" CommandParameter="heading 3" IsEnabled="True" IsChecked="False"/>
-            <ToggleMenuFlyoutItem x:Name="Heading4Item" Text="Heading4" CommandParameter="heading 4" IsEnabled="True" IsChecked="False"/>
-            <ToggleMenuFlyoutItem x:Name="Heading5Item" Text="Heading5" CommandParameter="heading 5" IsEnabled="True" IsChecked="False"/>
-            <ToggleMenuFlyoutItem x:Name="Heading6Item" Text="Heading6" CommandParameter="heading 6" IsEnabled="True" IsChecked="False"/>
+            <ToggleMenuFlyoutItem x:Name="Heading1Item" Text="{u:LocaleString Key=Heading1}" CommandParameter="heading 1" IsEnabled="True" IsChecked="False"/>
+            <ToggleMenuFlyoutItem x:Name="Heading2Item" Text="{u:LocaleString Key=Heading2}" CommandParameter="heading 2" IsEnabled="True" IsChecked="False"/>
+            <ToggleMenuFlyoutItem x:Name="Heading3Item" Text="{u:LocaleString Key=Heading3}" CommandParameter="heading 3" IsEnabled="True" IsChecked="False"/>
+            <ToggleMenuFlyoutItem x:Name="Heading4Item" Text="{u:LocaleString Key=Heading4}" CommandParameter="heading 4" IsEnabled="True" IsChecked="False"/>
+            <ToggleMenuFlyoutItem x:Name="Heading5Item" Text="{u:LocaleString Key=Heading5}" CommandParameter="heading 5" IsEnabled="True" IsChecked="False"/>
+            <ToggleMenuFlyoutItem x:Name="Heading6Item" Text="{u:LocaleString Key=Heading6}" CommandParameter="heading 6" IsEnabled="True" IsChecked="False"/>
         </MenuFlyoutSubItem.Items>
     </MenuFlyoutSubItem>
     <MenuFlyoutSeparator/>
-    <ToggleMenuFlyoutItem x:Name="ItemParagraphItem" Text="Paragraph" CommandParameter="paragraph" IsEnabled="True" IsChecked="False"/>
+    <ToggleMenuFlyoutItem x:Name="ItemParagraphItem" Text="{u:LocaleString Key=Paragraph}" CommandParameter="paragraph" IsEnabled="True" IsChecked="False"/>
     <MenuFlyoutSeparator/>
-    <MenuFlyoutItem x:Name="IncreaseHeadingLevelItem" Text="IncreaseHeadingLevel" CommandParameter="upgrade heading"/>
-    <MenuFlyoutItem x:Name="DecreaseHeadingLevelItem" Text="DecreaseHeadingLevel" CommandParameter="degrade heading"/>
+    <MenuFlyoutItem x:Name="IncreaseHeadingLevelItem" Text="{u:LocaleString Key=IncreaseHeadingLevel}" CommandParameter="upgrade heading"/>
+    <MenuFlyoutItem x:Name="DecreaseHeadingLevelItem" Text="{u:LocaleString Key=DecreaseHeadingLevel}" CommandParameter="degrade heading"/>
     <MenuFlyoutSeparator/>
-    <ToggleMenuFlyoutItem x:Name="TableItem" Text="Table" IsEnabled="True" IsChecked="False"/>
-    <ToggleMenuFlyoutItem x:Name="CodeFencesItem" Text="CodeFences" CommandParameter="pre" IsEnabled="True" IsChecked="False"/>
-    <ToggleMenuFlyoutItem x:Name="MathBlockItem" Text="MathBlock"  CommandParameter="mathblock" IsEnabled="True" IsChecked="False"/>
+    <ToggleMenuFlyoutItem x:Name="TableItem" Text="{u:LocaleString Key=Table}" IsEnabled="True" IsChecked="False"/>
+    <ToggleMenuFlyoutItem x:Name="CodeFencesItem" Text="{u:LocaleString Key=CodeFences}" CommandParameter="pre" IsEnabled="True" IsChecked="False"/>
+    <ToggleMenuFlyoutItem x:Name="MathBlockItem" Text="{u:LocaleString Key=MathBlock}"  CommandParameter="mathblock" IsEnabled="True" IsChecked="False"/>
     <MenuFlyoutSeparator/>
-    <ToggleMenuFlyoutItem x:Name="QuoteItem" Text="Quote" CommandParameter="blockquote" IsEnabled="True" IsChecked="False"/>
+    <ToggleMenuFlyoutItem x:Name="QuoteItem" Text="{u:LocaleString Key=Quote}" CommandParameter="blockquote" IsEnabled="True" IsChecked="False"/>
     <MenuFlyoutSeparator/>
-    <ToggleMenuFlyoutItem x:Name="OrderedListItem" Text="OrderedList" CommandParameter="ol-order" IsEnabled="True" IsChecked="False"/>
-    <ToggleMenuFlyoutItem x:Name="UnorderedListItem" Text="UnorderedList" CommandParameter="ul-bullet" IsEnabled="True" IsChecked="False"/>
-    <ToggleMenuFlyoutItem x:Name="TaskListItem" Text="TaskList" CommandParameter="ul-task" IsEnabled="True" IsChecked="False"/>
+    <ToggleMenuFlyoutItem x:Name="OrderedListItem" Text="{u:LocaleString Key=OrderedList}" CommandParameter="ol-order" IsEnabled="True" IsChecked="False"/>
+    <ToggleMenuFlyoutItem x:Name="UnorderedListItem" Text="{u:LocaleString Key=UnorderedList}" CommandParameter="ul-bullet" IsEnabled="True" IsChecked="False"/>
+    <ToggleMenuFlyoutItem x:Name="TaskListItem" Text="{u:LocaleString Key=TaskList}" CommandParameter="ul-task" IsEnabled="True" IsChecked="False"/>
     <MenuFlyoutSeparator/>
-    <MenuFlyoutItem x:Name="InsertParagraphBeforeItem" Text="InsertParagraphBefore" CommandParameter="before"/>
-    <MenuFlyoutItem x:Name="InsertParagraphAfterItem" Text="InsertParagraphAfter" CommandParameter="after"/>
+    <MenuFlyoutItem x:Name="InsertParagraphBeforeItem" Text="{u:LocaleString Key=InsertParagraphBefore}" CommandParameter="before"/>
+    <MenuFlyoutItem x:Name="InsertParagraphAfterItem" Text="{u:LocaleString Key=InsertParagraphAfter}" CommandParameter="after"/>
     <MenuFlyoutSeparator/>
-    <MenuFlyoutSubItem Text="Chart" IsEnabled="True">
-        <MenuFlyoutItem x:Name="VegaChartItem" Text="VegaChart" CommandParameter="vega-lite"/>
-        <MenuFlyoutItem x:Name="FlowChartItem" Text="FlowChart" CommandParameter="flowchart"/>
-        <MenuFlyoutItem x:Name="SequenceDiagramItem" Text="SequenceDiagram" CommandParameter="sequence"/>
-        <MenuFlyoutItem x:Name="PlantUMLDiagramItem" Text="PlantUMLDiagram" CommandParameter="plantuml"/>
-        <MenuFlyoutItem x:Name="MermaidItem" Text="Mermaid" CommandParameter="mermaid"/>
+    <MenuFlyoutSubItem Text="{u:LocaleString Key=Chart}" IsEnabled="True">
+        <MenuFlyoutItem x:Name="VegaChartItem" Text="{u:LocaleString Key=VegaChart}" CommandParameter="vega-lite"/>
+        <MenuFlyoutItem x:Name="FlowChartItem" Text="{u:LocaleString Key=FlowChart}" CommandParameter="flowchart"/>
+        <MenuFlyoutItem x:Name="SequenceDiagramItem" Text="{u:LocaleString Key=SequenceDiagram}" CommandParameter="sequence"/>
+        <MenuFlyoutItem x:Name="PlantUMLDiagramItem" Text="{u:LocaleString Key=PlantUMLDiagram}" CommandParameter="plantuml"/>
+        <MenuFlyoutItem x:Name="MermaidItem" Text="{u:LocaleString Key=Mermaid}" CommandParameter="mermaid"/>
     </MenuFlyoutSubItem>
     <MenuFlyoutSeparator/>
     <!--<ToggleMenuFlyoutItem x:Name="LinkReferencesItem" Text="LinkReference" CommandParameter="linkref" IsEnabled="True"/>-->
-    <ToggleMenuFlyoutItem x:Name="FootNoteItem" Text="Footnote" CommandParameter="footnote" IsEnabled="True"/>
+    <ToggleMenuFlyoutItem x:Name="FootNoteItem" Text="{u:LocaleString Key=Footnote}" CommandParameter="footnote" IsEnabled="True"/>
     <!--<MenuFlyoutSeparator/>-->
-    <ToggleMenuFlyoutItem x:Name="HorizontalLineItem" Text="HorizontalLine" CommandParameter="hr" IsEnabled="True" IsChecked="False"/>
+    <ToggleMenuFlyoutItem x:Name="HorizontalLineItem" Text="{u:LocaleString Key=HorizontalLine}" CommandParameter="hr" IsEnabled="True" IsChecked="False"/>
     <!--<ToggleMenuFlyoutItem x:Name="TocItem" Text="Toc" CommandParameter="toc" IsEnabled="True"/>-->
-    <ToggleMenuFlyoutItem x:Name="YAMLFrontMatterItem" Text="YAMLFrontMatter" CommandParameter="front-matter" IsEnabled="True" IsChecked="False"/>
+    <ToggleMenuFlyoutItem x:Name="YAMLFrontMatterItem" Text="{u:LocaleString Key=YAMLFrontMatter}" CommandParameter="front-matter" IsEnabled="True" IsChecked="False"/>
 </local:MenuBarItemBase>

@@ -6,6 +6,7 @@
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:muxc="using:Microsoft.UI.Xaml.Controls"
+    xmlns:u="using:Typedown.WinUI.Controls"
     Loaded="OnLoaded"
     Unloaded="OnUnloaded"
     mc:Ignorable="d"
@@ -104,7 +105,7 @@
                 <Image Source="ms-appx:///Assets/logo.ico" Width="16" Height="16" VerticalAlignment="Center"/>
                 <TextBlock
                 Grid.Column="1"
-                Text="Typedown"
+                Text="{u:LocaleString Key=AppName}"
                 TextTrimming="CharacterEllipsis"
                 VerticalAlignment="Center"
                 Style="{ThemeResource CaptionTextBlockStyle}"/>

@@ -82,7 +82,7 @@
                 <MenuFlyout x:Name="Flyout" Opening="OnFlyoutOpening">
                     <items:ContextFormatItem x:Name="MenuFormatItem"/>
                     <MenuFlyoutSeparator x:Name="MenuFormatItemSeparator"/>
-                    <MenuFlyoutSubItem x:Name="MenuImageItem" Text="Image" x:Load="{x:Bind local:EditorContainer.IsLoadImageMenu(Format.FormatState.Image, Editor.Selection), Mode=OneWay}">
+                    <MenuFlyoutSubItem x:Name="MenuImageItem" Text="{u:LocaleString Key=Image}" x:Load="{x:Bind local:EditorContainer.IsLoadImageMenu(Format.FormatState.Image, Editor.Selection), Mode=OneWay}">
                         <MenuFlyoutSubItem.Icon>
                             <FontIcon Glyph="&#xe91b;"/>
                         </MenuFlyoutSubItem.Icon>
@@ -91,27 +91,27 @@
                         </u:MenuItemCollection.Value>
                     </MenuFlyoutSubItem>
                     <MenuFlyoutSeparator x:Name="MenuImageItemSeparator" x:Load="{x:Bind local:EditorContainer.IsLoadImageMenu(Format.FormatState.Image, Editor.Selection), Mode=OneWay}"/>
-                    <MenuFlyoutItem Text="Undo" Icon="Undo"/>
+                    <MenuFlyoutItem Text="{u:LocaleString Key=Undo}" Icon="Undo"/>
                     <MenuFlyoutSeparator/>
-                    <MenuFlyoutItem x:Name="CutItem" Text="Cut" Icon="Cut" CommandParameter="normal"/>
-                    <MenuFlyoutItem x:Name="CopyItem" Text="Copy" Icon="Copy" CommandParameter="normal"/>
-                    <MenuFlyoutItem x:Name="PasteItem" Text="Paste" Icon="Paste" CommandParameter="normal"/>
-                    <MenuFlyoutSubItem Text="CopyPasteAs">
-                        <MenuFlyoutItem x:Name="CopyAsPlainTextItem" Text="CopyAsPlainText" CommandParameter="copyAsPlainText"/>
-                        <MenuFlyoutItem x:Name="CopyAsMarkdownItem" Text="CopyAsMarkdown" CommandParameter="copyAsMarkdown"/>
-                        <MenuFlyoutItem x:Name="CopyAsHTMLCodeItem" Text="CopyAsHTMLCode" CommandParameter="copyAsHtml"/>
-                        <MenuFlyoutItem x:Name="PasteAsPlainTextItem" Text="PasteAsPlainText" CommandParameter="pasteAsPlainText"/>
+                    <MenuFlyoutItem x:Name="CutItem" Text="{u:LocaleString Key=Cut}" Icon="Cut" CommandParameter="normal"/>
+                    <MenuFlyoutItem x:Name="CopyItem" Text="{u:LocaleString Key=Copy}" Icon="Copy" CommandParameter="normal"/>
+                    <MenuFlyoutItem x:Name="PasteItem" Text="{u:LocaleString Key=Paste}" Icon="Paste" CommandParameter="normal"/>
+                    <MenuFlyoutSubItem Text="{u:LocaleString Key=CopyPasteAs}">
+                        <MenuFlyoutItem x:Name="CopyAsPlainTextItem" Text="{u:LocaleString Key=CopyAsPlainText}" CommandParameter="copyAsPlainText"/>
+                        <MenuFlyoutItem x:Name="CopyAsMarkdownItem" Text="{u:LocaleString Key=CopyAsMarkdown}" CommandParameter="copyAsMarkdown"/>
+                        <MenuFlyoutItem x:Name="CopyAsHTMLCodeItem" Text="{u:LocaleString Key=CopyAsHTMLCode}" CommandParameter="copyAsHtml"/>
+                        <MenuFlyoutItem x:Name="PasteAsPlainTextItem" Text="{u:LocaleString Key=PasteAsPlainText}" CommandParameter="pasteAsPlainText"/>
                     </MenuFlyoutSubItem>
                     <MenuFlyoutSeparator/>
-                    <MenuFlyoutItem x:Name="DeleteItem" Icon="Delete" Text="Delete"/>
+                    <MenuFlyoutItem x:Name="DeleteItem" Icon="Delete" Text="{u:LocaleString Key=Delete}"/>
                     <MenuFlyoutSeparator/>
-                    <MenuFlyoutItem x:Name="SelectAllItem" Icon="SelectAll" Text="SelectAll"/>
+                    <MenuFlyoutItem x:Name="SelectAllItem" Icon="SelectAll" Text="{u:LocaleString Key=SelectAll}"/>
                 </MenuFlyout>
             </ContentPresenter.ContextFlyout>
         </ContentPresenter>
         <ScrollViewer x:Name="EditorInitErrorView" x:Load="False">
             <StackPanel Margin="24" Spacing="8">
-                <TextBlock TextWrapping="Wrap" Text="EditorInitErrorMessage"/>
+                <TextBlock TextWrapping="Wrap" Text="{u:LocaleString Key=EditorInitErrorMessage}"/>
                 <HyperlinkButton Content="Microsoft WebView2 Runtime" NavigateUri="https://developer.microsoft.com/microsoft-edge/webview2/" Margin="-12,0,0,0"/>
             </StackPanel>
         </ScrollViewer>

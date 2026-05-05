@@ -9,14 +9,14 @@
     xmlns:u="using:Typedown.WinUI.Controls"
     xmlns:viewmodels="using:Typedown.Presentation.ViewModels"
     mc:Ignorable="d">
-    <MenuFlyoutItem x:Name="OpenImageLocationItem" Text="OpenImageLocation" Click="OnOpenImageLocationClick" Loaded="OnOpenImageLocationItemLoaded"/>
-    <MenuFlyoutItem Text="CopyImageTo" Click="OnCopyImageToClick"/>
-    <MenuFlyoutItem x:Name="MoveImageItem" Text="MoveImageTo" Click="OnMoveImageToClick"/>
-    <MenuFlyoutSubItem x:Name="UploadSubMenu" Text="UploadImage">
-        <MenuFlyoutItem x:Name="NoUploadConfigItem" Text="NoImageUploadConfiguration" IsEnabled="False"/>
+    <MenuFlyoutItem x:Name="OpenImageLocationItem" Text="{u:LocaleString Key=OpenImageLocation}" Click="OnOpenImageLocationClick" Loaded="OnOpenImageLocationItemLoaded"/>
+    <MenuFlyoutItem Text="{u:LocaleString Key=CopyImageTo}" Click="OnCopyImageToClick"/>
+    <MenuFlyoutItem x:Name="MoveImageItem" Text="{u:LocaleString Key=MoveImageTo}" Click="OnMoveImageToClick"/>
+    <MenuFlyoutSubItem x:Name="UploadSubMenu" Text="{u:LocaleString Key=UploadImage}">
+        <MenuFlyoutItem x:Name="NoUploadConfigItem" Text="{u:LocaleString Key=NoImageUploadConfiguration}" IsEnabled="False"/>
         <MenuFlyoutSeparator/>
-        <MenuFlyoutItem Text="ImageUploadSettings" Click="OnImageUploadSettingsClick"/>
+        <MenuFlyoutItem Text="{u:LocaleString Key=ImageUploadSettings}" Click="OnImageUploadSettingsClick"/>
     </MenuFlyoutSubItem>
-    <MenuFlyoutItem Text="SaveImageAs" Click="OnSaveImageClick"/>
-    <MenuFlyoutItem x:Name="DeleteImageItem" Text="DeleteImageFile" Click="OnDeleteImageFileClick"/>
+    <MenuFlyoutItem Text="{u:LocaleString Key=SaveImageAs}" Click="OnSaveImageClick"/>
+    <MenuFlyoutItem x:Name="DeleteImageItem" Text="{u:LocaleString Key=DeleteImageFile}" Click="OnDeleteImageFileClick"/>
 </controls:MenuItemCollection>

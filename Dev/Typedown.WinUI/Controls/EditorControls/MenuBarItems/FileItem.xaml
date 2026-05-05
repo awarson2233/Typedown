@@ -1,5 +1,5 @@
 <local:MenuBarItemBase
-    Title="File"
+    Title="{u:LocaleString Key=File}"
     AutomationProperties.AutomationId="MenuBarFileItem"
     x:Class="Typedown.WinUI.Controls.FileItem"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
@@ -11,29 +11,29 @@
     Loaded="OnLoaded"
     Unloaded="OnUnloaded"
     mc:Ignorable="d">
-    <MenuFlyoutItem x:Name="NewFileItem" x:Uid="MenuBar_File_New"/>
-    <MenuFlyoutItem x:Name="NewWindowItem" x:Uid="MenuBar_File_NewWindow"/>
+    <MenuFlyoutItem x:Name="NewFileItem" Text="{u:LocaleString Key=New}"/>
+    <MenuFlyoutItem x:Name="NewWindowItem" Text="{u:LocaleString Key=NewWindow}"/>
     <MenuFlyoutSeparator/>
-    <MenuFlyoutItem x:Name="OpenFileItem" x:Uid="MenuBar_File_Open"/>
-    <MenuFlyoutItem x:Name="OpenFolderItem" x:Uid="MenuBar_File_OpenFolder"/>
-    <MenuFlyoutSubItem x:Name="OpenRecentSubMenu" x:Uid="MenuBar_File_OpenRecent" Loaded="OnOpenRecentSubMenuLoaded">
-        <MenuFlyoutItem x:Name="NoRecentFilesItem" x:Uid="MenuBar_File_NoRecentFiles" IsEnabled="False"/>
+    <MenuFlyoutItem x:Name="OpenFileItem" Text="{u:LocaleString Key=Open}"/>
+    <MenuFlyoutItem x:Name="OpenFolderItem" Text="{u:LocaleString Key=OpenFolder}"/>
+    <MenuFlyoutSubItem x:Name="OpenRecentSubMenu" Text="{u:LocaleString Key=OpenRecent}" Loaded="OnOpenRecentSubMenuLoaded">
+        <MenuFlyoutItem x:Name="NoRecentFilesItem" Text="{u:LocaleString Key=NoRecentFiles}" IsEnabled="False"/>
         <MenuFlyoutSeparator/>
-        <MenuFlyoutItem x:Name="ClearRecentFilesItem" x:Uid="MenuBar_File_ClearRecentFiles"/>
+        <MenuFlyoutItem x:Name="ClearRecentFilesItem" Text="{u:LocaleString Key=ClearRecentFiles}"/>
     </MenuFlyoutSubItem>
     <MenuFlyoutSeparator/>
-    <MenuFlyoutItem x:Name="SaveItem" x:Uid="MenuBar_File_Save"/>
-    <MenuFlyoutItem x:Name="SaveAsItem" x:Uid="MenuBar_File_SaveAs"/>
+    <MenuFlyoutItem x:Name="SaveItem" Text="{u:LocaleString Key=Save}"/>
+    <MenuFlyoutItem x:Name="SaveAsItem" Text="{u:LocaleString Key=SaveAs}"/>
     <MenuFlyoutSeparator/>
-    <MenuFlyoutItem x:Uid="MenuBar_File_Import"/>
-    <MenuFlyoutSubItem x:Name="ExportSubMenu" x:Uid="MenuBar_File_Export" Loaded="OnExportSubMenuLoaded">
-        <MenuFlyoutItem x:Name="NoExportConfigItem" Text="NoExportConfigs" IsEnabled="False"/>
+    <MenuFlyoutItem x:Name="ImportItem" Text="{u:LocaleString Key=Import}"/>
+    <MenuFlyoutSubItem x:Name="ExportSubMenu" Text="{u:LocaleString Key=Export}" Loaded="OnExportSubMenuLoaded">
+        <MenuFlyoutItem x:Name="NoExportConfigItem" Text="{u:LocaleString Key=NoExportConfigs}" IsEnabled="False"/>
         <MenuFlyoutSeparator/>
-        <MenuFlyoutItem x:Name="ExportSettingsItem" Text="ExportSettings" CommandParameter="Settings/Export"/>
+        <MenuFlyoutItem x:Name="ExportSettingsItem" Text="{u:LocaleString Key=ExportSettings}" CommandParameter="Settings/Export"/>
     </MenuFlyoutSubItem>
-    <MenuFlyoutItem x:Name="PrintItem" Text="Print"/>
+    <MenuFlyoutItem x:Name="PrintItem" Text="{u:LocaleString Key=Print}"/>
     <MenuFlyoutSeparator/>
-    <MenuFlyoutItem x:Name="SettingItem" Text="Settings" CommandParameter="Settings/General"/>
+    <MenuFlyoutItem x:Name="SettingItem" Text="{u:LocaleString Key=Settings}" CommandParameter="Settings/General"/>
     <MenuFlyoutSeparator/>
-    <MenuFlyoutItem x:Name="CloseItem" Text="Close"/>
+    <MenuFlyoutItem x:Name="CloseItem" Text="{u:LocaleString Key=Close}"/>
 </local:MenuBarItemBase>

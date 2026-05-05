@@ -76,7 +76,9 @@ namespace Typedown.WinUI.Controls.SettingControls.SettingItems
             var buttonItem = sender as ButtonSettingItem;
             if (buttonItem?.GetAncestor<ExportSetting>() is not ExportSetting exportSetting)
                 return;
-            var config = buttonItem.DataContext as ExportConfig;
+            var config = buttonItem.Tag as ExportConfig;
+            if (config == null)
+                return;
             exportSetting.ViewModel.NavigateCommand.Execute($"Settings/ExportConfig?{config.Id}");
         }
 
