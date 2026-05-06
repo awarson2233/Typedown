@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.Data.Sqlite;
+using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
@@ -52,8 +53,6 @@ namespace Typedown.Core.Services
 
         private async Task UpdateFileRecentlyOpened(string filePath, CollectionChangeAction action)
         {
-            using var ctx = await AppDbContext.Create();
-            var model = ctx.FileAccessHistories;
             var maxCount = 10;
             switch (action)
             {
@@ -74,10 +73,10 @@ namespace Typedown.Core.Services
             }
             if (FileRecentlyOpened.Count < maxCount)
             {
-                await foreach (var item in model.OrderByDescending(x => x.AccessTime).Take(maxCount).AsAsyncEnumerable())
+                foreach (var path in await LoadRecentlyOpenedPathsAsync("FileAccessHistory", "FilePath", maxCount))
                 {
-                    if (!FileRecentlyOpened.Contains(item.FilePath))
-                        FileRecentlyOpened.Add(item.FilePath);
+                    if (!FileRecentlyOpened.Contains(path))
+                        FileRecentlyOpened.Add(path);
                 }
             }
         }
@@ -112,8 +111,6 @@ namespace Typedown.Core.Services
 
         private async Task UpdateFolderRecentlyOpened(string folderPath, CollectionChangeAction action)
         {
-            using var ctx = await AppDbContext.Create();
-            var model = ctx.FolderAccessHistories;
             var maxCount = 10;
             switch (action)
             {
@@ -134,12 +131,40 @@ namespace Typedown.Core.Services
             }
             if (FolderRecentlyOpened.Count < maxCount)
             {
-                await foreach (var item in model.OrderByDescending(x => x.AccessTime).Take(maxCount).AsAsyncEnumerable())
+                foreach (var path in await LoadRecentlyOpenedPathsAsync("FolderAccessHistory", "FolderPath", maxCount))
                 {
-                    if (!FolderRecentlyOpened.Contains(item.FolderPath))
-                        FolderRecentlyOpened.Add(item.FolderPath);
+                    if (!FolderRecentlyOpened.Contains(path))
+                        FolderRecentlyOpened.Add(path);
                 }
             }
+        }
+
+        private static async Task<string[]> LoadRecentlyOpenedPathsAsync(string tableName, string pathColumnName, int maxCount)
+        {
+            using var ctx = await AppDbContext.Create();
+            var connectionString = ctx.Database.GetDbConnection().ConnectionString;
+
+            await using var connection = new SqliteConnection(connectionString);
+            await connection.OpenAsync();
+
+            await using var command = connection.CreateCommand();
+            command.CommandText = $"SELECT \"{pathColumnName}\" FROM \"{tableName}\" ORDER BY \"AccessTime\" DESC LIMIT $maxCount;";
+            command.Parameters.AddWithValue("$maxCount", maxCount);
+
+            var paths = new string[maxCount];
+            var count = 0;
+            await using var reader = await command.ExecuteReaderAsync();
+            while (count < paths.Length && await reader.ReadAsync())
+            {
+                if (!reader.IsDBNull(0))
+                    paths[count++] = reader.GetString(0);
+            }
+
+            if (count == paths.Length)
+                return paths;
+
+            Array.Resize(ref paths, count);
+            return paths;
         }
 
         private async Task UpdateRecentlyOpened()

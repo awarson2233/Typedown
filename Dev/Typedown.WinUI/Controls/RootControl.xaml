@@ -27,62 +27,62 @@
             </ResourceDictionary.ThemeDictionaries>
         </ResourceDictionary>
     </UserControl.Resources>
+    <VisualStateManager.VisualStateGroups>
+        <VisualStateGroup x:Name="NavigationState">
+            <VisualStateGroup.Transitions>
+                <VisualTransition To="BackVisible" GeneratedDuration="0:0:0.1">
+                    <VisualTransition.Storyboard>
+                        <Storyboard>
+                            <ObjectAnimationUsingKeyFrames Storyboard.TargetName="BackButton" Storyboard.TargetProperty="Visibility">
+                                <DiscreteObjectKeyFrame KeyTime="0" Value="Visible"/>
+                            </ObjectAnimationUsingKeyFrames>
+                            <ObjectAnimationUsingKeyFrames Storyboard.TargetName="TitlePanel" Storyboard.TargetProperty="Margin">
+                                <DiscreteObjectKeyFrame KeyTime="0" Value="0"/>
+                            </ObjectAnimationUsingKeyFrames>
+                            <DoubleAnimationUsingKeyFrames Storyboard.TargetName="TitlePanelTranslation" Storyboard.TargetProperty="X">
+                                <EasingDoubleKeyFrame KeyTime="0" Value="-22"/>
+                                <EasingDoubleKeyFrame KeyTime="0:0:0.1" Value="0"/>
+                            </DoubleAnimationUsingKeyFrames>
+                        </Storyboard>
+                    </VisualTransition.Storyboard>
+                </VisualTransition>
+                <VisualTransition To="BackCollapsed" GeneratedDuration="0:0:0.1">
+                    <VisualTransition.Storyboard>
+                        <Storyboard>
+                            <ObjectAnimationUsingKeyFrames Storyboard.TargetName="BackButton" Storyboard.TargetProperty="Visibility">
+                                <DiscreteObjectKeyFrame KeyTime="0" Value="Collapsed"/>
+                            </ObjectAnimationUsingKeyFrames>
+                            <ObjectAnimationUsingKeyFrames Storyboard.TargetName="TitlePanel" Storyboard.TargetProperty="Margin">
+                                <DiscreteObjectKeyFrame KeyTime="0" Value="4,0,0,0"/>
+                            </ObjectAnimationUsingKeyFrames>
+                            <DoubleAnimationUsingKeyFrames Storyboard.TargetName="TitlePanelTranslation" Storyboard.TargetProperty="X">
+                                <EasingDoubleKeyFrame KeyTime="0" Value="22"/>
+                                <EasingDoubleKeyFrame KeyTime="0:0:0.1" Value="0"/>
+                            </DoubleAnimationUsingKeyFrames>
+                        </Storyboard>
+                    </VisualTransition.Storyboard>
+                </VisualTransition>
+            </VisualStateGroup.Transitions>
+            <VisualState x:Name="BackVisible">
+                <VisualState.Setters>
+                    <Setter Target="BackButton.Visibility" Value="Visible"/>
+                    <Setter Target="TitlePanel.Margin" Value="0"/>
+                </VisualState.Setters>
+            </VisualState>
+            <VisualState x:Name="BackCollapsed">
+                <VisualState.Setters>
+                    <Setter Target="BackButton.Visibility" Value="Collapsed"/>
+                    <Setter Target="TitlePanel.Margin" Value="4,0,0,0"/>
+                </VisualState.Setters>
+            </VisualState>
+        </VisualStateGroup>
+    </VisualStateManager.VisualStateGroups>
     <Grid x:Name="RootGrid" Background="Transparent">
         <Grid.RowDefinitions>
             <RowDefinition Height="32"/>
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
         <Grid x:Name="AppTitleBar" Background="Transparent" ColumnSpacing="0" Padding="4,0,142,0">
-            <VisualStateManager.VisualStateGroups>
-                <VisualStateGroup x:Name="NavigationState">
-                    <VisualStateGroup.Transitions>
-                        <VisualTransition To="BackVisible" GeneratedDuration="0:0:0.1">
-                            <VisualTransition.Storyboard>
-                                <Storyboard>
-                                    <ObjectAnimationUsingKeyFrames Storyboard.TargetName="BackButton" Storyboard.TargetProperty="Visibility">
-                                        <DiscreteObjectKeyFrame KeyTime="0" Value="Visible"/>
-                                    </ObjectAnimationUsingKeyFrames>
-                                    <ObjectAnimationUsingKeyFrames Storyboard.TargetName="TitlePanel" Storyboard.TargetProperty="Margin">
-                                        <DiscreteObjectKeyFrame KeyTime="0" Value="0"/>
-                                    </ObjectAnimationUsingKeyFrames>
-                                    <DoubleAnimationUsingKeyFrames Storyboard.TargetName="TitlePanelTranslation" Storyboard.TargetProperty="X">
-                                        <EasingDoubleKeyFrame KeyTime="0" Value="-22"/>
-                                        <EasingDoubleKeyFrame KeyTime="0:0:0.1" Value="0"/>
-                                    </DoubleAnimationUsingKeyFrames>
-                                </Storyboard>
-                            </VisualTransition.Storyboard>
-                        </VisualTransition>
-                        <VisualTransition To="BackCollapsed" GeneratedDuration="0:0:0.1">
-                            <VisualTransition.Storyboard>
-                                <Storyboard>
-                                    <ObjectAnimationUsingKeyFrames Storyboard.TargetName="BackButton" Storyboard.TargetProperty="Visibility">
-                                        <DiscreteObjectKeyFrame KeyTime="0" Value="Collapsed"/>
-                                    </ObjectAnimationUsingKeyFrames>
-                                    <ObjectAnimationUsingKeyFrames Storyboard.TargetName="TitlePanel" Storyboard.TargetProperty="Margin">
-                                        <DiscreteObjectKeyFrame KeyTime="0" Value="4,0,0,0"/>
-                                    </ObjectAnimationUsingKeyFrames>
-                                    <DoubleAnimationUsingKeyFrames Storyboard.TargetName="TitlePanelTranslation" Storyboard.TargetProperty="X">
-                                        <EasingDoubleKeyFrame KeyTime="0" Value="22"/>
-                                        <EasingDoubleKeyFrame KeyTime="0:0:0.1" Value="0"/>
-                                    </DoubleAnimationUsingKeyFrames>
-                                </Storyboard>
-                            </VisualTransition.Storyboard>
-                        </VisualTransition>
-                    </VisualStateGroup.Transitions>
-                    <VisualState x:Name="BackVisible">
-                        <VisualState.Setters>
-                            <Setter Target="BackButton.Visibility" Value="Visible"/>
-                            <Setter Target="TitlePanel.Margin" Value="0"/>
-                        </VisualState.Setters>
-                    </VisualState>
-                    <VisualState x:Name="BackCollapsed">
-                        <VisualState.Setters>
-                            <Setter Target="BackButton.Visibility" Value="Collapsed"/>
-                            <Setter Target="TitlePanel.Margin" Value="4,0,0,0"/>
-                        </VisualState.Setters>
-                    </VisualState>
-                </VisualStateGroup>
-            </VisualStateManager.VisualStateGroups>
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="Auto"/>
                 <ColumnDefinition Width="Auto"/>
@@ -91,6 +91,7 @@
             <Button
                 x:Name="BackButton"
                 Width="32"
+                Height="32"
                 Visibility="Collapsed"
                 Style="{ThemeResource TitleBarBackButtonStyle}"
                 Click="OnBackButtonClick"/>

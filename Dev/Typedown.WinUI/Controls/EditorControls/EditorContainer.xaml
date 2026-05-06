@@ -109,6 +109,9 @@
                 </MenuFlyout>
             </ContentPresenter.ContextFlyout>
         </ContentPresenter>
+        <Canvas x:Name="FloatAnchorCanvas" IsHitTestVisible="False">
+            <Border x:Name="FloatAnchorElement" Visibility="Collapsed"/>
+        </Canvas>
         <ScrollViewer x:Name="EditorInitErrorView" x:Load="False">
             <StackPanel Margin="24" Spacing="8">
                 <TextBlock TextWrapping="Wrap" Text="{u:LocaleString Key=EditorInitErrorMessage}"/>

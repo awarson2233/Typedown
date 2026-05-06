@@ -25,6 +25,10 @@ namespace Typedown.Core.Services
 
         private readonly string migrateTaskKey;
 
+        private const string InitialMigrationId = "20230226122314_InitialCreate";
+
+        private static readonly string[] InitialTables = ["ExportConfig", "FileAccessHistory", "FolderAccessHistory", "ImageUploadConfig"];
+
         private static readonly object lockMigrateTask = new();
 
         private static readonly Dictionary<string, Task> migrateTasks = new(StringComparer.OrdinalIgnoreCase);
@@ -68,7 +72,14 @@ namespace Typedown.Core.Services
             EnsureDatabaseDirectory();
             MigrateLegacyDatabaseFileIfNeeded();
 
+            if (await IsInitialMigrationAppliedAsync())
+                return;
+
             await BootstrapLegacyMigrationHistoryAsync();
+
+            if (await IsInitialMigrationAppliedAsync())
+                return;
+
             await Database.MigrateAsync();
         }
 
@@ -106,8 +117,7 @@ namespace Typedown.Core.Services
                 await using var connection = new SqliteConnection(builder.ConnectionString);
                 await connection.OpenAsync();
 
-                var initialTables = new[] { "ExportConfig", "FileAccessHistory", "FolderAccessHistory", "ImageUploadConfig" };
-                foreach (var tableName in initialTables)
+                foreach (var tableName in InitialTables)
                 {
                     if (!await TableExistsAsync(connection, tableName))
                         return;
@@ -123,7 +133,7 @@ namespace Typedown.Core.Services
                 await using var insertInitialMigration = connection.CreateCommand();
                 insertInitialMigration.CommandText =
                     "INSERT OR IGNORE INTO \"__EFMigrationsHistory\" (\"MigrationId\", \"ProductVersion\") " +
-                    "VALUES ('20230226122314_InitialCreate', '3.1.30');";
+                    $"VALUES ('{InitialMigrationId}', '3.1.30');";
                 await insertInitialMigration.ExecuteNonQueryAsync();
             }
             catch (Exception ex) when (ex is InvalidOperationException or TargetInvocationException)
@@ -133,6 +143,33 @@ namespace Typedown.Core.Services
                 // InvalidOperationException (HRESULT 0x80073D54: APPMODEL_ERROR_NO_PACKAGE).
                 // When the probe is wrapped in reflection, the inner exception surfaces as
                 // TargetInvocationException. In either case the legacy bootstrap must be skipped.
+            }
+        }
+
+        private async Task<bool> IsInitialMigrationAppliedAsync()
+        {
+            if (!File.Exists(dbPath))
+                return false;
+
+            try
+            {
+                var builder = new SqliteConnectionStringBuilder() { DataSource = dbPath };
+                await using var connection = new SqliteConnection(builder.ConnectionString);
+                await connection.OpenAsync();
+
+                if (!await TableExistsAsync(connection, "__EFMigrationsHistory"))
+                    return false;
+
+                await using var command = connection.CreateCommand();
+                command.CommandText = "SELECT COUNT(*) FROM \"__EFMigrationsHistory\" WHERE \"MigrationId\" = $migrationId;";
+                command.Parameters.AddWithValue("$migrationId", InitialMigrationId);
+
+                var result = await command.ExecuteScalarAsync();
+                return result is long count && count > 0;
+            }
+            catch (Exception ex) when (ex is InvalidOperationException or TargetInvocationException or SqliteException)
+            {
+                return false;
             }
         }
 

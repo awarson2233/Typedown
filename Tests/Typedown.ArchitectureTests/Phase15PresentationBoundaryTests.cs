@@ -292,6 +292,28 @@ public class Phase15PresentationBoundaryTests
     }
 
     [TestMethod]
+    public void EditorStaticBundle_DoesNotForceHorizontalOverflowInNarrowHosts()
+    {
+        var appStyles = File.ReadAllText(Path.Combine(RepoRoot, "Dev", "Typedown.Editor", "src", "App.scss"));
+        var editorTheme = File.ReadAllText(Path.Combine(RepoRoot, "Dev", "Typedown.Editor", "src", "components", "Muya", "themes", "default.css"));
+
+        AssertDoesNotContain(appStyles, "min-width: 400px;");
+        AssertDoesNotContain(editorTheme, "min-width: 400px;");
+        AssertContainsInOrder(editorTheme, "#ag-editor-id {", "max-width: var(--editorAreaWidth);", "margin: 0 auto;");
+    }
+
+    [TestMethod]
+    public void EditorScrollState_IgnoresSubPixelHorizontalOverflowNoise()
+    {
+        var scrollbarSource = File.ReadAllText(Path.Combine(RepoRoot, "Dev", "Typedown.Editor", "src", "services", "scrollbar.ts"));
+
+        AssertHasTypeReference(scrollbarSource, "document.documentElement");
+        AssertHasTypeReference(scrollbarSource, "clientWidth");
+        AssertHasTypeReference(scrollbarSource, "const epsilon =");
+        AssertContainsInOrder(scrollbarSource, "maximumXRaw", "maximumX", "maximumXRaw <= epsilon ? 0 : maximumXRaw");
+    }
+
+    [TestMethod]
     public void ActiveWinUIMenuBar_UsesPresentationViewModelsAndCommands()
     {
         var menuRoot = Path.Combine(RepoRoot, "Dev", "Typedown.WinUI", "Controls", "EditorControls");

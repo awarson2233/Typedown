@@ -1,6 +1,13 @@
+html,
 body {
     margin: 0;
-    min-width: 400px;
+    max-width: 100%;
+    overflow-x: hidden;
+}
+
+#root {
+    max-width: 100%;
+    overflow-x: hidden;
 }
 
 :root::-webkit-scrollbar {

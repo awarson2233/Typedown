@@ -11,6 +11,7 @@ using Typedown.Core.Utilities;
 using Typedown.Presentation.Interfaces;
 using Typedown.Presentation.ViewModels;
 using Windows.ApplicationModel.DataTransfer;
+using Windows.Foundation;
 using Windows.System;
 
 namespace Typedown.WinUI.Controls;
@@ -21,6 +22,7 @@ public sealed partial class EditorContainer : UserControl
     private FindReplace? findReplaceDialog;
     private AppViewModel? viewModel;
     private IDisposable? scrollSubscription;
+    private bool hasFloatAnchor;
 
     public static readonly DependencyProperty IsFindReplaceLoadProperty =
         DependencyProperty.Register(nameof(IsFindReplaceLoad), typeof(bool), typeof(EditorContainer), new PropertyMetadata(false));
@@ -337,6 +339,11 @@ public sealed partial class EditorContainer : UserControl
             return;
         }
 
+        if (e.OldValue is ScrollState previous)
+        {
+            container.MoveFloatAnchor(previous.ScrollX - scrollState.ScrollX, previous.ScrollY - scrollState.ScrollY);
+        }
+
         container.HorizontalScrollBar.Maximum = Math.Max(0, scrollState.MaximumX);
         container.HorizontalScrollBar.ViewportSize = Math.Max(0, scrollState.ViewportWidth);
         container.HorizontalScrollBar.Value = Math.Max(0, Math.Min(container.HorizontalScrollBar.Maximum, scrollState.ScrollX));
@@ -359,5 +366,27 @@ public sealed partial class EditorContainer : UserControl
         {
             Position = e.Position
         });
+    }
+
+    public FrameworkElement GetFloatAnchor(Rect rect)
+    {
+        hasFloatAnchor = true;
+        FloatAnchorElement.Visibility = Visibility.Visible;
+        FloatAnchorElement.Width = Math.Max(0, rect.Width);
+        FloatAnchorElement.Height = Math.Max(0, rect.Height);
+        Canvas.SetLeft(FloatAnchorElement, rect.X);
+        Canvas.SetTop(FloatAnchorElement, rect.Y);
+        return FloatAnchorElement;
+    }
+
+    public void MoveFloatAnchor(double offsetX, double offsetY)
+    {
+        if (!hasFloatAnchor)
+        {
+            return;
+        }
+
+        Canvas.SetLeft(FloatAnchorElement, Canvas.GetLeft(FloatAnchorElement) + offsetX);
+        Canvas.SetTop(FloatAnchorElement, Canvas.GetTop(FloatAnchorElement) + offsetY);
     }
 }

@@ -8,6 +8,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls.Primitives;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Media;
 
 namespace Typedown.WinUI.Services
 {
@@ -65,7 +66,13 @@ namespace Typedown.WinUI.Services
             var rect = args["boundingClientRect"]?.ToObject<Rect>() ?? default;
             var info = args["imageInfo"] ?? new JObject();
 
-            selector.Open(ResolveAnchor(), rect, info);
+            if (TryResolveEditorRectAnchor(args, out var rectAnchor))
+            {
+                selector.Open(rectAnchor, default, info);
+                return;
+            }
+
+            selector.Open(ResolveEditorAnchor(), rect, info);
         }
 
         public void OpenImageToolbar(JToken args)
@@ -77,7 +84,13 @@ namespace Typedown.WinUI.Services
             var rect = args["boundingClientRect"]?.ToObject<Rect>() ?? default;
             var attrs = args["attrs"] ?? new JObject();
 
-            imageToolbar.Open(ResolveAnchor(), rect, attrs, ResolveOverlayInputPassThroughElement());
+            if (TryResolveEditorRectAnchor(args, out var rectAnchor))
+            {
+                imageToolbar.Open(rectAnchor, default, attrs, ResolveOverlayInputPassThroughElement());
+                return;
+            }
+
+            imageToolbar.Open(ResolveEditorAnchor(), rect, attrs, ResolveOverlayInputPassThroughElement());
         }
 
         public void OpenTableTools(JToken args)
@@ -185,11 +198,20 @@ namespace Typedown.WinUI.Services
 
         private void ShowFlyoutAt(FlyoutBase flyout, JToken args, FlyoutPlacementMode placement)
         {
-            var anchor = ResolveAnchor();
             flyout.Placement = placement;
+
+            if (TryResolveEditorRectAnchor(args, out var rectAnchor))
+            {
+                flyout.ShowAt(rectAnchor, new FlyoutShowOptions
+                {
+                    ShowMode = FlyoutShowMode.Transient
+                });
+                return;
+            }
 
             if (TryGetBoundingClientRect(args, out var rect))
             {
+                var anchor = ResolveEditorAnchor();
                 flyout.ShowAt(anchor, new FlyoutShowOptions
                 {
                     Position = new Point(rect.X, rect.Y + rect.Height),
@@ -198,7 +220,36 @@ namespace Typedown.WinUI.Services
                 return;
             }
 
-            flyout.ShowAt(anchor);
+            flyout.ShowAt(ResolveAnchor());
+        }
+
+        private bool TryResolveEditorRectAnchor(JToken args, out FrameworkElement anchor)
+        {
+            anchor = null!;
+            if (!TryGetBoundingClientRect(args, out var rect))
+            {
+                return false;
+            }
+
+            var container = ResolveEditorContainer();
+            if (container is null)
+            {
+                return false;
+            }
+
+            anchor = container.GetFloatAnchor(rect);
+            return true;
+        }
+
+        private FrameworkElement ResolveEditorAnchor()
+        {
+            var root = ResolveAnchor();
+            return FindDescendantByName(root, "MarkdownEditorPresenter") ?? root;
+        }
+
+        private EditorContainer? ResolveEditorContainer()
+        {
+            return FindDescendant<EditorContainer>(ResolveAnchor());
         }
 
         private FrameworkElement ResolveAnchor()
@@ -226,6 +277,48 @@ namespace Typedown.WinUI.Services
             if (windowContext.ViewRoot is FrameworkElement element)
             {
                 return element.XamlRoot?.Content;
+            }
+
+            return null;
+        }
+
+        private static FrameworkElement? FindDescendantByName(DependencyObject root, string name)
+        {
+            if (root is FrameworkElement element && string.Equals(element.Name, name, StringComparison.Ordinal))
+            {
+                return element;
+            }
+
+            var count = VisualTreeHelper.GetChildrenCount(root);
+            for (var i = 0; i < count; i++)
+            {
+                var child = VisualTreeHelper.GetChild(root, i);
+                var match = FindDescendantByName(child, name);
+                if (match is not null)
+                {
+                    return match;
+                }
+            }
+
+            return null;
+        }
+
+        private static T? FindDescendant<T>(DependencyObject root) where T : DependencyObject
+        {
+            if (root is T match)
+            {
+                return match;
+            }
+
+            var count = VisualTreeHelper.GetChildrenCount(root);
+            for (var i = 0; i < count; i++)
+            {
+                var child = VisualTreeHelper.GetChild(root, i);
+                var descendant = FindDescendant<T>(child);
+                if (descendant is not null)
+                {
+                    return descendant;
+                }
             }
 
             return null;

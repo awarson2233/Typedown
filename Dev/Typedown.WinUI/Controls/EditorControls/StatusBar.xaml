@@ -51,7 +51,12 @@
         </StackPanel>
         <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
             <Grid>
-                <ComboBox SelectedIndex="0" MinWidth="80" VerticalAlignment="Stretch" Foreground="{ThemeResource TextFillColorSecondary}" IsEnabled="True">
+                <ComboBox
+                    SelectedIndex="{x:Bind Settings.WordCountMethod, Mode=TwoWay}"
+                    MinWidth="80"
+                    VerticalAlignment="Stretch"
+                    Foreground="{ThemeResource TextFillColorSecondary}"
+                    IsEnabled="{x:Bind Editor.FileLoaded, Mode=OneWay}">
                     <ComboBox.Resources>
                         <ResourceDictionary>
                             <SolidColorBrush x:Key="ComboBoxBackground" Color="{ThemeResource SubtleFillColorTransparent}"/>
@@ -70,14 +75,14 @@
                     </ComboBox.Resources>
                     <ComboBoxItem>
                         <StackPanel Orientation="Horizontal">
-                            <TextBlock Text="" />
-                            <TextBlock Margin="4,0,0,0" Text=""/>
+                            <TextBlock Text="{x:Bind Editor.ContentState.WordCount.Character, Mode=OneWay}" />
+                            <TextBlock Margin="4,0,0,0" Text="{x:Bind CharacterUnit(Editor.ContentState.WordCount.Character), Mode=OneWay}"/>
                         </StackPanel>
                     </ComboBoxItem>
                     <ComboBoxItem>
                         <StackPanel Orientation="Horizontal">
-                            <TextBlock Text="" />
-                            <TextBlock Margin="4,0,0,0" Text=""/>
+                            <TextBlock Text="{x:Bind Editor.ContentState.WordCount.Word, Mode=OneWay}" />
+                            <TextBlock Margin="4,0,0,0" Text="{x:Bind WordUnit(Editor.ContentState.WordCount.Word), Mode=OneWay}"/>
                         </StackPanel>
                     </ComboBoxItem>
                 </ComboBox>

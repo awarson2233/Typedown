@@ -55,11 +55,16 @@ public class Phase14WinUILayoutTests
         AssertContains(root, "x:Name=\"BackButton\"");
         AssertContains(root, "Width=\"32\"");
         AssertContains(root, "Height=\"32\"");
+        AssertContains(root, "<VisualStateGroup x:Name=\"NavigationState\">");
+        AssertAppearsBefore(root, "<VisualStateManager.VisualStateGroups>", "<Grid x:Name=\"RootGrid\"");
         AssertContains(root, "Style=\"{ThemeResource TitleBarBackButtonStyle}\"");
         AssertContains(root, "Text=\"{u:LocaleString Key=AppName}\"");
         AssertContains(rootCode, "Frame.Navigate(typeof(Views.MainPage), MainPageNavigationParameter)");
         AssertContains(rootCode, "public UIElement TitleBarElement => TitleDragRegion");
         AssertContains(rootCode, "Frame.SourcePageType == typeof(Pages.SettingsPage)");
+        AssertContains(rootCode, "BackButton.Visibility = isSettingsPage ? Visibility.Visible : Visibility.Collapsed;");
+        AssertContains(rootCode, "TitlePanel.Margin = isSettingsPage ? new Thickness(0) : new Thickness(4, 0, 0, 0);");
+        AssertContains(rootCode, "VisualStateManager.GoToState(this");
         AssertContains(mainPage, "<controls:MenuBar");
         AssertContains(root, "<Frame");
         AssertDoesNotContain(root, "<local:Caption");
@@ -126,6 +131,28 @@ public class Phase14WinUILayoutTests
     }
 
     [TestMethod]
+    public void StatusBar_WiresWordCountToEditorRuntimeState()
+    {
+        var winuiRoot = Path.Combine(RepoRoot, "Dev", "Typedown.WinUI");
+        var statusBar = File.ReadAllText(Path.Combine(winuiRoot, "Controls", "EditorControls", "StatusBar.xaml"));
+        var statusBarCode = File.ReadAllText(Path.Combine(winuiRoot, "Controls", "EditorControls", "StatusBar.xaml.cs"));
+        var settingsViewModel = File.ReadAllText(Path.Combine(RepoRoot, "Dev", "Typedown.Presentation", "ViewModels", "SettingsViewModel.cs"));
+        var editorViewModel = File.ReadAllText(Path.Combine(RepoRoot, "Dev", "Typedown.Presentation", "ViewModels", "EditorViewModel.cs"));
+
+        AssertContains(settingsViewModel, "public int WordCountMethod");
+        AssertContains(editorViewModel, "ContentState = arg[\"state\"].ToObject<ContentState>();");
+        AssertContains(statusBar, "SelectedIndex=\"{x:Bind Settings.WordCountMethod, Mode=TwoWay}\"");
+        AssertContains(statusBar, "Text=\"{x:Bind Editor.ContentState.WordCount.Character, Mode=OneWay}\"");
+        AssertContains(statusBar, "Text=\"{x:Bind Editor.ContentState.WordCount.Word, Mode=OneWay}\"");
+        AssertContains(statusBar, "Text=\"{x:Bind CharacterUnit(Editor.ContentState.WordCount.Character), Mode=OneWay}\"");
+        AssertContains(statusBar, "Text=\"{x:Bind WordUnit(Editor.ContentState.WordCount.Word), Mode=OneWay}\"");
+        AssertContains(statusBarCode, "public SettingsViewModel? Settings => ViewModel?.SettingsViewModel;");
+        AssertContains(statusBarCode, "public EditorViewModel? Editor => ViewModel?.EditorViewModel;");
+        AssertContains(statusBarCode, "private string CharacterUnit(int number)");
+        AssertContains(statusBarCode, "private string WordUnit(int number)");
+    }
+
+    [TestMethod]
     public void WinUIFileMenu_UsesDynamicRecentFilesAndExportConfigs()
     {
         var winuiRoot = Path.Combine(RepoRoot, "Dev", "Typedown.WinUI");
@@ -151,6 +178,28 @@ public class Phase14WinUILayoutTests
         AssertDoesNotContain(menuCode, "NoExportConfigItem.IsEnabled = false;");
     }
 
+    [TestMethod]
+    public void WinUIFloatViewService_AnchorsEditorRelativeFlyoutsToEditorContainer()
+    {
+        var winuiRoot = Path.Combine(RepoRoot, "Dev", "Typedown.WinUI");
+        var editorContainer = File.ReadAllText(Path.Combine(winuiRoot, "Controls", "EditorControls", "EditorContainer.xaml"));
+        var editorContainerCode = File.ReadAllText(Path.Combine(winuiRoot, "Controls", "EditorControls", "EditorContainer.xaml.cs"));
+        var floatViewService = File.ReadAllText(Path.Combine(winuiRoot, "Services", "WinUIFloatViewService.cs"));
+
+        AssertContains(editorContainer, "x:Name=\"FloatAnchorCanvas\"");
+        AssertContains(editorContainer, "x:Name=\"FloatAnchorElement\"");
+        AssertContains(editorContainerCode, "GetFloatAnchor(Rect rect)");
+        AssertContains(editorContainerCode, "MoveFloatAnchor(");
+        AssertContains(editorContainerCode, "Canvas.SetLeft(FloatAnchorElement");
+        AssertContains(editorContainerCode, "Canvas.SetTop(FloatAnchorElement");
+        AssertContains(floatViewService, "TryResolveEditorRectAnchor");
+        AssertContains(floatViewService, "GetFloatAnchor(rect)");
+        AssertContains(floatViewService, "ResolveEditorAnchor()");
+        AssertContains(floatViewService, "MarkdownEditorPresenter");
+        AssertContains(floatViewService, "flyout.ShowAt(rectAnchor");
+        AssertDoesNotContain(floatViewService, "var anchor = ResolveAnchor();");
+    }
+
     private static void AssertContains(string source, string snippet)
     {
         StringAssert.Contains(source, snippet);
@@ -159,6 +208,15 @@ public class Phase14WinUILayoutTests
     private static void AssertDoesNotContain(string source, string snippet)
     {
         Assert.IsFalse(source.Contains(snippet, StringComparison.Ordinal), $"Did not expect to find snippet: {snippet}");
+    }
+
+    private static void AssertAppearsBefore(string source, string first, string second)
+    {
+        var firstIndex = source.IndexOf(first, StringComparison.Ordinal);
+        var secondIndex = source.IndexOf(second, StringComparison.Ordinal);
+        Assert.IsTrue(firstIndex >= 0, $"Did not find snippet: {first}");
+        Assert.IsTrue(secondIndex >= 0, $"Did not find snippet: {second}");
+        Assert.IsTrue(firstIndex < secondIndex, $"Expected '{first}' to appear before '{second}'.");
     }
 
     private static string FindRepoRoot()
