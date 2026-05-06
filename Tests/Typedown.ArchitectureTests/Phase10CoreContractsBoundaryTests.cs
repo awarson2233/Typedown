@@ -53,7 +53,7 @@ public class Phase10CoreContractsBoundaryTests
             Assert.IsTrue(File.Exists(Path.Combine(presentationInterfacesRoot, fileName)), $"{fileName} must be owned by Typedown.Presentation.");
         }
 
-        Assert.IsTrue(File.Exists(Path.Combine(RepoRoot, "Dev", "Typedown.WinUI", "Controls", "EditorHostContracts.cs")));
+        Assert.IsTrue(File.Exists(Path.Combine(RepoRoot, "Dev", "Typedown.WinUI", "Controls", "EditorControls", "Hosting", "EditorHostContracts.cs")));
 
         Assert.IsFalse(Directory.Exists(Path.Combine(RepoRoot, "Dev", "Typedown.Core", "Editor")));
         Assert.IsFalse(Directory.Exists(Path.Combine(RepoRoot, "Dev", "Typedown.Core", "Contracts")));
@@ -73,7 +73,7 @@ public class Phase10CoreContractsBoundaryTests
     [TestMethod]
     public void EditorContracts_StayPlatformNeutralAndAvoidLegacyDependencies()
     {
-        var source = File.ReadAllText(Path.Combine(RepoRoot, "Dev", "Typedown.WinUI", "Controls", "EditorHostContracts.cs"));
+        var source = File.ReadAllText(Path.Combine(RepoRoot, "Dev", "Typedown.WinUI", "Controls", "EditorControls", "Hosting", "EditorHostContracts.cs"));
 
         AssertHasTypeReference(source, "IEditorDocumentSession");
         AssertHasTypeReference(source, "IEditorHostSink");
@@ -352,10 +352,11 @@ public class Phase10CoreContractsBoundaryTests
     [TestMethod]
     public void WinUIPhase11_AddsEditorHostWithoutLegacyHostDependency()
     {
-        var hostPath = Path.Combine(RepoRoot, "Dev", "Typedown.WinUI", "Controls", "WinUIEditorHost.cs");
-        var controllerPath = Path.Combine(RepoRoot, "Dev", "Typedown.WinUI", "Controls", "WinUIEditorHostController.cs");
-        var adapterPath = Path.Combine(RepoRoot, "Dev", "Typedown.WinUI", "Controls", "WinUIEditorBridgeAdapter.cs");
-        var sessionPath = Path.Combine(RepoRoot, "Dev", "Typedown.WinUI", "Controls", "WinUIEditorDocumentSession.cs");
+        var hostingRoot = Path.Combine(RepoRoot, "Dev", "Typedown.WinUI", "Controls", "EditorControls", "Hosting");
+        var hostPath = Path.Combine(hostingRoot, "WinUIEditorHost.cs");
+        var controllerPath = Path.Combine(hostingRoot, "WinUIEditorHostController.cs");
+        var adapterPath = Path.Combine(hostingRoot, "WinUIEditorBridgeAdapter.cs");
+        var sessionPath = Path.Combine(hostingRoot, "WinUIEditorDocumentSession.cs");
         var editorContainerPath = Path.Combine(RepoRoot, "Dev", "Typedown.WinUI", "Controls", "EditorControls", "EditorContainer.xaml.cs");
         var projectSource = File.ReadAllText(Path.Combine(RepoRoot, "Dev", "Typedown.WinUI", "Typedown.WinUI.csproj"));
         var editorContainerSource = File.ReadAllText(editorContainerPath);
@@ -471,18 +472,24 @@ public class Phase10CoreContractsBoundaryTests
         var projectSource = File.ReadAllText(Path.Combine(RepoRoot, "Dev", "Typedown.WinUI", "Typedown.WinUI.csproj"));
         var editorContainerSource = File.ReadAllText(Path.Combine(RepoRoot, "Dev", "Typedown.WinUI", "Controls", "EditorControls", "EditorContainer.xaml"));
         var editorContainerCodeBehindSource = File.ReadAllText(Path.Combine(RepoRoot, "Dev", "Typedown.WinUI", "Controls", "EditorControls", "EditorContainer.xaml.cs"));
-        var editorHostSource = File.ReadAllText(Path.Combine(RepoRoot, "Dev", "Typedown.WinUI", "Controls", "WinUIEditorHost.cs"));
+        var editorHostSource = File.ReadAllText(Path.Combine(RepoRoot, "Dev", "Typedown.WinUI", "Controls", "EditorControls", "Hosting", "WinUIEditorHost.cs"));
         var menuBarSource = File.ReadAllText(Path.Combine(RepoRoot, "Dev", "Typedown.WinUI", "Controls", "EditorControls", "MenuBar.xaml"));
-        var menuStubSource = File.ReadAllText(Path.Combine(RepoRoot, "Dev", "Typedown.WinUI", "Controls", "EditorControls", "MenuBarItems", "MenuBarItemStubs.cs"));
-        var contextStubSource = File.ReadAllText(Path.Combine(RepoRoot, "Dev", "Typedown.WinUI", "Controls", "EditorControls", "ContextMenuItems", "ContextMenuItemStubs.cs"));
-        var imageItemSource = File.ReadAllText(Path.Combine(RepoRoot, "Dev", "Typedown.WinUI", "Controls", "EditorControls", "ContextMenuItems", "ImageItem.Actions.cs"));
+        var menuStubSource = string.Join(
+            "\n",
+            File.ReadAllText(Path.Combine(RepoRoot, "Dev", "Typedown.WinUI", "Controls", "EditorControls", "MenuBarItems", "MenuBarItemBase.cs")),
+            File.ReadAllText(Path.Combine(RepoRoot, "Dev", "Typedown.WinUI", "Controls", "EditorControls", "MenuBarItems", "FileItem.xaml.cs")));
+        var contextStubSource = string.Join(
+            "\n",
+            File.ReadAllText(Path.Combine(RepoRoot, "Dev", "Typedown.WinUI", "Controls", "EditorControls", "ContextMenuItems", "CodeFencesItem.xaml.cs")),
+            File.ReadAllText(Path.Combine(RepoRoot, "Dev", "Typedown.WinUI", "Controls", "EditorControls", "ContextMenuItems", "FormatItem.xaml.cs")));
+        var imageItemSource = File.ReadAllText(Path.Combine(RepoRoot, "Dev", "Typedown.WinUI", "Controls", "EditorControls", "ContextMenuItems", "ImageItem.xaml.cs"));
 
         AssertNoTypeReference(projectSource, @"<Page Remove=""Controls\EditorControls\MenuBarItems\*.xaml""");
         AssertNoTypeReference(projectSource, @"<Page Remove=""Controls\EditorControls\ContextMenuItems\*.xaml""");
         AssertNoTypeReference(projectSource, "LegacyCopied");
-        AssertHasTypeReference(projectSource, @"<Compile Remove=""Controls\EditorControls\MenuBarItems\*.xaml.cs""");
-        AssertHasTypeReference(projectSource, @"<Compile Remove=""Controls\EditorControls\ContextMenuItems\*.xaml.cs""");
-        AssertHasTypeReference(projectSource, @"<Compile Remove=""Controls\EditorControls\MenuBarItems\MenuBarItemBase.cs""");
+        AssertNoTypeReference(projectSource, @"<Compile Remove=""Controls\EditorControls\MenuBarItems\*.xaml.cs""");
+        AssertNoTypeReference(projectSource, @"<Compile Remove=""Controls\EditorControls\ContextMenuItems\*.xaml.cs""");
+        AssertNoTypeReference(projectSource, @"<Compile Remove=""Controls\EditorControls\MenuBarItems\MenuBarItemBase.cs""");
         AssertNoTypeReference(projectSource, @"..\Typedown.Core.Legacy\Typedown.Core.Legacy.csproj");
 
         AssertHasTypeReference(menuBarSource, "<items:FileItem");
@@ -663,7 +670,7 @@ public class Phase10CoreContractsBoundaryTests
     public void Phase13WinUI_KeepsShellOwnedPlatformSurfaces()
     {
         var winuiRoot = Path.Combine(RepoRoot, "Dev", "Typedown.WinUI");
-        var editorHostSource = File.ReadAllText(Path.Combine(winuiRoot, "Controls", "WinUIEditorHost.cs"));
+        var editorHostSource = File.ReadAllText(Path.Combine(winuiRoot, "Controls", "EditorControls", "Hosting", "WinUIEditorHost.cs"));
         var platformServicesSource = File.ReadAllText(Path.Combine(winuiRoot, "Services", "WinUIPlatformServices.cs"));
         var packageManifestSource = File.ReadAllText(Path.Combine(winuiRoot, "Package.appxmanifest"));
         var launchSettingsSource = File.ReadAllText(Path.Combine(winuiRoot, "Properties", "launchSettings.json"));

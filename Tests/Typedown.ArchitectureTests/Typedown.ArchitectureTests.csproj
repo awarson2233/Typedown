@@ -17,9 +17,9 @@
   <ItemGroup>
     <ProjectReference Include="..\..\Dev\Typedown.Core\Typedown.Core.csproj" />
     <ProjectReference Include="..\..\Dev\Typedown.Presentation\Typedown.Presentation.csproj" />
-    <Compile Include="..\..\Dev\Typedown.WinUI\Controls\EditorHostContracts.cs" Link="TestImports\EditorHostContracts.cs" />
-    <Compile Include="..\..\Dev\Typedown.WinUI\Controls\WinUIEditorBridgeAdapter.cs" Link="TestImports\WinUIEditorBridgeAdapter.cs" />
-    <Compile Include="..\..\Dev\Typedown.WinUI\Controls\WinUIEditorHostController.cs" Link="TestImports\WinUIEditorHostController.cs" />
-    <Compile Include="..\..\Dev\Typedown.WinUI\Controls\WinUIEditorDocumentSession.cs" Link="TestImports\WinUIEditorDocumentSession.cs" />
+    <Compile Include="..\..\Dev\Typedown.WinUI\Controls\EditorControls\Hosting\EditorHostContracts.cs" Link="TestImports\EditorHostContracts.cs" />
+    <Compile Include="..\..\Dev\Typedown.WinUI\Controls\EditorControls\Hosting\WinUIEditorBridgeAdapter.cs" Link="TestImports\WinUIEditorBridgeAdapter.cs" />
+    <Compile Include="..\..\Dev\Typedown.WinUI\Controls\EditorControls\Hosting\WinUIEditorHostController.cs" Link="TestImports\WinUIEditorHostController.cs" />
+    <Compile Include="..\..\Dev\Typedown.WinUI\Controls\EditorControls\Hosting\WinUIEditorDocumentSession.cs" Link="TestImports\WinUIEditorDocumentSession.cs" />
   </ItemGroup>
 </Project>

@@ -122,10 +122,11 @@ public class Phase15PresentationBoundaryTests
     public void WinUIEditorBridge_RoutesPresentationOwnedInvokesAndEventsThroughPresentationServices()
     {
         var controlsRoot = Path.Combine(RepoRoot, "Dev", "Typedown.WinUI", "Controls");
-        var sessionSource = File.ReadAllText(Path.Combine(controlsRoot, "WinUIEditorDocumentSession.cs"));
-        var adapterSource = File.ReadAllText(Path.Combine(controlsRoot, "WinUIEditorBridgeAdapter.cs"));
+        var hostingRoot = Path.Combine(controlsRoot, "EditorControls", "Hosting");
+        var sessionSource = File.ReadAllText(Path.Combine(hostingRoot, "WinUIEditorDocumentSession.cs"));
+        var adapterSource = File.ReadAllText(Path.Combine(hostingRoot, "WinUIEditorBridgeAdapter.cs"));
         var containerSource = File.ReadAllText(Path.Combine(controlsRoot, "EditorControls", "EditorContainer.xaml.cs"));
-        var hostSource = File.ReadAllText(Path.Combine(controlsRoot, "WinUIEditorHost.cs"));
+        var hostSource = File.ReadAllText(Path.Combine(hostingRoot, "WinUIEditorHost.cs"));
         var commandSinkSource = File.ReadAllText(Path.Combine(RepoRoot, "Dev", "Typedown.WinUI", "Services", "WinUIEditorCommandSink.cs"));
 
         AssertNoTypeReference(sessionSource, "HandleStubInvoke");
@@ -209,8 +210,8 @@ public class Phase15PresentationBoundaryTests
         var winUIRoot = Path.Combine(RepoRoot, "Dev", "Typedown.WinUI");
         var editorContainerXaml = File.ReadAllText(Path.Combine(winUIRoot, "Controls", "EditorControls", "EditorContainer.xaml"));
         var editorContainerSource = File.ReadAllText(Path.Combine(winUIRoot, "Controls", "EditorControls", "EditorContainer.xaml.cs"));
-        var editorHostSource = File.ReadAllText(Path.Combine(winUIRoot, "Controls", "WinUIEditorHost.cs"));
-        var sessionSource = File.ReadAllText(Path.Combine(winUIRoot, "Controls", "WinUIEditorDocumentSession.cs"));
+        var editorHostSource = File.ReadAllText(Path.Combine(winUIRoot, "Controls", "EditorControls", "Hosting", "WinUIEditorHost.cs"));
+        var sessionSource = File.ReadAllText(Path.Combine(winUIRoot, "Controls", "EditorControls", "Hosting", "WinUIEditorDocumentSession.cs"));
         var findReplaceXaml = File.ReadAllText(Path.Combine(winUIRoot, "Controls", "FloatControls", "FindReplace.xaml"));
         var findReplaceSource = File.ReadAllText(Path.Combine(winUIRoot, "Controls", "FloatControls", "FindReplace.xaml.cs"));
         var floatViewModelSource = File.ReadAllText(Path.Combine(RepoRoot, "Dev", "Typedown.Presentation", "ViewModels", "FloatViewModel.cs"));
@@ -248,7 +249,7 @@ public class Phase15PresentationBoundaryTests
         var winUIRoot = Path.Combine(RepoRoot, "Dev", "Typedown.WinUI");
         var editorContainerXaml = File.ReadAllText(Path.Combine(winUIRoot, "Controls", "EditorControls", "EditorContainer.xaml"));
         var editorContainerSource = File.ReadAllText(Path.Combine(winUIRoot, "Controls", "EditorControls", "EditorContainer.xaml.cs"));
-        var sessionSource = File.ReadAllText(Path.Combine(winUIRoot, "Controls", "WinUIEditorDocumentSession.cs"));
+        var sessionSource = File.ReadAllText(Path.Combine(winUIRoot, "Controls", "EditorControls", "Hosting", "WinUIEditorDocumentSession.cs"));
 
         AssertDoesNotContain(editorContainerSource, "private void OnDragEnter(object sender, DragEventArgs e) { }");
         AssertDoesNotContain(editorContainerSource, "private void OnDrop(object sender, DragEventArgs e) { }");
@@ -275,7 +276,14 @@ public class Phase15PresentationBoundaryTests
         var menuRoot = Path.Combine(RepoRoot, "Dev", "Typedown.WinUI", "Controls", "EditorControls");
         var menuBarSource = File.ReadAllText(Path.Combine(menuRoot, "MenuBar.xaml.cs"));
         var menuBarXaml = File.ReadAllText(Path.Combine(menuRoot, "MenuBar.xaml"));
-        var menuStubSource = File.ReadAllText(Path.Combine(menuRoot, "MenuBarItems", "MenuBarItemStubs.cs"));
+        var menuStubSource = string.Join(
+            "\n",
+            File.ReadAllText(Path.Combine(menuRoot, "MenuBarItems", "MenuBarItemBase.cs")),
+            File.ReadAllText(Path.Combine(menuRoot, "MenuBarItems", "FileItem.xaml.cs")),
+            File.ReadAllText(Path.Combine(menuRoot, "MenuBarItems", "EditItem.xaml.cs")),
+            File.ReadAllText(Path.Combine(menuRoot, "MenuBarItems", "ParagraphItem.xaml.cs")),
+            File.ReadAllText(Path.Combine(menuRoot, "MenuBarItems", "FormatItem.xaml.cs")),
+            File.ReadAllText(Path.Combine(menuRoot, "MenuBarItems", "ViewItem.xaml.cs")));
 
         AssertDoesNotContain(menuRoot, $"{Path.DirectorySeparatorChar}LegacyCopied{Path.DirectorySeparatorChar}");
         AssertHasTypeReference(menuBarXaml, "FileMenuItem");
@@ -306,6 +314,7 @@ public class Phase15PresentationBoundaryTests
     [TestMethod]
     public void ActiveWinUIMenuBar_DoesNotLeaveAllMenuHandlersAsEmptyStubs()
     {
+        var menuRoot = Path.Combine(RepoRoot, "Dev", "Typedown.WinUI", "Controls", "EditorControls");
         var menuStubPath = Path.Combine(
             RepoRoot,
             "Dev",
@@ -313,8 +322,15 @@ public class Phase15PresentationBoundaryTests
             "Controls",
             "EditorControls",
             "MenuBarItems",
-            "MenuBarItemStubs.cs");
-        var menuStubSource = File.ReadAllText(menuStubPath);
+            "MenuBarItemBase.cs");
+        var menuStubSource = string.Join(
+            "\n",
+            File.ReadAllText(menuStubPath),
+            File.ReadAllText(Path.Combine(menuRoot, "MenuBarItems", "FileItem.xaml.cs")),
+            File.ReadAllText(Path.Combine(menuRoot, "MenuBarItems", "EditItem.xaml.cs")),
+            File.ReadAllText(Path.Combine(menuRoot, "MenuBarItems", "ParagraphItem.xaml.cs")),
+            File.ReadAllText(Path.Combine(menuRoot, "MenuBarItems", "FormatItem.xaml.cs")),
+            File.ReadAllText(Path.Combine(menuRoot, "MenuBarItems", "ViewItem.xaml.cs")));
 
         AssertDoesNotContain(menuStubPath, $"{Path.DirectorySeparatorChar}LegacyCopied{Path.DirectorySeparatorChar}");
         AssertNoTypeReference(menuStubSource, @"OnLoaded\(object sender, Microsoft\.UI\.Xaml\.RoutedEventArgs e\) \{ \}");
@@ -331,12 +347,44 @@ public class Phase15PresentationBoundaryTests
         var keyboardSource = File.ReadAllText(Path.Combine(winUIRoot, "Services", "WinUIKeyboardAccelerator.cs"));
         var rootControlSource = File.ReadAllText(Path.Combine(winUIRoot, "Controls", "RootControl.xaml.cs"));
         var appSource = File.ReadAllText(Path.Combine(winUIRoot, "App.xaml.cs"));
-        var menuStubSource = File.ReadAllText(Path.Combine(
+        var menuStubSource = string.Join(
+            "\n",
+            File.ReadAllText(Path.Combine(
             winUIRoot,
             "Controls",
             "EditorControls",
             "MenuBarItems",
-            "MenuBarItemStubs.cs"));
+            "MenuBarItemBase.cs")),
+            File.ReadAllText(Path.Combine(
+            winUIRoot,
+            "Controls",
+            "EditorControls",
+            "MenuBarItems",
+            "FileItem.xaml.cs")),
+            File.ReadAllText(Path.Combine(
+            winUIRoot,
+            "Controls",
+            "EditorControls",
+            "MenuBarItems",
+            "EditItem.xaml.cs")),
+            File.ReadAllText(Path.Combine(
+            winUIRoot,
+            "Controls",
+            "EditorControls",
+            "MenuBarItems",
+            "ParagraphItem.xaml.cs")),
+            File.ReadAllText(Path.Combine(
+            winUIRoot,
+            "Controls",
+            "EditorControls",
+            "MenuBarItems",
+            "FormatItem.xaml.cs")),
+            File.ReadAllText(Path.Combine(
+            winUIRoot,
+            "Controls",
+            "EditorControls",
+            "MenuBarItems",
+            "ViewItem.xaml.cs")));
 
         foreach (var source in new[] { keyboardSource, rootControlSource, appSource, menuStubSource })
         {
@@ -407,8 +455,11 @@ public class Phase15PresentationBoundaryTests
             "EditorControls",
             "ContextMenuItems");
         var imageItemXaml = File.ReadAllText(Path.Combine(contextMenuRoot, "ImageItem.xaml"));
-        var imageItemSource = File.ReadAllText(Path.Combine(contextMenuRoot, "ImageItem.Actions.cs"));
-        var contextMenuStubSource = File.ReadAllText(Path.Combine(contextMenuRoot, "ContextMenuItemStubs.cs"));
+        var imageItemSource = File.ReadAllText(Path.Combine(contextMenuRoot, "ImageItem.xaml.cs"));
+        var contextMenuStubSource = string.Join(
+            "\n",
+            File.ReadAllText(Path.Combine(contextMenuRoot, "CodeFencesItem.xaml.cs")),
+            File.ReadAllText(Path.Combine(contextMenuRoot, "FormatItem.xaml.cs")));
 
         AssertHasTypeReference(imageItemXaml, "Typedown.WinUI.Controls.ImageItem");
         AssertHasTypeReference(imageItemXaml, "MenuFlyoutItem");

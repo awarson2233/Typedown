@@ -10,7 +10,7 @@ public class Phase13EditorCommandContractTests
     [TestMethod]
     public void WinUIEditorHostContracts_AreShellLocalAndAvoidPresentationLeak()
     {
-        var source = File.ReadAllText(Path.Combine(RepoRoot, "Dev", "Typedown.WinUI", "Controls", "EditorHostContracts.cs"));
+        var source = File.ReadAllText(Path.Combine(RepoRoot, "Dev", "Typedown.WinUI", "Controls", "EditorControls", "Hosting", "EditorHostContracts.cs"));
 
         StringAssert.Contains(source, "namespace Typedown.WinUI.Controls");
         AssertNoTypeReference(source, "Typedown.Core.Contracts");
@@ -23,7 +23,7 @@ public class Phase13EditorCommandContractTests
     public void WinUIEditorHost_NoLongerReferencesRemovedCoreEditorContracts()
     {
         var winuiControls = Directory
-            .EnumerateFiles(Path.Combine(RepoRoot, "Dev", "Typedown.WinUI", "Controls"), "WinUIEditor*.cs", SearchOption.TopDirectoryOnly)
+            .EnumerateFiles(Path.Combine(RepoRoot, "Dev", "Typedown.WinUI", "Controls", "EditorControls", "Hosting"), "WinUIEditor*.cs", SearchOption.TopDirectoryOnly)
             .Select(File.ReadAllText);
 
         foreach (var source in winuiControls)

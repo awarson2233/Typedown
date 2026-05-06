@@ -104,8 +104,5 @@
 
     <ItemGroup>
         <Page Remove="Controls\FloatControls\FindReplace.xaml" />
-        <Compile Remove="Controls\EditorControls\MenuBarItems\MenuBarItemBase.cs" />
-        <Compile Remove="Controls\EditorControls\MenuBarItems\*.xaml.cs" />
-        <Compile Remove="Controls\EditorControls\ContextMenuItems\*.xaml.cs" />
     </ItemGroup>
 </Project>

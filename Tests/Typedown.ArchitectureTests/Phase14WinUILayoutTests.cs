@@ -74,7 +74,7 @@ public class Phase14WinUILayoutTests
         var leftPane = File.ReadAllText(Path.Combine(winuiRoot, "Controls", "SidePaneControls", "LeftPane.xaml"));
         var editorContainer = File.ReadAllText(Path.Combine(winuiRoot, "Controls", "EditorControls", "EditorContainer.xaml"));
         var mainContent = File.ReadAllText(Path.Combine(winuiRoot, "Controls", "EditorControls", "MainContent.xaml"));
-        var editorHost = File.ReadAllText(Path.Combine(winuiRoot, "Controls", "WinUIEditorHost.cs"));
+        var editorHost = File.ReadAllText(Path.Combine(winuiRoot, "Controls", "EditorControls", "Hosting", "WinUIEditorHost.cs"));
         var project = File.ReadAllText(Path.Combine(winuiRoot, "Typedown.WinUI.csproj"));
 
         AssertContains(app, "x:Key=\"TypedownEditorBackgroundBrush\"");
@@ -130,7 +130,7 @@ public class Phase14WinUILayoutTests
     {
         var winuiRoot = Path.Combine(RepoRoot, "Dev", "Typedown.WinUI");
         var fileItemXaml = File.ReadAllText(Path.Combine(winuiRoot, "Controls", "EditorControls", "MenuBarItems", "FileItem.xaml"));
-        var menuCode = File.ReadAllText(Path.Combine(winuiRoot, "Controls", "EditorControls", "MenuBarItems", "MenuBarItemStubs.cs"));
+        var menuCode = File.ReadAllText(Path.Combine(winuiRoot, "Controls", "EditorControls", "MenuBarItems", "FileItem.xaml.cs"));
 
         AssertContains(fileItemXaml, "Loaded=\"OnOpenRecentSubMenuLoaded\"");
         AssertContains(fileItemXaml, "Loaded=\"OnExportSubMenuLoaded\"");

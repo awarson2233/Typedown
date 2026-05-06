@@ -7,11 +7,3 @@ public sealed partial class CodeFencesItem : MenuItemCollection
         InitializeComponent();
     }
 }
-
-public sealed partial class ContextFormatItem : MenuFlyoutItem
-{
-    public ContextFormatItem()
-    {
-        InitializeComponent();
-    }
-}
