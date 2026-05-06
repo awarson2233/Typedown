@@ -16,6 +16,8 @@ public sealed partial class MainContent : UserControl
 
     public bool IsSidePaneOpen => IsLeftPaneLoad;
 
+    private bool animationEnabled = true;
+
     public MainContent()
     {
         InitializeComponent();
@@ -23,7 +25,7 @@ public sealed partial class MainContent : UserControl
 
     private void OnLoaded(object sender, RoutedEventArgs e)
     {
-        VisualStateManager.GoToState(this, "SidePaneExpand", false);
+        VisualStateManager.GoToState(this, IsLeftPaneLoad ? "SidePaneExpand" : "SidePaneCollapse", false);
     }
 
     private void OnUnloaded(object sender, RoutedEventArgs e) { }
@@ -32,8 +34,17 @@ public sealed partial class MainContent : UserControl
 
     public void SetSidePaneOpen(bool isOpen)
     {
-        VisualStateManager.GoToState(this, isOpen ? "SidePaneExpand" : "SidePaneCollapse", true);
+        IsLeftPaneLoad = isOpen;
+        if (IsLoaded)
+        {
+            VisualStateManager.GoToState(this, isOpen ? "SidePaneExpand" : "SidePaneCollapse", animationEnabled);
+        }
     }
 
     public static double GetColumnWidthNegative(GridLength length) => -length.Value;
+
+    public void SetAnimationEnabled(bool isEnabled)
+    {
+        animationEnabled = isEnabled;
+    }
 }

@@ -11,6 +11,8 @@ public sealed partial class RootControl : UserControl
 
     public UIElement TitleBarElement => TitleDragRegion;
 
+    private bool animationEnabled = true;
+
     public RootControl()
     {
         InitializeComponent();
@@ -56,7 +58,12 @@ public sealed partial class RootControl : UserControl
     private void UpdateBackButtonState(bool useTransitions)
     {
         var isSettingsPage = Frame.SourcePageType == typeof(Pages.SettingsPage);
-        BackButton.Visibility = isSettingsPage ? Visibility.Visible : Visibility.Collapsed;
-        TitlePanel.Margin = isSettingsPage ? new Thickness(0) : new Thickness(4, 0, 0, 0);
+        VisualStateManager.GoToState(this, isSettingsPage ? "BackVisible" : "BackCollapsed", useTransitions && animationEnabled);
+    }
+
+    public void SetAnimationEnabled(bool isEnabled)
+    {
+        animationEnabled = isEnabled;
+        UpdateBackButtonState(false);
     }
 }
