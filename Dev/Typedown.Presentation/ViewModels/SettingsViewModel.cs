@@ -83,22 +83,23 @@ namespace Typedown.Presentation.ViewModels
 
         private JToken store;
 
-        private readonly HashSet<string> notifySet = new()
+        private readonly IReadOnlyDictionary<string, string> editorSettingNameMap = new Dictionary<string, string>(StringComparer.Ordinal)
         {
-            "SourceCode",
-            "Typewriter",
-            "FocusMode",
-            "SearchIsCaseSensitive",
-            "SearchIsRegexp",
-            "SearchIsWholeWord",
-            "FontSize",
-            "LineHeight",
-            "AutoPairBracket",
-            "AutoPairQuote",
-            "TrimUnnecessaryCodeBlockEmptyLines",
-            "PreferLooseListItem",
-            "AutoPairMarkdownSyntax",
-            "EditorAreaWidth"
+            [nameof(SourceCode)] = "sourceCode",
+            [nameof(Typewriter)] = "typewriter",
+            [nameof(FocusMode)] = "focusMode",
+            [nameof(SearchIsCaseSensitive)] = "searchIsCaseSensitive",
+            [nameof(SearchIsRegexp)] = "searchIsRegexp",
+            [nameof(SearchIsWholeWord)] = "searchIsWholeWord",
+            [nameof(FontSize)] = "fontSize",
+            [nameof(LineHeight)] = "lineHeight",
+            [nameof(AutoPairBracket)] = "autoPairBracket",
+            [nameof(AutoPairQuote)] = "autoPairQuote",
+            [nameof(TrimUnnecessaryCodeBlockEmptyLines)] = "trimUnnecessaryCodeBlockEmptyLines",
+            [nameof(PreferLooseListItem)] = "preferLooseListItem",
+            [nameof(AutoPairMarkdownSyntax)] = "autoPairMarkdownSyntax",
+            [nameof(EditorAreaWidth)] = "editorAreaWidth",
+            [nameof(TabSize)] = "tabSize"
         };
 
         public SettingsViewModel(IServiceProvider serviceProvider)
@@ -164,11 +165,45 @@ namespace Typedown.Presentation.ViewModels
             SaveAllSettings();
         }
 
+        public IReadOnlyDictionary<string, object> GetEditorSettings()
+        {
+            return new Dictionary<string, object>(StringComparer.Ordinal)
+            {
+                [editorSettingNameMap[nameof(SourceCode)]] = SourceCode,
+                [editorSettingNameMap[nameof(Typewriter)]] = Typewriter,
+                [editorSettingNameMap[nameof(FocusMode)]] = FocusMode,
+                [editorSettingNameMap[nameof(SearchIsCaseSensitive)]] = SearchIsCaseSensitive,
+                [editorSettingNameMap[nameof(SearchIsRegexp)]] = SearchIsRegexp,
+                [editorSettingNameMap[nameof(SearchIsWholeWord)]] = SearchIsWholeWord,
+                [editorSettingNameMap[nameof(FontSize)]] = FontSize,
+                [editorSettingNameMap[nameof(LineHeight)]] = LineHeight,
+                [editorSettingNameMap[nameof(AutoPairBracket)]] = AutoPairBracket,
+                [editorSettingNameMap[nameof(AutoPairQuote)]] = AutoPairQuote,
+                [editorSettingNameMap[nameof(TrimUnnecessaryCodeBlockEmptyLines)]] = TrimUnnecessaryCodeBlockEmptyLines,
+                [editorSettingNameMap[nameof(PreferLooseListItem)]] = PreferLooseListItem,
+                [editorSettingNameMap[nameof(AutoPairMarkdownSyntax)]] = AutoPairMarkdownSyntax,
+                [editorSettingNameMap[nameof(EditorAreaWidth)]] = EditorAreaWidth,
+                [editorSettingNameMap[nameof(TabSize)]] = TabSize
+            };
+        }
+
+        private bool TryGetEditorSettingChange(string propertyName, object value, out KeyValuePair<string, object> change)
+        {
+            if (editorSettingNameMap.TryGetValue(propertyName, out var editorSettingName))
+            {
+                change = new KeyValuePair<string, object>(editorSettingName, value);
+                return true;
+            }
+
+            change = default;
+            return false;
+        }
+
         public void OnPropertyChanged(string propertyName, object before, object after)
         {
             PropertyChanged?.Invoke(this, new(propertyName));
-            if (notifySet.Contains(propertyName))
-                EditorSettingsNotifier?.NotifySettingsChanged(new Dictionary<string, object>() { { propertyName, after } });
+            if (TryGetEditorSettingChange(propertyName, after, out var change))
+                EditorSettingsNotifier?.NotifySettingsChanged(new Dictionary<string, object>(StringComparer.Ordinal) { [change.Key] = change.Value });
         }
 
         public async void ResetSetting()

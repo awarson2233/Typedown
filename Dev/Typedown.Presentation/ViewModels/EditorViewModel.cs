@@ -101,23 +101,12 @@ namespace Typedown.Presentation.ViewModels
                 FirstStart = false;
                 await FileViewModel.LoadStartUpMarkdown();
             }
-            return new
+            var settings = new Dictionary<string, object>(Settings.GetEditorSettings(), StringComparer.Ordinal)
             {
-                Settings.FocusMode,
-                Settings.Typewriter,
-                Settings.SourceCode,
-                Settings.FontSize,
-                Settings.LineHeight,
-                Settings.AutoPairBracket,
-                Settings.AutoPairQuote,
-                Settings.TrimUnnecessaryCodeBlockEmptyLines,
-                Settings.PreferLooseListItem,
-                Settings.AutoPairMarkdownSyntax,
-                Settings.EditorAreaWidth,
-                Settings.TabSize,
-                Markdown,
-                BasePath = FileViewModel.ImageBasePath,
+                ["markdown"] = Markdown,
+                ["basePath"] = FileViewModel.ImageBasePath,
             };
+            return settings;
         }
 
         public void OnSelectionChange(JToken arg)

@@ -206,6 +206,16 @@ const CodeMirrorEditor: React.FC<ICodeMirrorEditor> = (props) => {
         cursorRef.current = { anchor, head }
     }, [editor, props.cursor])
 
+    useEffect(() => {
+        if (!editor) {
+            return
+        }
+
+        const tabSize = props.options?.tabSize ?? 4
+        editor.setOption('tabSize', tabSize)
+        editor.setOption('indentUnit', tabSize)
+    }, [editor, props.options?.tabSize])
+
     const handleCodeMirrorState = useCallback((value: string) => {
         const wordCount = { character: value.length, word: value.split(' ').length }
         const { toc } = getTOC(value)
@@ -286,7 +296,9 @@ const CodeMirrorEditor: React.FC<ICodeMirrorEditor> = (props) => {
                     theme: 'one-dark',
                     mode: 'markdown',
                     lineNumbers: true,
-                    lineWrapping: true
+                    lineWrapping: true,
+                    tabSize: props.options?.tabSize ?? 4,
+                    indentUnit: props.options?.tabSize ?? 4
                 }}
                 onChange={handleCodeMirrorContent}
                 onSelection={handleCodeMirrorSelection}

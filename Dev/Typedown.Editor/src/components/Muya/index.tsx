@@ -143,6 +143,10 @@ const MuyaEditor: React.FC<IMuyaEditor> = (props) => {
         editor?.setFont({ fontSize: props.options?.fontSize, lineHeight: props.options?.lineHeight })
     }, [editor, props.options?.fontSize, props.options?.lineHeight])
 
+    useEffect(() => {
+        editor?.setTabSize(props.options?.tabSize)
+    }, [editor, props.options?.tabSize])
+
     useEffect(() => transport.addListener<{ slug: string }>('ScrollTo', ({ slug }) => {
         scrollToElement(`#${slug}`)
     }), [editor, scrollToElement]);
