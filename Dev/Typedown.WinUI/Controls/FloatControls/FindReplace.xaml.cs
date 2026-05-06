@@ -8,6 +8,8 @@ using Typedown.Presentation.Interfaces;
 using Typedown.Presentation.Utilities;
 using Typedown.Presentation.ViewModels;
 using Windows.System;
+using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Controls;
 
 namespace Typedown.WinUI.Controls;
 

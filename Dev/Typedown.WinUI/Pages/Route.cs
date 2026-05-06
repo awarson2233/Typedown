@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using Typedown.Presentation.Utilities;
 using Typedown.WinUI.Pages.SettingPages;
+using Typedown.WinUI.Views;
 
 namespace Typedown.WinUI.Pages
 {

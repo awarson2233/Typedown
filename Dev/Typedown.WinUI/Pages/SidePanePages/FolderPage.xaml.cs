@@ -15,6 +15,8 @@ using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Navigation;
 using Muxc = Microsoft.UI.Xaml.Controls;
 using PresentationLocale = Typedown.Presentation.Utilities.Locale;
+using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Controls;
 
 namespace Typedown.WinUI.Pages.SidePanePages
 {

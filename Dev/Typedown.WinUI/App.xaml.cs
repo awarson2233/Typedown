@@ -10,6 +10,7 @@ using Typedown.WinUI.Services;
 using Typedown.WinUI.Utilities;
 using Typedown.WinUI.Views;
 using SQLitePCL;
+using Microsoft.UI.Xaml;
 
 namespace Typedown.WinUI
 {

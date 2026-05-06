@@ -7,6 +7,7 @@ using Windows.Foundation;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls.Primitives;
+using Microsoft.UI.Xaml.Controls;
 
 namespace Typedown.WinUI.Services
 {

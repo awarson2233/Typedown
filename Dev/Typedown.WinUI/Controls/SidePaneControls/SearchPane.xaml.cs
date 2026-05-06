@@ -1,3 +1,6 @@
+using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Controls;
+
 namespace Typedown.WinUI.Controls;
 
 public sealed partial class SearchPane : UserControl
