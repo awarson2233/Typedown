@@ -3,6 +3,7 @@ using Microsoft.UI;
 using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml.Navigation;
 using Microsoft.UI.Xaml.Media;
+using System.Diagnostics;
 using Typedown.Core;
 using Typedown.Core.Enums;
 using Typedown.Core.Interfaces;
@@ -169,6 +170,7 @@ namespace Typedown.WinUI
                 .Cast<bool>()
                 .StartWith(settings.AnimationEnable)
                 .Subscribe(rootControl.SetAnimationEnabled));
+            shellBindings.Add(appViewModel.FileViewModel.NewWindowCommand.OnExecute.Subscribe(OpenNewWindowInNewProcess));
 
             ApplyAppTheme(settings.AppTheme);
             ApplyMicaEffect(settings.UseMicaEffect);
@@ -176,6 +178,28 @@ namespace Typedown.WinUI
             ApplyEditorBackground(settings);
             rootControl.SetAnimationEnabled(settings.AnimationEnable);
             SyncActualTheme(rootControl.ActualTheme);
+        }
+
+        private static void OpenNewWindowInNewProcess(string? filePath)
+        {
+            var processPath = Environment.ProcessPath;
+            if (string.IsNullOrWhiteSpace(processPath))
+            {
+                throw new InvalidOperationException("Environment.ProcessPath is unavailable for WinUI new-window launch.");
+            }
+
+            var startInfo = new ProcessStartInfo
+            {
+                FileName = processPath,
+                UseShellExecute = true
+            };
+
+            if (!string.IsNullOrWhiteSpace(filePath))
+            {
+                startInfo.ArgumentList.Add(filePath);
+            }
+
+            Process.Start(startInfo);
         }
 
         private void ApplyAppTheme(AppTheme theme)

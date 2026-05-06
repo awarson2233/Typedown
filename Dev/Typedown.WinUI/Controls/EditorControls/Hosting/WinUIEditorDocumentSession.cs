@@ -7,6 +7,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json.Linq;
 using Typedown.Core.Models;
 using Typedown.Core.Services;
+using Typedown.Core.Utilities;
 using Typedown.Presentation.ViewModels;
 
 namespace Typedown.WinUI.Controls
@@ -16,6 +17,7 @@ namespace Typedown.WinUI.Controls
         private readonly Func<EditorThemePayload> themeProvider;
         private readonly RemoteInvoke? remoteInvoke;
         private readonly EventCenter? eventCenter;
+        private readonly AppViewModel? appViewModel;
 
         public WinUIEditorDocumentSession(
             string? initialMarkdown = null,
@@ -27,6 +29,7 @@ namespace Typedown.WinUI.Controls
             this.themeProvider = themeProvider ?? CreateDefaultThemePayload;
             remoteInvoke = serviceProvider?.GetService<RemoteInvoke>();
             eventCenter = serviceProvider?.GetService<EventCenter>();
+            appViewModel = serviceProvider?.GetService<AppViewModel>();
             EnsurePresentationHandlers(serviceProvider);
             var seedMarkdown = string.IsNullOrWhiteSpace(initialMarkdown) ? GetDefaultSmokeMarkdown() : initialMarkdown;
             var seedBasePath = string.IsNullOrWhiteSpace(basePath) ? AppContext.BaseDirectory : basePath;
@@ -215,7 +218,7 @@ namespace Typedown.WinUI.Controls
                 "GetSettings" => InvokePresentationAsync(name, args),
                 "SetClipboard" => InvokePresentationAsync(name, args),
                 "GetStringResources" => InvokePresentationAsync(name, args),
-                "OpenNewWindow" => Task.FromResult<object?>(HandleOpenNewWindowUnsupported()),
+                "OpenNewWindow" => Task.FromResult<object?>(HandleOpenNewWindow(args)),
                 "UnhandledException" => Task.FromResult<object?>(HandleUnhandledException()),
                 _ => throw new InvalidOperationException($"function [{name}] does not exist")
             };
@@ -227,10 +230,40 @@ namespace Typedown.WinUI.Controls
             return "WinUI editor content loaded.";
         }
 
-        private bool HandleOpenNewWindowUnsupported()
+        private bool HandleOpenNewWindow(JsonElement? args)
         {
             State = State with { LastEventName = "OpenNewWindow" };
-            throw new NotSupportedException("OpenNewWindow is not wired in the WinUI editor host yet.");
+            var uri = ReadStringArgument(args);
+            if (string.IsNullOrWhiteSpace(uri))
+            {
+                return false;
+            }
+
+            if (!UriHelper.IsWebUrl(uri) && UriHelper.TryGetLocalPath(uri, out var localPath))
+            {
+                var currentFilePath = State.FilePath;
+                var currentFolder = string.IsNullOrWhiteSpace(currentFilePath) ? null : Path.GetDirectoryName(currentFilePath);
+                if (!string.IsNullOrWhiteSpace(currentFolder))
+                {
+                    var fullPath = Path.GetFullPath(Path.Combine(currentFolder, localPath));
+                    if (File.Exists(fullPath))
+                    {
+                        if (FileTypeHelper.IsMarkdownFile(fullPath) && appViewModel is not null)
+                        {
+                            appViewModel.FileViewModel.NewWindowCommand.Execute(fullPath);
+                        }
+                        else
+                        {
+                            Common.OpenUrl(fullPath);
+                        }
+
+                        return true;
+                    }
+                }
+            }
+
+            Common.OpenUrl(uri);
+            return true;
         }
 
         private object? HandleUnhandledException()
@@ -442,6 +475,13 @@ namespace Typedown.WinUI.Controls
 
             return element.TryGetProperty(propertyName, out var property) && property.ValueKind == JsonValueKind.String
                 ? property.GetString()
+                : null;
+        }
+
+        private static string? ReadStringArgument(JsonElement? args)
+        {
+            return args is JsonElement element && element.ValueKind == JsonValueKind.String
+                ? element.GetString()
                 : null;
         }
 

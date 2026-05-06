@@ -538,7 +538,7 @@ public class Phase10CoreContractsBoundaryTests
     }
 
     [TestMethod]
-    public void AppAndActivationService_KeepPhase10bActivationAsStub()
+    public void AppAndActivationService_KeepMinimalCommandLineBasedOpenNewWindowFlow()
     {
         var appSource = File.ReadAllText(Path.Combine(RepoRoot, "Dev", "Typedown.WinUI", "App.xaml.cs"));
         var activationSource = File.ReadAllText(Path.Combine(RepoRoot, "Dev", "Typedown.WinUI", "Services", "WinUIAppActivationService.cs"));
@@ -579,6 +579,10 @@ public class Phase10CoreContractsBoundaryTests
             "? AppActivationKind.OpenFileRequest",
             ": AppActivationKind.FirstLaunch;");
         AssertHasTypeReference(activationSource, "public void StartListening(IUiDispatcher dispatcher)");
+        AssertHasTypeReference(appSource, "NewWindowCommand.OnExecute.Subscribe");
+        AssertHasTypeReference(appSource, "ProcessStartInfo");
+        AssertHasTypeReference(appSource, "Environment.ProcessPath");
+        AssertHasTypeReference(appSource, "UseShellExecute = true");
         AssertHasTypeReference(appSource, "private sealed record MainPageNavigationContext");
         AssertHasTypeReference(appSource, "RootControl");
         AssertHasTypeReference(rootSource, "Frame.Navigate(typeof(Views.MainPage), MainPageNavigationParameter)");

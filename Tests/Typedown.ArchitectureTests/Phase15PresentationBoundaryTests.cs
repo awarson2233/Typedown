@@ -154,6 +154,25 @@ public class Phase15PresentationBoundaryTests
     }
 
     [TestMethod]
+    public void WinUIOpenNewWindow_ClosesEditorGapThroughExistingFileViewModelCommand()
+    {
+        var winUIRoot = Path.Combine(RepoRoot, "Dev", "Typedown.WinUI");
+        var sessionSource = File.ReadAllText(Path.Combine(winUIRoot, "Controls", "EditorControls", "Hosting", "WinUIEditorDocumentSession.cs"));
+        var appSource = File.ReadAllText(Path.Combine(winUIRoot, "App.xaml.cs"));
+        var menuSource = File.ReadAllText(Path.Combine(winUIRoot, "Controls", "EditorControls", "MenuBarItems", "FileItem.xaml.cs"));
+
+        AssertContainsInOrder(sessionSource, "\"OpenNewWindow\"", "HandleOpenNewWindow");
+        AssertHasTypeReference(sessionSource, "NewWindowCommand.Execute");
+        AssertHasTypeReference(sessionSource, "Common.OpenUrl");
+        AssertDoesNotContain(sessionSource, "HandleOpenNewWindowUnsupported");
+        AssertDoesNotContain(sessionSource, "OpenNewWindow is not wired in the WinUI editor host yet");
+
+        AssertContainsInOrder(appSource, "NewWindowCommand.OnExecute.Subscribe", "ProcessStartInfo", "UseShellExecute = true");
+        AssertHasTypeReference(appSource, "Environment.ProcessPath");
+        AssertHasTypeReference(menuSource, "SetCommand(NewWindowItem, files?.NewWindowCommand);");
+    }
+
+    [TestMethod]
     public void WinUISettingsNavigation_PassesPresentationViewModelsIntoIncludedSettingPages()
     {
         var mainPageSource = File.ReadAllText(Path.Combine(RepoRoot, "Dev", "Typedown.WinUI", "Views", "MainPage.xaml.cs"));

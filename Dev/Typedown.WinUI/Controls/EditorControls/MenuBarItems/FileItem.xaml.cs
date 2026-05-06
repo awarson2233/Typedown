@@ -23,7 +23,7 @@ public sealed partial class FileItem : MenuBarItemBase
         var settings = viewModel?.SettingsViewModel;
 
         SetCommand(NewFileItem, files?.NewFileCommand);
-        SetCommand(NewWindowItem, null);
+        SetCommand(NewWindowItem, files?.NewWindowCommand);
         SetCommand(OpenFileItem, files?.OpenFileCommand);
         SetCommand(OpenFolderItem, files?.OpenFolderCommand);
         SetCommand(ClearRecentFilesItem, files?.ClearHistoryCommand);
@@ -85,7 +85,6 @@ public sealed partial class FileItem : MenuBarItemBase
 
     private void DisableUnsupportedActions()
     {
-        SetCommand(NewWindowItem, null);
     }
 
     private void UpdateOpenRecentItem()

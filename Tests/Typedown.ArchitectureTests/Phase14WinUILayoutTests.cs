@@ -140,6 +140,7 @@ public class Phase14WinUILayoutTests
 
         AssertContains(menuCode, "UpdateOpenRecentItem();");
         AssertContains(menuCode, "UpdateExportItem();");
+        AssertContains(menuCode, "SetCommand(NewWindowItem, files?.NewWindowCommand);");
         AssertContains(menuCode, "FileRecentlyOpened");
         AssertContains(menuCode, "ExportConfigs");
         AssertContains(menuCode, "files.OpenFileCommand");
