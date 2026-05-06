@@ -61,7 +61,7 @@ public class Phase14WinUILayoutTests
         AssertContains(rootCode, "public UIElement TitleBarElement => TitleDragRegion");
         AssertContains(rootCode, "Frame.SourcePageType == typeof(Pages.SettingsPage)");
         AssertContains(mainPage, "<controls:MenuBar");
-        AssertContains(root, "<local:GlobalFrame");
+        AssertContains(root, "<Frame");
         AssertDoesNotContain(root, "<local:Caption");
         AssertDoesNotContain(project, "Controls\\RootControl.xaml");
     }

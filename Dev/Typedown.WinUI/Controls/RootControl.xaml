@@ -112,6 +112,6 @@
             </Grid>
             <Grid x:Name="TitleDragRegion" Grid.Column="2" Background="Transparent"/>
         </Grid>
-        <local:GlobalFrame x:Name="Frame" Background="{ThemeResource ContentFrameBackgroundBrush}" Grid.Row="1"/>
+        <Frame x:Name="Frame" Background="{ThemeResource ContentFrameBackgroundBrush}" Grid.Row="1"/>
     </Grid>
 </UserControl>

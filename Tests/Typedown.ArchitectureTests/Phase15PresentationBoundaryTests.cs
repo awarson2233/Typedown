@@ -208,15 +208,15 @@ public class Phase15PresentationBoundaryTests
     public void WinUIFindReplace_IsWiredToPresentationViewModelsWithoutLegacyCopied()
     {
         var winUIRoot = Path.Combine(RepoRoot, "Dev", "Typedown.WinUI");
+        var projectSource = File.ReadAllText(Path.Combine(winUIRoot, "Typedown.WinUI.csproj"));
         var editorContainerXaml = File.ReadAllText(Path.Combine(winUIRoot, "Controls", "EditorControls", "EditorContainer.xaml"));
         var editorContainerSource = File.ReadAllText(Path.Combine(winUIRoot, "Controls", "EditorControls", "EditorContainer.xaml.cs"));
         var editorHostSource = File.ReadAllText(Path.Combine(winUIRoot, "Controls", "EditorControls", "Hosting", "WinUIEditorHost.cs"));
         var sessionSource = File.ReadAllText(Path.Combine(winUIRoot, "Controls", "EditorControls", "Hosting", "WinUIEditorDocumentSession.cs"));
-        var findReplaceXaml = File.ReadAllText(Path.Combine(winUIRoot, "Controls", "FloatControls", "FindReplace.xaml"));
         var findReplaceSource = File.ReadAllText(Path.Combine(winUIRoot, "Controls", "FloatControls", "FindReplace.xaml.cs"));
         var floatViewModelSource = File.ReadAllText(Path.Combine(RepoRoot, "Dev", "Typedown.Presentation", "ViewModels", "FloatViewModel.cs"));
 
-        foreach (var source in new[] { editorContainerXaml, editorContainerSource, findReplaceXaml, findReplaceSource })
+        foreach (var source in new[] { editorContainerXaml, editorContainerSource, findReplaceSource })
         {
             AssertDoesNotContain(source, "LegacyCopied");
         }
@@ -233,11 +233,13 @@ public class Phase15PresentationBoundaryTests
         AssertHasTypeReference(findReplaceSource, "FloatViewModel");
         AssertHasTypeReference(findReplaceSource, "EditorViewModel");
         AssertHasTypeReference(findReplaceSource, "EditorCommandSink");
+        AssertContainsInOrder(findReplaceSource, "public FindReplace()", "Content = BuildContent();");
         AssertContainsInOrder(findReplaceSource, "OnSearchTextChanged", "Editor.SearchValue");
         AssertContainsInOrder(findReplaceSource, "SendReplace", "EditorCommandSink", "\"Replace\"");
         AssertContainsInOrder(findReplaceSource, "searchTextBox.Focus", "searchTextBox.SelectAll");
 
-        AssertHasTypeReference(findReplaceXaml, "FindReplace");
+        AssertContainsInOrder(projectSource, "<Page Remove=\"Controls\\FloatControls\\FindReplace.xaml\" />");
+        Assert.IsFalse(File.Exists(Path.Combine(winUIRoot, "Controls", "FloatControls", "FindReplace.xaml")));
         AssertHasTypeReference(editorContainerXaml, "FindReplacePopup");
         AssertContainsInOrder(editorContainerSource, "EnsureFindReplaceDialog", "new FindReplace");
         AssertContainsInOrder(editorContainerSource, "FindReplacePopup.IsOpen", "VisualStateManager.GoToState");

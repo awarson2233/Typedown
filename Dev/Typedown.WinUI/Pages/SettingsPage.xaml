@@ -87,7 +87,7 @@
             </Grid>
             <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
                 <Grid>
-                    <controls:GlobalFrame x:Name="ContentFrame" MaxWidth="1200" CacheSize="12"/>
+                    <Frame x:Name="ContentFrame" MaxWidth="1200" CacheSize="12"/>
                 </Grid>
             </ScrollViewer>
         </Grid>
