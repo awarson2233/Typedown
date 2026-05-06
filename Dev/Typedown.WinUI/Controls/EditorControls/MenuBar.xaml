@@ -12,30 +12,26 @@
     d:DataContext="{d:DesignInstance Type=viewmodels:AppViewModel}"
     Loaded="OnLoaded"
     Unloaded="OnUnloaded"
-    SizeChanged="OnSizeChanged"
     xmlns:animatedvisuals="using:Microsoft.UI.Xaml.Controls.AnimatedVisuals"
     xmlns:converters="using:Typedown.WinUI.Controls"
     xmlns:ui="using:Typedown.WinUI.Controls"
     mc:Ignorable="d"
     d:DesignHeight="300"
     d:DesignWidth="400">
-    <UserControl.Resources>
-        <converters:BoolToVisibilityConverter x:Key="BoolToVisibilityReverseConverter" IsReverse="True"/>
-    </UserControl.Resources>
     <Grid BorderThickness="0,0,0,1" Margin="0,-4,0,0" BorderBrush="{ThemeResource CardStrokeColorDefault}">
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="Auto"/>
             <ColumnDefinition Width="*"/>
             <ColumnDefinition Width="Auto"/>
         </Grid.ColumnDefinitions>
-        <muxc:MenuBar x:Name="MenuBarControl" PointerPressed="OnMenuBarPointerEvent" PointerReleased="OnMenuBarPointerEvent" IsEnabled="True">
+        <muxc:MenuBar x:Name="MenuBarControl" IsEnabled="True">
             <items:FileItem x:Name="FileMenuItem"/>
             <items:EditItem x:Name="EditMenuItem"/>
             <items:ParagraphItem x:Name="ParagraphMenuItem" Visibility="Visible"/>
             <items:FormatItem x:Name="FormatMenuItem" Visibility="Visible"/>
             <items:ViewItem x:Name="ViewMenuItem"/>
         </muxc:MenuBar>
-        <Grid x:Name="TitleGrid" Grid.Column="1" x:Load="True">
+        <Grid x:Name="TitleGrid" Grid.Column="1">
             <TextBlock
                 x:Name="TitleTextBlock"
                 Margin="4,0,4,0"
@@ -53,8 +49,7 @@
             Margin="0,0,4,0"
             Style="{ThemeResource EllipsisIconButtonStyle}"
             CommandParameter="Settings/General"
-            Click="OnSettingsButtonClick"
-            x:Load="True">
+            Click="OnSettingsButtonClick">
             <Viewbox Width="16" Height="16">
                 <muxc:AnimatedIcon x:Name="Icon_Setting">
                     <muxc:AnimatedIcon.Source>
@@ -66,8 +61,8 @@
                 </muxc:AnimatedIcon>
             </Viewbox>
         </Button>
-        <Grid x:Name="LeftDragBar" Grid.Column="0" Height="4" VerticalAlignment="Top" x:Load="True"/>
-        <Grid x:Name="RightDragBar" Grid.Column="1" x:Load="True"/>
+        <Grid x:Name="LeftDragBar" Grid.Column="0" Height="4" VerticalAlignment="Top"/>
+        <Grid x:Name="RightDragBar" Grid.Column="1"/>
     </Grid>
 
 </UserControl>

@@ -16,9 +16,9 @@
     mc:Ignorable="d"
     d:DesignHeight="300"
     d:DesignWidth="400">
-    <StackPanel Spacing="4">
+    <StackPanel Style="{StaticResource SettingsPageRootStackPanelStyle}">
 
-        <TextBlock Text="{u:LocaleString Key=General.Application}" Margin="0,0,0,4"/>
+        <TextBlock Text="{u:LocaleString Key=General.Application}" Style="{StaticResource SettingsSectionHeaderTextBlockStyle}"/>
         <toolkit:SettingsExpander Header="{u:LocaleString Key=General.StartupAction.Title}" Description="{u:LocaleString Key=General.StartupAction.Description}">
             <toolkit:SettingsExpander.HeaderIcon>
                 <FontIcon Glyph="&#xe7b5;"/>
@@ -48,7 +48,7 @@
                     Header="{u:LocaleString Key=OpenFolder}"
                     IsActionIconVisible="False"
                     HorizontalContentAlignment="Stretch">
-                    <Grid ColumnSpacing="4" HorizontalAlignment="Stretch">
+                    <Grid Style="{StaticResource SettingsInlineActionGridStyle}">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*"/>
                             <ColumnDefinition Width="1e10*" MaxWidth="300"/>
@@ -76,7 +76,7 @@
             <toolkit:SettingsCard.HeaderIcon>
                 <FontIcon Glyph="&#xf2b7;"/>
             </toolkit:SettingsCard.HeaderIcon>
-            <Grid ColumnSpacing="4" HorizontalAlignment="Stretch">
+            <Grid Style="{StaticResource SettingsInlineActionGridStyle}">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="Auto"/>
@@ -101,14 +101,14 @@
             </Grid>
         </toolkit:SettingsCard>
 
-        <TextBlock Text="{u:LocaleString Key=General.Custom}" Margin="0,16,0,4"/>
+        <TextBlock Text="{u:LocaleString Key=General.Custom}" Style="{StaticResource SettingsSectionHeaderTextBlockStyle}" Margin="{StaticResource SettingsSectionBreakMargin}"/>
         <toolkit:SettingsCard Header="{u:LocaleString Key=General.ShortcutKeys.Title}" Description="{u:LocaleString Key=General.ShortcutKeys.Description}" IsClickEnabled="True" Command="{x:Bind ViewModel.NavigateCommand}" CommandParameter="Settings/Shortcut">
             <toolkit:SettingsCard.HeaderIcon>
                 <FontIcon Glyph="&#xe92e;"/>
             </toolkit:SettingsCard.HeaderIcon>
         </toolkit:SettingsCard>
 
-        <TextBlock Text="{u:LocaleString Key=General.Data}" Margin="0,16,0,4"/>
+        <TextBlock Text="{u:LocaleString Key=General.Data}" Style="{StaticResource SettingsSectionHeaderTextBlockStyle}" Margin="{StaticResource SettingsSectionBreakMargin}"/>
         <toolkit:SettingsCard Header="{u:LocaleString Key=General.RestoreDefault.Title}" Description="{u:LocaleString Key=General.RestoreDefault.Description}" IsActionIconVisible="False">
             <toolkit:SettingsCard.HeaderIcon>
                 <FontIcon Glyph="&#xebc4;"/>

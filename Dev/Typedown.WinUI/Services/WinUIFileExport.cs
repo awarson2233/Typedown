@@ -14,6 +14,8 @@ namespace Typedown.WinUI.Services
     {
         private readonly IAppDataPathProvider appDataPathProvider;
         private readonly IFileConverter fileConverter;
+        private readonly object exportConfigsLoadLock = new();
+        private Task? exportConfigsLoadTask;
 
         public ObservableCollection<ExportConfig> ExportConfigs { get; } = new();
 
@@ -21,7 +23,15 @@ namespace Typedown.WinUI.Services
         {
             this.appDataPathProvider = appDataPathProvider ?? throw new ArgumentNullException(nameof(appDataPathProvider));
             this.fileConverter = fileConverter ?? throw new ArgumentNullException(nameof(fileConverter));
-            Initialize();
+        }
+
+        public Task EnsureExportConfigsLoaded()
+        {
+            lock (exportConfigsLoadLock)
+            {
+                exportConfigsLoadTask ??= UpdateExportConfigs();
+                return exportConfigsLoadTask;
+            }
         }
 
         public async Task<ExportConfig> AddExportConfig(string? name = null, ExportType type = 0)
@@ -91,11 +101,6 @@ namespace Typedown.WinUI.Services
         private Task<AppDbContext> CreateDbContext()
         {
             return AppDbContext.Create(appDataPathProvider);
-        }
-
-        private async void Initialize()
-        {
-            await UpdateExportConfigs();
         }
 
         private static string CreateTemporaryPdfPath(string? documentName)

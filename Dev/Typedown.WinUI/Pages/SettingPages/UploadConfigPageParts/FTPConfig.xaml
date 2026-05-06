@@ -14,10 +14,10 @@
     d:DesignHeight="300"
     d:DesignWidth="400">
 
-    <StackPanel Spacing="4">
+    <StackPanel Style="{StaticResource SettingsPageRootStackPanelStyle}">
 
         <toolkit:SettingsCard ContentAlignment="Left" IsActionIconVisible="False">
-            <Grid RowSpacing="12" ColumnSpacing="16" Margin="-16,2">
+            <Grid Style="{StaticResource SettingsFormGridStyle}">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto" MinWidth="100"/>
                     <ColumnDefinition Width="1e10*" MaxWidth="300"/>
@@ -43,7 +43,7 @@
         </toolkit:SettingsCard>
 
         <toolkit:SettingsCard ContentAlignment="Left" IsActionIconVisible="False">
-            <Grid RowSpacing="12" ColumnSpacing="16" Margin="-16,2">
+            <Grid Style="{StaticResource SettingsFormGridStyle}">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto" MinWidth="100"/>
                     <ColumnDefinition Width="1e10*" MaxWidth="500"/>

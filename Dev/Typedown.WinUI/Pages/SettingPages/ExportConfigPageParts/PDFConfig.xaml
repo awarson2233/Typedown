@@ -16,7 +16,7 @@
     mc:Ignorable="d"
     d:DesignHeight="300"
     d:DesignWidth="400">
-    <StackPanel Spacing="4">
+    <StackPanel Style="{StaticResource SettingsPageRootStackPanelStyle}">
         <toolkit:SettingsCard Header="{u:LocaleString Key=Export.PDFConfigModel.Orientation.Text}" IsActionIconVisible="False">
             <ComboBox MinWidth="200" ItemsSource="{x:Bind enums:Enumerable.PrintOrientations}" SelectedItem="{x:Bind PDFConfigModel.Orientation, Mode=TwoWay}">
                 <ComboBox.ItemTemplate>

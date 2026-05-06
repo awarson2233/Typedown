@@ -53,6 +53,8 @@ namespace Typedown.Presentation.ViewModels
         public FileStartupAction FileStartupAction { get => GetSettingValue(FileStartupAction.None); set => SetSettingValue(value); }
         public FolderStartupAction FolderStartupAction { get => GetSettingValue(FolderStartupAction.OpenLast); set => SetSettingValue(value); }
         public string StartupOpenFolder { get => GetSettingValue(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments)); set => SetSettingValue(value); }
+        public string LastFilePath { get => GetSettingValue<string>(null); set => SetSettingValue(value); }
+        public string LastFolderPath { get => GetSettingValue<string>(null); set => SetSettingValue(value); }
         public bool AppCompactMode { get => GetSettingValue(false); set => SetSettingValue(value); }
         public InsertImageAction InsertClipboardImageAction { get => GetSettingValue(InsertImageAction.None); set => SetSettingValue(value); }
         public string InsertClipboardImageCopyPath { get => GetSettingValue("./images"); set => SetSettingValue(value); }

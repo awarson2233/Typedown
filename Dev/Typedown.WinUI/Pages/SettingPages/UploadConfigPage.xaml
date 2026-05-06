@@ -11,7 +11,7 @@
     Loaded="OnLoaded"
     Unloaded="OnUnloaded"
     mc:Ignorable="d">
-    <StackPanel Spacing="4">
+    <StackPanel Style="{StaticResource SettingsPageRootStackPanelStyle}">
         <toolkit:SettingsCard Header="{u:LocaleString Key=Enable}" IsActionIconVisible="False">
             <toolkit:SettingsCard.HeaderIcon>
                 <FontIcon Glyph="&#xe8fb;"/>

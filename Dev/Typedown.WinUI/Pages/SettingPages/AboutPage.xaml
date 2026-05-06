@@ -4,8 +4,8 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:toolkit="using:CommunityToolkit.WinUI.Controls"
     xmlns:u="using:Typedown.WinUI.Controls">
-    <StackPanel Spacing="8">
-        <TextBlock Text="{u:LocaleString Key=About.AboutApp}" FontWeight="SemiBold" Margin="0,0,0,4"/>
+    <StackPanel Style="{StaticResource SettingsPageRootStackPanelStyle}">
+        <TextBlock Text="{u:LocaleString Key=About.AboutApp}" FontWeight="SemiBold" Style="{StaticResource SettingsSectionHeaderTextBlockStyle}"/>
         <toolkit:SettingsCard Header="{u:LocaleString Key=AppName}" Description="{u:LocaleString Key=About.Introduction}" IsActionIconVisible="False">
             <toolkit:SettingsCard.HeaderIcon>
                 <FontIcon Glyph="&#xe946;"/>

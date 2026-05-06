@@ -22,7 +22,7 @@
         </MenuFlyout>
     </Page.Resources>
 
-    <StackPanel Spacing="4">
+    <StackPanel Style="{StaticResource SettingsPageRootStackPanelStyle}">
         <toolkit:SettingsCard Header="{u:LocaleString Key=ImageUpload.AddConfig.Title}" IsActionIconVisible="False">
             <toolkit:SettingsCard.HeaderIcon>
                 <FontIcon Glyph="&#xee71;"/>
@@ -32,12 +32,13 @@
             </Button>
         </toolkit:SettingsCard>
 
-        <TextBlock Text="{u:LocaleString Key=ImageUpload.Configs}" Margin="0,16,0,4" Visibility="{x:Bind ConfigItemsTitleVisibility(ImageUpload.ImageUploadConfigs), Mode=OneWay}"/>
+        <TextBlock Text="{u:LocaleString Key=ImageUpload.Configs}" Style="{StaticResource SettingsSectionHeaderTextBlockStyle}" Margin="{StaticResource SettingsSectionBreakMargin}" Visibility="{x:Bind ConfigItemsTitleVisibility(ImageUpload.ImageUploadConfigs), Mode=OneWay}"/>
         <ListView
             x:Name="ConfigListView"
             Grid.Row="1"
             Grid.ColumnSpan="4"
             ItemsSource="{x:Bind ImageUpload.ImageUploadConfigs}"
+            ItemContainerStyle="{StaticResource SettingsListViewItemStyle}"
             SelectionMode="None">
             <ListView.ItemContainerTransitions>
                 <TransitionCollection>
@@ -46,14 +47,6 @@
                     <ReorderThemeTransition/>
                 </TransitionCollection>
             </ListView.ItemContainerTransitions>
-            <ListView.ItemContainerStyle>
-                <Style TargetType="ListViewItem" BasedOn="{StaticResource DefaultListViewItemStyle}">
-                    <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
-                    <Setter Property="Padding" Value="0"/>
-                    <Setter Property="Margin" Value="0,0,0,4"/>
-                    <Setter Property="IsTabStop" Value="False"/>
-                </Style>
-            </ListView.ItemContainerStyle>
             <ListView.ItemTemplate>
                 <DataTemplate x:DataType="models:ImageUploadConfig">
                     <toolkit:SettingsCard

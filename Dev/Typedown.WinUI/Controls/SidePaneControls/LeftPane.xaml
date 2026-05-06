@@ -9,13 +9,11 @@
     xmlns:converters="using:Typedown.WinUI.Controls"
     xmlns:u="using:Typedown.WinUI.Controls"
     Loaded="OnLoaded"
-    Unloaded="OnUnloaded"
     SizeChanged="OnSizeChanged"
     mc:Ignorable="d"
     d:DesignHeight="300"
     d:DesignWidth="400">
     <UserControl.Resources>
-        <converters:BoolToVisibilityConverter x:Key="BoolToVisibilityReverseConverter" IsReverse="True"/>
         <x:Double x:Key="TopNavigationViewPaneCustomContentMinWidth">0</x:Double>
     </UserControl.Resources>
     <Grid Background="{ThemeResource TypedownEditorBackgroundBrush}">

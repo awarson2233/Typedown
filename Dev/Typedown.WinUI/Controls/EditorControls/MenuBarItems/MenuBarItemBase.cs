@@ -17,6 +17,7 @@ namespace Typedown.WinUI.Controls;
 public abstract partial class MenuBarItemBase : Microsoft.UI.Xaml.Controls.MenuBarItem
 {
     private readonly CompositeDisposable shortcutRegistrations = new();
+    private AppViewModel? configuredViewModel;
 
     protected MenuBarItemBase(string title)
     {
@@ -36,14 +37,26 @@ public abstract partial class MenuBarItemBase : Microsoft.UI.Xaml.Controls.MenuB
 
     protected void InitializeMenu()
     {
-        shortcutRegistrations.Clear();
-        ConfigureCommands(ViewModel);
+        ConfigureFor(ViewModel);
     }
 
     protected void ReleaseMenu()
     {
         shortcutRegistrations.Clear();
+        configuredViewModel = null;
         ConfigureCommands(null);
+    }
+
+    private void ConfigureFor(AppViewModel? viewModel)
+    {
+        if (ReferenceEquals(configuredViewModel, viewModel))
+        {
+            return;
+        }
+
+        shortcutRegistrations.Clear();
+        configuredViewModel = viewModel;
+        ConfigureCommands(viewModel);
     }
 
     protected static void SetCommand(MenuFlyoutItem item, ICommand? command, object? parameter = null)
@@ -153,8 +166,7 @@ public abstract partial class MenuBarItemBase : Microsoft.UI.Xaml.Controls.MenuB
 
     private void OnDataContextChanged(FrameworkElement sender, DataContextChangedEventArgs args)
     {
-        shortcutRegistrations.Clear();
-        ConfigureCommands(args.NewValue as AppViewModel);
+        ConfigureFor(args.NewValue as AppViewModel);
     }
 
     private void OnUnloaded(object sender, RoutedEventArgs e)

@@ -1,11 +1,32 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
-		<TargetFramework>net9.0</TargetFramework>
+		<TargetFramework>net10.0</TargetFramework>
 		<Nullable>enable</Nullable>
 		<LangVersion>latest</LangVersion>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Platforms>x64;ARM64</Platforms>
+		<PlatformTarget>AnyCPU</PlatformTarget>
+	</PropertyGroup>
+
+	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+	  <IsAotCompatible>True</IsAotCompatible>
+	  <IsTrimmable>True</IsTrimmable>
+	</PropertyGroup>
+
+	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">
+	  <IsAotCompatible>True</IsAotCompatible>
+	  <IsTrimmable>True</IsTrimmable>
+	</PropertyGroup>
+
+	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+	  <IsAotCompatible>True</IsAotCompatible>
+	  <IsTrimmable>True</IsTrimmable>
+	</PropertyGroup>
+
+	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">
+	  <IsAotCompatible>True</IsAotCompatible>
+	  <IsTrimmable>True</IsTrimmable>
 	</PropertyGroup>
 
 	<ItemGroup>

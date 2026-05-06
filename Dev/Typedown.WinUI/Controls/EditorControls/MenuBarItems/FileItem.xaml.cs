@@ -1,10 +1,13 @@
 using System;
 using System.Linq;
+using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Input;
 using Typedown.Presentation.Interfaces;
 using Typedown.Presentation.ViewModels;
+using Typedown.WinUI.Services;
 
 namespace Typedown.WinUI.Controls;
 
@@ -44,8 +47,6 @@ public sealed partial class FileItem : MenuBarItemBase
 
         SetCommand(ImportItem, files?.ImportCommand);
 
-        UpdateOpenRecentItem();
-        UpdateExportItem();
         DisableUnsupportedActions();
     }
 
@@ -65,14 +66,34 @@ public sealed partial class FileItem : MenuBarItemBase
         ReleaseMenu();
     }
 
-    private void OnOpenRecentSubMenuLoaded(object sender, RoutedEventArgs e)
+    private void OnOpenRecentSubMenuRequested(object sender, RoutedEventArgs e)
     {
-        UpdateOpenRecentItem();
+        _ = UpdateOpenRecentItemAsync();
     }
 
-    private void OnExportSubMenuLoaded(object sender, RoutedEventArgs e)
+    private void OnOpenRecentSubMenuRequested(object sender, PointerRoutedEventArgs e)
     {
-        UpdateExportItem();
+        _ = UpdateOpenRecentItemAsync();
+    }
+
+    private void OnOpenRecentSubMenuRequested(object sender, TappedRoutedEventArgs e)
+    {
+        _ = UpdateOpenRecentItemAsync();
+    }
+
+    private void OnExportSubMenuRequested(object sender, RoutedEventArgs e)
+    {
+        _ = UpdateExportItemAsync();
+    }
+
+    private void OnExportSubMenuRequested(object sender, PointerRoutedEventArgs e)
+    {
+        _ = UpdateExportItemAsync();
+    }
+
+    private void OnExportSubMenuRequested(object sender, TappedRoutedEventArgs e)
+    {
+        _ = UpdateExportItemAsync();
     }
 
     private void OnNavigateItemClick(object sender, RoutedEventArgs e)
@@ -87,7 +108,7 @@ public sealed partial class FileItem : MenuBarItemBase
     {
     }
 
-    private void UpdateOpenRecentItem()
+    private async Task UpdateOpenRecentItemAsync()
     {
         var files = ViewModel?.FileViewModel;
 
@@ -99,6 +120,7 @@ public sealed partial class FileItem : MenuBarItemBase
             return;
         }
 
+        await files.AccessHistory.EnsureInitialized();
         var recentFiles = files.AccessHistory.FileRecentlyOpened.ToList();
         foreach (var file in recentFiles.AsEnumerable().Reverse())
         {
@@ -114,7 +136,7 @@ public sealed partial class FileItem : MenuBarItemBase
         ClearRecentFilesItem.IsEnabled = recentFiles.Any() && ClearRecentFilesItem.Command is not null;
     }
 
-    private void UpdateExportItem()
+    private async Task UpdateExportItemAsync()
     {
         var files = ViewModel?.FileViewModel;
 
@@ -125,7 +147,17 @@ public sealed partial class FileItem : MenuBarItemBase
             return;
         }
 
-        var exportConfigs = files.ServiceProvider.GetService<IFileExport>()?.ExportConfigs.ToList() ?? [];
+        var fileExport = files.ServiceProvider.GetService<IFileExport>();
+        if (fileExport is WinUIFileExport winUIFileExport)
+        {
+            await winUIFileExport.EnsureExportConfigsLoaded();
+        }
+        else if (fileExport is not null)
+        {
+            await fileExport.UpdateExportConfigs();
+        }
+
+        var exportConfigs = fileExport?.ExportConfigs.ToList() ?? [];
         foreach (var config in exportConfigs.AsEnumerable().Reverse())
         {
             ExportSubMenu.Items.Insert(1, new MenuFlyoutItem

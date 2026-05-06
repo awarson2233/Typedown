@@ -16,7 +16,7 @@
     <MenuFlyoutSeparator/>
     <MenuFlyoutItem x:Name="OpenFileItem" Text="{u:LocaleString Key=Open}"/>
     <MenuFlyoutItem x:Name="OpenFolderItem" Text="{u:LocaleString Key=OpenFolder}"/>
-    <MenuFlyoutSubItem x:Name="OpenRecentSubMenu" Text="{u:LocaleString Key=OpenRecent}" Loaded="OnOpenRecentSubMenuLoaded">
+    <MenuFlyoutSubItem x:Name="OpenRecentSubMenu" Text="{u:LocaleString Key=OpenRecent}" PointerEntered="OnOpenRecentSubMenuRequested" Tapped="OnOpenRecentSubMenuRequested" GotFocus="OnOpenRecentSubMenuRequested">
         <MenuFlyoutItem x:Name="NoRecentFilesItem" Text="{u:LocaleString Key=NoRecentFiles}" IsEnabled="False"/>
         <MenuFlyoutSeparator/>
         <MenuFlyoutItem x:Name="ClearRecentFilesItem" Text="{u:LocaleString Key=ClearRecentFiles}"/>
@@ -26,7 +26,7 @@
     <MenuFlyoutItem x:Name="SaveAsItem" Text="{u:LocaleString Key=SaveAs}"/>
     <MenuFlyoutSeparator/>
     <MenuFlyoutItem x:Name="ImportItem" Text="{u:LocaleString Key=Import}"/>
-    <MenuFlyoutSubItem x:Name="ExportSubMenu" Text="{u:LocaleString Key=Export}" Loaded="OnExportSubMenuLoaded">
+    <MenuFlyoutSubItem x:Name="ExportSubMenu" Text="{u:LocaleString Key=Export}" PointerEntered="OnExportSubMenuRequested" Tapped="OnExportSubMenuRequested" GotFocus="OnExportSubMenuRequested">
         <MenuFlyoutItem x:Name="NoExportConfigItem" Text="{u:LocaleString Key=NoExportConfigs}" IsEnabled="False"/>
         <MenuFlyoutSeparator/>
         <MenuFlyoutItem x:Name="ExportSettingsItem" Text="{u:LocaleString Key=ExportSettings}" CommandParameter="Settings/Export"/>

@@ -17,6 +17,7 @@ using Muxc = Microsoft.UI.Xaml.Controls;
 using PresentationLocale = Typedown.Presentation.Utilities.Locale;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Typedown.WinUI.Utilities;
 
 namespace Typedown.WinUI.Pages.SidePanePages
 {
@@ -36,7 +37,10 @@ namespace Typedown.WinUI.Pages.SidePanePages
 
         public FolderPage()
         {
-            InitializeComponent();
+            using (StartupTrace.Phase("FolderPage.InitializeComponent"))
+            {
+                InitializeComponent();
+            }
         }
 
         protected override void OnNavigatedTo(NavigationEventArgs e)
@@ -54,10 +58,13 @@ namespace Typedown.WinUI.Pages.SidePanePages
                 return;
             }
 
-            WorkFolderExplorerItem = new ExplorerItem(FileViewModel) { IsExpanded = true };
-            Bindings.Update();
-            disposables.Add(FileViewModel.WhenPropertyChanged(nameof(FileViewModel.WorkFolder)).Cast<string>().StartWith(FileViewModel.WorkFolder).Subscribe(UpdateWorkFolder));
-            disposables.Add(FileViewModel.WhenPropertyChanged(nameof(FileViewModel.FilePath)).Cast<string>().StartWith(FileViewModel.FilePath).Subscribe(_ => UpdateSelectedItem(WorkFolderExplorerItem)));
+            using (StartupTrace.Phase("FolderPage.OnLoaded"))
+            {
+                WorkFolderExplorerItem = new ExplorerItem(FileViewModel) { IsExpanded = true };
+                Bindings.Update();
+                disposables.Add(FileViewModel.WhenPropertyChanged(nameof(FileViewModel.WorkFolder)).Cast<string>().StartWith(FileViewModel.WorkFolder).Subscribe(UpdateWorkFolder));
+                disposables.Add(FileViewModel.WhenPropertyChanged(nameof(FileViewModel.FilePath)).Cast<string>().StartWith(FileViewModel.FilePath).Subscribe(_ => UpdateSelectedItem(WorkFolderExplorerItem)));
+            }
         }
 
         private void UpdateWorkFolder(string? workFolder)

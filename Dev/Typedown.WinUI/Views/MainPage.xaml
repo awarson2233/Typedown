@@ -17,6 +17,6 @@
         </Grid.RowDefinitions>
         <controls:MenuBar x:Name="MenuBar"/>
         <controls:MainContent x:Name="MainContent" Grid.Row="1"/>
-        <controls:StatusBar x:Name="StatusBar" Grid.Row="2" x:Load="True"/>
+        <controls:StatusBar x:Name="StatusBar" Grid.Row="2"/>
     </Grid>
 </Page>

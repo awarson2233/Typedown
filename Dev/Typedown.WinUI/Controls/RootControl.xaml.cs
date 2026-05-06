@@ -4,6 +4,7 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Typedown.Presentation.Interfaces;
 using Typedown.WinUI.Services;
+using Typedown.WinUI.Utilities;
 
 public sealed partial class RootControl : UserControl
 {
@@ -15,7 +16,10 @@ public sealed partial class RootControl : UserControl
 
     public RootControl()
     {
-        InitializeComponent();
+        using (StartupTrace.Phase("RootControl.InitializeComponent"))
+        {
+            InitializeComponent();
+        }
         Frame.Navigated += OnFrameNavigated;
     }
 
@@ -31,7 +35,10 @@ public sealed partial class RootControl : UserControl
     {
         if (Frame.Content is null)
         {
-            Frame.Navigate(typeof(Views.MainPage), MainPageNavigationParameter);
+            using (StartupTrace.Phase("RootControl navigate MainPage"))
+            {
+                Frame.Navigate(typeof(Views.MainPage), MainPageNavigationParameter);
+            }
         }
 
         UpdateBackButtonState(false);

@@ -15,10 +15,10 @@
     d:DesignHeight="300"
     d:DesignWidth="400">
 
-    <StackPanel Spacing="4">
+    <StackPanel Style="{StaticResource SettingsPageRootStackPanelStyle}">
 
         <toolkit:SettingsCard ContentAlignment="Left" IsActionIconVisible="False">
-            <StackPanel Margin="-16,0,0,0" Spacing="8">
+            <StackPanel Style="{StaticResource SettingsMultilineEditorPanelStyle}">
                 <TextBlock>PowerShell Script</TextBlock>
                 <TextBox
                     Grid.Row="0"
@@ -28,9 +28,9 @@
                     AcceptsReturn="True"
                     TextWrapping="Wrap"
                     MinHeight="400"/>
-                <StackPanel Orientation="Horizontal" Spacing="8">
-                    <Button Grid.Row="1" Grid.Column="1" Content="{u:LocaleString Key=ImageUpload.ImportFromFile}" Margin="0,4,0,0" Click="OnImportButtonClick"/>
-                    <Button Grid.Row="1" Grid.Column="1" Content="{u:LocaleString Key=ImageUpload.SaveToFile}" Margin="0,4,0,0" Click="OnExportButtonClick"/>
+                <StackPanel Orientation="Horizontal" Spacing="12">
+                    <Button Grid.Row="1" Grid.Column="1" Content="{u:LocaleString Key=ImageUpload.ImportFromFile}" Click="OnImportButtonClick"/>
+                    <Button Grid.Row="1" Grid.Column="1" Content="{u:LocaleString Key=ImageUpload.SaveToFile}" Click="OnExportButtonClick"/>
                 </StackPanel>
             </StackPanel>
         </toolkit:SettingsCard>

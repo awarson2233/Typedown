@@ -70,6 +70,7 @@ namespace Typedown.Presentation.ViewModels
         public IWindowContext WindowContext => ServiceProvider.GetService<IWindowContext>();
 
         private readonly CompositeDisposable disposables = new();
+        private readonly TaskCompletionSource<bool> initialEditorFileLoadedTask = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
         public FileViewModel(IServiceProvider serviceProvider)
         {
@@ -86,6 +87,13 @@ namespace Typedown.Presentation.ViewModels
             ImportCommand.OnExecute.Subscribe(_ => Import());
             RemoteInvoke.Handle<JToken, bool>("ExportCallback", ExportCallback);
             RemoteInvoke.Handle<JToken, bool>("PrintHTML", PrintHTML);
+            IDisposable initialFileLoadedSubscription = null;
+            initialFileLoadedSubscription = EventCenter.GetObservable<EditorEventArgs>("FileLoaded").Subscribe(_ =>
+            {
+                MarkInitialEditorFileLoaded();
+                initialFileLoadedSubscription?.Dispose();
+            });
+            disposables.Add(initialFileLoadedSubscription);
             saveFileTimer.Interval = TimeSpan.FromSeconds(5).TotalMilliseconds;
             saveFileTimer.Elapsed += SaveFileTimerTick;
             saveFileTimer.Start();
@@ -189,7 +197,7 @@ namespace Typedown.Presentation.ViewModels
                 }
                 if (!File.Exists(path))
                 {
-                    _ = AccessHistory.RemoveFileHistory(path);
+                    _ = RunAfterInitialEditorFileLoadedAsync(() => AccessHistory.RemoveFileHistory(path));
                     throw new FileNotFoundException("File does not exist.");
                 }
                 else if (!skipSavedCheck && !await AskToSave())
@@ -200,7 +208,9 @@ namespace Typedown.Presentation.ViewModels
                 EditorViewModel.FirstStart = false;
                 EditorViewModel.FileHash = Common.SimpleHash(text);
                 FilePath = path;
-                _ = AccessHistory.RecordFileHistory(FilePath);
+                SettingsViewModel.LastFilePath = path;
+                var loadedPath = path;
+                _ = RunAfterInitialEditorFileLoadedAsync(() => AccessHistory.RecordFileHistory(loadedPath));
                 var backup = await CheckBackup(path, EditorViewModel.CurrentHash);
                 if (backup == null)
                 {
@@ -240,11 +250,12 @@ namespace Typedown.Presentation.ViewModels
             {
                 if (!Directory.Exists(folderPath))
                 {
-                    _ = AccessHistory.RemoveFolderHistory(folderPath);
+                    _ = RunAfterInitialEditorFileLoadedAsync(() => AccessHistory.RemoveFolderHistory(folderPath));
                     throw new FileNotFoundException("Folder does not exist.");
                 }
                 WorkFolder = folderPath;
-                _ = AccessHistory.RecordFolderHistory(folderPath);
+                SettingsViewModel.LastFolderPath = folderPath;
+                _ = RunAfterInitialEditorFileLoadedAsync(() => AccessHistory.RecordFolderHistory(folderPath));
                 return true;
             }
             catch (Exception ex)
@@ -315,7 +326,8 @@ namespace Typedown.Presentation.ViewModels
                     EditorViewModel.FileHash = EditorViewModel.CurrentHash;
                     EditorViewModel.Saved = true;
                     AutoBackup.DeleteBackup(FilePath);
-                    _ = AccessHistory.RecordFileHistory(FilePath);
+                    var savedPath = FilePath;
+                    _ = RunAfterInitialEditorFileLoadedAsync(() => AccessHistory.RecordFileHistory(savedPath));
                 }
                 return result;
             }
@@ -340,9 +352,11 @@ namespace Typedown.Presentation.ViewModels
                     {
                         AutoBackup.DeleteBackup(FilePath);
                         FilePath = filePath;
+                        SettingsViewModel.LastFilePath = filePath;
                         EditorViewModel.FileHash = EditorViewModel.CurrentHash;
                         EditorViewModel.Saved = true;
-                        _ = AccessHistory.RecordFileHistory(FilePath);
+                        var savedPath = filePath;
+                        _ = RunAfterInitialEditorFileLoadedAsync(() => AccessHistory.RecordFileHistory(savedPath));
                         return filePath;
                     }
                 }
@@ -456,9 +470,16 @@ namespace Typedown.Presentation.ViewModels
                 switch (SettingsViewModel.FileStartupAction)
                 {
                     case FileStartupAction.OpenLast:
-                        await AccessHistory.EnsureInitialized();
-                        if (AccessHistory.FileRecentlyOpened.FirstOrDefault() is string lastFile && !TryGetOpenedWindow(lastFile, out _) && File.Exists(lastFile))
+                        var lastFile = SettingsViewModel.LastFilePath;
+                        if (!string.IsNullOrWhiteSpace(lastFile) && !TryGetOpenedWindow(lastFile, out _) && File.Exists(lastFile))
+                        {
                             await LoadFile(lastFile, true);
+                        }
+                        else
+                        {
+                            await NewFileFun(false);
+                            _ = LoadLastFileFromHistoryAfterInitialRenderAsync();
+                        }
                         break;
                     default:
                         await NewFileFun(false);
@@ -526,13 +547,20 @@ namespace Typedown.Presentation.ViewModels
         {
             try
             {
+                await WaitForInitialEditorFileLoadedAsync();
                 if (string.IsNullOrEmpty(WorkFolder))
                 {
                     switch (SettingsViewModel.FolderStartupAction)
                     {
                         case FolderStartupAction.OpenLast:
-                            await AccessHistory.EnsureInitialized();
-                            if (AccessHistory.FolderRecentlyOpened.FirstOrDefault() is string lastFolder && Directory.Exists(lastFolder))
+                            var lastFolder = SettingsViewModel.LastFolderPath;
+                            if (string.IsNullOrWhiteSpace(lastFolder) || !Directory.Exists(lastFolder))
+                            {
+                                await AccessHistory.EnsureInitialized();
+                                lastFolder = AccessHistory.FolderRecentlyOpened.FirstOrDefault();
+                            }
+
+                            if (!string.IsNullOrWhiteSpace(lastFolder) && Directory.Exists(lastFolder))
                                 await LoadFolder(lastFolder);
                             break;
                         case FolderStartupAction.OpenFolder:
@@ -546,6 +574,52 @@ namespace Typedown.Presentation.ViewModels
             {
                 // Ignore
             }
+        }
+
+        private async Task LoadLastFileFromHistoryAfterInitialRenderAsync()
+        {
+            try
+            {
+                await WaitForInitialEditorFileLoadedAsync();
+                if (FilePath != null || SettingsViewModel.FileStartupAction != FileStartupAction.OpenLast)
+                    return;
+
+                await AccessHistory.EnsureInitialized();
+                if (AccessHistory.FileRecentlyOpened.FirstOrDefault() is string lastFile && !TryGetOpenedWindow(lastFile, out _) && File.Exists(lastFile))
+                    await LoadFile(lastFile, true);
+            }
+            catch
+            {
+                // Ignore startup history failures; the editor has already rendered a usable document.
+            }
+        }
+
+        private async Task RunAfterInitialEditorFileLoadedAsync(Func<Task> action)
+        {
+            try
+            {
+                await WaitForInitialEditorFileLoadedAsync();
+                await action();
+            }
+            catch
+            {
+                // History writes must not block or destabilize the first editor render.
+            }
+        }
+
+        private async Task WaitForInitialEditorFileLoadedAsync()
+        {
+            if (EditorViewModel.FileLoaded)
+                MarkInitialEditorFileLoaded();
+
+            var completed = await Task.WhenAny(initialEditorFileLoadedTask.Task, Task.Delay(TimeSpan.FromSeconds(8)));
+            if (completed != initialEditorFileLoadedTask.Task)
+                MarkInitialEditorFileLoaded();
+        }
+
+        private void MarkInitialEditorFileLoaded()
+        {
+            initialEditorFileLoadedTask.TrySetResult(true);
         }
 
         public static bool TryGetOpenedWindow(string filePath, out IntPtr window)

@@ -2,6 +2,7 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Typedown.Presentation.ViewModels;
 using Typedown.Presentation.Utilities;
+using Typedown.WinUI.Utilities;
 
 namespace Typedown.WinUI.Controls;
 
@@ -19,7 +20,10 @@ public sealed partial class StatusBar : UserControl
 
     public StatusBar()
     {
-        InitializeComponent();
+        using (StartupTrace.Phase("StatusBar.InitializeComponent"))
+        {
+            InitializeComponent();
+        }
         DataContextChanged += OnDataContextChanged;
     }
 

@@ -17,8 +17,8 @@
     mc:Ignorable="d"
     d:DesignHeight="300"
     d:DesignWidth="400">
-    <StackPanel Spacing="4">
-        <TextBlock Text="{u:LocaleString Key=General}" Margin="0,0,0,4"/>
+    <StackPanel Style="{StaticResource SettingsPageRootStackPanelStyle}">
+        <TextBlock Text="{u:LocaleString Key=General}" Style="{StaticResource SettingsSectionHeaderTextBlockStyle}"/>
 
         <toolkit:SettingsExpander Header="{u:LocaleString Key=View.Image.InsertAction.Title}" Description="{u:LocaleString Key=View.Image.InsertAction.Description}">
             <toolkit:SettingsExpander.HeaderIcon>
@@ -40,7 +40,7 @@
                     Visibility="{x:Bind IsCopyImagePathSettingItemVisibility(Settings.InsertClipboardImageAction), Mode=OneWay}"
                     Header="{u:LocaleString Key=View.Image.InsertAction.Clipboard.CopyPath.Title}"
                     IsActionIconVisible="False">
-                    <Grid ColumnSpacing="4" HorizontalAlignment="Stretch">
+                    <Grid Style="{StaticResource SettingsInlineActionGridStyle}">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*"/>
                             <ColumnDefinition Width="1e10*" MaxWidth="300"/>
@@ -81,7 +81,7 @@
                     Visibility="{x:Bind IsCopyImagePathSettingItemVisibility(Settings.InsertLocalImageAction), Mode=OneWay}"
                     Header="{u:LocaleString Key=View.Image.InsertAction.Local.CopyPath.Title}"
                     IsActionIconVisible="False">
-                    <Grid ColumnSpacing="4" HorizontalAlignment="Stretch">
+                    <Grid Style="{StaticResource SettingsInlineActionGridStyle}">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*"/>
                             <ColumnDefinition Width="1e10*" MaxWidth="300"/>
@@ -122,7 +122,7 @@
                     Visibility="{x:Bind IsCopyImagePathSettingItemVisibility(Settings.InsertWebImageAction), Mode=OneWay}"
                     Header="{u:LocaleString Key=View.Image.InsertAction.Web.CopyPath.Title}"
                     IsActionIconVisible="False">
-                    <Grid ColumnSpacing="4" HorizontalAlignment="Stretch">
+                    <Grid Style="{StaticResource SettingsInlineActionGridStyle}">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*"/>
                             <ColumnDefinition Width="1e10*" MaxWidth="300"/>
@@ -156,7 +156,7 @@
             <toolkit:SettingsCard.HeaderIcon>
                 <FontIcon Glyph="&#xe8b7;"/>
             </toolkit:SettingsCard.HeaderIcon>
-            <Grid ColumnSpacing="4" HorizontalAlignment="Stretch">
+            <Grid Style="{StaticResource SettingsInlineActionGridStyle}">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="1e10*" MaxWidth="300"/>
@@ -192,7 +192,7 @@
             <ToggleSwitch IsOn="{x:Bind Settings.AutoEncodeImageURL, Mode=TwoWay}"/>
         </controls:NormalSettingItem>-->
 
-        <TextBlock Text="{u:LocaleString Key=View.Image.Upload}" Margin="0,16,0,4"/>
+        <TextBlock Text="{u:LocaleString Key=View.Image.Upload}" Style="{StaticResource SettingsSectionHeaderTextBlockStyle}" Margin="{StaticResource SettingsSectionBreakMargin}"/>
         <toolkit:SettingsCard Header="{u:LocaleString Key=View.Image.UploadConfigs.Title}" Description="{u:LocaleString Key=View.Image.UploadConfigs.Description}" IsClickEnabled="True" Command="{x:Bind ViewModel.NavigateCommand}" CommandParameter="Settings/ImageUpload">
             <toolkit:SettingsCard.HeaderIcon>
                 <FontIcon Glyph="&#xee71;"/>

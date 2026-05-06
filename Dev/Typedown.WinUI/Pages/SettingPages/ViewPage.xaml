@@ -6,8 +6,8 @@
     xmlns:enums="using:Typedown.Core.Enums"
     xmlns:toolkit="using:CommunityToolkit.WinUI.Controls"
     xmlns:u="using:Typedown.WinUI.Controls">
-    <StackPanel Spacing="8">
-        <TextBlock Text="{u:LocaleString Key=View.Window}" Margin="0,0,0,4"/>
+    <StackPanel Style="{StaticResource SettingsPageRootStackPanelStyle}">
+        <TextBlock Text="{u:LocaleString Key=View.Window}" Style="{StaticResource SettingsSectionHeaderTextBlockStyle}"/>
         <toolkit:SettingsCard Header="{u:LocaleString Key=View.AppTheme.Title}" Description="{u:LocaleString Key=View.AppTheme.Description}" IsActionIconVisible="False">
             <toolkit:SettingsCard.HeaderIcon>
                 <FontIcon Glyph="&#xe790;"/>
@@ -44,7 +44,7 @@
             <ToggleSwitch IsOn="{Binding SettingsViewModel.Topmost, Mode=TwoWay}"/>
         </toolkit:SettingsCard>
 
-        <TextBlock Text="{u:LocaleString Key=View.Layout}" Margin="0,16,0,4"/>
+        <TextBlock Text="{u:LocaleString Key=View.Layout}" Style="{StaticResource SettingsSectionHeaderTextBlockStyle}" Margin="{StaticResource SettingsSectionBreakMargin}"/>
         <toolkit:SettingsCard Header="{u:LocaleString Key=View.AppCompactMode.Title}" Description="{u:LocaleString Key=View.AppCompactMode.Description}" IsActionIconVisible="False">
             <toolkit:SettingsCard.HeaderIcon>
                 <FontIcon Glyph="&#xf246;"/>

@@ -13,8 +13,8 @@
     mc:Ignorable="d"
     d:DesignHeight="300"
     d:DesignWidth="400">
-    <StackPanel Spacing="4">
-        <TextBlock Text="{u:LocaleString Key=Editor.Style}" Margin="0,0,0,4"/>
+    <StackPanel Style="{StaticResource SettingsPageRootStackPanelStyle}">
+        <TextBlock Text="{u:LocaleString Key=Editor.Style}" Style="{StaticResource SettingsSectionHeaderTextBlockStyle}"/>
         <toolkit:SettingsCard Header="{u:LocaleString Key=Editor.FontSize.Title}" Description="{u:LocaleString Key=Editor.FontSize.Description}" IsActionIconVisible="False">
             <toolkit:SettingsCard.HeaderIcon>
                 <FontIcon Glyph="&#xe8e9;"/>
@@ -33,7 +33,7 @@
             </toolkit:SettingsCard.HeaderIcon>
             <TextBox MinWidth="200" Text="{x:Bind Settings.EditorAreaWidth, Mode=TwoWay}"/>
         </toolkit:SettingsCard>
-        <TextBlock Text="Markdown" Margin="0,16,0,4"/>
+        <TextBlock Text="Markdown" Style="{StaticResource SettingsSectionHeaderTextBlockStyle}" Margin="{StaticResource SettingsSectionBreakMargin}"/>
         <toolkit:SettingsCard Header="{u:LocaleString Key=Editor.TabSize.Title}" Description="{u:LocaleString Key=Editor.TabSize.Description}" IsActionIconVisible="False">
             <toolkit:SettingsCard.HeaderIcon>
                 <FontIcon Glyph="&#xede1;"/>
@@ -68,7 +68,7 @@
                 <x:String>HTML</x:String>
             </ComboBox>
         </controls:NormalSettingItem>-->
-        <TextBlock Text="{u:LocaleString Key=Editor.Extension}" Margin="0,16,0,4"/>
+        <TextBlock Text="{u:LocaleString Key=Editor.Extension}" Style="{StaticResource SettingsSectionHeaderTextBlockStyle}" Margin="{StaticResource SettingsSectionBreakMargin}"/>
         <toolkit:SettingsExpander Header="{u:LocaleString Key=Editor.SpellcheckEnabled.Title}" Description="{u:LocaleString Key=Editor.SpellcheckEnabled.Description}">
             <toolkit:SettingsExpander.HeaderIcon>
                 <FontIcon Glyph="&#xf87b;"/>

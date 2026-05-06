@@ -159,14 +159,19 @@ public class Phase14WinUILayoutTests
         var fileItemXaml = File.ReadAllText(Path.Combine(winuiRoot, "Controls", "EditorControls", "MenuBarItems", "FileItem.xaml"));
         var menuCode = File.ReadAllText(Path.Combine(winuiRoot, "Controls", "EditorControls", "MenuBarItems", "FileItem.xaml.cs"));
 
-        AssertContains(fileItemXaml, "Loaded=\"OnOpenRecentSubMenuLoaded\"");
-        AssertContains(fileItemXaml, "Loaded=\"OnExportSubMenuLoaded\"");
+        AssertDoesNotContain(fileItemXaml, "Loaded=\"OnOpenRecentSubMenuLoaded\"");
+        AssertDoesNotContain(fileItemXaml, "Loaded=\"OnExportSubMenuLoaded\"");
+        AssertContains(fileItemXaml, "PointerEntered=\"OnOpenRecentSubMenuRequested\"");
+        AssertContains(fileItemXaml, "PointerEntered=\"OnExportSubMenuRequested\"");
         AssertDoesNotContain(fileItemXaml, "CommandParameter=\"pdf\"");
         AssertDoesNotContain(fileItemXaml, "CommandParameter=\"html\"");
         AssertDoesNotContain(fileItemXaml, "CommandParameter=\"text\"");
 
-        AssertContains(menuCode, "UpdateOpenRecentItem();");
-        AssertContains(menuCode, "UpdateExportItem();");
+        AssertDoesNotContain(menuCode, "UpdateOpenRecentItem();");
+        AssertDoesNotContain(menuCode, "UpdateExportItem();");
+        AssertContains(menuCode, "EnsureInitialized()");
+        AssertContains(menuCode, "UpdateOpenRecentItemAsync");
+        AssertContains(menuCode, "UpdateExportItemAsync");
         AssertContains(menuCode, "SetCommand(NewWindowItem, files?.NewWindowCommand);");
         AssertContains(menuCode, "FileRecentlyOpened");
         AssertContains(menuCode, "ExportConfigs");
@@ -176,6 +181,32 @@ public class Phase14WinUILayoutTests
         AssertContains(menuCode, "CommandParameter = config");
         AssertDoesNotContain(menuCode, "NoRecentFilesItem.IsEnabled = false;");
         AssertDoesNotContain(menuCode, "NoExportConfigItem.IsEnabled = false;");
+    }
+
+    [TestMethod]
+    public void WinUIStartup_DefersDatabaseWorkUntilEditorFileLoaded()
+    {
+        var winuiRoot = Path.Combine(RepoRoot, "Dev", "Typedown.WinUI");
+        var presentationRoot = Path.Combine(RepoRoot, "Dev", "Typedown.Presentation");
+        var coreRoot = Path.Combine(RepoRoot, "Dev", "Typedown.Core");
+
+        var dispatcherCode = File.ReadAllText(Path.Combine(winuiRoot, "Services", "WinUIUiDispatcher.cs"));
+        var fileViewModel = File.ReadAllText(Path.Combine(presentationRoot, "ViewModels", "FileViewModel.cs"));
+        var settingsViewModel = File.ReadAllText(Path.Combine(presentationRoot, "ViewModels", "SettingsViewModel.cs"));
+        var accessHistory = File.ReadAllText(Path.Combine(coreRoot, "Services", "AccessHistory.cs"));
+        var fileExport = File.ReadAllText(Path.Combine(winuiRoot, "Services", "WinUIFileExport.cs"));
+
+        AssertDoesNotContain(dispatcherCode, "if (dispatcherQueue.HasThreadAccess)");
+        AssertContains(fileViewModel, "WaitForInitialEditorFileLoadedAsync");
+        AssertContains(fileViewModel, "RunAfterInitialEditorFileLoadedAsync");
+        AssertContains(fileViewModel, "SettingsViewModel.LastFilePath");
+        AssertContains(fileViewModel, "SettingsViewModel.LastFolderPath");
+        AssertContains(settingsViewModel, "public string LastFilePath");
+        AssertContains(settingsViewModel, "public string LastFolderPath");
+        AssertDoesNotContain(accessHistory, "_ = UpdateRecentlyOpened();");
+        AssertContains(accessHistory, "initializationTask ??= UpdateRecentlyOpened();");
+        AssertDoesNotContain(fileExport, "Initialize();");
+        AssertContains(fileExport, "EnsureExportConfigsLoaded");
     }
 
     [TestMethod]

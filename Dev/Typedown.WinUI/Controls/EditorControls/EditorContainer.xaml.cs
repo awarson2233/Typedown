@@ -9,7 +9,9 @@ using System.Windows.Input;
 using Typedown.Core.Models;
 using Typedown.Core.Utilities;
 using Typedown.Presentation.Interfaces;
+using Typedown.Presentation.Utilities;
 using Typedown.Presentation.ViewModels;
+using Typedown.WinUI.Utilities;
 using Windows.ApplicationModel.DataTransfer;
 using Windows.Foundation;
 using Windows.System;
@@ -23,6 +25,20 @@ public sealed partial class EditorContainer : UserControl
     private AppViewModel? viewModel;
     private IDisposable? scrollSubscription;
     private bool hasFloatAnchor;
+    private MenuFlyout? editorContextFlyout;
+    private ContextFormatItem menuFormatItem = null!;
+    private MenuFlyoutSeparator menuImageItemSeparator = null!;
+    private MenuFlyoutSubItem menuImageItem = null!;
+    private MenuFlyoutItem UndoItem = null!;
+    private MenuFlyoutItem CutItem = null!;
+    private MenuFlyoutItem CopyItem = null!;
+    private MenuFlyoutItem PasteItem = null!;
+    private MenuFlyoutItem CopyAsPlainTextItem = null!;
+    private MenuFlyoutItem CopyAsMarkdownItem = null!;
+    private MenuFlyoutItem CopyAsHTMLCodeItem = null!;
+    private MenuFlyoutItem PasteAsPlainTextItem = null!;
+    private MenuFlyoutItem DeleteItem = null!;
+    private MenuFlyoutItem SelectAllItem = null!;
 
     public static readonly DependencyProperty IsFindReplaceLoadProperty =
         DependencyProperty.Register(nameof(IsFindReplaceLoad), typeof(bool), typeof(EditorContainer), new PropertyMetadata(false));
@@ -48,8 +64,10 @@ public sealed partial class EditorContainer : UserControl
 
     public EditorContainer()
     {
-        InitializeComponent();
-        ConfigureContextMenuCommands();
+        using (StartupTrace.Phase("EditorContainer.InitializeComponent"))
+        {
+            InitializeComponent();
+        }
         DataContextChanged += OnDataContextChanged;
         SizeChanged += OnSizeChanged;
         FindReplacePopup.Opened += OnFindReplacePopupOpened;
@@ -80,7 +98,10 @@ public sealed partial class EditorContainer : UserControl
     private void OnDataContextChanged(FrameworkElement sender, DataContextChangedEventArgs args)
     {
         AttachViewModel(args.NewValue as AppViewModel);
-        ConfigureContextMenuCommands();
+        if (editorContextFlyout is not null)
+        {
+            ConfigureContextMenuCommands();
+        }
     }
 
     private void AttachViewModel(AppViewModel? nextViewModel)
@@ -194,16 +215,26 @@ public sealed partial class EditorContainer : UserControl
         FindReplacePopup.Child = findReplaceDialog;
     }
 
-    private void OnFlyoutOpening(object sender, object e)
+    private void OnFlyoutOpening(object? sender, object e)
     {
-        Bindings.Update();
         ConfigureContextMenuCommands();
     }
 
     private void ConfigureContextMenuCommands()
     {
+        if (editorContextFlyout is null)
+        {
+            return;
+        }
+
         var editor = Editor;
         var hasSelection = editor?.Selected == true;
+
+        menuFormatItem.DataContext = viewModel;
+        menuImageItem.DataContext = viewModel;
+        var hasImageMenu = IsLoadImageMenu(Format?.FormatState.Image ?? false, Editor?.Selection);
+        menuImageItem.Visibility = hasImageMenu ? Visibility.Visible : Visibility.Collapsed;
+        menuImageItemSeparator.Visibility = hasImageMenu ? Visibility.Visible : Visibility.Collapsed;
 
         SetCommand(UndoItem, editor?.UndoCommand, editor?.History.Undoable == true);
         SetCommand(CutItem, editor?.CutCommand, hasSelection);
@@ -221,6 +252,87 @@ public sealed partial class EditorContainer : UserControl
     {
         item.Command = command;
         item.IsEnabled = command is not null && isAvailable;
+    }
+
+    private MenuFlyout EnsureEditorContextFlyout()
+    {
+        if (editorContextFlyout is not null)
+        {
+            return editorContextFlyout;
+        }
+
+        using (StartupTrace.Phase("Editor context menu create"))
+        {
+            menuFormatItem = new ContextFormatItem();
+            menuImageItem = new MenuFlyoutSubItem
+            {
+                Text = Locale.GetString("Image"),
+                Icon = new FontIcon { Glyph = "\uE91B" }
+            };
+            MenuItemCollection.SetValue(menuImageItem, new ImageItem());
+            menuImageItemSeparator = new MenuFlyoutSeparator();
+
+            UndoItem = CreateMenuItem("Undo", "normal", new SymbolIcon(Symbol.Undo));
+            CutItem = CreateMenuItem("Cut", "normal", new SymbolIcon(Symbol.Cut));
+            CopyItem = CreateMenuItem("Copy", "normal", new SymbolIcon(Symbol.Copy));
+            PasteItem = CreateMenuItem("Paste", "normal", new SymbolIcon(Symbol.Paste));
+            CopyAsPlainTextItem = CreateMenuItem("CopyAsPlainText", "copyAsPlainText");
+            CopyAsMarkdownItem = CreateMenuItem("CopyAsMarkdown", "copyAsMarkdown");
+            CopyAsHTMLCodeItem = CreateMenuItem("CopyAsHTMLCode", "copyAsHtml");
+            PasteAsPlainTextItem = CreateMenuItem("PasteAsPlainText", "pasteAsPlainText");
+            DeleteItem = CreateMenuItem("Delete", null, new SymbolIcon(Symbol.Delete));
+            SelectAllItem = CreateMenuItem("SelectAll", null, new SymbolIcon(Symbol.SelectAll));
+
+            editorContextFlyout = new MenuFlyout();
+            editorContextFlyout.Opening += OnFlyoutOpening;
+            editorContextFlyout.Items.Add(menuFormatItem);
+            editorContextFlyout.Items.Add(new MenuFlyoutSeparator());
+            editorContextFlyout.Items.Add(menuImageItem);
+            editorContextFlyout.Items.Add(menuImageItemSeparator);
+            editorContextFlyout.Items.Add(UndoItem);
+            editorContextFlyout.Items.Add(new MenuFlyoutSeparator());
+            editorContextFlyout.Items.Add(CutItem);
+            editorContextFlyout.Items.Add(CopyItem);
+            editorContextFlyout.Items.Add(PasteItem);
+            editorContextFlyout.Items.Add(CreateCopyPasteAsSubMenu());
+            editorContextFlyout.Items.Add(new MenuFlyoutSeparator());
+            editorContextFlyout.Items.Add(DeleteItem);
+            editorContextFlyout.Items.Add(new MenuFlyoutSeparator());
+            editorContextFlyout.Items.Add(SelectAllItem);
+            ConfigureContextMenuCommands();
+        }
+
+        return editorContextFlyout;
+    }
+
+    private static MenuFlyoutItem CreateMenuItem(string localeKey, object? commandParameter = null, IconElement? icon = null)
+    {
+        var item = new MenuFlyoutItem
+        {
+            Text = Locale.GetString(localeKey),
+            Icon = icon
+        };
+
+        if (commandParameter is not null)
+        {
+            item.CommandParameter = commandParameter;
+        }
+
+        return item;
+    }
+
+    private MenuFlyoutSubItem CreateCopyPasteAsSubMenu()
+    {
+        var item = new MenuFlyoutSubItem
+        {
+            Text = Locale.GetString("CopyPasteAs")
+        };
+
+        item.Items.Add(CopyAsPlainTextItem);
+        item.Items.Add(CopyAsMarkdownItem);
+        item.Items.Add(CopyAsHTMLCodeItem);
+        item.Items.Add(PasteAsPlainTextItem);
+        return item;
     }
 
     private async void OnDragEnter(object sender, DragEventArgs e)
@@ -362,7 +474,7 @@ public sealed partial class EditorContainer : UserControl
 
     private void OnEditorContextMenuRequested(object? sender, WinUIEditorContextMenuRequestedEventArgs e)
     {
-        Flyout.ShowAt(MarkdownEditorPresenter, new Microsoft.UI.Xaml.Controls.Primitives.FlyoutShowOptions
+        EnsureEditorContextFlyout().ShowAt(MarkdownEditorPresenter, new Microsoft.UI.Xaml.Controls.Primitives.FlyoutShowOptions
         {
             Position = e.Position
         });

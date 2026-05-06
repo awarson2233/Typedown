@@ -8,15 +8,14 @@
 	</PropertyGroup>
 
 	<Target Name="EnsureTypedownXamlUIDependency" BeforeTargets="PrepareForBuild">
-		<Error Condition="!Exists('$(TypedownXamlUIProject)')"
-			   Text="Missing required in-repo legacy XAML host: '$(TypedownXamlUIProject)'. See docs/xamlui-dependency.md for the expected repository layout." />
+		<Error Condition="!Exists('$(TypedownXamlUIProject)')" Text="Missing required in-repo legacy XAML host: '$(TypedownXamlUIProject)'. See docs/xamlui-dependency.md for the expected repository layout." />
 	</Target>
 
 	<Import Project="$(TypedownXamlUIProjectDir)buildTransitive\Typedown.XamlUI.props" Condition="Exists('$(TypedownXamlUIProjectDir)buildTransitive\Typedown.XamlUI.props')" />
 
 	<PropertyGroup>
 		<OutputType>WinExe</OutputType>
-		<TargetFramework>net9.0-windows10.0.26100.0</TargetFramework>
+		<TargetFramework>net10.0-windows10.0.26100.0</TargetFramework>
 		<LangVersion>latest</LangVersion>
 		<Platforms>x64;x86;ARM64</Platforms>
 		<TargetPlatformVersion>10.0.26100.0</TargetPlatformVersion>

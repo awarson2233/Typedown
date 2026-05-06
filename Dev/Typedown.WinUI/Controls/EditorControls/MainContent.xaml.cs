@@ -1,5 +1,6 @@
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Typedown.WinUI.Utilities;
 
 namespace Typedown.WinUI.Controls;
 
@@ -20,17 +21,16 @@ public sealed partial class MainContent : UserControl
 
     public MainContent()
     {
-        InitializeComponent();
+        using (StartupTrace.Phase("MainContent.InitializeComponent"))
+        {
+            InitializeComponent();
+        }
     }
 
     private void OnLoaded(object sender, RoutedEventArgs e)
     {
         VisualStateManager.GoToState(this, IsLeftPaneLoad ? "SidePaneExpand" : "SidePaneCollapse", false);
     }
-
-    private void OnUnloaded(object sender, RoutedEventArgs e) { }
-
-    private void OnSizeChanged(object sender, SizeChangedEventArgs e) { }
 
     public void SetSidePaneOpen(bool isOpen)
     {

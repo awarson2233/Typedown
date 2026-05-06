@@ -72,26 +72,26 @@ namespace Typedown.Presentation.ViewModels
         public EditorViewModel(IServiceProvider serviceProvider)
         {
             ServiceProvider = serviceProvider;
-            EventCenter.GetObservable<EditorEventArgs>("MarkdownChange").Subscribe(x => OnMarkdownChange(x.Args));
-            EventCenter.GetObservable<EditorEventArgs>("FileLoaded").Subscribe(x => OnFileLoaded(x.Args));
-            EventCenter.GetObservable<EditorEventArgs>("CursorChange").Subscribe(x => OnCursorChange(x.Args));
-            EventCenter.GetObservable<EditorEventArgs>("SelectionChange").Subscribe(x => OnSelectionChange(x.Args));
-            EventCenter.GetObservable<EditorEventArgs>("CodeMirrorSelectionChange").Subscribe(x => OnCodeMirrorSelectionChange(x.Args));
-            EventCenter.GetObservable<EditorEventArgs>("StateChange").Subscribe(x => OnStateChange(x.Args));
+            disposables.Add(EventCenter.GetObservable<EditorEventArgs>("MarkdownChange").Subscribe(x => OnMarkdownChange(x.Args)));
+            disposables.Add(EventCenter.GetObservable<EditorEventArgs>("FileLoaded").Subscribe(x => OnFileLoaded(x.Args)));
+            disposables.Add(EventCenter.GetObservable<EditorEventArgs>("CursorChange").Subscribe(x => OnCursorChange(x.Args)));
+            disposables.Add(EventCenter.GetObservable<EditorEventArgs>("SelectionChange").Subscribe(x => OnSelectionChange(x.Args)));
+            disposables.Add(EventCenter.GetObservable<EditorEventArgs>("CodeMirrorSelectionChange").Subscribe(x => OnCodeMirrorSelectionChange(x.Args)));
+            disposables.Add(EventCenter.GetObservable<EditorEventArgs>("StateChange").Subscribe(x => OnStateChange(x.Args)));
             RemoteInvoke.Handle("GetSettings", GetSettings);
             RemoteInvoke.Handle<JToken>("SetClipboard", OnSetClipboard);
-            Settings.WhenPropertyChanged(nameof(Settings.AutoSave)).Subscribe(_ => Settings_AutoSaveChanged(Settings.AutoSave));
-            this.WhenPropertyChanged(nameof(SearchValue)).Subscribe(_ => SearchValueChanged());
-            this.WhenPropertyChanged(nameof(Saved)).Subscribe(_ => SavedOrAutoSavedSuccChanged());
-            this.WhenPropertyChanged(nameof(AutoSavedSucc)).Subscribe(_ => SavedOrAutoSavedSuccChanged());
-            UndoCommand.OnExecute.Subscribe(_ => Undo());
-            RedoCommand.OnExecute.Subscribe(_ => Redo());
-            FindCommand.OnExecute.Subscribe(x => Find(x));
-            PasteCommand.OnExecute.Subscribe(x => Paste(x));
-            CutCommand.OnExecute.Subscribe(x => Cut(x));
-            CopyCommand.OnExecute.Subscribe(x => Copy(x));
-            DeleteSelectionCommand.OnExecute.Subscribe(_ => DeleteSelection());
-            SelectAllCommand.OnExecute.Subscribe(_ => SelectAll());
+            disposables.Add(Settings.WhenPropertyChanged(nameof(Settings.AutoSave)).Subscribe(_ => Settings_AutoSaveChanged(Settings.AutoSave)));
+            disposables.Add(this.WhenPropertyChanged(nameof(SearchValue)).Subscribe(_ => SearchValueChanged()));
+            disposables.Add(this.WhenPropertyChanged(nameof(Saved)).Subscribe(_ => SavedOrAutoSavedSuccChanged()));
+            disposables.Add(this.WhenPropertyChanged(nameof(AutoSavedSucc)).Subscribe(_ => SavedOrAutoSavedSuccChanged()));
+            disposables.Add(UndoCommand.OnExecute.Subscribe(_ => Undo()));
+            disposables.Add(RedoCommand.OnExecute.Subscribe(_ => Redo()));
+            disposables.Add(FindCommand.OnExecute.Subscribe(x => Find(x)));
+            disposables.Add(PasteCommand.OnExecute.Subscribe(x => Paste(x)));
+            disposables.Add(CutCommand.OnExecute.Subscribe(x => Cut(x)));
+            disposables.Add(CopyCommand.OnExecute.Subscribe(x => Copy(x)));
+            disposables.Add(DeleteSelectionCommand.OnExecute.Subscribe(_ => DeleteSelection()));
+            disposables.Add(SelectAllCommand.OnExecute.Subscribe(_ => SelectAll()));
         }
 
         public async Task<object> GetSettings()

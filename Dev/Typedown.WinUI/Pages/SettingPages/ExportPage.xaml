@@ -21,9 +21,9 @@
         </MenuFlyout>
     </Page.Resources>
 
-    <StackPanel Spacing="4">
+    <StackPanel Style="{StaticResource SettingsPageRootStackPanelStyle}">
 
-        <TextBlock Text="{u:LocaleString Key=General}" Margin="0,0,0,4"/>
+        <TextBlock Text="{u:LocaleString Key=General}" Style="{StaticResource SettingsSectionHeaderTextBlockStyle}"/>
         <toolkit:SettingsCard Header="{u:LocaleString Key=Export.OpenFolderAfterExport.Title}" IsActionIconVisible="False">
             <toolkit:SettingsCard.HeaderIcon>
                 <FontIcon Glyph="&#xed25;"/>
@@ -39,12 +39,13 @@
             </Button>
         </toolkit:SettingsCard>
 
-        <TextBlock Text="{u:LocaleString Key=Export.Configs}" Margin="0,16,0,4" Visibility="{x:Bind ConfigItemsTitleVisibility(FileExport.ExportConfigs), Mode=OneWay}"/>
+        <TextBlock Text="{u:LocaleString Key=Export.Configs}" Style="{StaticResource SettingsSectionHeaderTextBlockStyle}" Margin="{StaticResource SettingsSectionBreakMargin}" Visibility="{x:Bind ConfigItemsTitleVisibility(FileExport.ExportConfigs), Mode=OneWay}"/>
         <ListView
             x:Name="ConfigListView"
             Grid.Row="1"
             Grid.ColumnSpan="4"
             ItemsSource="{x:Bind FileExport.ExportConfigs}"
+            ItemContainerStyle="{StaticResource SettingsListViewItemStyle}"
             SelectionMode="None">
             <ListView.ItemContainerTransitions>
                 <TransitionCollection>
@@ -53,14 +54,6 @@
                     <ReorderThemeTransition/>
                 </TransitionCollection>
             </ListView.ItemContainerTransitions>
-            <ListView.ItemContainerStyle>
-                <Style TargetType="ListViewItem" BasedOn="{StaticResource DefaultListViewItemStyle}">
-                    <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
-                    <Setter Property="Padding" Value="0"/>
-                    <Setter Property="Margin" Value="0,0,0,4"/>
-                    <Setter Property="IsTabStop" Value="False"/>
-                </Style>
-            </ListView.ItemContainerStyle>
             <ListView.ItemTemplate>
                 <DataTemplate x:DataType="models:ExportConfig">
                     <toolkit:SettingsCard

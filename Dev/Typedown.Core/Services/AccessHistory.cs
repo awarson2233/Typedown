@@ -16,12 +16,9 @@ namespace Typedown.Core.Services
 
         public ObservableCollection<string> FolderRecentlyOpened { get; } = new();
 
-        private readonly TaskCompletionSource<bool> initializedTask = new();
+        private readonly object initializationLock = new();
 
-        public AccessHistory()
-        {
-            _ = UpdateRecentlyOpened();
-        }
+        private Task? initializationTask;
 
         public async Task RecordFileHistory(string filePath)
         {
@@ -73,7 +70,14 @@ namespace Typedown.Core.Services
             }
             if (FileRecentlyOpened.Count < maxCount)
             {
-                foreach (var path in await LoadRecentlyOpenedPathsAsync("FileAccessHistory", "FilePath", maxCount))
+                using var ctx = await AppDbContext.Create();
+                var paths = await ctx.FileAccessHistories
+                    .OrderByDescending(x => x.AccessTime)
+                    .Select(x => x.FilePath)
+                    .Take(maxCount)
+                    .ToListAsync();
+
+                foreach (var path in paths)
                 {
                     if (!FileRecentlyOpened.Contains(path))
                         FileRecentlyOpened.Add(path);
@@ -127,11 +131,18 @@ namespace Typedown.Core.Services
             }
             while (FolderRecentlyOpened.Count > maxCount)
             {
-                FolderRecentlyOpened.RemoveAt(FileRecentlyOpened.Count - 1);
+                FolderRecentlyOpened.RemoveAt(FolderRecentlyOpened.Count - 1);
             }
             if (FolderRecentlyOpened.Count < maxCount)
             {
-                foreach (var path in await LoadRecentlyOpenedPathsAsync("FolderAccessHistory", "FolderPath", maxCount))
+                using var ctx = await AppDbContext.Create();
+                var paths = await ctx.FolderAccessHistories
+                    .OrderByDescending(x => x.AccessTime)
+                    .Select(x => x.FolderPath)
+                    .Take(maxCount)
+                    .ToListAsync();
+
+                foreach (var path in paths)
                 {
                     if (!FolderRecentlyOpened.Contains(path))
                         FolderRecentlyOpened.Add(path);
@@ -139,46 +150,23 @@ namespace Typedown.Core.Services
             }
         }
 
-        private static async Task<string[]> LoadRecentlyOpenedPathsAsync(string tableName, string pathColumnName, int maxCount)
-        {
-            using var ctx = await AppDbContext.Create();
-            var connectionString = ctx.Database.GetDbConnection().ConnectionString;
-
-            await using var connection = new SqliteConnection(connectionString);
-            await connection.OpenAsync();
-
-            await using var command = connection.CreateCommand();
-            command.CommandText = $"SELECT \"{pathColumnName}\" FROM \"{tableName}\" ORDER BY \"AccessTime\" DESC LIMIT $maxCount;";
-            command.Parameters.AddWithValue("$maxCount", maxCount);
-
-            var paths = new string[maxCount];
-            var count = 0;
-            await using var reader = await command.ExecuteReaderAsync();
-            while (count < paths.Length && await reader.ReadAsync())
-            {
-                if (!reader.IsDBNull(0))
-                    paths[count++] = reader.GetString(0);
-            }
-
-            if (count == paths.Length)
-                return paths;
-
-            Array.Resize(ref paths, count);
-            return paths;
-        }
-
         private async Task UpdateRecentlyOpened()
         {
             var updateFileTask = UpdateFileRecentlyOpened(string.Empty, CollectionChangeAction.Refresh);
             var updateFolderTask = UpdateFolderRecentlyOpened(string.Empty, CollectionChangeAction.Refresh);
             await Task.WhenAll(updateFileTask, updateFolderTask);
-            if (!initializedTask.Task.IsCompleted)
-                initializedTask.SetResult(true);
         }
 
         public async Task EnsureInitialized()
         {
-            await initializedTask.Task;
+            Task task;
+            lock (initializationLock)
+            {
+                initializationTask ??= UpdateRecentlyOpened();
+                task = initializationTask;
+            }
+
+            await task;
         }
 
         public async Task ClearHistory()

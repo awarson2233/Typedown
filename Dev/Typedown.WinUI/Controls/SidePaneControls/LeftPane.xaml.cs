@@ -1,5 +1,6 @@
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Typedown.WinUI.Utilities;
 
 namespace Typedown.WinUI.Controls;
 
@@ -16,7 +17,10 @@ public sealed partial class LeftPane : UserControl
 
     public LeftPane()
     {
-        InitializeComponent();
+        using (StartupTrace.Phase("LeftPane.InitializeComponent"))
+        {
+            InitializeComponent();
+        }
     }
 
     private void OnLoaded(object sender, RoutedEventArgs e)
@@ -26,8 +30,6 @@ public sealed partial class LeftPane : UserControl
             NavigationView.SelectedItem = NavigationView.MenuItems[0];
         }
     }
-
-    private void OnUnloaded(object sender, RoutedEventArgs e) { }
 
     private void OnSizeChanged(object sender, SizeChangedEventArgs e)
     {
@@ -51,7 +53,10 @@ public sealed partial class LeftPane : UserControl
         }
 
         var transition = args.RecommendedNavigationTransitionInfo ?? new Microsoft.UI.Xaml.Media.Animation.SuppressNavigationTransitionInfo();
-        Frame.Navigate(pageType, DataContext, transition);
+        using (StartupTrace.Phase($"LeftPane navigate {pageName}"))
+        {
+            Frame.Navigate(pageType, DataContext, transition);
+        }
     }
 
     private void OnSearchPaneClose(object? sender, EventArgs e)

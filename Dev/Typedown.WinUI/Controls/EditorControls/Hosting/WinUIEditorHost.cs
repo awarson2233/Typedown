@@ -9,6 +9,7 @@ using Windows.Foundation;
 using Microsoft.Web.WebView2.Core;
 using Typedown.Presentation.Interfaces;
 using Typedown.WinUI.Services;
+using Typedown.WinUI.Utilities;
 
 namespace Typedown.WinUI.Controls
 {
@@ -34,25 +35,28 @@ namespace Typedown.WinUI.Controls
 
         public WinUIEditorHost(IServiceProvider? serviceProvider = null)
         {
-            this.serviceProvider = serviceProvider;
-            commandSink = serviceProvider?.GetService<IEditorCommandSink>() as WinUIEditorCommandSink;
-            hostSink = new WinUIEditorHostSink(this);
-            documentSession = CreateDocumentSession();
-            hostController = new WinUIEditorHostController(documentSession, hostSink);
-            bridgeAdapter = new WinUIEditorBridgeAdapter(documentSession);
-            webView = new WebView2
+            using (StartupTrace.Phase("WinUIEditorHost ctor"))
             {
-                HorizontalAlignment = HorizontalAlignment.Stretch,
-                Opacity = 0,
-                VerticalAlignment = VerticalAlignment.Stretch
-            };
+                this.serviceProvider = serviceProvider;
+                commandSink = serviceProvider?.GetService<IEditorCommandSink>() as WinUIEditorCommandSink;
+                hostSink = new WinUIEditorHostSink(this);
+                documentSession = CreateDocumentSession();
+                hostController = new WinUIEditorHostController(documentSession, hostSink);
+                bridgeAdapter = new WinUIEditorBridgeAdapter(documentSession);
+                webView = new WebView2
+                {
+                    HorizontalAlignment = HorizontalAlignment.Stretch,
+                    Opacity = 0,
+                    VerticalAlignment = VerticalAlignment.Stretch
+                };
 
-            status = "Loaded=False; FileLoaded=False; MarkdownLength=0; LastEvent=Waiting";
-            latestRawWebMessage = bridgeAdapter.LastRawMessage;
+                status = "Loaded=False; FileLoaded=False; MarkdownLength=0; LastEvent=Waiting";
+                latestRawWebMessage = bridgeAdapter.LastRawMessage;
 
-            Content = webView;
-            Loaded += OnLoaded;
-            Unloaded += OnUnloaded;
+                Content = webView;
+                Loaded += OnLoaded;
+                Unloaded += OnUnloaded;
+            }
         }
 
         public string Status => status;
@@ -101,7 +105,10 @@ namespace Typedown.WinUI.Controls
 
                 if (!coreInitialized)
                 {
-                    await webView.EnsureCoreWebView2Async();
+                    using (StartupTrace.Phase("WebView2.EnsureCoreWebView2Async"))
+                    {
+                        await webView.EnsureCoreWebView2Async();
+                    }
                     if (!isLoaded || currentLoadVersion != loadVersion)
                     {
                         return;

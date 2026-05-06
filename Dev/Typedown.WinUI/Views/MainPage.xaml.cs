@@ -9,6 +9,7 @@ using System.Reactive.Linq;
 using Typedown.Core;
 using Typedown.Core.Utilities;
 using Typedown.Presentation.ViewModels;
+using Typedown.WinUI.Utilities;
 
 namespace Typedown.WinUI.Views
 {
@@ -26,7 +27,10 @@ namespace Typedown.WinUI.Views
 
         public MainPage()
         {
-            this.InitializeComponent();
+            using (StartupTrace.Phase("MainPage.InitializeComponent"))
+            {
+                this.InitializeComponent();
+            }
             NavigationCacheMode = NavigationCacheMode.Required;
         }
 
@@ -76,6 +80,7 @@ namespace Typedown.WinUI.Views
         {
             base.OnNavigatedTo(e);
 
+            using var phase = StartupTrace.Phase("MainPage.OnNavigatedTo");
             AttachViewModel(ResolveViewModel(e.Parameter));
             DataContext = ViewModel;
             ApplyCurrentShellState();

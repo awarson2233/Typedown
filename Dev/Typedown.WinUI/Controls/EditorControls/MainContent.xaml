@@ -11,15 +11,10 @@
     mc:Ignorable="d"
     x:Name="ThisControl"
     Loaded="OnLoaded"
-    Unloaded="OnUnloaded"
-    SizeChanged="OnSizeChanged"
     d:DesignHeight="300"
     d:DesignWidth="400">
     <UserControl.Resources>
-        <converters:GridLengthToDoubleConverter x:Key="GridLengthToDoubleConverter"/>
         <TranslateTransform x:Key="LeftPaneTransform" x:Name="LeftPaneTransform" />
-        <StaticResource x:Key="MicaContentBackgroundBrush" ResourceKey="TypedownEditorBackgroundBrush"/>
-        <StaticResource x:Key="SolidContentBackgroundBrush" ResourceKey="TypedownEditorBackgroundBrush"/>
     </UserControl.Resources>
     <Grid Background="{ThemeResource TypedownEditorBackgroundBrush}" x:Name="MainContentGrid">
         <VisualStateManager.VisualStateGroups>

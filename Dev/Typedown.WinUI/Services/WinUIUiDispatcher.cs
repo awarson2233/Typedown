@@ -36,12 +36,6 @@ namespace Typedown.WinUI.Services
 
         private Task EnqueueAsync(Action action, DispatcherQueuePriority priority)
         {
-            if (dispatcherQueue.HasThreadAccess)
-            {
-                action();
-                return Task.CompletedTask;
-            }
-
             var tcs = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
             if (!dispatcherQueue.TryEnqueue(priority, () => Execute(action, tcs)))
             {
@@ -53,11 +47,6 @@ namespace Typedown.WinUI.Services
 
         private Task<T> EnqueueAsync<T>(Func<T> action, DispatcherQueuePriority priority)
         {
-            if (dispatcherQueue.HasThreadAccess)
-            {
-                return Task.FromResult(action());
-            }
-
             var tcs = new TaskCompletionSource<T>(TaskCreationOptions.RunContinuationsAsynchronously);
             if (!dispatcherQueue.TryEnqueue(priority, () => Execute(action, tcs)))
             {

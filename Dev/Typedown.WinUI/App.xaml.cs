@@ -40,7 +40,10 @@ namespace Typedown.WinUI
         /// </summary>
         public App()
         {
-            this.InitializeComponent();
+            using (StartupTrace.Phase("App.InitializeComponent"))
+            {
+                this.InitializeComponent();
+            }
         }
 
         /// <summary>
@@ -50,6 +53,7 @@ namespace Typedown.WinUI
         /// <param name="e">Details about the launch request and process.</param>
         protected override void OnLaunched(LaunchActivatedEventArgs e)
         {
+            StartupTrace.Mark("App.OnLaunched entered");
             WinUILocale.Initialize();
 
             // Set SQLite temp directory before any connection is created, so
@@ -62,38 +66,50 @@ namespace Typedown.WinUI
             Directory.CreateDirectory(tmp);
             Environment.SetEnvironmentVariable("SQLITE_TMPDIR", tmp);
 
-            Batteries.Init();
+            using (StartupTrace.Phase("SQLite Batteries.Init"))
+            {
+                Batteries.Init();
+            }
 
             window ??= new Window();
             platformServices ??= new WinUIPlatformServices(window);
             Config.SetAppDataPathProvider(platformServices.AppDataPathProvider);
-            uiServices ??= new ServiceCollection()
-                .AddSingleton(platformServices.WindowContext)
-                .AddSingleton(platformServices.UiDispatcher)
-                .AddSingleton(platformServices.DialogService)
-                .AddSingleton(platformServices.FilePickerService)
-                .AddSingleton(platformServices.AppActivationService)
-                .AddSingleton(platformServices.AppDataPathProvider)
-                .AddSingleton<IClipboard, WinUIClipboard>()
-                .AddSingleton<IFileConverter, WinUIFileConverter>()
-                .AddSingleton<IFileExport, WinUIFileExport>()
-                .AddSingleton<IFileOperation, WinUIFileOperation>()
-                .AddSingleton<IFloatViewService, WinUIFloatViewService>()
-                .AddSingleton<IKeyboardAccelerator, WinUIKeyboardAccelerator>()
-                .AddSingleton<IEditorCommandSink, WinUIEditorCommandSink>()
-                .AddSingleton<IPowerShellService, WinUIPowerShellService>()
-                .AddSingleton<IEditorSettingsNotifier, WinUIEditorSettingsNotifier>()
-                .AddSingleton<ITableDialogService, WinUITableDialogService>()
-                .AddSingleton<IWindowService, WinUIWindowService>()
-                .AddTypedownCore()
-                .AddTypedownPresentation()
-                .BuildServiceProvider();
+            if (uiServices is null)
+            {
+                using (StartupTrace.Phase("Build service provider"))
+                {
+                    uiServices = new ServiceCollection()
+                        .AddSingleton(platformServices.WindowContext)
+                        .AddSingleton(platformServices.UiDispatcher)
+                        .AddSingleton(platformServices.DialogService)
+                        .AddSingleton(platformServices.FilePickerService)
+                        .AddSingleton(platformServices.AppActivationService)
+                        .AddSingleton(platformServices.AppDataPathProvider)
+                        .AddSingleton<IClipboard, WinUIClipboard>()
+                        .AddSingleton<IFileConverter, WinUIFileConverter>()
+                        .AddSingleton<IFileExport, WinUIFileExport>()
+                        .AddSingleton<IFileOperation, WinUIFileOperation>()
+                        .AddSingleton<IFloatViewService, WinUIFloatViewService>()
+                        .AddSingleton<IKeyboardAccelerator, WinUIKeyboardAccelerator>()
+                        .AddSingleton<IEditorCommandSink, WinUIEditorCommandSink>()
+                        .AddSingleton<IPowerShellService, WinUIPowerShellService>()
+                        .AddSingleton<IEditorSettingsNotifier, WinUIEditorSettingsNotifier>()
+                        .AddSingleton<ITableDialogService, WinUITableDialogService>()
+                        .AddSingleton<IWindowService, WinUIWindowService>()
+                        .AddTypedownCore()
+                        .AddTypedownPresentation()
+                        .BuildServiceProvider();
+                }
+            }
             platformServices.WindowContext.Title = "Typedown";
             ConfigureNativeTitleBar(window);
 
             if (window.Content is not RootControl rootControl)
             {
-                rootControl = new RootControl();
+                using (StartupTrace.Phase("RootControl create"))
+                {
+                    rootControl = new RootControl();
+                }
                 window.Content = rootControl;
                 window.SetTitleBar(rootControl.TitleBarElement);
             }
@@ -103,10 +119,16 @@ namespace Typedown.WinUI
             rootControl.AttachKeyboardAccelerator(uiServices.GetRequiredService<IKeyboardAccelerator>());
             rootControl.MainPageNavigationParameter = new MainPageNavigationContext(platformServices, uiServices);
             platformServices.WindowContext.ViewRoot = rootControl;
-            AttachShellBindings(rootControl);
+            using (StartupTrace.Phase("Attach shell bindings"))
+            {
+                AttachShellBindings(rootControl);
+            }
             platformServices.AppActivationService.StartListening(platformServices.UiDispatcher);
+            StartupTrace.Mark("Activation service listening");
             _ = platformServices.AppActivationService.Activate(Environment.GetCommandLineArgs());
+            StartupTrace.Mark("App activation request dispatched");
             platformServices.WindowContext.Activate();
+            StartupTrace.Mark("Window activated");
         }
 
         private static void ConfigureNativeTitleBar(Window targetWindow)

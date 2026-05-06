@@ -14,7 +14,7 @@
     d:DesignHeight="300"
     d:DesignWidth="400">
 
-    <StackPanel Spacing="4">
+    <StackPanel Style="{StaticResource SettingsPageRootStackPanelStyle}">
 
         <toolkit:SettingsCard Header="DPI" IsActionIconVisible="False">
             <muxc:NumberBox MinWidth="200" Value="{x:Bind ImageConfigModel.DPI, Mode=TwoWay}"/>
