@@ -56,7 +56,7 @@ public class Phase14WinUILayoutTests
         AssertContains(root, "Width=\"32\"");
         AssertContains(root, "Height=\"32\"");
         AssertContains(root, "Style=\"{ThemeResource TitleBarBackButtonStyle}\"");
-        AssertContains(root, "Text=\"Typedown\"");
+        AssertContains(root, "Text=\"{u:LocaleString Key=AppName}\"");
         AssertContains(rootCode, "Frame.Navigate(typeof(Views.MainPage), MainPageNavigationParameter)");
         AssertContains(rootCode, "public UIElement TitleBarElement => TitleDragRegion");
         AssertContains(rootCode, "Frame.SourcePageType == typeof(Pages.SettingsPage)");

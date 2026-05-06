@@ -3,6 +3,7 @@ using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
 using System;
 using System.Linq;
+using System.Reactive.Disposables;
 using System.Windows.Input;
 using Microsoft.UI.Xaml;
 using Typedown.Core.Models;
@@ -15,10 +16,13 @@ namespace Typedown.WinUI.Controls;
 
 public abstract partial class MenuBarItemBase : Microsoft.UI.Xaml.Controls.MenuBarItem
 {
+    private readonly CompositeDisposable shortcutRegistrations = new();
+
     protected MenuBarItemBase(string title)
     {
         Title = title;
         DataContextChanged += OnDataContextChanged;
+        Unloaded += OnUnloaded;
     }
 
     protected void AddPlaceholder(string text)
@@ -32,11 +36,13 @@ public abstract partial class MenuBarItemBase : Microsoft.UI.Xaml.Controls.MenuB
 
     protected void InitializeMenu()
     {
+        shortcutRegistrations.Clear();
         ConfigureCommands(ViewModel);
     }
 
     protected void ReleaseMenu()
     {
+        shortcutRegistrations.Clear();
         ConfigureCommands(null);
     }
 
@@ -51,7 +57,7 @@ public abstract partial class MenuBarItemBase : Microsoft.UI.Xaml.Controls.MenuB
         item.IsEnabled = command is not null;
     }
 
-    protected static void SetShortcut(MenuFlyoutItem item, ShortcutKey? shortcut)
+    protected void SetShortcut(MenuFlyoutItem item, ShortcutKey? shortcut)
     {
         item.KeyboardAccelerators.Clear();
         item.KeyboardAcceleratorTextOverride = string.Empty;
@@ -63,18 +69,13 @@ public abstract partial class MenuBarItemBase : Microsoft.UI.Xaml.Controls.MenuB
 
         var activeShortcut = shortcut!;
         item.KeyboardAcceleratorTextOverride = activeShortcut.GetShortcutKeyText();
-        var accelerator = CreateKeyboardAccelerator(activeShortcut, () =>
+        RegisterShortcut(activeShortcut, () =>
         {
             if (item.Command?.CanExecute(item.CommandParameter) == true)
             {
                 item.Command.Execute(item.CommandParameter);
             }
         });
-
-        if (accelerator is not null)
-        {
-            item.KeyboardAccelerators.Add(accelerator);
-        }
     }
 
     protected static void SetCommand(ToggleMenuFlyoutItem item, ICommand? command, object? parameter = null)
@@ -88,7 +89,7 @@ public abstract partial class MenuBarItemBase : Microsoft.UI.Xaml.Controls.MenuB
         item.IsEnabled = command is not null;
     }
 
-    protected static void SetShortcut(ToggleMenuFlyoutItem item, ShortcutKey? shortcut, Action? invoke = null)
+    protected void SetShortcut(ToggleMenuFlyoutItem item, ShortcutKey? shortcut, Action? invoke = null)
     {
         item.KeyboardAccelerators.Clear();
         item.KeyboardAcceleratorTextOverride = string.Empty;
@@ -100,7 +101,7 @@ public abstract partial class MenuBarItemBase : Microsoft.UI.Xaml.Controls.MenuB
 
         var activeShortcut = shortcut!;
         item.KeyboardAcceleratorTextOverride = activeShortcut.GetShortcutKeyText();
-        var accelerator = CreateKeyboardAccelerator(activeShortcut, () =>
+        RegisterShortcut(activeShortcut, () =>
         {
             if (invoke is not null)
             {
@@ -111,11 +112,6 @@ public abstract partial class MenuBarItemBase : Microsoft.UI.Xaml.Controls.MenuB
                 item.Command.Execute(item.CommandParameter);
             }
         });
-
-        if (accelerator is not null)
-        {
-            item.KeyboardAccelerators.Add(accelerator);
-        }
     }
 
     private static bool HasShortcutKey(ShortcutKey? shortcut)
@@ -123,54 +119,19 @@ public abstract partial class MenuBarItemBase : Microsoft.UI.Xaml.Controls.MenuB
         return shortcut is not null && shortcut.Key != KeyboardKey.None;
     }
 
-    private static KeyboardAccelerator? CreateKeyboardAccelerator(ShortcutKey shortcut, Action invoke)
+    private void RegisterShortcut(ShortcutKey shortcut, Action invoke)
     {
-        var key = (VirtualKey)(int)shortcut.Key;
-        if (!Enum.IsDefined(key))
+        var accelerator = ViewModel?.ServiceProvider.GetService<IKeyboardAccelerator>();
+        if (accelerator is null)
         {
-            return null;
+            return;
         }
 
-        var accelerator = new KeyboardAccelerator
-        {
-            Key = key,
-            Modifiers = ToVirtualKeyModifiers(shortcut.Modifiers)
-        };
-
-        accelerator.Invoked += (_, args) =>
+        shortcutRegistrations.Add(accelerator.Register(shortcut, (_, args) =>
         {
             invoke();
             args.Handled = true;
-        };
-
-        return accelerator;
-    }
-
-    private static VirtualKeyModifiers ToVirtualKeyModifiers(KeyboardModifiers modifiers)
-    {
-        var result = VirtualKeyModifiers.None;
-
-        if (modifiers.HasFlag(KeyboardModifiers.Control))
-        {
-            result |= VirtualKeyModifiers.Control;
-        }
-
-        if (modifiers.HasFlag(KeyboardModifiers.Menu))
-        {
-            result |= VirtualKeyModifiers.Menu;
-        }
-
-        if (modifiers.HasFlag(KeyboardModifiers.Shift))
-        {
-            result |= VirtualKeyModifiers.Shift;
-        }
-
-        if (modifiers.HasFlag(KeyboardModifiers.Windows))
-        {
-            result |= VirtualKeyModifiers.Windows;
-        }
-
-        return result;
+        }));
     }
 
     protected MenuFlyoutItem? FindMenuItem(string text)
@@ -192,7 +153,13 @@ public abstract partial class MenuBarItemBase : Microsoft.UI.Xaml.Controls.MenuB
 
     private void OnDataContextChanged(FrameworkElement sender, DataContextChangedEventArgs args)
     {
+        shortcutRegistrations.Clear();
         ConfigureCommands(args.NewValue as AppViewModel);
+    }
+
+    private void OnUnloaded(object sender, RoutedEventArgs e)
+    {
+        shortcutRegistrations.Clear();
     }
 
     private static System.Collections.Generic.IEnumerable<object> Flatten(object item)

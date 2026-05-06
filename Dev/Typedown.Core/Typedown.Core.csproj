@@ -5,6 +5,7 @@
 		<Nullable>enable</Nullable>
 		<LangVersion>latest</LangVersion>
 		<GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+		<Platforms>x64;ARM64</Platforms>
 	</PropertyGroup>
 
 	<ItemGroup>

@@ -68,9 +68,15 @@ namespace Typedown.WinUI.Services
 
         private void OnRootKeyDown(object sender, KeyRoutedEventArgs e)
         {
-            var args = new KeyEventArgs(ToKeyboardKey(e.Key), GetCurrentModifiers());
-            keyEvents.OnNext(args);
+            var args = Emit(ToKeyboardKey(e.Key), GetCurrentModifiers());
             e.Handled = args.Handled;
+        }
+
+        internal KeyEventArgs Emit(KeyboardKey key, KeyboardModifiers modifiers)
+        {
+            var args = new KeyEventArgs(key, modifiers);
+            keyEvents.OnNext(args);
+            return args;
         }
 
         private static KeyboardKey ToKeyboardKey(VirtualKey key)
@@ -78,7 +84,7 @@ namespace Typedown.WinUI.Services
             return (KeyboardKey)(int)key;
         }
 
-        private static KeyboardModifiers GetCurrentModifiers()
+        internal static KeyboardModifiers GetCurrentModifiers()
         {
             var modifiers = KeyboardModifiers.None;
 

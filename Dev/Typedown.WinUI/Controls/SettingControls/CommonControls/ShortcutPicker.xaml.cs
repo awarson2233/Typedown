@@ -1,9 +1,9 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
-using Typedown.WinUI.Controls.SettingControls.SettingItems;
 using Typedown.Core.Models;
 using Typedown.Core.Utilities;
+using Typedown.Presentation.Utilities;
 using Typedown.Presentation.ViewModels;
 using Windows.System;
 using Microsoft.UI.Xaml;
@@ -76,7 +76,7 @@ namespace Typedown.WinUI.Controls
                 {
                     Verified = false;
                     ErrorMsgPanel.Visibility = Visibility.Visible;
-                    ExistOwnerTextBlock.Text = new ShortcutSettingItemModel(settings, existShortcutKeys[shortcutKey]).Description;
+                    ExistOwnerTextBlock.Text = GetShortcutDescription(existShortcutKeys[shortcutKey]);
                 }
                 else
                 {
@@ -123,6 +123,18 @@ namespace Typedown.WinUI.Controls
             Verified = true;
             ErrorMsgPanel.Visibility = Visibility.Collapsed;
             ShortcutKey = new(0, 0);
+        }
+
+        private static string GetShortcutDescription(PropertyInfo property)
+        {
+            var texts = property.GetCustomAttribute<LocaleAttribute>()?.Texts.ToList();
+            if (texts == null || !texts.Any())
+            {
+                return "Unknown / " + property.Name;
+            }
+
+            var displayName = string.IsNullOrEmpty(texts.Last()) ? property.Name : texts.Last();
+            return string.Join(" / ", texts.Take(texts.Count - 1).Append(displayName));
         }
     }
 }

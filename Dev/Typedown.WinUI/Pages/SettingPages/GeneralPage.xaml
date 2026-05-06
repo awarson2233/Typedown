@@ -2,6 +2,119 @@
     x:Class="Typedown.WinUI.Pages.SettingPages.GeneralPage"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    xmlns:settingitems="using:Typedown.WinUI.Controls.SettingControls.SettingItems">
-    <settingitems:GeneralSetting/>
+    xmlns:local="using:Typedown.WinUI.Pages.SettingPages"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:controls="using:Typedown.WinUI.Controls"
+    xmlns:utils="using:Typedown.WinUI.Controls.SettingControls"
+    xmlns:enums="using:Typedown.Core.Enums"
+    xmlns:toolkit="using:CommunityToolkit.WinUI.Controls"
+    xmlns:viewmodels="using:Typedown.Presentation.ViewModels"
+    xmlns:u="using:Typedown.WinUI.Controls"
+    d:DataContext="{d:DesignInstance Type=viewmodels:AppViewModel}"
+    Unloaded="OnUnloaded"
+    mc:Ignorable="d"
+    d:DesignHeight="300"
+    d:DesignWidth="400">
+    <StackPanel Spacing="4">
+
+        <TextBlock Text="{u:LocaleString Key=General.Application}" Margin="0,0,0,4"/>
+        <toolkit:SettingsExpander Header="{u:LocaleString Key=General.StartupAction.Title}" Description="{u:LocaleString Key=General.StartupAction.Description}">
+            <toolkit:SettingsExpander.HeaderIcon>
+                <FontIcon Glyph="&#xe7b5;"/>
+            </toolkit:SettingsExpander.HeaderIcon>
+            <toolkit:SettingsExpander.Items>
+                <toolkit:SettingsCard Header="{u:LocaleString Key=File}" IsActionIconVisible="False">
+                    <ComboBox MinWidth="200" ItemsSource="{x:Bind enums:Enumerable.FileStartupActions}" SelectedItem="{Binding SettingsViewModel.FileStartupAction, Mode=TwoWay}">
+                        <ComboBox.ItemTemplate>
+                            <DataTemplate>
+                                <controls:EnumNameBlock Value="{Binding}"/>
+                            </DataTemplate>
+                        </ComboBox.ItemTemplate>
+                    </ComboBox>
+                </toolkit:SettingsCard>
+                <toolkit:SettingsCard Header="{u:LocaleString Key=Folder}" IsActionIconVisible="False">
+                    <ComboBox MinWidth="200" ItemsSource="{x:Bind enums:Enumerable.FolderStartupActions}" SelectedItem="{Binding SettingsViewModel.FolderStartupAction, Mode=TwoWay}">
+                        <ComboBox.ItemTemplate>
+                            <DataTemplate>
+                                <controls:EnumNameBlock Value="{Binding}"/>
+                            </DataTemplate>
+                        </ComboBox.ItemTemplate>
+                    </ComboBox>
+                </toolkit:SettingsCard>
+                <toolkit:SettingsCard
+                    x:Name="StartOpenFolderItem"
+                    Visibility="{x:Bind local:GeneralPage.IsStartupOpenFolderItemLoad(Settings.FolderStartupAction), Mode=OneWay}"
+                    Header="{u:LocaleString Key=OpenFolder}"
+                    IsActionIconVisible="False"
+                    HorizontalContentAlignment="Stretch">
+                    <Grid ColumnSpacing="4" HorizontalAlignment="Stretch">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="1e10*" MaxWidth="300"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBox Grid.Column="1" Text="{x:Bind Settings.StartupOpenFolder, Mode=TwoWay}"/>
+                        <controls:PathPickerButton Grid.Column="2" Content="{u:LocaleString Key=Browse}" Mode="Folder" Path="{x:Bind Settings.StartupOpenFolder, Mode=TwoWay}"/>
+                    </Grid>
+                </toolkit:SettingsCard>
+            </toolkit:SettingsExpander.Items>
+        </toolkit:SettingsExpander>
+        <toolkit:SettingsCard Header="{u:LocaleString Key=General.AutoSave.Title}" Description="{u:LocaleString Key=General.AutoSave.Description}" IsActionIconVisible="False">
+            <toolkit:SettingsCard.HeaderIcon>
+                <FontIcon Glyph="&#xe74e;"/>
+            </toolkit:SettingsCard.HeaderIcon>
+            <ToggleSwitch IsOn="{x:Bind Settings.AutoSave, Mode=TwoWay}"/>
+        </toolkit:SettingsCard>
+        <toolkit:SettingsCard Header="{u:LocaleString Key=General.KeepRun.Title}" Description="{u:LocaleString Key=General.KeepRun.Description}" IsActionIconVisible="False">
+            <toolkit:SettingsCard.HeaderIcon>
+                <FontIcon Glyph="&#xe945;"/>
+            </toolkit:SettingsCard.HeaderIcon>
+            <ToggleSwitch IsOn="{x:Bind Settings.KeepRun, Mode=TwoWay}"/>
+        </toolkit:SettingsCard>
+        <toolkit:SettingsCard Header="{u:LocaleString Key=General.Language.Title}" Description="{u:LocaleString Key=General.Language.Description}" IsActionIconVisible="False" HorizontalContentAlignment="Stretch">
+            <toolkit:SettingsCard.HeaderIcon>
+                <FontIcon Glyph="&#xf2b7;"/>
+            </toolkit:SettingsCard.HeaderIcon>
+            <Grid ColumnSpacing="4" HorizontalAlignment="Stretch">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock
+                    TextWrapping="Wrap"
+                    HorizontalAlignment="Right"
+                    VerticalAlignment="Center"
+                    Margin="0,0,16,0"
+                    x:Name="LangChangedTextBlock"
+                    Text="{u:LocaleString Key=RestartAppIsRequireForChangesToTakeEffect}"
+                    FontSize="14"
+                    Foreground="{ThemeResource SystemErrorTextColor}"
+                    x:Load="{x:Bind IsLangChanged(Settings.Language), Mode=OneWay}"/>
+                <ComboBox Grid.Column="1" VerticalAlignment="Center" ItemsSource="{x:Bind utils:Locale.LangsOptions.Keys}" Width="200" SelectedItem="{Binding SettingsViewModel.Language, Mode=TwoWay}">
+                    <ComboBox.ItemTemplate>
+                        <DataTemplate x:DataType="x:String">
+                            <TextBlock Text="{x:Bind utils:Locale.GetLangOptionDisplayName((x:String))}"/>
+                        </DataTemplate>
+                    </ComboBox.ItemTemplate>
+                </ComboBox>
+            </Grid>
+        </toolkit:SettingsCard>
+
+        <TextBlock Text="{u:LocaleString Key=General.Custom}" Margin="0,16,0,4"/>
+        <toolkit:SettingsCard Header="{u:LocaleString Key=General.ShortcutKeys.Title}" Description="{u:LocaleString Key=General.ShortcutKeys.Description}" IsClickEnabled="True" Command="{x:Bind ViewModel.NavigateCommand}" CommandParameter="Settings/Shortcut">
+            <toolkit:SettingsCard.HeaderIcon>
+                <FontIcon Glyph="&#xe92e;"/>
+            </toolkit:SettingsCard.HeaderIcon>
+        </toolkit:SettingsCard>
+
+        <TextBlock Text="{u:LocaleString Key=General.Data}" Margin="0,16,0,4"/>
+        <toolkit:SettingsCard Header="{u:LocaleString Key=General.RestoreDefault.Title}" Description="{u:LocaleString Key=General.RestoreDefault.Description}" IsActionIconVisible="False">
+            <toolkit:SettingsCard.HeaderIcon>
+                <FontIcon Glyph="&#xebc4;"/>
+            </toolkit:SettingsCard.HeaderIcon>
+            <Button MinWidth="120" Command="{x:Bind Settings.ResetSettingsCommand}" Content="{u:LocaleString Key=Restore}"/>
+        </toolkit:SettingsCard>
+
+    </StackPanel>
 </Page>

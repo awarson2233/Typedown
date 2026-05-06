@@ -194,7 +194,7 @@ public class Phase13LegacyTextResourceTests
         {
             TextResourceGroup.CommonResources => 204,
             TextResourceGroup.DialogResources => 33,
-            TextResourceGroup.Resources => 1,
+            TextResourceGroup.Resources => 12,
             TextResourceGroup.SettingsResources => 141,
             _ => throw new ArgumentOutOfRangeException(nameof(group), group, null)
         };

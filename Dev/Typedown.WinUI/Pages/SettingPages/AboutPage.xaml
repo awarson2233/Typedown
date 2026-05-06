@@ -12,12 +12,12 @@
             </toolkit:SettingsCard.HeaderIcon>
             <TextBlock Text="{x:Bind VersionText, Mode=OneWay}" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
         </toolkit:SettingsCard>
-        <toolkit:SettingsCard Header="{u:LocaleString Key=OpenSourceSoftware}" Description="View credits for open source components." IsClickEnabled="True">
+        <toolkit:SettingsCard Header="{u:LocaleString Key=OpenSourceSoftware}" Description="View credits for open source components." IsClickEnabled="True" Click="OnOpenSourceSoftwareClick">
             <toolkit:SettingsCard.HeaderIcon>
                 <FontIcon Glyph="&#xe774;"/>
             </toolkit:SettingsCard.HeaderIcon>
         </toolkit:SettingsCard>
-        <toolkit:SettingsCard Header="{u:LocaleString Key=About.AppStorePage}" Description="Open Typedown in Microsoft Store." IsClickEnabled="True">
+        <toolkit:SettingsCard Header="{u:LocaleString Key=About.AppStorePage}" Description="Open Typedown in Microsoft Store." IsClickEnabled="True" Click="OnMicrosoftStorePageClick">
             <toolkit:SettingsCard.HeaderIcon>
                 <FontIcon Glyph="&#xe719;"/>
             </toolkit:SettingsCard.HeaderIcon>
@@ -26,7 +26,7 @@
             <toolkit:SettingsCard.HeaderIcon>
                 <FontIcon Glyph="&#xe939;"/>
             </toolkit:SettingsCard.HeaderIcon>
-            <Button MinWidth="120" Content="{u:LocaleString Key=Feedback}"/>
+            <Button MinWidth="120" Content="{u:LocaleString Key=Feedback}" Click="OnFeedbackClick"/>
         </toolkit:SettingsCard>
     </StackPanel>
 </Page>

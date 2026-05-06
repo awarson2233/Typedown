@@ -3,6 +3,7 @@ using Microsoft.UI.Xaml.Input;
 using Newtonsoft.Json.Linq;
 using System.ComponentModel;
 using System.Reactive.Linq;
+using System.Windows.Input;
 using Typedown.Core.Models;
 using Typedown.Core.Utilities;
 using Typedown.Presentation.Interfaces;
@@ -44,6 +45,7 @@ public sealed partial class EditorContainer : UserControl
     public EditorContainer()
     {
         InitializeComponent();
+        ConfigureContextMenuCommands();
         DataContextChanged += OnDataContextChanged;
         SizeChanged += OnSizeChanged;
         FindReplacePopup.Opened += OnFindReplacePopupOpened;
@@ -69,19 +71,12 @@ public sealed partial class EditorContainer : UserControl
     private void OnUnloaded(object sender, RoutedEventArgs e)
     {
         AttachViewModel(null);
-
-        if (editorHost is not null)
-        {
-            editorHost.ContextMenuRequested -= OnEditorContextMenuRequested;
-            editorHost = null;
-        }
-
-        MarkdownEditorPresenter.Content = null;
     }
 
     private void OnDataContextChanged(FrameworkElement sender, DataContextChangedEventArgs args)
     {
         AttachViewModel(args.NewValue as AppViewModel);
+        ConfigureContextMenuCommands();
     }
 
     private void AttachViewModel(AppViewModel? nextViewModel)
@@ -198,6 +193,30 @@ public sealed partial class EditorContainer : UserControl
     private void OnFlyoutOpening(object sender, object e)
     {
         Bindings.Update();
+        ConfigureContextMenuCommands();
+    }
+
+    private void ConfigureContextMenuCommands()
+    {
+        var editor = Editor;
+        var hasSelection = editor?.Selected == true;
+
+        SetCommand(UndoItem, editor?.UndoCommand, editor?.History.Undoable == true);
+        SetCommand(CutItem, editor?.CutCommand, hasSelection);
+        SetCommand(CopyItem, editor?.CopyCommand, hasSelection);
+        SetCommand(PasteItem, editor?.PasteCommand, editor is not null);
+        SetCommand(CopyAsPlainTextItem, editor?.CopyCommand, hasSelection);
+        SetCommand(CopyAsMarkdownItem, editor?.CopyCommand, hasSelection);
+        SetCommand(CopyAsHTMLCodeItem, editor?.CopyCommand, hasSelection);
+        SetCommand(PasteAsPlainTextItem, editor?.PasteCommand, editor is not null);
+        SetCommand(DeleteItem, editor?.DeleteSelectionCommand, hasSelection);
+        SetCommand(SelectAllItem, editor?.SelectAllCommand, editor is not null);
+    }
+
+    private static void SetCommand(MenuFlyoutItem item, ICommand? command, bool isAvailable)
+    {
+        item.Command = command;
+        item.IsEnabled = command is not null && isAvailable;
     }
 
     private async void OnDragEnter(object sender, DragEventArgs e)

@@ -91,7 +91,7 @@
                         </u:MenuItemCollection.Value>
                     </MenuFlyoutSubItem>
                     <MenuFlyoutSeparator x:Name="MenuImageItemSeparator" x:Load="{x:Bind local:EditorContainer.IsLoadImageMenu(Format.FormatState.Image, Editor.Selection), Mode=OneWay}"/>
-                    <MenuFlyoutItem Text="{u:LocaleString Key=Undo}" Icon="Undo"/>
+                    <MenuFlyoutItem x:Name="UndoItem" Text="{u:LocaleString Key=Undo}" Icon="Undo"/>
                     <MenuFlyoutSeparator/>
                     <MenuFlyoutItem x:Name="CutItem" Text="{u:LocaleString Key=Cut}" Icon="Cut" CommandParameter="normal"/>
                     <MenuFlyoutItem x:Name="CopyItem" Text="{u:LocaleString Key=Copy}" Icon="Copy" CommandParameter="normal"/>

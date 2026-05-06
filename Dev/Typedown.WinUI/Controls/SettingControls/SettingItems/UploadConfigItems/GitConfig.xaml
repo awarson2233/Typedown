@@ -5,7 +5,9 @@
     xmlns:local="using:Typedown.WinUI.Controls.SettingControls.SettingItems.UploadConfigItems"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-    xmlns:controls="using:Typedown.WinUI.Controls" xmlns:muxc="using:Microsoft.UI.Xaml.Controls"
+    xmlns:controls="using:Typedown.WinUI.Controls"
+    xmlns:muxc="using:Microsoft.UI.Xaml.Controls"
+    xmlns:toolkit="using:CommunityToolkit.WinUI.Controls"
     Loaded="OnLoaded"
     Unloaded="OnUnloaded"
     mc:Ignorable="d"
@@ -14,7 +16,7 @@
 
     <StackPanel Spacing="4">
 
-        <controls:NormalSettingItem HorizontalActionAlignment="Stretch">
+        <toolkit:SettingsCard ContentAlignment="Left" IsActionIconVisible="False">
             <Grid RowSpacing="12" ColumnSpacing="16" Margin="-16,2">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto" MinWidth="100"/>
@@ -35,9 +37,9 @@
                 <PasswordBox Grid.Row="2" Grid.Column="1" Password="{x:Bind GitConfigModel.Passphrase, Mode=TwoWay}"/>
                 <Button Grid.Row="3" Grid.Column="1" Content="测试连接"/>
             </Grid>
-        </controls:NormalSettingItem>
+        </toolkit:SettingsCard>
 
-        <controls:NormalSettingItem HorizontalActionAlignment="Stretch">
+        <toolkit:SettingsCard ContentAlignment="Left" IsActionIconVisible="False">
             <Grid RowSpacing="12" ColumnSpacing="16" Margin="-16,2">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto" MinWidth="100"/>
@@ -55,7 +57,7 @@
                 <TextBox Grid.Row="1" Grid.Column="1" Text="{x:Bind GitConfigModel.ExternalURL, Mode=TwoWay}"/>
                 <Button Grid.Row="4" Grid.Column="1" Content="测试上传"/>
             </Grid>
-        </controls:NormalSettingItem>
+        </toolkit:SettingsCard>
 
     </StackPanel>
 </UserControl>

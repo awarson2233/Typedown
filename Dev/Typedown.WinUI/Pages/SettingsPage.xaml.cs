@@ -41,11 +41,16 @@ namespace Typedown.WinUI.Pages
 
         private SettingsNavigationParameter? navigationParameter;
 
+        private IDisposable? navigateCommandSubscription;
+
+        private AppViewModel? subscribedNavigateViewModel;
+
         private bool isUpdatingNavigationSelection;
 
         public SettingsPage()
         {
             InitializeComponent();
+            NavigationCacheMode = NavigationCacheMode.Required;
             ApplyNavigationLabels();
             ContentFrame.Navigated += OnNavigated;
         }
@@ -79,6 +84,7 @@ namespace Typedown.WinUI.Pages
             ViewModel = navigationParameter.AppViewModel;
             SettingsViewModel = navigationParameter.SettingsViewModel;
             DataContext = ViewModel;
+            SubscribeNavigateCommand();
 
             var pageType = Route.GetSettingsPageType(navigationParameter.PageName) ?? typeof(GeneralPage);
             if (ContentFrame.SourcePageType != pageType)
@@ -130,11 +136,18 @@ namespace Typedown.WinUI.Pages
 
         private void Navigate(string args)
         {
-            var path = args?.Split('?')[0].TrimStart('/').Split('/');
+            if (string.IsNullOrWhiteSpace(args))
+            {
+                return;
+            }
+
+            var queryIndex = args.IndexOf('?');
+            var route = queryIndex >= 0 ? args[..queryIndex] : args;
+            var query = queryIndex >= 0 ? args[(queryIndex + 1)..] : null;
+            var path = route.TrimStart('/').Split('/', StringSplitOptions.RemoveEmptyEntries);
             if (path != null && path.Length > 1)
             {
                 var type = Route.GetSettingsPageType(path[1]);
-            var query = args?.Contains("?") == true ? args.Substring(args.IndexOf("?") + 1) : "";
                 if (type != null && type != ContentFrame.SourcePageType)
                 {
                     ContentFrame.Navigate(type, CreatePageParameter(path[1], query), GetTransition());
@@ -147,11 +160,39 @@ namespace Typedown.WinUI.Pages
             Effect = SlideNavigationTransitionEffect.FromRight
         };
 
-        private void OnLoaded(object sender, RoutedEventArgs e) { }
+        private void OnLoaded(object sender, RoutedEventArgs e)
+        {
+            SubscribeNavigateCommand();
+        }
 
         private void OnUnloaded(object sender, RoutedEventArgs e)
         {
-             Bindings?.StopTracking();
+            // Do not clean up things that are needed for returning from cache
+            // Bindings?.StopTracking(); // Commenting this out since the page stays alive in Cache
+        }
+
+        private void SubscribeNavigateCommand()
+        {
+            if (ViewModel == null)
+            {
+                return;
+            }
+
+            if (subscribedNavigateViewModel == ViewModel && navigateCommandSubscription != null)
+            {
+                return;
+            }
+
+            UnsubscribeNavigateCommand();
+            subscribedNavigateViewModel = ViewModel;
+            navigateCommandSubscription = ViewModel.NavigateCommand.OnExecute.Subscribe(Navigate);
+        }
+
+        private void UnsubscribeNavigateCommand()
+        {
+            navigateCommandSubscription?.Dispose();
+            navigateCommandSubscription = null;
+            subscribedNavigateViewModel = null;
         }
 
         private void OnBreadcrumbBarItemClicked(BreadcrumbBar sender, BreadcrumbBarItemClickedEventArgs args)

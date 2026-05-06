@@ -2,14 +2,44 @@
     x:Class="Typedown.WinUI.Pages.SettingPages.ExportConfigPage"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    xmlns:local="using:Typedown.WinUI.Pages.SettingPages"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-    xmlns:export="using:Typedown.WinUI.Controls.SettingControls.SettingItems.ExportConfigItems"
+    xmlns:controls="using:Typedown.WinUI.Controls"
+    xmlns:enums="using:Typedown.Core.Enums"
+    xmlns:toolkit="using:CommunityToolkit.WinUI.Controls"
+    xmlns:u="using:Typedown.WinUI.Controls"
     Loaded="OnLoaded"
     Unloaded="OnUnloaded"
     mc:Ignorable="d">
-    <export:CommonConfig
-        ExportConfig="{x:Bind ExportConfig, Mode=OneWay}"
-        Detail="{x:Bind GetExportConfigItem(ExportConfig.Type), Mode=OneWay}"/>
+    <StackPanel Spacing="4">
+        <toolkit:SettingsCard Header="{u:LocaleString Key=Name}" IsActionIconVisible="False">
+            <toolkit:SettingsCard.HeaderIcon>
+                <FontIcon Glyph="&#xe8ac;"/>
+            </toolkit:SettingsCard.HeaderIcon>
+            <TextBox MinWidth="200" Text="{x:Bind ExportConfig.Name, Mode=TwoWay}"/>
+        </toolkit:SettingsCard>
+        <toolkit:SettingsCard Header="{u:LocaleString Key=Export.ExportFileType}" IsActionIconVisible="False">
+            <toolkit:SettingsCard.HeaderIcon>
+                <FontIcon Glyph="&#xe9e9;"/>
+            </toolkit:SettingsCard.HeaderIcon>
+            <ComboBox
+                MinWidth="200"
+                ItemsSource="{x:Bind enums:Enumerable.AvailableExportTypes}"
+                DataContext="{x:Bind}"
+                SelectedItem="{Binding ExportConfig.Type, Mode=TwoWay}">
+                <ComboBox.ItemTemplate>
+                    <DataTemplate>
+                        <controls:EnumNameBlock Value="{Binding}"/>
+                    </DataTemplate>
+                </ComboBox.ItemTemplate>
+            </ComboBox>
+        </toolkit:SettingsCard>
+        <ContentPresenter Content="{x:Bind GetExportConfigItem(ExportConfig.Type), Mode=OneWay}"/>
+        <toolkit:SettingsCard Header="{u:LocaleString Key=ImageUpload.DeleteConfig}" IsActionIconVisible="False">
+            <toolkit:SettingsCard.HeaderIcon>
+                <FontIcon Glyph="&#xe74d;"/>
+            </toolkit:SettingsCard.HeaderIcon>
+            <Button Content="{u:LocaleString Key=Delete}" MinWidth="100" Click="OnDeleteButtonClick"/>
+        </toolkit:SettingsCard>
+    </StackPanel>
 </Page>

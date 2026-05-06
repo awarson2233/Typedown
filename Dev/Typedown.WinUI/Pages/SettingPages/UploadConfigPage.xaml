@@ -2,14 +2,56 @@
     x:Class="Typedown.WinUI.Pages.SettingPages.UploadConfigPage"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    xmlns:local="using:Typedown.WinUI.Pages.SettingPages"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-    xmlns:upload="using:Typedown.WinUI.Controls.SettingControls.SettingItems.UploadConfigItems"
+    xmlns:controls="using:Typedown.WinUI.Controls"
+    xmlns:enums="using:Typedown.Core.Enums"
+    xmlns:toolkit="using:CommunityToolkit.WinUI.Controls"
+    xmlns:u="using:Typedown.WinUI.Controls"
     Loaded="OnLoaded"
     Unloaded="OnUnloaded"
     mc:Ignorable="d">
-    <upload:CommonConfig
-        ImageUploadConfig="{x:Bind ImageUploadConfig, Mode=OneWay}"
-        Detail="{x:Bind GetUploadConfigItem(ImageUploadConfig.Method), Mode=OneWay}"/>
+    <StackPanel Spacing="4">
+        <toolkit:SettingsCard Header="{u:LocaleString Key=Enable}" IsActionIconVisible="False">
+            <toolkit:SettingsCard.HeaderIcon>
+                <FontIcon Glyph="&#xe8fb;"/>
+            </toolkit:SettingsCard.HeaderIcon>
+            <ToggleSwitch IsOn="{x:Bind ImageUploadConfig.IsEnable, Mode=TwoWay}"/>
+        </toolkit:SettingsCard>
+        <toolkit:SettingsCard Header="{u:LocaleString Key=Name}" IsActionIconVisible="False">
+            <toolkit:SettingsCard.HeaderIcon>
+                <FontIcon Glyph="&#xe8ac;"/>
+            </toolkit:SettingsCard.HeaderIcon>
+            <TextBox MinWidth="200" Text="{x:Bind ImageUploadConfig.Name, Mode=TwoWay}"/>
+        </toolkit:SettingsCard>
+        <toolkit:SettingsCard Header="{u:LocaleString Key=ImageUpload.Method}" IsActionIconVisible="False">
+            <toolkit:SettingsCard.HeaderIcon>
+                <FontIcon Glyph="&#xe9e9;"/>
+            </toolkit:SettingsCard.HeaderIcon>
+            <ComboBox
+                MinWidth="200"
+                ItemsSource="{x:Bind enums:Enumerable.AvailableImageUploadMethods}"
+                DataContext="{x:Bind}"
+                SelectedItem="{Binding ImageUploadConfig.Method, Mode=TwoWay}">
+                <ComboBox.ItemTemplate>
+                    <DataTemplate>
+                        <controls:EnumNameBlock Value="{Binding}"/>
+                    </DataTemplate>
+                </ComboBox.ItemTemplate>
+            </ComboBox>
+        </toolkit:SettingsCard>
+        <ContentPresenter Content="{x:Bind GetUploadConfigItem(ImageUploadConfig.Method), Mode=OneWay}"/>
+        <toolkit:SettingsCard Header="{u:LocaleString Key=ImageUpload.TestUpload}" IsActionIconVisible="False">
+            <toolkit:SettingsCard.HeaderIcon>
+                <FontIcon Glyph="&#xe74a;"/>
+            </toolkit:SettingsCard.HeaderIcon>
+            <Button Content="{u:LocaleString Key=ImageUpload.PickerFile}" MinWidth="100" Click="OnTestUploadButtonClick"/>
+        </toolkit:SettingsCard>
+        <toolkit:SettingsCard Header="{u:LocaleString Key=ImageUpload.DeleteConfig}" IsActionIconVisible="False">
+            <toolkit:SettingsCard.HeaderIcon>
+                <FontIcon Glyph="&#xe74d;"/>
+            </toolkit:SettingsCard.HeaderIcon>
+            <Button Content="{u:LocaleString Key=Delete}" MinWidth="100" Click="OnDeleteButtonClick"/>
+        </toolkit:SettingsCard>
+    </StackPanel>
 </Page>

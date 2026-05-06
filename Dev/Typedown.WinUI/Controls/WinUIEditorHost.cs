@@ -27,6 +27,7 @@ namespace Typedown.WinUI.Controls
         private bool coreInitialized;
         private bool isLoaded;
         private bool coreEventsAttached;
+        private bool editorNavigationStarted;
         private int loadVersion;
 
         public event EventHandler<WinUIEditorContextMenuRequestedEventArgs>? ContextMenuRequested;
@@ -84,6 +85,20 @@ namespace Typedown.WinUI.Controls
                 var themePayload = CreateCurrentThemePayload();
                 ApplyNativeEditorBackground(themePayload.Background);
 
+                if (coreInitialized && editorNavigationStarted)
+                {
+                    AttachCoreWebView();
+                    if (bridgeAdapter.IsContentLoaded)
+                    {
+                        webView.Opacity = 1;
+                    }
+
+                    status = bridgeAdapter.StatusText;
+                    latestRawWebMessage = bridgeAdapter.LastRawMessage;
+                    TrySendPendingLoadFile();
+                    return;
+                }
+
                 if (!coreInitialized)
                 {
                     await webView.EnsureCoreWebView2Async();
@@ -124,6 +139,7 @@ namespace Typedown.WinUI.Controls
                 webView.CoreWebView2.Settings.IsStatusBarEnabled = false;
                 webView.CoreWebView2.Settings.IsZoomControlEnabled = false;
                 webView.Opacity = 0;
+                editorNavigationStarted = true;
                 webView.CoreWebView2.Navigate(new Uri(editorIndex).AbsoluteUri);
                 status = $"Editor host navigating to {editorIndex}";
             }
@@ -282,6 +298,7 @@ namespace Typedown.WinUI.Controls
             webView.CoreWebView2.WebMessageReceived += OnWebMessageReceived;
             webView.CoreWebView2.NavigationCompleted += OnNavigationCompleted;
             webView.CoreWebView2.ContextMenuRequested += OnContextMenuRequested;
+            webView.PreviewKeyDown += OnPreviewKeyDown;
             coreEventsAttached = true;
         }
 
@@ -295,6 +312,7 @@ namespace Typedown.WinUI.Controls
             webView.CoreWebView2.WebMessageReceived -= OnWebMessageReceived;
             webView.CoreWebView2.NavigationCompleted -= OnNavigationCompleted;
             webView.CoreWebView2.ContextMenuRequested -= OnContextMenuRequested;
+            webView.PreviewKeyDown -= OnPreviewKeyDown;
             coreEventsAttached = false;
         }
 
@@ -302,6 +320,15 @@ namespace Typedown.WinUI.Controls
         {
             e.Handled = true;
             ContextMenuRequested?.Invoke(this, new WinUIEditorContextMenuRequestedEventArgs(new Point(e.Location.X, e.Location.Y)));
+        }
+
+        private void OnPreviewKeyDown(object sender, Microsoft.UI.Xaml.Input.KeyRoutedEventArgs e)
+        {
+            if (serviceProvider?.GetService<IKeyboardAccelerator>() is WinUIKeyboardAccelerator accelerator)
+            {
+                var args = accelerator.Emit((Typedown.Core.Models.KeyboardKey)(int)e.Key, WinUIKeyboardAccelerator.GetCurrentModifiers());
+                e.Handled = args.Handled;
+            }
         }
 
         private void TrySendPendingLoadFile()

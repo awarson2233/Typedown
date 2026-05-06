@@ -7,6 +7,7 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:controls="using:Typedown.WinUI.Controls"
     xmlns:muxc="using:Microsoft.UI.Xaml.Controls"
+    xmlns:toolkit="using:CommunityToolkit.WinUI.Controls"
     xmlns:u="using:Typedown.WinUI.Controls"
     xmlns:enums="using:Typedown.Core.Enums"
     x:Name="PDFConfigControl"
@@ -16,7 +17,7 @@
     d:DesignHeight="300"
     d:DesignWidth="400">
     <StackPanel Spacing="4">
-        <controls:NormalSettingItem Title="{u:LocaleString Key=Export.PDFConfigModel.Orientation.Text}">
+        <toolkit:SettingsCard Header="{u:LocaleString Key=Export.PDFConfigModel.Orientation.Text}" IsActionIconVisible="False">
             <ComboBox MinWidth="200" ItemsSource="{x:Bind enums:Enumerable.PrintOrientations}" SelectedItem="{x:Bind PDFConfigModel.Orientation, Mode=TwoWay}">
                 <ComboBox.ItemTemplate>
                     <DataTemplate>
@@ -24,61 +25,57 @@
                     </DataTemplate>
                 </ComboBox.ItemTemplate>
             </ComboBox>
-        </controls:NormalSettingItem>
-        <controls:ExpanderSettingItem Title="{u:LocaleString Key=Export.PDFConfigModel.PageSize.Text}">
-            <controls:ExpanderSettingItem.State>
-                <ComboBox
-                    MinWidth="200"
-                    x:Name="PageSizeCombox"
-                    SelectedItem="{x:Bind PageSizeComboxSelectedItem, Mode=TwoWay}"
-                    ItemsSource="{x:Bind PageSizeComboxItems, Mode=OneWay}"
-                    SelectionChanged="OnPageSizeComboxSelectionChanged">
-                    <ComboBox.ItemTemplate>
-                        <DataTemplate x:DataType="local:PDFConfigPageSizeItem">
-                            <TextBlock Text="{x:Bind Name}"/>
-                        </DataTemplate>
-                    </ComboBox.ItemTemplate>
-                </ComboBox>
-            </controls:ExpanderSettingItem.State>
-            <StackPanel>
-                <controls:NormalSettingItem Title="{u:LocaleString Key=Export.PDFConfigModel.PageSize.Width}">
+        </toolkit:SettingsCard>
+        <toolkit:SettingsExpander Header="{u:LocaleString Key=Export.PDFConfigModel.PageSize.Text}">
+            <ComboBox
+                MinWidth="200"
+                x:Name="PageSizeCombox"
+                SelectedItem="{x:Bind PageSizeComboxSelectedItem, Mode=TwoWay}"
+                ItemsSource="{x:Bind PageSizeComboxItems, Mode=OneWay}"
+                SelectionChanged="OnPageSizeComboxSelectionChanged">
+                <ComboBox.ItemTemplate>
+                    <DataTemplate x:DataType="local:PDFConfigPageSizeItem">
+                        <TextBlock Text="{x:Bind Name}"/>
+                    </DataTemplate>
+                </ComboBox.ItemTemplate>
+            </ComboBox>
+            <toolkit:SettingsExpander.Items>
+                <toolkit:SettingsCard Header="{u:LocaleString Key=Export.PDFConfigModel.PageSize.Width}" IsActionIconVisible="False">
                     <controls:UnitNumberBox Units="{x:Bind u:Units.LengthUnits}" DimNumberValue="{x:Bind PDFConfigModel.PageSize.Width, Mode=TwoWay}" SpinButtonPlacementMode="Compact" MinWidth="200"/>
-                </controls:NormalSettingItem>
-                <controls:NormalSettingItem Title="{u:LocaleString Key=Export.PDFConfigModel.PageSize.Height}" BorderBrush="{ThemeResource CardStrokeColorDefault}" BorderThickness="0,1,0,0">
+                </toolkit:SettingsCard>
+                <toolkit:SettingsCard Header="{u:LocaleString Key=Export.PDFConfigModel.PageSize.Height}" BorderBrush="{ThemeResource CardStrokeColorDefault}" BorderThickness="0,1,0,0" IsActionIconVisible="False">
                     <controls:UnitNumberBox Units="{x:Bind u:Units.LengthUnits}" DimNumberValue="{x:Bind PDFConfigModel.PageSize.Height, Mode=TwoWay}" SpinButtonPlacementMode="Compact" MinWidth="200"/>
-                </controls:NormalSettingItem>
-            </StackPanel>
-        </controls:ExpanderSettingItem>
-        <controls:ExpanderSettingItem Title="{u:LocaleString Key=Export.PDFConfigModel.Margins.Text}">
-            <controls:ExpanderSettingItem.State>
-                <ComboBox
-                    MinWidth="200"
-                    x:Name="PageMarginCombox"
-                    SelectedItem="{x:Bind PageMarginComboxSelectedItem, Mode=TwoWay}"
-                    ItemsSource="{x:Bind PageMarginComboxItems, Mode=OneWay}"
-                    SelectionChanged="OnPageMarginComboxSelectionChanged">
-                    <ComboBox.ItemTemplate>
-                        <DataTemplate x:DataType="local:PDFConfigPageMarginItem">
-                            <TextBlock Text="{x:Bind Name}"/>
-                        </DataTemplate>
-                    </ComboBox.ItemTemplate>
-                </ComboBox>
-            </controls:ExpanderSettingItem.State>
-            <StackPanel>
-                <controls:NormalSettingItem Title="{u:LocaleString Key=Export.PDFConfigModel.Margins.Left}">
+                </toolkit:SettingsCard>
+            </toolkit:SettingsExpander.Items>
+        </toolkit:SettingsExpander>
+        <toolkit:SettingsExpander Header="{u:LocaleString Key=Export.PDFConfigModel.Margins.Text}">
+            <ComboBox
+                MinWidth="200"
+                x:Name="PageMarginCombox"
+                SelectedItem="{x:Bind PageMarginComboxSelectedItem, Mode=TwoWay}"
+                ItemsSource="{x:Bind PageMarginComboxItems, Mode=OneWay}"
+                SelectionChanged="OnPageMarginComboxSelectionChanged">
+                <ComboBox.ItemTemplate>
+                    <DataTemplate x:DataType="local:PDFConfigPageMarginItem">
+                        <TextBlock Text="{x:Bind Name}"/>
+                    </DataTemplate>
+                </ComboBox.ItemTemplate>
+            </ComboBox>
+            <toolkit:SettingsExpander.Items>
+                <toolkit:SettingsCard Header="{u:LocaleString Key=Export.PDFConfigModel.Margins.Left}" IsActionIconVisible="False">
                     <controls:UnitNumberBox Units="{x:Bind u:Units.LengthUnits}" DimNumberValue="{x:Bind PDFConfigModel.Margins.Left, Mode=TwoWay}" SpinButtonPlacementMode="Compact" MinWidth="200"/>
-                </controls:NormalSettingItem>
-                <controls:NormalSettingItem Title="{u:LocaleString Key=Export.PDFConfigModel.Margins.Top}" BorderBrush="{ThemeResource CardStrokeColorDefault}" BorderThickness="0,1,0,0">
+                </toolkit:SettingsCard>
+                <toolkit:SettingsCard Header="{u:LocaleString Key=Export.PDFConfigModel.Margins.Top}" BorderBrush="{ThemeResource CardStrokeColorDefault}" BorderThickness="0,1,0,0" IsActionIconVisible="False">
                     <controls:UnitNumberBox Units="{x:Bind u:Units.LengthUnits}" DimNumberValue="{x:Bind PDFConfigModel.Margins.Top, Mode=TwoWay}" SpinButtonPlacementMode="Compact" MinWidth="200"/>
-                </controls:NormalSettingItem>
-                <controls:NormalSettingItem Title="{u:LocaleString Key=Export.PDFConfigModel.Margins.Right}" BorderBrush="{ThemeResource CardStrokeColorDefault}" BorderThickness="0,1,0,0">
+                </toolkit:SettingsCard>
+                <toolkit:SettingsCard Header="{u:LocaleString Key=Export.PDFConfigModel.Margins.Right}" BorderBrush="{ThemeResource CardStrokeColorDefault}" BorderThickness="0,1,0,0" IsActionIconVisible="False">
                     <controls:UnitNumberBox Units="{x:Bind u:Units.LengthUnits}" DimNumberValue="{x:Bind PDFConfigModel.Margins.Right, Mode=TwoWay}" SpinButtonPlacementMode="Compact" MinWidth="200"/>
-                </controls:NormalSettingItem>
-                <controls:NormalSettingItem Title="{u:LocaleString Key=Export.PDFConfigModel.Margins.Bottom}" BorderBrush="{ThemeResource CardStrokeColorDefault}" BorderThickness="0,1,0,0">
+                </toolkit:SettingsCard>
+                <toolkit:SettingsCard Header="{u:LocaleString Key=Export.PDFConfigModel.Margins.Bottom}" BorderBrush="{ThemeResource CardStrokeColorDefault}" BorderThickness="0,1,0,0" IsActionIconVisible="False">
                     <controls:UnitNumberBox Units="{x:Bind u:Units.LengthUnits}" DimNumberValue="{x:Bind PDFConfigModel.Margins.Bottom, Mode=TwoWay}" SpinButtonPlacementMode="Compact" MinWidth="200"/>
-                </controls:NormalSettingItem>
-            </StackPanel>
-        </controls:ExpanderSettingItem>
+                </toolkit:SettingsCard>
+            </toolkit:SettingsExpander.Items>
+        </toolkit:SettingsExpander>
         <!--<controls:ExpanderSettingItem Title="{u:LocaleString Key=Export.PDFConfigModel.HeaderAndFooter.Text}">
             <controls:ExpanderSettingItem.State>
                 <ToggleSwitch IsOn="{x:Bind PDFConfigModel.ShouldPrintHeaderAndFooter, Mode=TwoWay}"/>

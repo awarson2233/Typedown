@@ -7,12 +7,15 @@ using Typedown.WinUI.Controls.SettingControls.SettingItems.UploadConfigItems;
 using Typedown.Core.Enums;
 using Typedown.Core.Models;
 using Typedown.Core.Utilities;
+using Typedown.Presentation.Interfaces;
 using Typedown.Presentation.Services;
+using Typedown.Presentation.Utilities;
 using Typedown.WinUI.Controls;
 using Typedown.Presentation.ViewModels;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Navigation;
+using Windows.Storage.Pickers;
 
 namespace Typedown.WinUI.Pages.SettingPages
 {
@@ -63,12 +66,42 @@ namespace Typedown.WinUI.Pages.SettingPages
                     await UploadService.Value.SaveImageUploadConfig(ImageUploadConfig);
             });
             disposables.Clear();
-            Bindings?.StopTracking();
         }
 
         private void UpdateTitle(string title)
         {
             this.GetAncestor<SettingsPage>()?.SetPageTitle(this, title);
+        }
+
+        private void OnDeleteButtonClick(object sender, RoutedEventArgs e)
+        {
+            _ = DeleteConfigAsync();
+        }
+
+        private async void OnTestUploadButtonClick(object sender, RoutedEventArgs e)
+        {
+            var button = sender as Button;
+            try
+            {
+                button.IsEnabled = false;
+                var filePicker = new FileOpenPicker();
+                FileTypeHelper.Image.ToList().ForEach(filePicker.FileTypeFilter.Add);
+                filePicker.SetOwnerWindow(this.GetService<IWindowService>().GetWindow(this));
+                var file = await filePicker.PickSingleFileAsync();
+                if (file == null)
+                    return;
+
+                var res = await ImageUploadConfig.LoadUploadConfig().Upload(this.GetService<IServiceProvider>(), file.Path);
+                await ShowMessageAsync(Locale.GetDialogString("UploadSuccessfulTitle"), res);
+            }
+            catch (Exception ex)
+            {
+                await ShowMessageAsync(Locale.GetDialogString("UploadFailedTitle"), ex.Message);
+            }
+            finally
+            {
+                button.IsEnabled = true;
+            }
         }
 
         public FrameworkElement GetUploadConfigItem(ImageUploadMethod method)
@@ -93,6 +126,19 @@ namespace Typedown.WinUI.Pages.SettingPages
                 ImageUploadConfig = null;
                 Frame.GoBack();
             }
+        }
+
+        private async Task ShowMessageAsync(string title, string message)
+        {
+            var dialog = new ContentDialog
+            {
+                XamlRoot = XamlRoot,
+                Title = title,
+                Content = message,
+                CloseButtonText = Locale.GetDialogString("Ok")
+            };
+
+            await dialog.ShowAsync();
         }
     }
 }

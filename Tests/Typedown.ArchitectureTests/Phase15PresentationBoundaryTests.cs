@@ -352,11 +352,12 @@ public class Phase15PresentationBoundaryTests
         AssertContainsInOrder(rootControlSource, "AttachKeyboardAccelerator", "WinUIKeyboardAccelerator", "Attach(this)");
         AssertContainsInOrder(appSource, "rootControl.AttachKeyboardAccelerator", "GetRequiredService<IKeyboardAccelerator>()");
 
-        AssertHasTypeReference(menuStubSource, "KeyboardAccelerator");
+        AssertHasTypeReference(menuStubSource, "IKeyboardAccelerator");
         AssertHasTypeReference(menuStubSource, "KeyboardAcceleratorTextOverride");
         AssertContainsInOrder(menuStubSource, "HasShortcutKey", "shortcut is not null", "shortcut.Key != KeyboardKey.None");
         AssertContainsInOrder(menuStubSource, "SetShortcut(MenuFlyoutItem", "if (!HasShortcutKey(shortcut))", "return;", "KeyboardAcceleratorTextOverride");
         AssertContainsInOrder(menuStubSource, "SetShortcut(ToggleMenuFlyoutItem", "if (!HasShortcutKey(shortcut))", "return;", "KeyboardAcceleratorTextOverride");
+        AssertContainsInOrder(menuStubSource, "RegisterShortcut(ShortcutKey shortcut, Action invoke)", "GetService<IKeyboardAccelerator>()", "accelerator.Register(shortcut");
         AssertContainsInOrder(menuStubSource, "SetShortcut(FindItem", "settings?.ShortcutFind");
         AssertContainsInOrder(menuStubSource, "SetShortcut(StrongItem", "settings?.ShortcutStrong");
 

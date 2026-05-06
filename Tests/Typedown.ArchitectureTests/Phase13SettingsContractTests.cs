@@ -44,10 +44,14 @@ public class Phase13SettingsContractTests
             AssertHasTypeReference(routeSource, $"\"{pageName}\" => typeof({pageName}Page)");
         }
 
-        foreach (var pageName in new[] { "ImageUpload", "Shortcut" })
+        foreach (var pageName in new[] { "General", "View", "Editor", "Image", "Export", "About" })
         {
             AssertHasTypeReference(settingsPageXaml, $"Tag=\"{pageName}\"");
         }
+
+        var settingsPageCodeBehind = File.ReadAllText(Path.Combine(winUIRoot, "Pages", "SettingsPage.xaml.cs"));
+        AssertHasTypeReference(settingsPageCodeBehind, "pageType == typeof(ImageUploadPage) || pageType == typeof(UploadConfigPage)");
+        AssertHasTypeReference(settingsPageCodeBehind, "if (pageType == typeof(ShortcutPage))");
 
         foreach (var relativePath in new[]
         {

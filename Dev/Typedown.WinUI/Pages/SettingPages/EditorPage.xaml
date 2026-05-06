@@ -2,6 +2,87 @@
     x:Class="Typedown.WinUI.Pages.SettingPages.EditorPage"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    xmlns:settingitems="using:Typedown.WinUI.Controls.SettingControls.SettingItems">
-    <settingitems:EditorSetting/>
+    xmlns:local="using:Typedown.WinUI.Pages.SettingPages"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:controls="using:Typedown.WinUI.Controls"
+    xmlns:muxc="using:Microsoft.UI.Xaml.Controls"
+    xmlns:toolkit="using:CommunityToolkit.WinUI.Controls"
+    xmlns:u="using:Typedown.WinUI.Controls"
+    Unloaded="OnUnloaded"
+    mc:Ignorable="d"
+    d:DesignHeight="300"
+    d:DesignWidth="400">
+    <StackPanel Spacing="4">
+        <TextBlock Text="{u:LocaleString Key=Editor.Style}" Margin="0,0,0,4"/>
+        <toolkit:SettingsCard Header="{u:LocaleString Key=Editor.FontSize.Title}" Description="{u:LocaleString Key=Editor.FontSize.Description}" IsActionIconVisible="False">
+            <toolkit:SettingsCard.HeaderIcon>
+                <FontIcon Glyph="&#xe8e9;"/>
+            </toolkit:SettingsCard.HeaderIcon>
+            <muxc:NumberBox MinWidth="200" SpinButtonPlacementMode="Inline" SmallChange="1" NumberFormatter="{x:Bind FontSizeFormatter}" Value="{x:Bind Settings.FontSize, Mode=TwoWay}"/>
+        </toolkit:SettingsCard>
+        <toolkit:SettingsCard Header="{u:LocaleString Key=Editor.LineHeight.Title}" Description="{u:LocaleString Key=Editor.LineHeight.Description}" IsActionIconVisible="False">
+            <toolkit:SettingsCard.HeaderIcon>
+                <FontIcon Glyph="&#xe94e;"/>
+            </toolkit:SettingsCard.HeaderIcon>
+            <muxc:NumberBox MinWidth="200" SpinButtonPlacementMode="Inline" SmallChange="0.1" NumberFormatter="{x:Bind LineHeightFormatter}" Value="{x:Bind Settings.LineHeight, Mode=TwoWay}"/>
+        </toolkit:SettingsCard>
+        <toolkit:SettingsCard Header="{u:LocaleString Key=Editor.EditorAreaWidth.Title}" Description="{u:LocaleString Key=Editor.EditorAreaWidth.Description}" IsActionIconVisible="False">
+            <toolkit:SettingsCard.HeaderIcon>
+                <FontIcon Glyph="&#xe9a6;"/>
+            </toolkit:SettingsCard.HeaderIcon>
+            <TextBox MinWidth="200" Text="{x:Bind Settings.EditorAreaWidth, Mode=TwoWay}"/>
+        </toolkit:SettingsCard>
+        <TextBlock Text="Markdown" Margin="0,16,0,4"/>
+        <toolkit:SettingsCard Header="{u:LocaleString Key=Editor.TabSize.Title}" Description="{u:LocaleString Key=Editor.TabSize.Description}" IsActionIconVisible="False">
+            <toolkit:SettingsCard.HeaderIcon>
+                <FontIcon Glyph="&#xede1;"/>
+            </toolkit:SettingsCard.HeaderIcon>
+            <muxc:NumberBox MinWidth="200" SpinButtonPlacementMode="Inline" NumberFormatter="{x:Bind IntegerFormatter}" Value="{x:Bind Settings.TabSize, Mode=TwoWay}"/>
+        </toolkit:SettingsCard>
+        <toolkit:SettingsCard Header="{u:LocaleString Key=Editor.AutoPairQuote.Title}" Description="{u:LocaleString Key=Editor.AutoPairQuote.Description}" IsActionIconVisible="False">
+            <toolkit:SettingsCard.HeaderIcon>
+                <FontIcon Glyph="&#xe9b1;"/>
+            </toolkit:SettingsCard.HeaderIcon>
+            <ToggleSwitch IsOn="{x:Bind Settings.AutoPairQuote, Mode=TwoWay}"/>
+        </toolkit:SettingsCard>
+        <toolkit:SettingsCard Header="{u:LocaleString Key=Editor.AutoPairBracket.Title}" Description="{u:LocaleString Key=Editor.AutoPairBracket.Description}" IsActionIconVisible="False">
+            <toolkit:SettingsCard.HeaderIcon>
+                <FontIcon Glyph=""/>
+            </toolkit:SettingsCard.HeaderIcon>
+            <ToggleSwitch IsOn="{x:Bind Settings.AutoPairBracket, Mode=TwoWay}"/>
+        </toolkit:SettingsCard>
+        <toolkit:SettingsCard Header="{u:LocaleString Key=Editor.AutoPairMarkdownSyntax.Title}" Description="{u:LocaleString Key=Editor.AutoPairMarkdownSyntax.Description}" IsActionIconVisible="False">
+            <toolkit:SettingsCard.HeaderIcon>
+                <FontIcon Glyph="&#xe943;"/>
+            </toolkit:SettingsCard.HeaderIcon>
+            <ToggleSwitch IsOn="{x:Bind Settings.AutoPairMarkdownSyntax, Mode=TwoWay}"/>
+        </toolkit:SettingsCard>
+        <!--<controls:NormalSettingItem Title="{u:LocaleString Key=Editor.DefaultCopyCutFormat.Title}" Description="{u:LocaleString Key=Editor.DefaultCopyCutFormat.Description}">
+            <controls:NormalSettingItem.Icon>
+                <FontIcon Glyph="&#xe8c8;"/>
+            </controls:NormalSettingItem.Icon>
+            <ComboBox MinWidth="200" SelectedIndex="0">
+                <x:String>纯文本</x:String>
+                <x:String>Markdown</x:String>
+                <x:String>HTML</x:String>
+            </ComboBox>
+        </controls:NormalSettingItem>-->
+        <!--<TextBlock Text="{u:LocaleString Key=Editor.Extension}" Margin="0,16,0,4"/>
+        <controls:ExpanderSettingItem Title="{u:LocaleString Key=Editor.SpellcheckEnabled.Title}" Description="{u:LocaleString Key=Editor.SpellcheckEnabled.Description}">
+            <controls:ExpanderSettingItem.Icon>
+                <FontIcon Glyph="&#xf87b;"/>
+            </controls:ExpanderSettingItem.Icon>
+            <controls:ExpanderSettingItem.State>
+                <ToggleSwitch IsOn="{x:Bind Settings.SpellcheckEnabled, Mode=TwoWay}"/>
+            </controls:ExpanderSettingItem.State>
+            <StackPanel>
+                <controls:NormalSettingItem Title="{u:LocaleString Key=Editor.SpellcheckEnabled.Language.Title}">
+                    <ComboBox MinWidth="200" SelectedIndex="0">
+                        <x:String>自动检测语言</x:String>
+                    </ComboBox>
+                </controls:NormalSettingItem>
+            </StackPanel>
+        </controls:ExpanderSettingItem>-->
+    </StackPanel>
 </Page>

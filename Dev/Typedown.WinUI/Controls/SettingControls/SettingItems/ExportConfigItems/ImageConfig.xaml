@@ -7,6 +7,7 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:controls="using:Typedown.WinUI.Controls"
     xmlns:muxc="using:Microsoft.UI.Xaml.Controls"
+    xmlns:toolkit="using:CommunityToolkit.WinUI.Controls"
     Loaded="OnLoaded"
     Unloaded="OnUnloaded"
     mc:Ignorable="d"
@@ -15,9 +16,9 @@
 
     <StackPanel Spacing="4">
 
-        <controls:NormalSettingItem Title="DPI">
+        <toolkit:SettingsCard Header="DPI" IsActionIconVisible="False">
             <muxc:NumberBox MinWidth="200" Value="{x:Bind ImageConfigModel.DPI, Mode=TwoWay}"/>
-        </controls:NormalSettingItem>
+        </toolkit:SettingsCard>
 
     </StackPanel>
 </UserControl>

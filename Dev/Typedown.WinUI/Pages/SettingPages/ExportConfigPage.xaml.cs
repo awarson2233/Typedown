@@ -65,12 +65,16 @@ namespace Typedown.WinUI.Pages.SettingPages
                     await ExportService.Value.SaveExportConfig(ExportConfig);
             });
             disposables.Clear();
-            Bindings?.StopTracking();
         }
 
         private void UpdateTitle(string title)
         {
             this.GetAncestor<SettingsPage>()?.SetPageTitle(this, title);
+        }
+
+        private void OnDeleteButtonClick(object sender, RoutedEventArgs e)
+        {
+            _ = DeleteConfigAsync();
         }
 
         public FrameworkElement GetExportConfigItem(ExportType type)

@@ -13,15 +13,26 @@ namespace Typedown.WinUI.Views
         public MainPage()
         {
             this.InitializeComponent();
+            NavigationCacheMode = NavigationCacheMode.Required;
+        }
+
+        private void OnLoaded(object sender, RoutedEventArgs e)
+        {
+            MenuBar.NavigateRequested -= OnMenuBarNavigateRequested;
             MenuBar.NavigateRequested += OnMenuBarNavigateRequested;
+
+            StatusBar.SidePaneOpenChanged -= OnStatusBarSidePaneOpenChanged;
             StatusBar.SidePaneOpenChanged += OnStatusBarSidePaneOpenChanged;
-            StatusBar.SetSidePaneOpen(MainContent.IsSidePaneOpen);
+
+            if (MainContent != null)
+                StatusBar.SetSidePaneOpen(MainContent.IsSidePaneOpen);
         }
 
         private void OnUnloaded(object sender, RoutedEventArgs e)
         {
-            MenuBar.NavigateRequested -= OnMenuBarNavigateRequested;
-            StatusBar.SidePaneOpenChanged -= OnStatusBarSidePaneOpenChanged;
+            // Do not unsubscribe events here, because the page stays in Cache Mode
+            // MenuBar.NavigateRequested -= OnMenuBarNavigateRequested;
+            // StatusBar.SidePaneOpenChanged -= OnStatusBarSidePaneOpenChanged;
         }
 
         private void OnStatusBarSidePaneOpenChanged(object? sender, bool isOpen)
