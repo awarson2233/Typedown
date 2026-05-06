@@ -97,6 +97,18 @@ public class Phase13SettingsContractTests
         AssertHasTypeReference(shortcutPickerSource, "private void OnKeyDown(object sender, KeyRoutedEventArgs args)");
     }
 
+    [TestMethod]
+    public void SpellcheckSetting_IsExposedThroughWinUIPageAndPresentationEditorSettingsContract()
+    {
+        var editorPageXaml = File.ReadAllText(Path.Combine(RepoRoot, "Dev", "Typedown.WinUI", "Pages", "SettingPages", "EditorPage.xaml"));
+        var settingsSource = File.ReadAllText(Path.Combine(RepoRoot, "Dev", "Typedown.Presentation", "ViewModels", "SettingsViewModel.cs"));
+
+        AssertHasTypeReference(editorPageXaml, "<toolkit:SettingsExpander Header=\"{u:LocaleString Key=Editor.SpellcheckEnabled.Title}\" Description=\"{u:LocaleString Key=Editor.SpellcheckEnabled.Description}\">");
+        AssertHasTypeReference(editorPageXaml, "<ToggleSwitch IsOn=\"{x:Bind Settings.SpellcheckEnabled, Mode=TwoWay}\"/>");
+        AssertHasTypeReference(settingsSource, "[nameof(SpellcheckEnabled)] = \"spellcheckEnabled\"");
+        AssertHasTypeReference(settingsSource, "[editorSettingNameMap[nameof(SpellcheckEnabled)]] = SpellcheckEnabled");
+    }
+
     private static void AssertEnumMembers<TEnum>(params (string Name, int Value)[] expectedMembers)
         where TEnum : struct, Enum
     {

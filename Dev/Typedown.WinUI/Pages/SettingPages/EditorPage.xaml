@@ -68,21 +68,19 @@
                 <x:String>HTML</x:String>
             </ComboBox>
         </controls:NormalSettingItem>-->
-        <!--<TextBlock Text="{u:LocaleString Key=Editor.Extension}" Margin="0,16,0,4"/>
-        <controls:ExpanderSettingItem Title="{u:LocaleString Key=Editor.SpellcheckEnabled.Title}" Description="{u:LocaleString Key=Editor.SpellcheckEnabled.Description}">
-            <controls:ExpanderSettingItem.Icon>
+        <TextBlock Text="{u:LocaleString Key=Editor.Extension}" Margin="0,16,0,4"/>
+        <toolkit:SettingsExpander Header="{u:LocaleString Key=Editor.SpellcheckEnabled.Title}" Description="{u:LocaleString Key=Editor.SpellcheckEnabled.Description}">
+            <toolkit:SettingsExpander.HeaderIcon>
                 <FontIcon Glyph="&#xf87b;"/>
-            </controls:ExpanderSettingItem.Icon>
-            <controls:ExpanderSettingItem.State>
-                <ToggleSwitch IsOn="{x:Bind Settings.SpellcheckEnabled, Mode=TwoWay}"/>
-            </controls:ExpanderSettingItem.State>
-            <StackPanel>
-                <controls:NormalSettingItem Title="{u:LocaleString Key=Editor.SpellcheckEnabled.Language.Title}">
-                    <ComboBox MinWidth="200" SelectedIndex="0">
-                        <x:String>自动检测语言</x:String>
+            </toolkit:SettingsExpander.HeaderIcon>
+            <ToggleSwitch IsOn="{x:Bind Settings.SpellcheckEnabled, Mode=TwoWay}"/>
+            <toolkit:SettingsExpander.Items>
+                <toolkit:SettingsCard Header="{u:LocaleString Key=Editor.SpellcheckEnabled.Language.Title}" IsActionIconVisible="False" IsEnabled="{x:Bind Settings.SpellcheckEnabled, Mode=OneWay}">
+                    <ComboBox MinWidth="200" SelectedIndex="0" IsEnabled="False">
+                        <ComboBoxItem Content="{u:LocaleString Key=Editor.SpellcheckEnabled.Language.Auto}"/>
                     </ComboBox>
-                </controls:NormalSettingItem>
-            </StackPanel>
-        </controls:ExpanderSettingItem>-->
+                </toolkit:SettingsCard>
+            </toolkit:SettingsExpander.Items>
+        </toolkit:SettingsExpander>
     </StackPanel>
 </Page>

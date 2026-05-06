@@ -99,7 +99,8 @@ namespace Typedown.Presentation.ViewModels
             [nameof(PreferLooseListItem)] = "preferLooseListItem",
             [nameof(AutoPairMarkdownSyntax)] = "autoPairMarkdownSyntax",
             [nameof(EditorAreaWidth)] = "editorAreaWidth",
-            [nameof(TabSize)] = "tabSize"
+            [nameof(TabSize)] = "tabSize",
+            [nameof(SpellcheckEnabled)] = "spellcheckEnabled"
         };
 
         public SettingsViewModel(IServiceProvider serviceProvider)
@@ -183,7 +184,8 @@ namespace Typedown.Presentation.ViewModels
                 [editorSettingNameMap[nameof(PreferLooseListItem)]] = PreferLooseListItem,
                 [editorSettingNameMap[nameof(AutoPairMarkdownSyntax)]] = AutoPairMarkdownSyntax,
                 [editorSettingNameMap[nameof(EditorAreaWidth)]] = EditorAreaWidth,
-                [editorSettingNameMap[nameof(TabSize)]] = TabSize
+                [editorSettingNameMap[nameof(TabSize)]] = TabSize,
+                [editorSettingNameMap[nameof(SpellcheckEnabled)]] = SpellcheckEnabled
             };
         }
 
