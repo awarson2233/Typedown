@@ -444,7 +444,7 @@ public class Phase15PresentationBoundaryTests
     {
         var winUIRoot = Path.Combine(RepoRoot, "Dev", "Typedown.WinUI");
         var sidePaneRoot = Path.Combine(winUIRoot, "Controls", "SidePaneControls");
-        var pagesRoot = Path.Combine(sidePaneRoot, "Pages");
+        var pagesRoot = Path.Combine(winUIRoot, "Pages", "SidePanePages");
         var folderPageXaml = File.ReadAllText(Path.Combine(pagesRoot, "FolderPage.xaml"));
         var folderPageSource = File.ReadAllText(Path.Combine(pagesRoot, "FolderPage.xaml.cs"));
         var tocPageXaml = File.ReadAllText(Path.Combine(pagesRoot, "TocPage.xaml"));
@@ -453,7 +453,7 @@ public class Phase15PresentationBoundaryTests
         var leftPaneSource = File.ReadAllText(Path.Combine(sidePaneRoot, "LeftPane.xaml.cs"));
         var fileOperationSource = File.ReadAllText(Path.Combine(winUIRoot, "Services", "WinUIFileOperation.cs"));
 
-        AssertHasTypeReference(folderPageXaml, "Typedown.WinUI.Controls.SidePaneControls.Pages.FolderPage");
+        AssertHasTypeReference(folderPageXaml, "Typedown.WinUI.Pages.SidePanePages.FolderPage");
         AssertHasTypeReference(folderPageSource, "FolderPage");
         AssertHasTypeReference(folderPageSource, "FileViewModel");
         AssertHasTypeReference(folderPageSource, "IFileOperation");
@@ -471,7 +471,7 @@ public class Phase15PresentationBoundaryTests
             AssertDoesNotContain(folderPageXaml, $"Text=\"{text}\"");
         }
 
-        AssertHasTypeReference(tocPageXaml, "Typedown.WinUI.Controls.SidePaneControls.Pages.TocPage");
+        AssertHasTypeReference(tocPageXaml, "Typedown.WinUI.Pages.SidePanePages.TocPage");
         AssertHasTypeReference(tocPageSource, "TocPage");
         AssertHasTypeReference(tocPageSource, "EditorViewModel");
         AssertDoesNotContain(tocPageSource, "Windows.UI.Xaml");

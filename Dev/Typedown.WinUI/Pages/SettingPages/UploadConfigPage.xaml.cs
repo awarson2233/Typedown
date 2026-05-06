@@ -3,7 +3,7 @@ using System.Linq;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
 using System.Threading.Tasks;
-using Typedown.WinUI.Controls.SettingControls.SettingItems.UploadConfigItems;
+using Typedown.WinUI.Pages.SettingPages.UploadConfigPageParts;
 using Typedown.Core.Enums;
 using Typedown.Core.Models;
 using Typedown.Core.Utilities;

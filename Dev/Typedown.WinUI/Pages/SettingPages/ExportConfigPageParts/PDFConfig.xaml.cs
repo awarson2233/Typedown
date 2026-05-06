@@ -11,7 +11,7 @@ using Typedown.Presentation.Utilities;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 
-namespace Typedown.WinUI.Controls.SettingControls.SettingItems.ExportConfigItems
+namespace Typedown.WinUI.Pages.SettingPages.ExportConfigPageParts
 {
     public sealed partial class PDFConfig : UserControl, INotifyPropertyChanged
     {

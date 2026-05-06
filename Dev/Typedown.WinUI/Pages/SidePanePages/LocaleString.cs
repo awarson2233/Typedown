@@ -1,7 +1,7 @@
 using Microsoft.UI.Xaml.Markup;
 using PresentationLocale = Typedown.Presentation.Utilities.Locale;
 
-namespace Typedown.WinUI.Controls.SidePaneControls.Pages
+namespace Typedown.WinUI.Pages.SidePanePages
 {
     [MarkupExtensionReturnType(ReturnType = typeof(string))]
     public sealed class LocaleString : MarkupExtension

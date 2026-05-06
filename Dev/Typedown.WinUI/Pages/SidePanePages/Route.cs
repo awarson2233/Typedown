@@ -1,5 +1,5 @@
 using System;
-namespace Typedown.WinUI.Controls.SidePaneControls.Pages
+namespace Typedown.WinUI.Pages.SidePanePages
 {
     public static class Route
     {

@@ -41,7 +41,7 @@ public sealed partial class LeftPane : UserControl
             return;
         }
 
-        var pageType = SidePaneControls.Pages.Route.GetSidePanePageType(pageName);
+        var pageType = Pages.SidePanePages.Route.GetSidePanePageType(pageName);
         if (pageType is null)
         {
             return;

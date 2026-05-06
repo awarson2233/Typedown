@@ -3,7 +3,7 @@ using System.Linq;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
 using System.Threading.Tasks;
-using Typedown.WinUI.Controls.SettingControls.SettingItems.ExportConfigItems;
+using Typedown.WinUI.Pages.SettingPages.ExportConfigPageParts;
 using Typedown.Core.Enums;
 using Typedown.Core.Interfaces;
 using Typedown.Presentation.Interfaces;

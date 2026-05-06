@@ -16,7 +16,7 @@ using Microsoft.UI.Xaml.Navigation;
 using Muxc = Microsoft.UI.Xaml.Controls;
 using PresentationLocale = Typedown.Presentation.Utilities.Locale;
 
-namespace Typedown.WinUI.Controls.SidePaneControls.Pages
+namespace Typedown.WinUI.Pages.SidePanePages
 {
     public sealed partial class FolderPage : Page
     {

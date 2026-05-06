@@ -1,7 +1,7 @@
 using Microsoft.UI.Xaml.Navigation;
 using Typedown.Presentation.ViewModels;
 
-namespace Typedown.WinUI.Controls.SidePaneControls.Pages
+namespace Typedown.WinUI.Pages.SidePanePages
 {
     public sealed partial class TocPage : Page
     {

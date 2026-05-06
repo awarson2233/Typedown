@@ -10,7 +10,7 @@ using Windows.Storage.Pickers;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 
-namespace Typedown.WinUI.Controls.SettingControls.SettingItems.UploadConfigItems
+namespace Typedown.WinUI.Pages.SettingPages.UploadConfigPageParts
 {
     public sealed partial class PowerShellConfig : UserControl
     {
