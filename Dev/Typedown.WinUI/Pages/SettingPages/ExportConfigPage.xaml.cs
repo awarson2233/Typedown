@@ -21,9 +21,9 @@ namespace Typedown.WinUI.Pages.SettingPages
     public sealed partial class ExportConfigPage : Page
     {
         private static DependencyProperty ExportConfigProperty { get; } = DependencyProperty.Register(nameof(ExportConfig), typeof(ExportConfig), typeof(ExportConfigPage), null);
-        private ExportConfig ExportConfig { get => (ExportConfig)GetValue(ExportConfigProperty); set => SetValue(ExportConfigProperty, value); }
+        private ExportConfig? ExportConfig { get => (ExportConfig?)GetValue(ExportConfigProperty); set => SetValue(ExportConfigProperty, value); }
 
-        public AppViewModel ViewModel => DataContext as AppViewModel;
+        public AppViewModel? ViewModel => DataContext as AppViewModel;
 
         public Lazy<IFileExport> ExportService { get; }
 
@@ -54,7 +54,10 @@ namespace Typedown.WinUI.Pages.SettingPages
         {
             ExportConfig = await ExportService.Value.GetExportConfig(configId);
             if (ExportConfig != null)
+            {
+                Bindings.Update();
                 disposables.Add(ExportConfig.WhenPropertyChanged(nameof(ExportConfig.Name)).Cast<string>().StartWith(ExportConfig.Name).Subscribe(UpdateTitle));
+            }
         }
 
         private void OnUnloaded(object sender, RoutedEventArgs e)
@@ -77,7 +80,7 @@ namespace Typedown.WinUI.Pages.SettingPages
             _ = DeleteConfigAsync();
         }
 
-        public FrameworkElement GetExportConfigItem(ExportType type)
+        public FrameworkElement? GetExportConfigItem(ExportType type)
         {
             return type switch
             {
