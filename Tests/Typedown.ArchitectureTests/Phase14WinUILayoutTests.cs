@@ -47,7 +47,7 @@ public class Phase14WinUILayoutTests
         AssertContains(app, "RootControl");
         AssertContains(app, "ConfigureNativeTitleBar(window)");
         AssertContains(app, "targetWindow.ExtendsContentIntoTitleBar = true");
-        AssertContains(app, "targetWindow.SystemBackdrop = new MicaBackdrop()");
+        AssertContains(app, "window.SystemBackdrop = Config.IsMicaSupported && enable ? new MicaBackdrop() : null;");
         AssertContains(app, "targetWindow.AppWindow.TitleBar");
         AssertContains(app, "window.SetTitleBar(rootControl.TitleBarElement)");
         AssertContains(root, "x:Name=\"AppTitleBar\"");
