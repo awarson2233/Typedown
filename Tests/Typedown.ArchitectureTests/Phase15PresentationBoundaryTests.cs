@@ -284,10 +284,10 @@ public class Phase15PresentationBoundaryTests
         AssertContainsInOrder(editorContainerSource, "OnPointerWheelChanged", "VirtualKeyModifiers.Control", "SettingsViewModel.FontSize");
         AssertHasTypeReference(sessionSource, "OnScroll");
 
-        AssertContainsInOrder(editorContainerXaml, "x:Name=\"Flyout\"", "Opening=\"OnFlyoutOpening\"");
-        AssertContainsInOrder(editorContainerXaml, "x:Name=\"MenuImageItem\"", "x:Load=\"{x:Bind local:EditorContainer.IsLoadImageMenu(Format.FormatState.Image, Editor.Selection), Mode=OneWay}\"");
-        AssertContainsInOrder(editorContainerXaml, "x:Name=\"MenuImageItemSeparator\"", "x:Load=\"{x:Bind local:EditorContainer.IsLoadImageMenu(Format.FormatState.Image, Editor.Selection), Mode=OneWay}\"");
-        AssertContainsInOrder(editorContainerSource, "OnFlyoutOpening", "Bindings.Update()");
+        AssertContainsInOrder(editorContainerSource, "EnsureEditorContextFlyout", "editorContextFlyout = new MenuFlyout()", "editorContextFlyout.Items.Add(menuFormatItem)", "editorContextFlyout.Items.Add(menuImageItem)");
+        AssertContainsInOrder(editorContainerSource, "editorContextFlyout.Opening += OnFlyoutOpening", "ConfigureContextMenuCommands()");
+        AssertContainsInOrder(editorContainerSource, "OnFlyoutOpening", "ConfigureContextMenuCommands()");
+        AssertContainsInOrder(editorContainerSource, "ConfigureContextMenuCommands", "menuImageItem.Visibility", "menuImageItemSeparator.Visibility");
         AssertContainsInOrder(editorContainerSource, "IsLoadImageMenu", "isImageFormat", "selection?[\"selectedImage\"]?.HasValues");
     }
 

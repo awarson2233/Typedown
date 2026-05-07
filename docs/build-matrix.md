@@ -1,101 +1,50 @@
-# 构建矩阵与 ARM64 风险记录
+# Build matrix and platform risk
 
-> Phase 7 结论：当前阶段只记录构建矩阵和 ARM64 风险，不做 ARM64 适配。ARM64 适配必须等 WinUI3 shell 切换后重新制定计划。
+This document records current build entry points and platform risks for the active WinUI3 architecture.
 
-## 当前构建入口
+## Current Project Matrix
 
-- Solution：`Typedown.sln`
-- 主应用：`Dev\Typedown\Typedown.csproj`
-- Core：`Dev\Typedown.Core\Typedown.Core.csproj`
-- Packaging：`Tools\Typedown.Package\Typedown.Package.wapproj`
-- 旧 XAML 宿主：仓库内 `Dev\Typedown.XamlUI`
+| Project | Target framework | Current role | Project references |
+| --- | --- | --- | --- |
+| `Dev\Typedown.Core` | `net10.0` | Platform-neutral core | none |
+| `Dev\Typedown.Presentation` | `net10.0` | Shell-agnostic MVVM and platform ports | `Typedown.Core` |
+| `Dev\Typedown.WinUI` | `net10.0-windows10.0.26100.0` | WinUI3 shell, XAML, WebView2 host, platform adapters, package assets | `Typedown.Core`, `Typedown.Presentation` |
+| `Dev\Typedown` | `net10.0-windows10.0.26100.0` | Legacy compatibility app | `Typedown.Core`, `Typedown.Presentation`, legacy XAML host |
 
-当前稳定验证入口仍是：
+## Stable Verification Entry
 
-```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\verify-baseline.ps1 -Configuration Debug_Local -Platform x64
-```
-
-## Solution 配置现状
-
-`Typedown.sln` 暴露以下 solution-level 配置：
-
-- `Debug_Local|x64`
-- `Debug_Local|x86`
-- `Debug_Local|ARM64`
-- `Debug|x64`
-- `Debug|x86`
-- `Debug|ARM64`
-- `Release|x64`
-- `Release|x86`
-- `Release|ARM64`
-
-其中 `Debug_Local|ARM64` 对主应用、package、Core、XamlUI、测试项目大多映射到 `ARM64`，但这不等于运行时已验证。当前架构仍依赖 legacy XAML host、WinRT/XAML 编译链和 `Dev\Typedown.XamlUI` 输出。
-
-更重要的是，`Debug|ARM64` 和 `Release|ARM64` 中存在大量映射到 `x64` 的项目配置：
-
-- 主应用 `Typedown`：`Debug|ARM64 -> Debug|x64`，`Release|ARM64 -> Release|x64`
-- Packaging `Typedown.Package`：`Debug|ARM64 -> Debug|x64`，`Release|ARM64 -> Release|x64`
-- DatabaseMigration：`Debug|ARM64 -> Debug|x64`，`Release|ARM64 -> Release|x64`
-- Typedown.Test / Typedown.Core.Test / Typedown.UITest：`Debug|ARM64 -> Debug|x64`，`Release|ARM64 -> Release|x64`
-
-因此不能把 solution 中存在 `ARM64` 配置理解为真实 ARM64 支持。
-
-## 项目配置现状
-
-`Dev\Typedown\Typedown.csproj`：
-
-- `Platforms` 包含 `x64;x86;ARM64`
-- `Platform=ARM64` 时设置 `RuntimeIdentifier=win-arm64`
-- 当前仍引用仓库内 `Dev\Typedown.XamlUI`
-- 当前仍复制 XamlUI 输出中的 `Microsoft.UI.Xaml.dll`、`Microsoft.UI.Xaml.pri`、`Microsoft.UI.Xaml.xml`
-- 当前仍引用 `PdfiumViewer.Native.x86_64.no_v8-no_xfa`，这是明确的 x64 native 依赖风险
-
-`Dev\Typedown.Core\Typedown.Core.csproj`：
-
-- `Platforms` 包含 `x86;x64;arm64`
-- `RuntimeIdentifiers` 包含 `win-x86;win-x64;win-arm64`
-- `Platform=ARM64` 时设置 `RuntimeIdentifier=win-arm64`
-- 当前仍启用 `UseUwp=true` 并引用仓库内 `Dev\Typedown.XamlUI`
-- `AppxBundlePlatforms` 只对 `x64` 和 `x86` 设置，没有 ARM64 分支
-
-`Tools\Typedown.Package\Typedown.Package.wapproj`：
-
-- 声明了 `Debug_Local|ARM64`、`Debug|ARM64`、`Release|ARM64`
-- `AppxBundlePlatforms` 只对 `x64` 和 `x86` 设置，没有 ARM64 分支
-- `Debug|ARM64` 和 `Release|ARM64` 在 solution 中实际映射到 `x64`
-
-## ARM64 风险
-
-- 配置风险：solution-level `ARM64` 不一致，部分配置是真 ARM64，部分配置被映射到 x64。
-- XAML 编译风险：历史 ARM64 尝试的首个有效失败点在 XAML compiler / WinRT metadata 传递链，而不是后续 `.xbf` 或资源复制错误。
-- Legacy host 风险：当前 `Typedown.XamlUI` 是 UWP/XAML host 兼容层，仍依赖旧 XAML/WinRT 编译路径，不适合作为 ARM64 适配基础。
-- Native 依赖风险：`PdfiumViewer.Native.x86_64.no_v8-no_xfa` 明确是 x64 native 包，后续 ARM64 需要替换或移除 PDF 路径。
-- Packaging 风险：Desktop Bridge / MSIX packaging 当前没有完整 ARM64 bundle 记录，不能假设可打包。
-- 验证风险：当前基线验证只承诺 `Debug_Local|x64`，没有承诺 `ARM64` 构建、部署或运行。
-
-## 当前阶段禁止事项
-
-- 不修改 `Typedown.sln` 的 ARM64 映射。
-- 不新增 ARM64 构建脚本作为正式验证入口。
-- 不替换 XamlUI / WinRT / XAML compiler 依赖。
-- 不替换 PDF native 包。
-- 不把 ARM64 构建失败当作本阶段要修复的问题。
-
-## WinUI3 后续处理原则
-
-切换到 WinUI3 shell 后，再单独制定 ARM64 适配计划：
-
-1. 先让 `Typedown.WinUI` 在 `x64` 下达到功能等价。
-2. 移除 legacy XAML host 对 ARM64 构建链的影响。
-3. 重新整理 solution/platform 映射，确保 `ARM64` 不再隐式映射到 `x64`。
-4. 处理 PDF/native 依赖的 ARM64 替代方案。
-5. 为 `win-arm64` 增加独立构建、打包和真机运行验证。
-
-## 只读检查命令
+Architecture governance should be validated with:
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\inspect-build-matrix.ps1
+dotnet test .\Tests\Typedown.ArchitectureTests\Typedown.ArchitectureTests.csproj -c Debug -p:UseSharedCompilation=false /nodeReuse:false /v:minimal --no-restore
 ```
 
-该脚本只读取 `Typedown.sln`、`Dev\Typedown\Typedown.csproj`、`Dev\Typedown.Core\Typedown.Core.csproj` 和 `Tools\Typedown.Package\Typedown.Package.wapproj`，用于快速暴露 ARM64/x64 映射和 bundle 配置风险。
+For WinUI development, the daily runtime path is `Debug_Local|x64` on `Typedown.WinUI`. This path is unpackaged and disables MSIX signing.
+
+## WinUI Package Path
+
+`Debug|x64` on `Typedown.WinUI` remains the packaged/MSIX verification path:
+
+- `WindowsPackageType` is `MSIX`.
+- Package signing is enabled.
+- The project stores the expected certificate thumbprint.
+- `Package.appxmanifest` and `launchSettings.json` define the package identity and package launch profile.
+- `scripts\install-winui-dev-certificate.ps1` still installs a local development certificate when the local `.cer` and `.pfx` files exist.
+
+The development certificate files are not currently in the repository. This means the package path is supported by project/script shape, but certificate material is machine-local/manual unless repository assets are restored.
+
+## ARM64 Risk
+
+ARM64 remains a later validation target, not a Phase A fix:
+
+- Core and Presentation expose `x64;ARM64` platforms and are platform-neutral by design.
+- WinUI exposes `x64;ARM64` and `win-x64;win-arm64`, but full runtime and MSIX validation still need separate execution.
+- The legacy app still carries old host and native dependency risks.
+- Do not infer true ARM64 support from solution configuration names alone.
+
+## Current No-Go Items
+
+- Do not add WinUI/XAML/WebView2 references to Core or Presentation.
+- Do not add a legacy XAML host reference to WinUI.
+- Do not treat missing development certificate files as a reason to weaken unrelated MSIX project, manifest, launch-profile, or signing guardrails.
+- Do not start ARM64 remediation inside Phase A governance cleanup.

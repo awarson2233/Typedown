@@ -19,11 +19,11 @@ public class Phase10CoreContractsBoundaryTests
     ];
 
     [TestMethod]
-    public void ContractsProject_ExistsAndTargetsPlatformNeutralNet9()
+    public void ContractsProject_ExistsAndTargetsPlatformNeutralNet10()
     {
         var source = File.ReadAllText(Path.Combine(RepoRoot, "Dev", "Typedown.Core", "Typedown.Core.csproj"));
 
-        AssertHasTypeReference(source, "<TargetFramework>net9.0</TargetFramework>");
+        AssertHasTypeReference(source, "<TargetFramework>net10.0</TargetFramework>");
         AssertHasTypeReference(source, "<Nullable>enable</Nullable>");
         AssertNoTypeReference(source, "windows");
         AssertNoTypeReference(source, "UseUwp");
@@ -219,7 +219,7 @@ public class Phase10CoreContractsBoundaryTests
     }
 
     [TestMethod]
-    public void WinUIPackagedBaseline_UsesRepositoryDevCertificate()
+    public void WinUIPackagedBaseline_UsesConfiguredManualDevCertificate()
     {
         var projectSource = File.ReadAllText(Path.Combine(RepoRoot, "Dev", "Typedown.WinUI", "Typedown.WinUI.csproj"));
         var launchSettingsSource = File.ReadAllText(Path.Combine(RepoRoot, "Dev", "Typedown.WinUI", "Properties", "launchSettings.json"));
@@ -235,9 +235,11 @@ public class Phase10CoreContractsBoundaryTests
         AssertHasTypeReference(launchSettingsSource, "\"Typedown.WinUI (Package)\"");
         AssertHasTypeReference(launchSettingsSource, "\"commandName\": \"MsixPackage\"");
         AssertHasTypeReference(manifestSource, "Publisher=\"CN=Typedown WinUI Dev Test\"");
-        Assert.IsTrue(File.Exists(Path.Combine(RepoRoot, "Dev", "Typedown.WinUI", "Typedown.WinUI.DevTest.pfx")));
-        Assert.IsTrue(File.Exists(Path.Combine(RepoRoot, "Dev", "Typedown.WinUI", "Typedown.WinUI.DevTest.cer")));
+        Assert.IsFalse(File.Exists(Path.Combine(RepoRoot, "Dev", "Typedown.WinUI", "Typedown.WinUI.DevTest.pfx")));
+        Assert.IsFalse(File.Exists(Path.Combine(RepoRoot, "Dev", "Typedown.WinUI", "Typedown.WinUI.DevTest.cer")));
         AssertHasTypeReference(scriptSource, "Typedown.WinUI.DevTest.pfx");
+        AssertHasTypeReference(scriptSource, "Typedown.WinUI.DevTest.cer");
+        AssertHasTypeReference(scriptSource, "WinUI dev certificate not found");
         AssertHasTypeReference(scriptSource, "Cert:\\CurrentUser\\My");
         AssertHasTypeReference(scriptSource, "Cert:\\CurrentUser\\TrustedPeople");
         AssertHasTypeReference(scriptSource, "Cert:\\CurrentUser\\Root");
@@ -503,9 +505,12 @@ public class Phase10CoreContractsBoundaryTests
         AssertNoTypeReference(contextStubSource, "partial class ImageItem");
         AssertHasTypeReference(imageItemSource, "partial class ImageItem");
         AssertHasTypeReference(imageItemSource, "InitializeComponent()");
-        AssertHasTypeReference(editorContainerSource, "<ContentPresenter.ContextFlyout>");
-        AssertHasTypeReference(editorContainerSource, "<items:ContextFormatItem");
-        AssertHasTypeReference(editorContainerCodeBehindSource, "Flyout.ShowAt(MarkdownEditorPresenter");
+        AssertHasTypeReference(editorContainerCodeBehindSource, "EnsureEditorContextFlyout");
+        AssertHasTypeReference(editorContainerCodeBehindSource, "editorContextFlyout = new MenuFlyout()");
+        AssertHasTypeReference(editorContainerCodeBehindSource, "editorContextFlyout.Opening += OnFlyoutOpening");
+        AssertHasTypeReference(editorContainerCodeBehindSource, "editorContextFlyout.Items.Add(menuFormatItem)");
+        AssertHasTypeReference(editorContainerCodeBehindSource, "editorContextFlyout.Items.Add(menuImageItem)");
+        AssertHasTypeReference(editorContainerCodeBehindSource, "EnsureEditorContextFlyout().ShowAt(MarkdownEditorPresenter");
         AssertHasTypeReference(editorHostSource, "CoreWebView2.ContextMenuRequested += OnContextMenuRequested");
         AssertHasTypeReference(editorHostSource, "e.Handled = true");
     }
@@ -549,7 +554,8 @@ public class Phase10CoreContractsBoundaryTests
         AssertContainsInOrder(
             appSource,
             "platformServices ??= new WinUIPlatformServices(window);",
-            "uiServices ??= new ServiceCollection()",
+            "if (uiServices is null)",
+            "uiServices = new ServiceCollection()",
             ".AddSingleton(platformServices.WindowContext)",
             ".AddSingleton(platformServices.AppDataPathProvider)",
             ".AddTypedownPresentation()",
@@ -602,7 +608,7 @@ public class Phase10CoreContractsBoundaryTests
 
         var presentationProjectSource = File.ReadAllText(presentationProjectPath);
         AssertHasTypeReference(solutionSource, "Typedown.Presentation");
-        AssertHasTypeReference(presentationProjectSource, "<TargetFramework>net9.0</TargetFramework>");
+        AssertHasTypeReference(presentationProjectSource, "<TargetFramework>net10.0</TargetFramework>");
         AssertHasTypeReference(presentationProjectSource, @"..\Typedown.Core\Typedown.Core.csproj");
         AssertNoTypeReference(presentationProjectSource, @"..\Typedown.WinUI\Typedown.WinUI.csproj");
         AssertNoTypeReference(presentationProjectSource, @"..\Typedown.XamlUI\Typedown.XamlUI.csproj");

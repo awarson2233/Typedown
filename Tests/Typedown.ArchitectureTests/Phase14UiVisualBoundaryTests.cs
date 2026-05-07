@@ -8,62 +8,74 @@ public class Phase14UiVisualBoundaryTests
     private static readonly string RepoRoot = FindRepoRoot();
 
     [TestMethod]
-    public void CoreDecouplingPlan_DocumentsCurrentPureCoreAndMvvmBoundary()
+    public void TargetArchitecture_DocumentsCurrentCorePresentationWinUIBoundary()
     {
-        var planPath = Path.Combine(
-            RepoRoot,
-            "docs",
-            "superpowers",
-            "plans",
-            "2026-04-27-core-decoupling-slimming.md");
-        Assert.IsTrue(File.Exists(planPath), "Expected the current Core decoupling and slimming plan document.");
+        var planPath = Path.Combine(RepoRoot, "docs", "winui3-target-architecture.md");
+        Assert.IsTrue(File.Exists(planPath), "Expected the current WinUI3 architecture document.");
 
         var source = File.ReadAllText(planPath);
 
         AssertContainsInOrder(
             source,
-            "将 `Dev/Typedown.Core` 固化为纯逻辑 + MVVM 合同层",
-            "`Typedown.Core` 不允许依赖 XAML、WinRT UI 类型、WebView2、文件选择器、窗口服务或 legacy 项目",
-            "`Dev/Typedown.Presentation`：承接 shell-agnostic MVVM、资源读取、组合逻辑",
-            "`Dev/Typedown.WinUI`：WinUI3 shell、XAML、平台服务适配、WebView2 host",
-            "`Dev/Typedown.Core.Legacy` 与 `Dev/Typedown.UI` 已退场");
+            "Typedown.Core",
+            "Current project references: none.",
+            "Typedown.Presentation",
+            "Current project references: Typedown.Core only.",
+            "Typedown.WinUI",
+            "Current project references: Typedown.Core and Typedown.Presentation.",
+            "Typedown",
+            "Current project references: Typedown.Core, Typedown.Presentation,");
+
+        AssertContainsInOrder(
+            source,
+            "Forbidden directions:",
+            "Core must not reference Presentation, WinUI, XAML, WinRT UI types, WebView2, or the legacy host.",
+            "Presentation must not reference WinUI, XAML, WebView2, package assets, activation infrastructure, or the legacy host.",
+            "WinUI must not reference the legacy XAML host.");
     }
 
     [TestMethod]
-    public void Roadmap_ReordersPhase14AsVisualMigrationBeforeCutoverAndArm64()
+    public void Roadmap_StatesCurrentGovernanceBeforeCutoverAndArm64()
     {
         var roadmapPath = Path.Combine(RepoRoot, "docs", "winui3-post-phase9-roadmap.md");
         var source = File.ReadAllText(roadmapPath);
 
         AssertContainsInOrder(
             source,
-            "Phase 14  首批 1:1 可视 UI 迁移",
-            "Phase 15  Debug_Local 主启动路径切换到 WinUI3",
-            "Phase 16  legacy XamlUI 退场与构建清理",
-            "Phase 17  ARM64 与打包验证");
+            "Phase A  Architecture governance refresh",
+            "Phase B  WinUI3 parity completion",
+            "Phase C  Debug_Local cutover to WinUI3",
+            "Phase D  Legacy XAML host retirement",
+            "Phase E  ARM64 and packaged validation");
 
         AssertContainsInOrder(
             source,
-            "## Phase 14：首批 1:1 可视 UI 迁移",
-            "`WinUIEditorHost` 仍留在 `Typedown.WinUI`",
-            "本阶段不修改 solution 默认启动入口",
-            "## Phase 15：Debug_Local 主启动路径切换到 WinUI3",
-            "## Phase 17：ARM64 与打包验证");
+            "## Phase A: Architecture governance refresh",
+            "Assert Core and Presentation target `net10.0` and stay platform-neutral.",
+            "Treat WinUI packaged signing as project/script-supported but certificate-asset-local unless repository assets are restored.",
+            "## Phase C: Debug_Local cutover to WinUI3",
+            "## Phase E: ARM64 and packaged validation");
     }
 
     [TestMethod]
-    public void BuildBaseline_StatesPhase14VisualMigrationBoundary()
+    public void BuildBaseline_StatesCurrentArchitectureAndPackageCertificateBoundary()
     {
         var baselinePath = Path.Combine(RepoRoot, "docs", "build-baseline.md");
         var source = File.ReadAllText(baselinePath);
 
         AssertContainsInOrder(
             source,
-            "Phase 14 当前只做首批 `1:1` 可视 UI 迁移，不切默认 `Debug_Local` 主启动路径。",
-            "`WinUIEditorHost`、Window/Dialog/FilePicker、`Package.appxmanifest`、`launchSettings.json` 仍由 `Typedown.WinUI` 持有；不要提前迁入 `Typedown.Presentation`。",
-            "## WinUI3 Phase 14 文档与边界准备",
-            "Phase 14 当前定义为首批 `1:1` 可视 UI 迁移，不是默认启动路径切换。",
-            "dotnet test .\\Tests\\Typedown.ArchitectureTests\\Typedown.ArchitectureTests.csproj -c Debug /nologo /v:minimal");
+            "`Dev\\Typedown.Core\\Typedown.Core.csproj` targets `net10.0` and has no project references.",
+            "`Dev\\Typedown.Presentation\\Typedown.Presentation.csproj` targets `net10.0` and references only `Typedown.Core`.",
+            "`Dev\\Typedown.WinUI\\Typedown.WinUI.csproj` targets `net10.0-windows10.0.26100.0`, references Core and Presentation",
+            "`Dev\\Typedown\\Typedown.csproj` is the legacy compatibility app.");
+
+        AssertContainsInOrder(
+            source,
+            "Packaged validation path:",
+            "Package signing enabled",
+            "The development certificate `.cer` and `.pfx` files are not currently checked in",
+            "Core and Presentation must stay free of WinUI, XAML, WebView2, package, and legacy host references.");
     }
 
     private static void AssertContainsInOrder(string source, params string[] snippets)
