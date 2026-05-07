@@ -22,12 +22,6 @@ Typedown.WinUI
   Owns App/Window startup, XAML pages and controls, WebView2 host,
   platform service adapters, package/manifest assets, and activation wiring.
   Current project references: Typedown.Core and Typedown.Presentation.
-
-Typedown
-  Legacy application path.
-  Keeps the old XAML host alive until WinUI3 cutover is complete.
-  Current project references: Typedown.Core, Typedown.Presentation,
-  and the legacy XAML host project variable.
 ```
 
 ## Dependency Direction
@@ -36,7 +30,6 @@ Typedown
 Typedown.Core -> no project references
 Typedown.Presentation -> Typedown.Core
 Typedown.WinUI -> Typedown.Presentation + Typedown.Core
-Typedown -> Typedown.Presentation + Typedown.Core + legacy XAML host
 ```
 
 Forbidden directions:
@@ -61,11 +54,6 @@ Presentation ownership:
 WinUI ownership:
 
 - XAML pages, controls, styles, converters, image assets, menu/flyout controls, WebView2 host, package manifest, launch settings, window/dialog/file-picker adapters, dispatcher/window context, activation service, and WinUI-specific localization loading.
-
-Legacy app ownership:
-
-- Compatibility startup path and old XAML-hosted UI while the WinUI3 path reaches parity.
-- No new architecture should be designed around this path.
 
 ## Packaging And Certificate Boundary
 

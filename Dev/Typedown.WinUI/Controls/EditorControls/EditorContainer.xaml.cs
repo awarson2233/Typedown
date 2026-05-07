@@ -23,6 +23,10 @@ public sealed partial class EditorContainer : UserControl
     private WinUIEditorHost? editorHost;
     private FindReplace? findReplaceDialog;
     private AppViewModel? viewModel;
+    private FloatViewModel? floatViewModel;
+    private EditorViewModel? editorViewModel;
+    private FormatViewModel? formatViewModel;
+    private SettingsViewModel? settingsViewModel;
     private IDisposable? scrollSubscription;
     private bool hasFloatAnchor;
     private MenuFlyout? editorContextFlyout;
@@ -58,9 +62,9 @@ public sealed partial class EditorContainer : UserControl
         set => SetValue(ScrollStateProperty, value);
     }
 
-    public EditorViewModel? Editor => viewModel?.EditorViewModel;
+    public EditorViewModel? Editor => editorViewModel;
 
-    public FormatViewModel? Format => viewModel?.FormatViewModel;
+    public FormatViewModel? Format => formatViewModel;
 
     public EditorContainer()
     {
@@ -87,7 +91,7 @@ public sealed partial class EditorContainer : UserControl
         }
 
         MarkdownEditorPresenter.Content ??= editorHost;
-        UpdateFindReplaceState(viewModel?.FloatViewModel.FindReplaceDialogOpen ?? FloatViewModel.FindReplaceDialogState.None, false);
+        UpdateFindReplaceState(floatViewModel?.FindReplaceDialogOpen ?? FloatViewModel.FindReplaceDialogState.None, false);
     }
 
     private void OnUnloaded(object sender, RoutedEventArgs e)
@@ -111,19 +115,28 @@ public sealed partial class EditorContainer : UserControl
             return;
         }
 
-        if (viewModel is not null)
+        if (floatViewModel is not null)
         {
-            viewModel.FloatViewModel.PropertyChanged -= OnFloatViewModelPropertyChanged;
-            scrollSubscription?.Dispose();
-            scrollSubscription = null;
+            floatViewModel.PropertyChanged -= OnFloatViewModelPropertyChanged;
         }
 
+        scrollSubscription?.Dispose();
+        scrollSubscription = null;
         viewModel = nextViewModel;
+        floatViewModel = null;
+        editorViewModel = null;
+        formatViewModel = null;
+        settingsViewModel = null;
 
         if (viewModel is not null)
         {
-            viewModel.FloatViewModel.PropertyChanged += OnFloatViewModelPropertyChanged;
-            scrollSubscription = viewModel.EditorViewModel.EventCenter
+            floatViewModel = viewModel.FloatViewModel;
+            editorViewModel = viewModel.EditorViewModel;
+            formatViewModel = viewModel.FormatViewModel;
+            settingsViewModel = viewModel.SettingsViewModel;
+
+            floatViewModel.PropertyChanged += OnFloatViewModelPropertyChanged;
+            scrollSubscription = editorViewModel.EventCenter
                 .GetObservable<EditorEventArgs>("OnScroll")
                 .Subscribe(OnEditorScrollStateChanged);
             if (findReplaceDialog is not null)
@@ -131,7 +144,7 @@ public sealed partial class EditorContainer : UserControl
                 findReplaceDialog.DataContext = viewModel;
             }
 
-            UpdateFindReplaceState(viewModel.FloatViewModel.FindReplaceDialogOpen, false);
+            UpdateFindReplaceState(floatViewModel.FindReplaceDialogOpen, false);
         }
         else
         {
@@ -167,7 +180,7 @@ public sealed partial class EditorContainer : UserControl
             ? "FindReplaceCollapsed"
             : "FindReplaceVisible";
 
-        VisualStateManager.GoToState(this, state, useTransitions && (viewModel?.SettingsViewModel.AnimationEnable ?? true));
+        VisualStateManager.GoToState(this, state, useTransitions && (settingsViewModel?.AnimationEnable ?? true));
     }
 
     private void OnSizeChanged(object sender, SizeChangedEventArgs e)
@@ -423,14 +436,14 @@ public sealed partial class EditorContainer : UserControl
 
     private void OnPointerWheelChanged(object sender, PointerRoutedEventArgs e)
     {
-        if (viewModel is null || !e.KeyModifiers.HasFlag(VirtualKeyModifiers.Control))
+        var settings = settingsViewModel;
+        if (settings is null || !e.KeyModifiers.HasFlag(VirtualKeyModifiers.Control))
         {
             return;
         }
 
         var delta = e.GetCurrentPoint(this).Properties.MouseWheelDelta;
-        var settings = viewModel.SettingsViewModel;
-        viewModel.SettingsViewModel.FontSize = Math.Max(8, Math.Min(48, Math.Round(settings.FontSize * (1 + delta / 1200d), 1)));
+        settings.FontSize = Math.Max(8, Math.Min(48, Math.Round(settings.FontSize * (1 + delta / 1200d), 1)));
         e.Handled = true;
     }
 

@@ -144,36 +144,31 @@ public class Phase13LegacyTextResourceTests
     }
 
     [TestMethod]
-    public void TextResources_WinUIOwnsReswFilesAndLegacyAppEmbedsThemUnderItsOwnResourceScope()
+    public void TextResources_WinUIOwnsReswFilesAndPresentationStaysResourceNeutral()
     {
         var winUIProjectSource = File.ReadAllText(Path.Combine(RepoRoot, "Dev", "Typedown.WinUI", "Typedown.WinUI.csproj"));
-        var legacyAppProjectSource = File.ReadAllText(Path.Combine(RepoRoot, "Dev", "Typedown", "Typedown.csproj"));
         var presentationProjectSource = File.ReadAllText(Path.Combine(RepoRoot, "Dev", "Typedown.Presentation", "Typedown.Presentation.csproj"));
-        var legacyLocaleSource = File.ReadAllText(Path.Combine(RepoRoot, "Dev", "Typedown", "Utilities", "LocaleString.cs"));
+        var winUILocaleSource = File.ReadAllText(Path.Combine(RepoRoot, "Dev", "Typedown.WinUI", "Utilities", "WinUILocale.cs"));
 
         StringAssert.Contains(winUIProjectSource, @"Resources\Strings\**\*.resw");
-        StringAssert.Contains(legacyAppProjectSource, @"..\Typedown.WinUI\Resources\Strings\**\*.resw");
-        StringAssert.Contains(legacyAppProjectSource, @"Link=""Resources\Strings\%(RecursiveDir)%(Filename)%(Extension)""");
-        StringAssert.Contains(legacyLocaleSource, @"Typedown/{source}");
-        Assert.IsFalse(legacyLocaleSource.Contains("Typedown.WinUI/", StringComparison.Ordinal));
+        StringAssert.Contains(winUILocaleSource, @"Typedown.WinUI/{source}");
         Assert.IsFalse(presentationProjectSource.Contains(@".resw", StringComparison.Ordinal));
         Assert.IsFalse(winUIProjectSource.Contains("Typedown.Core.Legacy", StringComparison.Ordinal));
+        Assert.IsFalse(Directory.Exists(Path.Combine(RepoRoot, "Dev", "Typedown")));
     }
 
     [TestMethod]
-    public void TextResources_OwnerGovernanceDeclaresWinUIOwnershipAndLegacyReuseDebt()
+    public void TextResources_OwnerGovernanceDeclaresWinUIOwnershipWithoutLegacyReuseDebt()
     {
         var buildBaseline = File.ReadAllText(Path.Combine(RepoRoot, "docs", "build-baseline.md"));
         var winUIProjectSource = File.ReadAllText(Path.Combine(RepoRoot, "Dev", "Typedown.WinUI", "Typedown.WinUI.csproj"));
-        var legacyAppProjectSource = File.ReadAllText(Path.Combine(RepoRoot, "Dev", "Typedown", "Typedown.csproj"));
 
         StringAssert.Contains(buildBaseline, "WinUI resource owner");
         StringAssert.Contains(buildBaseline, "`Dev\\Typedown.WinUI\\Resources\\Strings` is the deliberate owner of `.resw` text resources.");
-        StringAssert.Contains(buildBaseline, "`Dev\\Typedown` links those WinUI-owned strings as temporary migration debt");
+        Assert.IsFalse(buildBaseline.Contains("`Dev\\Typedown` links those WinUI-owned strings", StringComparison.Ordinal));
 
         StringAssert.Contains(winUIProjectSource, "<TypedownStringResourceOwner>Typedown.WinUI</TypedownStringResourceOwner>");
-        StringAssert.Contains(legacyAppProjectSource, "<TypedownStringResourceOwner>Typedown.WinUI</TypedownStringResourceOwner>");
-        StringAssert.Contains(legacyAppProjectSource, "<TypedownLegacyStringResourceReuseDebt>Temporary migration debt until the legacy shell is retired</TypedownLegacyStringResourceReuseDebt>");
+        Assert.IsFalse(Directory.Exists(Path.Combine(RepoRoot, "Dev", "Typedown")));
     }
 
     [TestMethod]

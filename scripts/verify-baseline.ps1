@@ -4,9 +4,7 @@ param(
     [string]$Configuration = "Debug_Local",
     [string]$Platform = "x64",
     [string]$ExpectedMainBranch = "winui3-migration",
-    [string]$ExpectedXamlUIBranch = "winui3-migration",
     [switch]$AllowMainDirty,
-    [switch]$AllowXamlUIDirty,
     [switch]$SkipEditorBuild
 )
 
@@ -17,7 +15,7 @@ if (-not (Test-Path -LiteralPath $repoCheck)) {
     throw "Repository verification script not found: $repoCheck"
 }
 
-& $repoCheck -MainRepo $RepoRoot -ExpectedMainBranch $ExpectedMainBranch -ExpectedXamlUIBranch $ExpectedXamlUIBranch -AllowMainDirty:$AllowMainDirty.IsPresent -AllowXamlUIDirty:$AllowXamlUIDirty.IsPresent
+& $repoCheck -MainRepo $RepoRoot -ExpectedMainBranch $ExpectedMainBranch -AllowMainDirty:$AllowMainDirty.IsPresent
 if ($LASTEXITCODE -ne 0) {
     throw "Repository verification failed."
 }
@@ -52,25 +50,15 @@ else {
     Write-Host "Skipping editor build by request."
 }
 
-$vswhere = Join-Path ${env:ProgramFiles(x86)} "Microsoft Visual Studio\Installer\vswhere.exe"
-if (-not (Test-Path -LiteralPath $vswhere)) {
-    throw "vswhere not found: $vswhere"
-}
-
-$msbuild = (& $vswhere -latest -requires Microsoft.Component.MSBuild -find "MSBuild\Current\Bin\MSBuild.exe" | Select-Object -First 1)
-if (-not $msbuild) {
-    throw "MSBuild not found through vswhere."
-}
-
-$project = Join-Path $RepoRoot "Dev\Typedown\Typedown.csproj"
+$project = Join-Path $RepoRoot "Dev\Typedown.WinUI\Typedown.WinUI.csproj"
 if (-not (Test-Path -LiteralPath $project)) {
-    throw "Typedown project not found: $project"
+    throw "Typedown.WinUI project not found: $project"
 }
 
-Write-Host "Building Typedown $Configuration|$Platform."
-& $msbuild $project /restore /t:Build /p:Configuration=$Configuration /p:Platform=$Platform /p:UseSharedCompilation=false /nologo /m:1 /nodeReuse:false /v:minimal
+Write-Host "Building Typedown.WinUI $Configuration|$Platform."
+& dotnet build $project -c $Configuration -p:Platform=$Platform -p:UseSharedCompilation=false /nodeReuse:false /v:minimal
 if ($LASTEXITCODE -ne 0) {
-    throw "MSBuild failed for $Configuration|$Platform."
+    throw "dotnet build failed for $Configuration|$Platform."
 }
 
 $runtimeId = switch ($Platform.ToLowerInvariant()) {
@@ -80,7 +68,7 @@ $runtimeId = switch ($Platform.ToLowerInvariant()) {
     default { throw "Unsupported platform: $Platform" }
 }
 
-$exe = Join-Path $RepoRoot "Dev\Typedown\bin\$Platform\$Configuration\net9.0-windows10.0.26100.0\$runtimeId\Typedown.exe"
+$exe = Join-Path $RepoRoot "Dev\Typedown.WinUI\bin\$Platform\$Configuration\net10.0-windows10.0.26100.0\$runtimeId\Typedown.WinUI.exe"
 if (-not (Test-Path -LiteralPath $exe)) {
     throw "Expected executable not found: $exe"
 }

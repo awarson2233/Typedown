@@ -41,13 +41,13 @@ yarn && yarn build
 ```
 ![20240319232236_rec_](https://github.com/byxiaozhi/Typedown/assets/31278216/3f038707-9311-4aad-846b-a22e8bad6857)
 
-After finishing the compilation of `Typedown.Editor`, you can see the generated product in the directory `Typedown\Dev\Typedown\Resources\Statics`.
+After finishing the compilation of `Typedown.Editor`, you can see the generated product in the directory `Typedown\Dev\Typedown.WinUI\Resources\Statics`.
 
 Then use VisualStudio 2022 to open `Typedown\Typedown.sln`, right-click on the Typedown project and select Set as Startup Project.
 
 In the top pane, select the solution configuration you want to build in, the difference between these configurations is as follows
 - Debug: The `Typedown.Editor` will be accessed using the http://localhost:3000 address, to use this configuration you need to also start the Typedown.Editor project using yarn start in the Typedown\Dev\Typedown.Editor directory.
-- Debug_Local: The `Typedown.Editor` will be accessed using the compiled product (Typedown\Dev\Typedown\Resources\Statics)
+- Debug_Local: The `Typedown.Editor` will be accessed using the compiled product (Typedown\Dev\Typedown.WinUI\Resources\Statics)
 - Release: Used when releasing a project
 
 Then select the platform you want to build on (x64, x86, or arm64) and click Run!

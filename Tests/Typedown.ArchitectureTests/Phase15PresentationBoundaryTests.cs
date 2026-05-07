@@ -82,6 +82,29 @@ public class Phase15PresentationBoundaryTests
     }
 
     [TestMethod]
+    public void WinUIControls_DetachCachedPresentationViewModelsAfterWindowScopeDisposal()
+    {
+        var winUIRoot = Path.Combine(RepoRoot, "Dev", "Typedown.WinUI");
+        var findReplaceSource = File.ReadAllText(Path.Combine(winUIRoot, "Controls", "FloatControls", "FindReplace.xaml.cs"));
+        var editorContainerSource = File.ReadAllText(Path.Combine(winUIRoot, "Controls", "EditorControls", "EditorContainer.xaml.cs"));
+
+        AssertContainsInOrder(findReplaceSource, "private void OnUnloaded", "AttachViewModel(null);");
+        AssertContainsInOrder(editorContainerSource, "private void OnUnloaded", "AttachViewModel(null);");
+        AssertDetachPathDoesNotResolvePresentationViewModels(
+            findReplaceSource,
+            "FindReplace.xaml.cs",
+            "AttachViewModel",
+            "FloatViewModel",
+            "EditorViewModel");
+        AssertDetachPathDoesNotResolvePresentationViewModels(
+            editorContainerSource,
+            "EditorContainer.xaml.cs",
+            "AttachViewModel",
+            "FloatViewModel",
+            "EditorViewModel");
+    }
+
+    [TestMethod]
     public void WinUIProject_ProvidesAdaptersForPresentationViewModelPorts()
     {
         var servicesRoot = Path.Combine(RepoRoot, "Dev", "Typedown.WinUI", "Services");
@@ -334,7 +357,7 @@ public class Phase15PresentationBoundaryTests
         AssertContainsInOrder(editorContainerSource, "OnDrop", "FileTypeHelper.IsImageFile", "IEditorCommandSink", "\"InsertImage\"");
         AssertContainsInOrder(editorContainerSource, "OnScroll", "\"OnScroll\"", "scrollX", "scrollY");
         AssertContainsInOrder(editorContainerSource, "PointerWheelChangedEvent", "OnPointerWheelChanged");
-        AssertContainsInOrder(editorContainerSource, "OnPointerWheelChanged", "VirtualKeyModifiers.Control", "SettingsViewModel.FontSize");
+        AssertContainsInOrder(editorContainerSource, "OnPointerWheelChanged", "VirtualKeyModifiers.Control", "settings.FontSize");
         AssertHasTypeReference(sessionSource, "OnScroll");
 
         AssertContainsInOrder(editorContainerSource, "EnsureEditorContextFlyout", "editorContextFlyout = new MenuFlyout()", "editorContextFlyout.Items.Add(menuFormatItem)", "editorContextFlyout.Items.Add(menuImageItem)");
@@ -372,7 +395,6 @@ public class Phase15PresentationBoundaryTests
         var bridgeProtocol = File.ReadAllText(Path.Combine(RepoRoot, "docs", "editor-bridge-protocol.md"));
         var buildBaseline = File.ReadAllText(Path.Combine(RepoRoot, "docs", "build-baseline.md"));
         var winUIProject = File.ReadAllText(Path.Combine(RepoRoot, "Dev", "Typedown.WinUI", "Typedown.WinUI.csproj"));
-        var legacyProject = File.ReadAllText(Path.Combine(RepoRoot, "Dev", "Typedown", "Typedown.csproj"));
 
         AssertContainsInOrder(
             bridgeProtocol,
@@ -384,8 +406,7 @@ public class Phase15PresentationBoundaryTests
             bridgeProtocol,
             "## Static Bundle Boundary",
             "`Dev\\Typedown.Editor` owns the React editor source and build output",
-            "`Dev\\Typedown\\Resources\\Statics` is the current shared staging path",
-            "temporary migration debt");
+            "`Dev\\Typedown.WinUI\\Resources\\Statics` is the current staging path");
 
         AssertContainsInOrder(
             buildBaseline,
@@ -399,13 +420,8 @@ public class Phase15PresentationBoundaryTests
             winUIProject,
             "<TypedownEditorBridgeContractOwner>Typedown.WinUI</TypedownEditorBridgeContractOwner>",
             "<TypedownEditorStaticBundleProducer>Typedown.Editor</TypedownEditorStaticBundleProducer>",
-            "<TypedownEditorStaticBundleStagingPath>..\\Typedown\\Resources\\Statics</TypedownEditorStaticBundleStagingPath>",
+            "<TypedownEditorStaticBundleStagingPath>Resources\\Statics</TypedownEditorStaticBundleStagingPath>",
             "<TypedownPackagedSupportLevel>Project shape supported; certificate material is machine-local/manual</TypedownPackagedSupportLevel>");
-        AssertContainsInOrder(
-            legacyProject,
-            "<TypedownEditorStaticBundleProducer>Typedown.Editor</TypedownEditorStaticBundleProducer>",
-            "<TypedownEditorStaticBundleStagingOwner>Typedown legacy compatibility app</TypedownEditorStaticBundleStagingOwner>",
-            "<TypedownStaticBundleStagingDebt>Temporary migration debt until WinUI owns its own editor bundle staging path</TypedownStaticBundleStagingDebt>");
     }
 
     [TestMethod]
@@ -715,6 +731,55 @@ public class Phase15PresentationBoundaryTests
                 ownershipStart > statementBoundary,
                 $"{fileName}:{match.Index} should add the subscription/remote handler to disposables.");
         }
+    }
+
+    private static void AssertDetachPathDoesNotResolvePresentationViewModels(
+        string source,
+        string sourceName,
+        string detachMethodName,
+        params string[] viewModelNames)
+    {
+        var detachBody = ExtractMethodBody(source, detachMethodName);
+
+        foreach (var viewModelName in viewModelNames)
+        {
+            var pattern = $@"(?:this\.)?viewModel\s*[?!]?\s*\.\s*{Regex.Escape(viewModelName)}\s*\.\s*PropertyChanged\s*-=";
+
+            Assert.IsFalse(
+                Regex.IsMatch(detachBody, pattern),
+                $"{sourceName}.{detachMethodName} must not re-resolve {viewModelName} from viewModel while detaching PropertyChanged handlers.");
+        }
+    }
+
+    private static string ExtractMethodBody(string source, string methodName)
+    {
+        var methodDeclaration = Regex.Match(
+            source,
+            $@"(?m)^\s*(?:private|protected|internal|public)\s+(?:static\s+)?(?:async\s+)?[^\r\n()=;]+\s+{Regex.Escape(methodName)}\s*\(");
+        Assert.IsTrue(methodDeclaration.Success, $"Expected method declaration for {methodName}.");
+
+        var bodyStart = source.IndexOf('{', methodDeclaration.Index);
+        Assert.IsTrue(bodyStart >= 0, $"Expected method body for {methodName}.");
+
+        var depth = 0;
+        for (var index = bodyStart; index < source.Length; index++)
+        {
+            if (source[index] == '{')
+            {
+                depth++;
+            }
+            else if (source[index] == '}')
+            {
+                depth--;
+                if (depth == 0)
+                {
+                    return source.Substring(bodyStart, index - bodyStart + 1);
+                }
+            }
+        }
+
+        Assert.Fail($"Expected closed method body for {methodName}.");
+        return string.Empty;
     }
 
     private static void AssertContainsInOrder(string source, params string[] snippets)

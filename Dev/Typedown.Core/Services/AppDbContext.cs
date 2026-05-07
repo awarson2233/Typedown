@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
+using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using Typedown.Core.Interfaces;
 using Typedown.Core.Models;
@@ -108,6 +109,9 @@ namespace Typedown.Core.Services
 
         private async Task BootstrapLegacyMigrationHistoryAsync()
         {
+            if (!CanProbeLegacySqliteMetadata())
+                return;
+
             if (!File.Exists(dbPath))
                 return;
 
@@ -148,6 +152,9 @@ namespace Typedown.Core.Services
 
         private async Task<bool> IsInitialMigrationAppliedAsync()
         {
+            if (!CanProbeLegacySqliteMetadata())
+                return false;
+
             if (!File.Exists(dbPath))
                 return false;
 
@@ -183,6 +190,15 @@ namespace Typedown.Core.Services
             return result is long count && count > 0;
         }
 
+        private static bool CanProbeLegacySqliteMetadata()
+        {
+            if (!OperatingSystem.IsWindows())
+                return true;
+
+            var length = 0;
+            return GetCurrentPackageFullName(ref length, IntPtr.Zero) == ErrorInsufficientBuffer;
+        }
+
         public static Task<AppDbContext> Create(IAppDataPathProvider appDataPathProvider = null)
         {
             return Task.Run(async () =>
@@ -192,5 +208,10 @@ namespace Typedown.Core.Services
                 return ctx;
             });
         }
+
+        [DllImport("kernel32.dll", ExactSpelling = true)]
+        private static extern int GetCurrentPackageFullName(ref int packageFullNameLength, IntPtr packageFullName);
+
+        private const int ErrorInsufficientBuffer = 122;
     }
 }

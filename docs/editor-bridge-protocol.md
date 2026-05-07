@@ -12,9 +12,9 @@
 ## Static Bundle Boundary
 
 - `Dev\Typedown.Editor` owns the React editor source and build output.
-- `Dev\Typedown\Resources\Statics` is the current shared staging path for the generated editor bundle.
-- WinUI consumes that staging path for output and MSIX packaging so migration can preserve the existing editor bundle shape.
-- The WinUI-to-legacy staging reuse is temporary migration debt, not a deliberate long-term shell boundary.
+- `Dev\Typedown.WinUI\Resources\Statics` is the current staging path for the generated editor bundle.
+- WinUI consumes that staging path for output and MSIX packaging.
+- The staging path is WinUI-owned; editor generation syncs directly into the active shell.
 
 ## Direction
 
@@ -166,4 +166,4 @@ Phase 11 不再让 `WinUIEditorBridgeAdapter` 自己维护 smoke markdown/basePa
 - `#if DEBUG`: 导航到 `http://localhost:3000`
 - `#else`: 导航到 `Resources/Statics/index.html`
 
-当前 `Dev/Typedown/Typedown.csproj` 只声明了配置 `Debug;Release;Debug_Local`，未为 `Debug_Local` 额外定义 `DEBUG`。因此 `Debug_Local` 默认走 `Resources/Statics`，除非外部构建参数显式注入 `DEBUG`。
+当前 WinUI host 默认从 `Resources/Statics` 加载静态 bundle；开发时重新执行 `yarn build` 会把 `Dev/Typedown.Editor/build` 同步到 `Dev/Typedown.WinUI/Resources/Statics`。

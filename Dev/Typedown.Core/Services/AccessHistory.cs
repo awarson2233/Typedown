@@ -62,26 +62,16 @@ namespace Typedown.Core.Services
                     break;
                 case CollectionChangeAction.Refresh:
                     FileRecentlyOpened.Clear();
+                    foreach (var path in await LoadFileRecentlyOpenedAsync(maxCount))
+                    {
+                        if (!FileRecentlyOpened.Contains(path))
+                            FileRecentlyOpened.Add(path);
+                    }
                     break;
             }
             while (FileRecentlyOpened.Count > maxCount)
             {
                 FileRecentlyOpened.RemoveAt(FileRecentlyOpened.Count - 1);
-            }
-            if (FileRecentlyOpened.Count < maxCount)
-            {
-                using var ctx = await AppDbContext.Create();
-                var paths = await ctx.FileAccessHistories
-                    .OrderByDescending(x => x.AccessTime)
-                    .Select(x => x.FilePath)
-                    .Take(maxCount)
-                    .ToListAsync();
-
-                foreach (var path in paths)
-                {
-                    if (!FileRecentlyOpened.Contains(path))
-                        FileRecentlyOpened.Add(path);
-                }
             }
         }
 
@@ -127,26 +117,16 @@ namespace Typedown.Core.Services
                     break;
                 case CollectionChangeAction.Refresh:
                     FolderRecentlyOpened.Clear();
+                    foreach (var path in await LoadFolderRecentlyOpenedAsync(maxCount))
+                    {
+                        if (!FolderRecentlyOpened.Contains(path))
+                            FolderRecentlyOpened.Add(path);
+                    }
                     break;
             }
             while (FolderRecentlyOpened.Count > maxCount)
             {
                 FolderRecentlyOpened.RemoveAt(FolderRecentlyOpened.Count - 1);
-            }
-            if (FolderRecentlyOpened.Count < maxCount)
-            {
-                using var ctx = await AppDbContext.Create();
-                var paths = await ctx.FolderAccessHistories
-                    .OrderByDescending(x => x.AccessTime)
-                    .Select(x => x.FolderPath)
-                    .Take(maxCount)
-                    .ToListAsync();
-
-                foreach (var path in paths)
-                {
-                    if (!FolderRecentlyOpened.Contains(path))
-                        FolderRecentlyOpened.Add(path);
-                }
             }
         }
 
@@ -155,6 +135,28 @@ namespace Typedown.Core.Services
             var updateFileTask = UpdateFileRecentlyOpened(string.Empty, CollectionChangeAction.Refresh);
             var updateFolderTask = UpdateFolderRecentlyOpened(string.Empty, CollectionChangeAction.Refresh);
             await Task.WhenAll(updateFileTask, updateFolderTask);
+        }
+
+        private static async Task<string[]> LoadFileRecentlyOpenedAsync(int maxCount)
+        {
+            using var ctx = await AppDbContext.Create();
+            return await ctx.FileAccessHistories
+                .AsNoTracking()
+                .OrderByDescending(x => x.AccessTime)
+                .Select(x => x.FilePath)
+                .Take(maxCount)
+                .ToArrayAsync();
+        }
+
+        private static async Task<string[]> LoadFolderRecentlyOpenedAsync(int maxCount)
+        {
+            using var ctx = await AppDbContext.Create();
+            return await ctx.FolderAccessHistories
+                .AsNoTracking()
+                .OrderByDescending(x => x.AccessTime)
+                .Select(x => x.FolderPath)
+                .Take(maxCount)
+                .ToArrayAsync();
         }
 
         public async Task EnsureInitialized()

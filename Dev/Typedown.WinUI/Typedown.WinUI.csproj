@@ -35,7 +35,7 @@
     <PropertyGroup Label="Typedown Owner Governance">
         <TypedownEditorBridgeContractOwner>Typedown.WinUI</TypedownEditorBridgeContractOwner>
         <TypedownEditorStaticBundleProducer>Typedown.Editor</TypedownEditorStaticBundleProducer>
-        <TypedownEditorStaticBundleStagingPath>..\Typedown\Resources\Statics</TypedownEditorStaticBundleStagingPath>
+        <TypedownEditorStaticBundleStagingPath>Resources\Statics</TypedownEditorStaticBundleStagingPath>
         <TypedownPackagedSupportLevel>Project shape supported; certificate material is machine-local/manual</TypedownPackagedSupportLevel>
         <TypedownStringResourceOwner>Typedown.WinUI</TypedownStringResourceOwner>
     </PropertyGroup>
@@ -63,9 +63,9 @@
         <Content Include="Assets\Square44x44Logo.targetsize-24_altform-unplated.png" />
         <Content Include="Assets\StoreLogo.png" />
         <Content Include="Assets\Wide310x150Logo.scale-200.png" />
-        <!-- Owner governance: Typedown.Editor produces this bundle; WinUI consumes the legacy staging path as temporary migration debt. -->
-        <Content Include="..\Typedown\Resources\Statics\**\*" CopyToOutputDirectory="Always" CopyToPublishDirectory="Always" Link="Resources\Statics\%(RecursiveDir)%(Filename)%(Extension)" TargetPath="Resources\Statics\%(RecursiveDir)%(Filename)%(Extension)" />
-        <!-- Owner governance: WinUI owns .resw text resources; legacy links them while the old shell remains buildable. -->
+        <!-- Owner governance: Typedown.Editor produces this bundle; WinUI owns the staging path it consumes. -->
+        <Content Include="Resources\Statics\**\*" CopyToOutputDirectory="Always" CopyToPublishDirectory="Always" />
+        <!-- Owner governance: WinUI owns .resw text resources. -->
         <Content Include="Resources\Strings\**\*.resw" CopyToOutputDirectory="PreserveNewest" />
     </ItemGroup>
 
@@ -76,7 +76,7 @@
         <PackageReference Include="CommunityToolkit.WinUI.Controls.Sizers" Version="8.2.251219" />
         <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="9.0.8" />
         <PackageReference Include="Microsoft.Data.Sqlite.Core" Version="9.0.8" />
-        <PackageReference Include="Microsoft.WindowsAppSDK" Version="1.8.260416003" />
+        <PackageReference Include="Microsoft.WindowsAppSDK" Version="2.0.1" />
         <PackageReference Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.26100.7705" />
         <PackageReference Include="SQLitePCLRaw.bundle_e_sqlite3" Version="2.1.10" />
 
@@ -103,7 +103,7 @@
 
     <Target Name="AddEditorStaticBundleToPackagingOutputs" AfterTargets="GetPackagingOutputs" BeforeTargets="_ComputeAppxPackagePayload">
         <ItemGroup>
-            <_EditorStaticBundleForPackaging Include="..\Typedown\Resources\Statics\**\*" />
+            <_EditorStaticBundleForPackaging Include="Resources\Statics\**\*" />
             <PackagingOutputs Include="@(_EditorStaticBundleForPackaging)">
                 <TargetPath>Resources\Statics\%(_EditorStaticBundleForPackaging.RecursiveDir)%(_EditorStaticBundleForPackaging.Filename)%(_EditorStaticBundleForPackaging.Extension)</TargetPath>
                 <OutputGroup>CustomOutputGroupForPackaging</OutputGroup>

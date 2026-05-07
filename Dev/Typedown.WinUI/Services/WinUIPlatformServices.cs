@@ -16,6 +16,7 @@ namespace Typedown.WinUI.Services
             WindowContext = new WinUIWindowContext(window);
             UiDispatcher = new WinUIUiDispatcher(window.DispatcherQueue);
             AppDataPathProvider = new WinUIAppDataPathProvider();
+            WebViewEnvironmentService = new WinUIWebViewEnvironmentService(AppDataPathProvider);
             DialogService = new WinUIDialogService(WindowContext);
             FilePickerService = new WinUIFilePickerService(WindowContext);
             AppActivationService = new WinUIAppActivationService(WindowContext);
@@ -29,6 +30,8 @@ namespace Typedown.WinUI.Services
 
         public IUiDispatcher UiDispatcher { get; }
 
+        public WinUIWebViewEnvironmentService WebViewEnvironmentService { get; }
+
         public IWindowContext WindowContext { get; }
 
         public IAppActivationService AppActivationService { get; }
@@ -38,6 +41,7 @@ namespace Typedown.WinUI.Services
             nameof(WinUIAppDataPathProvider),
             nameof(WinUIWindowContext),
             nameof(WinUIUiDispatcher),
+            nameof(WinUIWebViewEnvironmentService),
             nameof(WinUIDialogService),
             nameof(WinUIFilePickerService),
             nameof(WinUIAppActivationService)

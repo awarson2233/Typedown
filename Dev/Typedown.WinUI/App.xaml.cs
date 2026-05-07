@@ -80,6 +80,7 @@ namespace Typedown.WinUI
             }
 
             platformServices ??= new WinUIPlatformServices(window);
+            platformServices.WebViewEnvironmentService.StartPrewarm();
             Config.SetAppDataPathProvider(platformServices.AppDataPathProvider);
             if (rootServices is null)
             {
@@ -92,6 +93,7 @@ namespace Typedown.WinUI
                         .AddSingleton(platformServices.FilePickerService)
                         .AddSingleton(platformServices.AppActivationService)
                         .AddSingleton(platformServices.AppDataPathProvider)
+                        .AddSingleton(platformServices.WebViewEnvironmentService)
                         .AddSingleton<IClipboard, WinUIClipboard>()
                         .AddSingleton<IFileConverter, WinUIFileConverter>()
                         .AddSingleton<IFileExport, WinUIFileExport>()

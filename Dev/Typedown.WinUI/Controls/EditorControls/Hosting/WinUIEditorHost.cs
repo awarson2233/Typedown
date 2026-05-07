@@ -20,6 +20,7 @@ namespace Typedown.WinUI.Controls
         private readonly IEditorHostSink hostSink;
         private readonly IServiceProvider? serviceProvider;
         private readonly WinUIEditorCommandSink? commandSink;
+        private readonly WinUIWebViewEnvironmentService? webViewEnvironmentService;
         private IEditorDocumentSession documentSession;
         private WinUIEditorHostController hostController;
         private WinUIEditorBridgeAdapter bridgeAdapter;
@@ -39,6 +40,7 @@ namespace Typedown.WinUI.Controls
             {
                 this.serviceProvider = serviceProvider;
                 commandSink = serviceProvider?.GetService<IEditorCommandSink>() as WinUIEditorCommandSink;
+                webViewEnvironmentService = serviceProvider?.GetService<WinUIWebViewEnvironmentService>();
                 hostSink = new WinUIEditorHostSink(this);
                 documentSession = CreateDocumentSession();
                 hostController = new WinUIEditorHostController(documentSession, hostSink);
@@ -80,7 +82,7 @@ namespace Typedown.WinUI.Controls
             var editorIndex = ResolveEditorIndexPath();
             if (editorIndex is null)
             {
-                status = "Editor static bundle is missing. Run yarn build in Dev\\Typedown.Editor to generate Dev\\Typedown\\Resources\\Statics\\index.html.";
+                status = "Editor static bundle is missing. Run yarn build in Dev\\Typedown.Editor to generate Dev\\Typedown.WinUI\\Resources\\Statics\\index.html.";
                 return;
             }
 
@@ -105,9 +107,10 @@ namespace Typedown.WinUI.Controls
 
                 if (!coreInitialized)
                 {
+                    var environment = await GetEnvironmentAsync();
                     using (StartupTrace.Phase("WebView2.EnsureCoreWebView2Async"))
                     {
-                        await webView.EnsureCoreWebView2Async();
+                        await webView.EnsureCoreWebView2Async(environment);
                     }
                     if (!isLoaded || currentLoadVersion != loadVersion)
                     {
@@ -212,6 +215,16 @@ namespace Typedown.WinUI.Controls
         {
             var payload = JsonSerializer.Serialize(new { name, args });
             return SendRawMessage(payload);
+        }
+
+        private async Task<CoreWebView2Environment> GetEnvironmentAsync()
+        {
+            if (webViewEnvironmentService is not null)
+            {
+                return await webViewEnvironmentService.GetEnvironmentAsync();
+            }
+
+            return await CoreWebView2Environment.CreateAsync();
         }
 
         private WinUIEditorDocumentSession CreateDocumentSession(string? basePath = null)
@@ -462,7 +475,7 @@ namespace Typedown.WinUI.Controls
             var directory = new DirectoryInfo(AppContext.BaseDirectory);
             while (directory is not null)
             {
-                var candidate = Path.Combine(directory.FullName, "Dev", "Typedown", "Resources", "Statics", "index.html");
+                var candidate = Path.Combine(directory.FullName, "Dev", "Typedown.WinUI", "Resources", "Statics", "index.html");
                 if (File.Exists(candidate))
                 {
                     return candidate;

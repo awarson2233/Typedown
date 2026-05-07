@@ -26,15 +26,18 @@ public sealed partial class FindReplace : UserControl
     private ToggleMenuFlyoutItem? wholeWordItem;
     private ToggleMenuFlyoutItem? regexpItem;
     private AppViewModel? viewModel;
+    private FloatViewModel? floatViewModel;
+    private EditorViewModel? editorViewModel;
+    private SettingsViewModel? settingsViewModel;
     private bool updatingSearchText;
 
-    public AppViewModel? ViewModel => viewModel ?? DataContext as AppViewModel;
+    public AppViewModel? ViewModel => viewModel;
 
-    public FloatViewModel? Float => ViewModel?.FloatViewModel;
+    public FloatViewModel? Float => floatViewModel;
 
-    public EditorViewModel? Editor => ViewModel?.EditorViewModel;
+    public EditorViewModel? Editor => editorViewModel;
 
-    public SettingsViewModel? Settings => ViewModel?.SettingsViewModel;
+    public SettingsViewModel? Settings => settingsViewModel;
 
     public IEditorCommandSink? EditorCommandSink => Editor?.EditorCommandSink;
 
@@ -278,21 +281,32 @@ public sealed partial class FindReplace : UserControl
             return;
         }
 
-        if (viewModel is not null)
+        if (floatViewModel is not null)
         {
-            viewModel.FloatViewModel.PropertyChanged -= OnFloatViewModelPropertyChanged;
-            viewModel.EditorViewModel.PropertyChanged -= OnEditorViewModelPropertyChanged;
+            floatViewModel.PropertyChanged -= OnFloatViewModelPropertyChanged;
+        }
+
+        if (editorViewModel is not null)
+        {
+            editorViewModel.PropertyChanged -= OnEditorViewModelPropertyChanged;
         }
 
         viewModel = nextViewModel;
+        floatViewModel = null;
+        editorViewModel = null;
+        settingsViewModel = null;
 
         if (viewModel is not null)
         {
-            viewModel.FloatViewModel.PropertyChanged += OnFloatViewModelPropertyChanged;
-            viewModel.EditorViewModel.PropertyChanged += OnEditorViewModelPropertyChanged;
-            UpdateSearchText(viewModel.EditorViewModel.SearchValue);
+            floatViewModel = viewModel.FloatViewModel;
+            editorViewModel = viewModel.EditorViewModel;
+            settingsViewModel = viewModel.SettingsViewModel;
+
+            floatViewModel.PropertyChanged += OnFloatViewModelPropertyChanged;
+            editorViewModel.PropertyChanged += OnEditorViewModelPropertyChanged;
+            UpdateSearchText(editorViewModel.SearchValue);
             UpdateOptionItems();
-            SearchOpenChanged(viewModel.FloatViewModel.FindReplaceDialogOpen);
+            SearchOpenChanged(floatViewModel.FindReplaceDialogOpen);
         }
     }
 

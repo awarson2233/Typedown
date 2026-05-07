@@ -30,9 +30,9 @@ function Read-RequiredFile {
 }
 
 $solution = Join-Path $RepoRoot "Typedown.sln"
-$appProject = Join-Path $RepoRoot "Dev\Typedown\Typedown.csproj"
 $coreProject = Join-Path $RepoRoot "Dev\Typedown.Core\Typedown.Core.csproj"
-$packageProject = Join-Path $RepoRoot "Tools\Typedown.Package\Typedown.Package.wapproj"
+$presentationProject = Join-Path $RepoRoot "Dev\Typedown.Presentation\Typedown.Presentation.csproj"
+$winuiProject = Join-Path $RepoRoot "Dev\Typedown.WinUI\Typedown.WinUI.csproj"
 
 Write-Host "Build matrix inspection"
 Write-Host "RepoRoot: $RepoRoot"
@@ -50,7 +50,7 @@ else {
 
 Write-Host ""
 Write-Host "Project RuntimeIdentifier / platform declarations:"
-foreach ($project in @($appProject, $coreProject, $packageProject)) {
+foreach ($project in @($coreProject, $presentationProject, $winuiProject)) {
     Write-Host "  $($project.Substring($RepoRoot.Length + 1))"
     $lines = Read-RequiredFile $project
     $matches = $lines | Where-Object {
@@ -69,4 +69,4 @@ foreach ($project in @($appProject, $coreProject, $packageProject)) {
 }
 
 Write-Host ""
-Write-Host "Phase 7 policy: ARM64 is documented only. Do not use this output as a passing ARM64 build signal."
+Write-Host "WinUI baseline note: inspect mappings here, but use direct build/test verification before claiming ARM64 support."

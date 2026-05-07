@@ -1,23 +1,15 @@
 [CmdletBinding()]
 param(
     [string]$MainRepo = "D:\source\repos\Typedown",
-    [string]$XamlUIRepo = "D:\source\repos\Typedown.XamlUI",
-    [string]$XamlUIProject,
     [string]$ExpectedBranch = "winui3-migration",
     [string]$ExpectedMainBranch,
-    [string]$ExpectedXamlUIBranch,
-    [switch]$AllowMainDirty,
-    [switch]$AllowXamlUIDirty
+    [switch]$AllowMainDirty
 )
 
 $ErrorActionPreference = "Stop"
 
 if (-not $ExpectedMainBranch) {
     $ExpectedMainBranch = $ExpectedBranch
-}
-
-if (-not $ExpectedXamlUIBranch) {
-    $ExpectedXamlUIBranch = $ExpectedBranch
 }
 
 function Invoke-Git {
@@ -78,17 +70,4 @@ function Test-Repo {
 }
 
 Test-Repo -Repo $MainRepo -Name "Typedown" -ExpectedRepoBranch $ExpectedMainBranch -AllowDirty:$AllowMainDirty.IsPresent
-
-if (-not $XamlUIProject) {
-    $XamlUIProject = Join-Path $MainRepo "Dev\Typedown.XamlUI\Typedown.XamlUI.csproj"
-}
-
-if (-not (Test-Path -LiteralPath $XamlUIProject)) {
-    throw "In-repo Typedown.XamlUI project not found: $XamlUIProject"
-}
-
-Write-Host "Typedown.XamlUI OK"
-Write-Host "  Project: $XamlUIProject"
-Write-Host "  Source: in-repo legacy XAML host"
-
 Write-Host "Repository verification completed."

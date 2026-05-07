@@ -6,6 +6,7 @@
   "scripts": {
     "start": "set BROWSER=none&&react-app-rewired start",
     "build": "set GENERATE_SOURCEMAP=false&&react-app-rewired build",
+    "postbuild": "powershell -NoProfile -ExecutionPolicy Bypass -File .\\scripts\\sync-build-to-winui.ps1",
     "test": "react-app-rewired test"
   },
   "eslintConfig": {

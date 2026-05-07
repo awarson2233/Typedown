@@ -210,6 +210,54 @@ public class Phase14WinUILayoutTests
     }
 
     [TestMethod]
+    public void AccessHistory_DoesNotBackfillDatabaseOnEveryMutation()
+    {
+        var accessHistory = File.ReadAllText(Path.Combine(RepoRoot, "Dev", "Typedown.Core", "Services", "AccessHistory.cs"));
+
+        AssertDoesNotContain(accessHistory, "if (FileRecentlyOpened.Count < maxCount)");
+        AssertDoesNotContain(accessHistory, "if (FolderRecentlyOpened.Count < maxCount)");
+        AssertContains(accessHistory, "CollectionChangeAction.Refresh");
+        AssertContains(accessHistory, "LoadFileRecentlyOpenedAsync");
+        AssertContains(accessHistory, "LoadFolderRecentlyOpenedAsync");
+        AssertContains(accessHistory, "AsNoTracking()");
+    }
+
+    [TestMethod]
+    public void AppDbContext_SkipsRawSqliteMetadataProbeWithoutPackageIdentity()
+    {
+        var appDbContext = File.ReadAllText(Path.Combine(RepoRoot, "Dev", "Typedown.Core", "Services", "AppDbContext.cs"));
+
+        AssertContains(appDbContext, "if (!CanProbeLegacySqliteMetadata())");
+        AssertContains(appDbContext, "private static bool CanProbeLegacySqliteMetadata()");
+        AssertContains(appDbContext, "GetCurrentPackageFullName");
+        AssertContains(appDbContext, "return GetCurrentPackageFullName(ref length, IntPtr.Zero) == ErrorInsufficientBuffer;");
+    }
+
+    [TestMethod]
+    public void WinUIStartup_PrewarmsSharedWebViewEnvironment()
+    {
+        var winuiRoot = Path.Combine(RepoRoot, "Dev", "Typedown.WinUI");
+        var app = File.ReadAllText(Path.Combine(winuiRoot, "App.xaml.cs"));
+        var platformServices = File.ReadAllText(Path.Combine(winuiRoot, "Services", "WinUIPlatformServices.cs"));
+
+        AssertContains(platformServices, "WinUIWebViewEnvironmentService");
+        AssertContains(platformServices, "WebViewEnvironmentService = new WinUIWebViewEnvironmentService");
+        AssertContains(platformServices, "public WinUIWebViewEnvironmentService WebViewEnvironmentService { get; }");
+        AssertContains(app, "platformServices.WebViewEnvironmentService.StartPrewarm();");
+        AssertContains(app, ".AddSingleton(platformServices.WebViewEnvironmentService)");
+    }
+
+    [TestMethod]
+    public void WinUIEditorHost_UsesSharedPrewarmedWebViewEnvironment()
+    {
+        var host = File.ReadAllText(Path.Combine(RepoRoot, "Dev", "Typedown.WinUI", "Controls", "EditorControls", "Hosting", "WinUIEditorHost.cs"));
+
+        AssertContains(host, "WinUIWebViewEnvironmentService");
+        AssertContains(host, "GetEnvironmentAsync()");
+        AssertContains(host, "await webView.EnsureCoreWebView2Async(environment);");
+    }
+
+    [TestMethod]
     public void WinUIFloatViewService_AnchorsEditorRelativeFlyoutsToEditorContainer()
     {
         var winuiRoot = Path.Combine(RepoRoot, "Dev", "Typedown.WinUI");

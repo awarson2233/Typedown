@@ -22,9 +22,7 @@ public class Phase14UiVisualBoundaryTests
             "Typedown.Presentation",
             "Current project references: Typedown.Core only.",
             "Typedown.WinUI",
-            "Current project references: Typedown.Core and Typedown.Presentation.",
-            "Typedown",
-            "Current project references: Typedown.Core, Typedown.Presentation,");
+            "Current project references: Typedown.Core and Typedown.Presentation.");
 
         AssertContainsInOrder(
             source,
@@ -44,17 +42,16 @@ public class Phase14UiVisualBoundaryTests
             source,
             "Phase A  Architecture governance refresh",
             "Phase B  WinUI3 parity completion",
-            "Phase C  Debug_Local cutover to WinUI3",
-            "Phase D  Legacy XAML host retirement",
-            "Phase E  ARM64 and packaged validation");
+            "Phase C  Debug_Local hardening",
+            "Phase D  ARM64 and packaged validation");
 
         AssertContainsInOrder(
             source,
             "## Phase A: Architecture governance refresh",
             "Assert Core and Presentation target `net10.0` and stay platform-neutral.",
             "Treat WinUI packaged signing as project/script-supported but certificate-asset-local unless repository assets are restored.",
-            "## Phase C: Debug_Local cutover to WinUI3",
-            "## Phase E: ARM64 and packaged validation");
+            "## Phase C: Debug_Local hardening",
+            "## Phase D: ARM64 and packaged validation");
     }
 
     [TestMethod]
@@ -67,8 +64,7 @@ public class Phase14UiVisualBoundaryTests
             source,
             "`Dev\\Typedown.Core\\Typedown.Core.csproj` targets `net10.0` and has no project references.",
             "`Dev\\Typedown.Presentation\\Typedown.Presentation.csproj` targets `net10.0` and references only `Typedown.Core`.",
-            "`Dev\\Typedown.WinUI\\Typedown.WinUI.csproj` targets `net10.0-windows10.0.26100.0`, references Core and Presentation",
-            "`Dev\\Typedown\\Typedown.csproj` is the legacy compatibility app.");
+            "`Dev\\Typedown.WinUI\\Typedown.WinUI.csproj` targets `net10.0-windows10.0.26100.0`, references Core and Presentation");
 
         AssertContainsInOrder(
             source,
