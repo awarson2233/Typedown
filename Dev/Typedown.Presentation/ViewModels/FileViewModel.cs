@@ -7,6 +7,7 @@ using System.IO;
 using System.Linq;
 using System.Reactive;
 using System.Reactive.Disposables;
+using System.Reactive.Linq;
 using System.Timers;
 using System.Threading.Tasks;
 using Typedown.Core.Enums;
@@ -75,27 +76,22 @@ namespace Typedown.Presentation.ViewModels
         public FileViewModel(IServiceProvider serviceProvider)
         {
             ServiceProvider = serviceProvider;
-            NewFileCommand.OnExecute.Subscribe(async _ => await NewFileFun());
-            OpenFileCommand.OnExecute.Subscribe(async x => await OpenFile(x));
-            OpenFolderCommand.OnExecute.Subscribe(async x => await OpenFolder(x));
-            SaveAsCommand.OnExecute.Subscribe(async _ => await SaveAs());
-            SaveCommand.OnExecute.Subscribe(async _ => await Save());
-            ExitCommand.OnExecute.Subscribe(_ => Exit());
-            ClearHistoryCommand.OnExecute.Subscribe(x => { _ = AccessHistory.ClearHistory(); });
-            ExportCommand.OnExecute.Subscribe(Export);
-            PrintCommand.OnExecute.Subscribe(_ => Print());
-            ImportCommand.OnExecute.Subscribe(_ => Import());
-            RemoteInvoke.Handle<JToken, bool>("ExportCallback", ExportCallback);
-            RemoteInvoke.Handle<JToken, bool>("PrintHTML", PrintHTML);
-            IDisposable initialFileLoadedSubscription = null;
-            initialFileLoadedSubscription = EventCenter.GetObservable<EditorEventArgs>("FileLoaded").Subscribe(_ =>
-            {
-                MarkInitialEditorFileLoaded();
-                initialFileLoadedSubscription?.Dispose();
-            });
-            disposables.Add(initialFileLoadedSubscription);
+            disposables.Add(NewFileCommand.OnExecute.Subscribe(async _ => await NewFileFun()));
+            disposables.Add(OpenFileCommand.OnExecute.Subscribe(async x => await OpenFile(x)));
+            disposables.Add(OpenFolderCommand.OnExecute.Subscribe(async x => await OpenFolder(x)));
+            disposables.Add(SaveAsCommand.OnExecute.Subscribe(async _ => await SaveAs()));
+            disposables.Add(SaveCommand.OnExecute.Subscribe(async _ => await Save()));
+            disposables.Add(ExitCommand.OnExecute.Subscribe(_ => Exit()));
+            disposables.Add(ClearHistoryCommand.OnExecute.Subscribe(x => { _ = AccessHistory.ClearHistory(); }));
+            disposables.Add(ExportCommand.OnExecute.Subscribe(Export));
+            disposables.Add(PrintCommand.OnExecute.Subscribe(_ => Print()));
+            disposables.Add(ImportCommand.OnExecute.Subscribe(_ => Import()));
+            disposables.Add(RemoteInvoke.Handle<JToken, bool>("ExportCallback", ExportCallback));
+            disposables.Add(RemoteInvoke.Handle<JToken, bool>("PrintHTML", PrintHTML));
+            disposables.Add(EventCenter.GetObservable<EditorEventArgs>("FileLoaded").Take(1).Subscribe(_ => MarkInitialEditorFileLoaded()));
             saveFileTimer.Interval = TimeSpan.FromSeconds(5).TotalMilliseconds;
             saveFileTimer.Elapsed += SaveFileTimerTick;
+            disposables.Add(Disposable.Create(() => saveFileTimer.Elapsed -= SaveFileTimerTick));
             saveFileTimer.Start();
             _ = UiDispatcher.RunIdleAsync(() => OnStartup());
         }
@@ -653,6 +649,7 @@ namespace Typedown.Presentation.ViewModels
         {
             saveFileTimer.Stop();
             disposables.Dispose();
+            saveFileTimer.Dispose();
         }
 
         private void Exit()

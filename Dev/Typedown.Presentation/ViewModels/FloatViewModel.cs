@@ -35,15 +35,15 @@ namespace Typedown.Presentation.ViewModels
         public FloatViewModel(IServiceProvider serviceProvider)
         {
             ServiceProvider = serviceProvider;
-            EventCenter.GetObservable<EditorEventArgs>("OpenFrontMenu").Subscribe(x => OnOpenFrontMenu(x.Args));
-            EventCenter.GetObservable<EditorEventArgs>("OpenFormatPicker").Subscribe(x => OnOpenFormatPicker(x.Args));
-            EventCenter.GetObservable<EditorEventArgs>("OpenFindReplace").Subscribe(_ => OnOpenFindReplace());
-            EventCenter.GetObservable<EditorEventArgs>("OpenImageSelector").Subscribe(x => OnOpenImageSelector(x.Args));
-            EventCenter.GetObservable<EditorEventArgs>("OpenTableTools").Subscribe(x => OnOpenTableTools(x.Args));
-            EventCenter.GetObservable<EditorEventArgs>("OpenImageToolbar").Subscribe(x => OnOpenImageToolbar(x.Args));
-            EventCenter.GetObservable<EditorEventArgs>("OpenToolTip").Subscribe(x => OnOpenToolTip(x.Args));
-            this.WhenPropertyChanged(nameof(FindReplaceDialogOpen)).Subscribe(_ => OnFindReplaceDialogOpenChange(FindReplaceDialogOpen));
-            SearchCommand.OnExecute.Subscribe(Search);
+            disposables.Add(EventCenter.GetObservable<EditorEventArgs>("OpenFrontMenu").Subscribe(x => OnOpenFrontMenu(x.Args)));
+            disposables.Add(EventCenter.GetObservable<EditorEventArgs>("OpenFormatPicker").Subscribe(x => OnOpenFormatPicker(x.Args)));
+            disposables.Add(EventCenter.GetObservable<EditorEventArgs>("OpenFindReplace").Subscribe(_ => OnOpenFindReplace()));
+            disposables.Add(EventCenter.GetObservable<EditorEventArgs>("OpenImageSelector").Subscribe(x => OnOpenImageSelector(x.Args)));
+            disposables.Add(EventCenter.GetObservable<EditorEventArgs>("OpenTableTools").Subscribe(x => OnOpenTableTools(x.Args)));
+            disposables.Add(EventCenter.GetObservable<EditorEventArgs>("OpenImageToolbar").Subscribe(x => OnOpenImageToolbar(x.Args)));
+            disposables.Add(EventCenter.GetObservable<EditorEventArgs>("OpenToolTip").Subscribe(x => OnOpenToolTip(x.Args)));
+            disposables.Add(this.WhenPropertyChanged(nameof(FindReplaceDialogOpen)).Subscribe(_ => OnFindReplaceDialogOpenChange(FindReplaceDialogOpen)));
+            disposables.Add(SearchCommand.OnExecute.Subscribe(Search));
         }
 
         public void Search(FindReplaceDialogState open)

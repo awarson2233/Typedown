@@ -33,8 +33,8 @@ namespace Typedown.Presentation.ViewModels
         public FormatViewModel(IServiceProvider serviceProvider)
         {
             ServiceProvider = serviceProvider;
-            EventCenter.GetObservable<EditorEventArgs>("SelectionFormats").Subscribe(x => OnSelectionFormats(x.Args));
-            SetFormatCommand.OnExecute.Subscribe(x => SetFormatFun(x));
+            disposables.Add(EventCenter.GetObservable<EditorEventArgs>("SelectionFormats").Subscribe(x => OnSelectionFormats(x.Args)));
+            disposables.Add(SetFormatCommand.OnExecute.Subscribe(x => SetFormatFun(x)));
         }
 
         public void OnSelectionFormats(JToken arg)

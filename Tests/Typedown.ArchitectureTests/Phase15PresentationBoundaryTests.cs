@@ -154,6 +154,30 @@ public class Phase15PresentationBoundaryTests
     }
 
     [TestMethod]
+    public void PresentationViewModels_OwnReactiveSubscriptionsAndRemoteHandlers()
+    {
+        foreach (var fileName in new[]
+        {
+            "EditorViewModel.cs",
+            "FileViewModel.cs",
+            "FloatViewModel.cs",
+            "FormatViewModel.cs",
+            "ParagraphViewModel.cs"
+        })
+        {
+            AssertPresentationSubscriptionsAreOwned(fileName);
+        }
+
+        var editorSource = File.ReadAllText(Path.Combine(RepoRoot, "Dev", "Typedown.Presentation", "ViewModels", "EditorViewModel.cs"));
+        AssertContainsInOrder(editorSource, "private readonly SerialDisposable tocSelectionDisposables", "disposables.Add(tocSelectionDisposables);");
+        AssertContainsInOrder(editorSource, "SelectedChanged += handler", "Disposable.Create(() => x.SelectedChanged -= handler)");
+
+        var fileSource = File.ReadAllText(Path.Combine(RepoRoot, "Dev", "Typedown.Presentation", "ViewModels", "FileViewModel.cs"));
+        AssertContainsInOrder(fileSource, "saveFileTimer.Elapsed += SaveFileTimerTick", "Disposable.Create(() => saveFileTimer.Elapsed -= SaveFileTimerTick)");
+        AssertHasTypeReference(fileSource, "saveFileTimer.Dispose();");
+    }
+
+    [TestMethod]
     public void WinUIOpenNewWindow_ClosesEditorGapThroughExistingFileViewModelCommand()
     {
         var winUIRoot = Path.Combine(RepoRoot, "Dev", "Typedown.WinUI");
@@ -646,6 +670,22 @@ public class Phase15PresentationBoundaryTests
         AssertHasTypeReference(source, className);
         AssertHasTypeReference(source, portName);
         AssertHasTypeReference(source, "Typedown.Core.Interfaces");
+    }
+
+    private static void AssertPresentationSubscriptionsAreOwned(string fileName)
+    {
+        var path = Path.Combine(RepoRoot, "Dev", "Typedown.Presentation", "ViewModels", fileName);
+        var source = File.ReadAllText(path);
+
+        foreach (Match match in Regex.Matches(source, @"\.Subscribe\(|RemoteInvoke\.Handle"))
+        {
+            var statementBoundary = source.LastIndexOf(';', match.Index);
+            var ownershipStart = source.LastIndexOf("disposables.Add(", match.Index, StringComparison.Ordinal);
+
+            Assert.IsTrue(
+                ownershipStart > statementBoundary,
+                $"{fileName}:{match.Index} should add the subscription/remote handler to disposables.");
+        }
     }
 
     private static void AssertContainsInOrder(string source, params string[] snippets)

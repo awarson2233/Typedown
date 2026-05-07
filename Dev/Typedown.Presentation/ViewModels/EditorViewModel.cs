@@ -66,20 +66,22 @@ namespace Typedown.Presentation.ViewModels
         public AutoBackup AutoBackup => ServiceProvider.GetService<AutoBackup>();
 
         private readonly CompositeDisposable disposables = new();
+        private readonly SerialDisposable tocSelectionDisposables = new();
 
         private bool contentUpdating = false;
 
         public EditorViewModel(IServiceProvider serviceProvider)
         {
             ServiceProvider = serviceProvider;
+            disposables.Add(tocSelectionDisposables);
             disposables.Add(EventCenter.GetObservable<EditorEventArgs>("MarkdownChange").Subscribe(x => OnMarkdownChange(x.Args)));
             disposables.Add(EventCenter.GetObservable<EditorEventArgs>("FileLoaded").Subscribe(x => OnFileLoaded(x.Args)));
             disposables.Add(EventCenter.GetObservable<EditorEventArgs>("CursorChange").Subscribe(x => OnCursorChange(x.Args)));
             disposables.Add(EventCenter.GetObservable<EditorEventArgs>("SelectionChange").Subscribe(x => OnSelectionChange(x.Args)));
             disposables.Add(EventCenter.GetObservable<EditorEventArgs>("CodeMirrorSelectionChange").Subscribe(x => OnCodeMirrorSelectionChange(x.Args)));
             disposables.Add(EventCenter.GetObservable<EditorEventArgs>("StateChange").Subscribe(x => OnStateChange(x.Args)));
-            RemoteInvoke.Handle("GetSettings", GetSettings);
-            RemoteInvoke.Handle<JToken>("SetClipboard", OnSetClipboard);
+            disposables.Add(RemoteInvoke.Handle("GetSettings", GetSettings));
+            disposables.Add(RemoteInvoke.Handle<JToken>("SetClipboard", OnSetClipboard));
             disposables.Add(Settings.WhenPropertyChanged(nameof(Settings.AutoSave)).Subscribe(_ => Settings_AutoSaveChanged(Settings.AutoSave)));
             disposables.Add(this.WhenPropertyChanged(nameof(SearchValue)).Subscribe(_ => SearchValueChanged()));
             disposables.Add(this.WhenPropertyChanged(nameof(Saved)).Subscribe(_ => SavedOrAutoSavedSuccChanged()));
@@ -176,11 +178,19 @@ namespace Typedown.Presentation.ViewModels
             ContentState = arg["state"].ToObject<ContentState>();
             if (ContentState.Cur != null)
             {
+                var tocSelectionHandlers = new CompositeDisposable();
                 ContentState.Toc.ForEach(x =>
                 {
                     x.IsSelected = x.Slug == ContentState.Cur.Slug;
-                    x.SelectedChanged += (s, b) => { if (b) JumpBySlug(x.Slug); };
+                    EventHandler<bool> handler = (_, b) => { if (b) JumpBySlug(x.Slug); };
+                    x.SelectedChanged += handler;
+                    tocSelectionHandlers.Add(Disposable.Create(() => x.SelectedChanged -= handler));
                 });
+                tocSelectionDisposables.Disposable = tocSelectionHandlers;
+            }
+            else
+            {
+                tocSelectionDisposables.Disposable = Disposable.Empty;
             }
             Toc.UpdateChildren(ContentState.Toc);
         }

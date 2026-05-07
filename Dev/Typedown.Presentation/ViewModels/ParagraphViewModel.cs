@@ -40,12 +40,12 @@ namespace Typedown.Presentation.ViewModels
         public ParagraphViewModel(IServiceProvider serviceProvider)
         {
             ServiceProvider = serviceProvider;
-            RemoteInvoke.Handle("ResizeTable", ResizeTable);
-            UpdateParagraphCommand.OnExecute.Subscribe(x => UpdateParagraph(x));
-            InsertParagraphCommand.OnExecute.Subscribe(x => InsertParagraph(x));
-            DeleteParagraphCommand.OnExecute.Subscribe(_ => DeleteParagraph());
-            DuplicateCommand.OnExecute.Subscribe(_ => Duplicate());
-            InsertTableCommand.OnExecute.Subscribe(_ => InsertTable());
+            disposables.Add(RemoteInvoke.Handle("ResizeTable", ResizeTable));
+            disposables.Add(UpdateParagraphCommand.OnExecute.Subscribe(x => UpdateParagraph(x)));
+            disposables.Add(InsertParagraphCommand.OnExecute.Subscribe(x => InsertParagraph(x)));
+            disposables.Add(DeleteParagraphCommand.OnExecute.Subscribe(_ => DeleteParagraph()));
+            disposables.Add(DuplicateCommand.OnExecute.Subscribe(_ => Duplicate()));
+            disposables.Add(InsertTableCommand.OnExecute.Subscribe(_ => InsertTable()));
         }
 
         private void UpdateParagraph(string type) => EditorCommandSink?.Send("UpdateParagraph", type);
