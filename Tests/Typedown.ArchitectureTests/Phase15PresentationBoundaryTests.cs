@@ -8,12 +8,11 @@ public class Phase15PresentationBoundaryTests
 {
     private static readonly string RepoRoot = FindRepoRoot();
 
-    private static readonly string[] RequiredPresentationPorts =
+    private static readonly string[] RootOwnedPresentationPorts =
     [
         "IClipboard",
         "IFileExport",
         "IFileOperation",
-        "IFloatViewService",
         "IKeyboardAccelerator",
         "IEditorCommandSink",
         "IEditorSettingsNotifier",
@@ -26,11 +25,12 @@ public class Phase15PresentationBoundaryTests
     {
         var appSource = File.ReadAllText(Path.Combine(RepoRoot, "Dev", "Typedown.WinUI", "App.xaml.cs"));
 
-        foreach (var port in RequiredPresentationPorts)
+        foreach (var port in RootOwnedPresentationPorts)
         {
             AssertHasTypeReference(appSource, $"AddSingleton<{port},");
         }
 
+        AssertHasTypeReference(appSource, "AddScoped<IFloatViewService, WinUIFloatViewService>()");
         AssertHasTypeReference(appSource, "AddSingleton<IFileConverter, WinUIFileConverter>()");
         AssertHasTypeReference(appSource, "AddSingleton<IPowerShellService, WinUIPowerShellService>()");
         AssertContainsInOrder(
@@ -41,7 +41,7 @@ public class Phase15PresentationBoundaryTests
             ".AddSingleton<IFileConverter, WinUIFileConverter>()",
             ".AddSingleton<IFileExport, WinUIFileExport>()",
             ".AddSingleton<IFileOperation, WinUIFileOperation>()",
-            ".AddSingleton<IFloatViewService, WinUIFloatViewService>()",
+            ".AddScoped<IFloatViewService, WinUIFloatViewService>()",
             ".AddSingleton<IKeyboardAccelerator, WinUIKeyboardAccelerator>()",
             ".AddSingleton<IEditorCommandSink, WinUIEditorCommandSink>()",
             ".AddSingleton<IPowerShellService, WinUIPowerShellService>()",
@@ -50,6 +50,35 @@ public class Phase15PresentationBoundaryTests
             ".AddSingleton<IWindowService, WinUIWindowService>()",
             ".AddTypedownCore()",
             ".AddTypedownPresentation()");
+    }
+
+    [TestMethod]
+    public void WinUICompositionRoot_DisposesRootOwnedShellProviderWhenWindowCloses()
+    {
+        var appSource = File.ReadAllText(Path.Combine(RepoRoot, "Dev", "Typedown.WinUI", "App.xaml.cs"));
+
+        AssertHasTypeReference(appSource, "private ServiceProvider? rootServices;");
+        AssertHasTypeReference(appSource, "private IServiceScope? uiScope;");
+        AssertHasTypeReference(appSource, "window.Closed += OnWindowClosed;");
+        AssertContainsInOrder(
+            appSource,
+            "rootServices = new ServiceCollection()",
+            ".AddTypedownCore()",
+            ".AddTypedownPresentation()",
+            ".BuildServiceProvider();",
+            "uiScope = rootServices.CreateScope();",
+            "uiServices = uiScope.ServiceProvider;");
+        AssertHasTypeReference(appSource, "uiScope?.Dispose();");
+        AssertHasTypeReference(appSource, "rootServices?.Dispose();");
+        AssertHasTypeReference(appSource, "uiServices = null;");
+        AssertContainsInOrder(
+            appSource,
+            "private void OnWindowClosed(object sender, WindowEventArgs args)",
+            "shellBindings.Dispose();",
+            "uiScope?.Dispose();",
+            "rootServices?.Dispose();",
+            "appViewModel = null;",
+            "rootControl = null;");
     }
 
     [TestMethod]

@@ -29,6 +29,8 @@ namespace Typedown.WinUI
     {
         private Window? window;
         private WinUIPlatformServices? platformServices;
+        private ServiceProvider? rootServices;
+        private IServiceScope? uiScope;
         private IServiceProvider? uiServices;
         private CompositeDisposable shellBindings = new();
         private RootControl? rootControl;
@@ -71,14 +73,19 @@ namespace Typedown.WinUI
                 Batteries.Init();
             }
 
-            window ??= new Window();
+            if (window is null)
+            {
+                window = new Window();
+                window.Closed += OnWindowClosed;
+            }
+
             platformServices ??= new WinUIPlatformServices(window);
             Config.SetAppDataPathProvider(platformServices.AppDataPathProvider);
-            if (uiServices is null)
+            if (rootServices is null)
             {
                 using (StartupTrace.Phase("Build service provider"))
                 {
-                    uiServices = new ServiceCollection()
+                    rootServices = new ServiceCollection()
                         .AddSingleton(platformServices.WindowContext)
                         .AddSingleton(platformServices.UiDispatcher)
                         .AddSingleton(platformServices.DialogService)
@@ -89,7 +96,7 @@ namespace Typedown.WinUI
                         .AddSingleton<IFileConverter, WinUIFileConverter>()
                         .AddSingleton<IFileExport, WinUIFileExport>()
                         .AddSingleton<IFileOperation, WinUIFileOperation>()
-                        .AddSingleton<IFloatViewService, WinUIFloatViewService>()
+                        .AddScoped<IFloatViewService, WinUIFloatViewService>()
                         .AddSingleton<IKeyboardAccelerator, WinUIKeyboardAccelerator>()
                         .AddSingleton<IEditorCommandSink, WinUIEditorCommandSink>()
                         .AddSingleton<IPowerShellService, WinUIPowerShellService>()
@@ -101,6 +108,13 @@ namespace Typedown.WinUI
                         .BuildServiceProvider();
                 }
             }
+
+            if (uiScope is null)
+            {
+                uiScope = rootServices.CreateScope();
+                uiServices = uiScope.ServiceProvider;
+            }
+
             platformServices.WindowContext.Title = "Typedown";
             ConfigureNativeTitleBar(window);
 
@@ -116,8 +130,8 @@ namespace Typedown.WinUI
 
             this.rootControl = rootControl;
 
-            rootControl.AttachKeyboardAccelerator(uiServices.GetRequiredService<IKeyboardAccelerator>());
-            rootControl.MainPageNavigationParameter = new MainPageNavigationContext(platformServices, uiServices);
+            rootControl.AttachKeyboardAccelerator(uiServices!.GetRequiredService<IKeyboardAccelerator>());
+            rootControl.MainPageNavigationParameter = new MainPageNavigationContext(platformServices, uiServices!);
             platformServices.WindowContext.ViewRoot = rootControl;
             using (StartupTrace.Phase("Attach shell bindings"))
             {
@@ -141,6 +155,25 @@ namespace Typedown.WinUI
             titleBar.ButtonInactiveBackgroundColor = Microsoft.UI.Colors.Transparent;
             titleBar.ButtonHoverBackgroundColor = Microsoft.UI.ColorHelper.FromArgb(32, 128, 128, 128);
             titleBar.ButtonPressedBackgroundColor = Microsoft.UI.ColorHelper.FromArgb(48, 128, 128, 128);
+        }
+
+        private void OnWindowClosed(object sender, WindowEventArgs args)
+        {
+            if (sender is Window closedWindow)
+            {
+                closedWindow.Closed -= OnWindowClosed;
+            }
+
+            shellBindings.Dispose();
+            uiScope?.Dispose();
+            rootServices?.Dispose();
+            uiScope = null;
+            rootServices = null;
+            uiServices = null;
+            appViewModel = null;
+            rootControl = null;
+            platformServices = null;
+            window = null;
         }
 
         private void AttachShellBindings(RootControl rootControl)

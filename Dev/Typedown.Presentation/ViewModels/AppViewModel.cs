@@ -88,6 +88,7 @@ namespace Typedown.Presentation.ViewModels
             lock (instances) 
                 instances.RemoveAll(x => !x.TryGetTarget(out var target) || target == this);
             disposables.Dispose();
+            GC.SuppressFinalize(this);
         }
 
         public string GetImageAbsolutePath(string path)
