@@ -12,7 +12,7 @@ namespace Typedown.WinUI.Pages.SettingPages
 
         public SettingsViewModel? SettingsViewModel { get; private set; }
 
-        public SettingsViewModel Settings => ViewModel?.SettingsViewModel;
+        public SettingsViewModel? Settings => ViewModel?.SettingsViewModel;
 
         public DecimalFormatter FontSizeFormatter { get; } = new()
         {

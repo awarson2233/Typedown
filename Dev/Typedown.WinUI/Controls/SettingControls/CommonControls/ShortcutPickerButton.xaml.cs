@@ -11,7 +11,7 @@ namespace Typedown.WinUI.Controls
     public sealed partial class ShortcutPickerButton : Button
     {
         public static DependencyProperty ShortcutKeyProperty = DependencyProperty.Register(nameof(ShortcutKey), typeof(ShortcutKey), typeof(ShortcutPickerButton), new(null));
-        public ShortcutKey ShortcutKey { get => (ShortcutKey)GetValue(ShortcutKeyProperty); set => SetValue(ShortcutKeyProperty, value); }
+        public ShortcutKey? ShortcutKey { get => (ShortcutKey?)GetValue(ShortcutKeyProperty); set => SetValue(ShortcutKeyProperty, value); }
 
         public ShortcutPickerButton()
         {
@@ -35,7 +35,7 @@ namespace Typedown.WinUI.Controls
                 DefaultButton = ContentDialogButton.Primary,
                 IsSecondaryButtonEnabled = ShortcutKey != null && ShortcutKey != new ShortcutKey(0, 0),
             };
-            picker.Binding(new(nameof(picker.ShortcutKey))).Cast<ShortcutKey>().Subscribe(_ => OnPickerShortcutKeyChanged(dialog));
+            picker.Binding(new(nameof(picker.ShortcutKey))).Subscribe(_ => OnPickerShortcutKeyChanged(dialog));
             dialog.PrimaryButtonClick += OnDialogPrimaryButtonClick;
             dialog.SecondaryButtonClick += OnDialogSecondaryButtonClick;
             await dialog.ShowAsync();
@@ -64,12 +64,12 @@ namespace Typedown.WinUI.Controls
             dialog.IsSecondaryButtonEnabled = picker?.ShortcutKey != null && picker.ShortcutKey != new ShortcutKey(0, 0);
         }
 
-        public static bool HasShortcutKey(ShortcutKey key)
+        public static bool HasShortcutKey(ShortcutKey? key)
         {
             return key != null && key.Key != KeyboardKey.None;
         }
 
-        public static bool HasShortcutKeyReverse(ShortcutKey key)
+        public static bool HasShortcutKeyReverse(ShortcutKey? key)
         {
             return !HasShortcutKey(key);
         }

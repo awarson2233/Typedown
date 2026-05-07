@@ -113,7 +113,7 @@ namespace Typedown.Presentation.Utilities
             return GetString(key, ResourceSource.DialogResources);
         }
 
-        public static string GetTypeString(Type type)
+        public static string? GetTypeString(Type type)
         {
             return (type.GetCustomAttribute(typeof(LocaleAttribute)) as LocaleAttribute)?.Text;
         }

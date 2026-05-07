@@ -22,7 +22,7 @@ namespace Typedown.WinUI.Pages.SettingPages
 
         public SettingsViewModel? SettingsViewModel { get; private set; }
 
-        public SettingsViewModel Settings => ViewModel?.SettingsViewModel;
+        public SettingsViewModel? Settings => ViewModel?.SettingsViewModel;
 
         public ImageUpload ImageUpload => this.GetService<ImageUpload>();
 
@@ -93,7 +93,11 @@ namespace Typedown.WinUI.Pages.SettingPages
             if (itemElement?.GetAncestor<ImageUploadPage>() is not ImageUploadPage uploadPage)
                 return;
 
-            var config = itemElement.Tag as ImageUploadConfig;
+            if (itemElement.Tag is not ImageUploadConfig config)
+            {
+                return;
+            }
+
             uploadPage.ViewModel?.NavigateCommand.Execute($"Settings/UploadConfig?{config.Id}");
         }
 
@@ -108,8 +112,8 @@ namespace Typedown.WinUI.Pages.SettingPages
         {
             var list = new List<string>();
             var field = method.GetType().GetField(method.ToString());
-            var attribute = field.GetCustomAttribute(typeof(LocaleAttribute)) as LocaleAttribute;
-            list.Add(attribute.Text);
+            var attribute = field?.GetCustomAttribute(typeof(LocaleAttribute)) as LocaleAttribute;
+            list.Add(attribute?.Text ?? method.ToString());
             list.Add(isEnable ? Locale.GetString("On") : Locale.GetString("Off"));
             return string.Join(", ", list);
         }

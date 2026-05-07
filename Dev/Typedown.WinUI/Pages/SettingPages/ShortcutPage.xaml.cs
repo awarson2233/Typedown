@@ -24,16 +24,16 @@ namespace Typedown.WinUI.Pages.SettingPages
         private string SearchText { get => (string)GetValue(SearchTextProperty); set => SetValue(SearchTextProperty, value); }
 
         private static DependencyProperty FliterCategoryProperty { get; } = DependencyProperty.Register(nameof(FliterCategory), typeof(ShortcutPageCategoryModel), typeof(ShortcutPage), null);
-        private ShortcutPageCategoryModel FliterCategory { get => (ShortcutPageCategoryModel)GetValue(FliterCategoryProperty); set => SetValue(FliterCategoryProperty, value); }
+        private ShortcutPageCategoryModel? FliterCategory { get => (ShortcutPageCategoryModel?)GetValue(FliterCategoryProperty); set => SetValue(FliterCategoryProperty, value); }
 
         private static DependencyProperty FliterCategoriesProperty { get; } = DependencyProperty.Register(nameof(FliterCategories), typeof(List<ShortcutPageCategoryModel>), typeof(ShortcutPage), null);
-        private List<ShortcutPageCategoryModel> FliterCategories { get => (List<ShortcutPageCategoryModel>)GetValue(FliterCategoriesProperty); set => SetValue(FliterCategoriesProperty, value); }
+        private List<ShortcutPageCategoryModel>? FliterCategories { get => (List<ShortcutPageCategoryModel>?)GetValue(FliterCategoriesProperty); set => SetValue(FliterCategoriesProperty, value); }
 
         public AppViewModel? ViewModel { get; private set; }
 
         public SettingsViewModel? SettingsViewModel { get; private set; }
 
-        private List<ShortcutPageItemModel> AllSettingItems { get; set; }
+        private List<ShortcutPageItemModel> AllSettingItems { get; set; } = [];
 
         private ObservableCollection<ShortcutPageItemModel> SettingItems { get; } = new();
 
@@ -87,7 +87,7 @@ namespace Typedown.WinUI.Pages.SettingPages
                 .Where(x => x.PropertyType == typeof(ShortcutKey))
                 .Select(x => new ShortcutPageItemModel(target, x))
                 .ToList();
-            FliterCategories = AllSettingItems.Select(x => x.Category).ToHashSet().Select(x => new ShortcutPageCategoryModel(x, x)).ToList();
+            FliterCategories = AllSettingItems.Select(x => x.Category).ToHashSet().Select(x => new ShortcutPageCategoryModel(x ?? string.Empty, x)).ToList();
             FliterCategories.Insert(0, new(Locale.GetString("All"), null));
             FliterCategory = FliterCategories[0];
         }
@@ -123,9 +123,9 @@ namespace Typedown.WinUI.Pages.SettingPages
 
         public string Category { get; }
 
-        public ShortcutKey ShortcutKey
+        public ShortcutKey? ShortcutKey
         {
-            get => (ShortcutKey)Property.GetValue(Target);
+            get => Property.GetValue(Target) as ShortcutKey;
             set
             {
                 if (EqualityComparer<ShortcutKey>.Default.Equals(ShortcutKey, value))
@@ -160,9 +160,9 @@ namespace Typedown.WinUI.Pages.SettingPages
     {
         public string DisplayName { get; }
 
-        public string Category { get; }
+        public string? Category { get; }
 
-        public ShortcutPageCategoryModel(string displayName, string category)
+        public ShortcutPageCategoryModel(string displayName, string? category)
         {
             DisplayName = displayName;
             Category = category;

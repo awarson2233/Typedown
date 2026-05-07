@@ -19,6 +19,6 @@ namespace Typedown.Core.Enums
 
     public static partial class Enumerable
     {
-        public static IReadOnlyList<AppTheme> AppThemes { get; } = Enum.GetValues(typeof(AppTheme)).Cast<AppTheme>().ToList();
+        public static IReadOnlyList<AppTheme> AppThemes { get; } = Enum.GetValues<AppTheme>();
     }
 }

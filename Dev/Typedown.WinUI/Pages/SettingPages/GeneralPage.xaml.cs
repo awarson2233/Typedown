@@ -14,7 +14,7 @@ namespace Typedown.WinUI.Pages.SettingPages
 
         public SettingsViewModel? SettingsViewModel { get; private set; }
 
-        public SettingsViewModel Settings => ViewModel?.SettingsViewModel;
+        public SettingsViewModel? Settings => ViewModel?.SettingsViewModel;
 
         public GeneralPage()
         {
@@ -44,7 +44,7 @@ namespace Typedown.WinUI.Pages.SettingPages
         {
             try
             {
-                var settingLanguage = Settings.Language;
+                var settingLanguage = settingLang;
                 var currentLanguage = ApplicationLanguages.PrimaryLanguageOverride;
                 return Locale.SupportedLangs.ContainsKey(settingLanguage) != Locale.SupportedLangs.ContainsKey(currentLanguage)
                     || (Locale.SupportedLangs.ContainsKey(settingLanguage) && settingLanguage != currentLanguage);

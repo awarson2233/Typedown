@@ -20,17 +20,17 @@ namespace Typedown.Presentation.ViewModels
     {
         public IServiceProvider ServiceProvider { get; }
 
-        public AppViewModel AppViewModel => ServiceProvider.GetService<AppViewModel>();
+        public AppViewModel AppViewModel => ServiceProvider.GetRequiredService<AppViewModel>();
 
-        public EditorViewModel EditorViewModel => ServiceProvider.GetService<EditorViewModel>();
+        public EditorViewModel EditorViewModel => ServiceProvider.GetRequiredService<EditorViewModel>();
 
-        public FileViewModel FileViewModel => ServiceProvider.GetService<FileViewModel>();
+        public FileViewModel FileViewModel => ServiceProvider.GetRequiredService<FileViewModel>();
 
-        public SettingsViewModel SettingsViewModel => ServiceProvider.GetService<SettingsViewModel>();
+        public SettingsViewModel SettingsViewModel => ServiceProvider.GetRequiredService<SettingsViewModel>();
 
-        public RemoteInvoke RemoteInvoke => ServiceProvider.GetService<RemoteInvoke>();
+        public RemoteInvoke RemoteInvoke => ServiceProvider.GetRequiredService<RemoteInvoke>();
 
-        public string MainWindowTitle { get; private set; }
+        public string MainWindowTitle { get; private set; } = string.Empty;
 
         public AppTheme ActualTheme { get; private set; }
 
@@ -43,7 +43,7 @@ namespace Typedown.Presentation.ViewModels
         public UIViewModel(IServiceProvider serviceProvider)
         {
             ServiceProvider = serviceProvider;
-            dispatcher = ServiceProvider.GetService<IUiDispatcher>();
+            dispatcher = ServiceProvider.GetRequiredService<IUiDispatcher>();
             disposables.Add(RemoteInvoke.Handle<JToken, object>("GetStringResources", GetStringResources));
             _ = dispatcher.RunIdleAsync(() => InitializeBinding());
         }
@@ -63,7 +63,8 @@ namespace Typedown.Presentation.ViewModels
         {
             try
             {
-                return args["names"].ToObject<List<string>>().ToDictionary(x => x, x => Locale.GetString(x));
+                var names = args["names"]?.ToObject<List<string>>() ?? new List<string>();
+                return names.ToDictionary(x => x, x => Locale.GetString(x));
             }
             catch
             {

@@ -125,7 +125,8 @@ namespace Typedown.WinUI
                 uiServices = uiScope.ServiceProvider;
             }
 
-            uiServices.GetRequiredService<AppViewModel>().CommandLineArgs = startupCommandLineArgs;
+            var scopedServices = uiServices ?? throw new InvalidOperationException("Typedown UI services are not initialized.");
+            scopedServices.GetRequiredService<AppViewModel>().CommandLineArgs = startupCommandLineArgs;
 
             platformServices.WindowContext.Title = "Typedown";
             ConfigureNativeTitleBar(window);
@@ -142,8 +143,8 @@ namespace Typedown.WinUI
 
             this.rootControl = rootControl;
 
-            rootControl.AttachKeyboardAccelerator(uiServices!.GetRequiredService<IKeyboardAccelerator>());
-            rootControl.MainPageNavigationParameter = new MainPageNavigationContext(platformServices, uiServices!);
+            rootControl.AttachKeyboardAccelerator(scopedServices.GetRequiredService<IKeyboardAccelerator>());
+            rootControl.MainPageNavigationParameter = new MainPageNavigationContext(platformServices, scopedServices);
             platformServices.WindowContext.ViewRoot = rootControl;
             using (StartupTrace.Phase("Attach shell bindings"))
             {
@@ -237,7 +238,7 @@ namespace Typedown.WinUI
             var settings = appViewModel.SettingsViewModel;
 
             shellBindings.Add(settings.WhenPropertyChanged(nameof(SettingsViewModel.AppTheme))
-                .Cast<AppTheme>()
+                .Select(value => RequirePropertyValue<AppTheme>(value, nameof(SettingsViewModel.AppTheme)))
                 .StartWith(settings.AppTheme)
                 .Subscribe(theme =>
                 {
@@ -246,7 +247,7 @@ namespace Typedown.WinUI
                 }));
 
             shellBindings.Add(settings.WhenPropertyChanged(nameof(SettingsViewModel.UseMicaEffect))
-                .Cast<bool>()
+                .Select(value => RequirePropertyValue<bool>(value, nameof(SettingsViewModel.UseMicaEffect)))
                 .StartWith(settings.UseMicaEffect)
                 .Subscribe(enable =>
                 {
@@ -255,17 +256,17 @@ namespace Typedown.WinUI
                 }));
 
             shellBindings.Add(settings.WhenPropertyChanged(nameof(SettingsViewModel.UseEditorMicaEffect))
-                .Cast<bool>()
+                .Select(value => RequirePropertyValue<bool>(value, nameof(SettingsViewModel.UseEditorMicaEffect)))
                 .StartWith(settings.UseEditorMicaEffect)
                 .Subscribe(_ => ApplyEditorBackground(settings)));
 
             shellBindings.Add(settings.WhenPropertyChanged(nameof(SettingsViewModel.Topmost))
-                .Cast<bool>()
+                .Select(value => RequirePropertyValue<bool>(value, nameof(SettingsViewModel.Topmost)))
                 .StartWith(settings.Topmost)
                 .Subscribe(ApplyTopmost));
 
             shellBindings.Add(settings.WhenPropertyChanged(nameof(SettingsViewModel.AnimationEnable))
-                .Cast<bool>()
+                .Select(value => RequirePropertyValue<bool>(value, nameof(SettingsViewModel.AnimationEnable)))
                 .StartWith(settings.AnimationEnable)
                 .Subscribe(rootControl.SetAnimationEnabled));
             shellBindings.Add(appViewModel.FileViewModel.NewWindowCommand.OnExecute.Subscribe(OpenNewWindowInNewProcess));
@@ -298,6 +299,16 @@ namespace Typedown.WinUI
             }
 
             Process.Start(startInfo);
+        }
+
+        private static T RequirePropertyValue<T>(object? value, string propertyName)
+        {
+            return value switch
+            {
+                T typed => typed,
+                null => throw new InvalidOperationException($"Property '{propertyName}' emitted a null value."),
+                _ => throw new InvalidOperationException($"Property '{propertyName}' emitted '{value.GetType().FullName}' instead of '{typeof(T).FullName}'.")
+            };
         }
 
         private void ApplyAppTheme(AppTheme theme)

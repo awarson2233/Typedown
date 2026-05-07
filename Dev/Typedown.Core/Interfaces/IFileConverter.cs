@@ -6,6 +6,6 @@ namespace Typedown.Core.Interfaces
 {
     public interface IFileConverter
     {
-        Task<MemoryStream> HtmlToPdf(string html, PdfPrintSettings settings = null);
+        Task<MemoryStream> HtmlToPdf(string html, PdfPrintSettings? settings = null);
     }
 }

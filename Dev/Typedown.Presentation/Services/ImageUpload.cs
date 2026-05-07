@@ -2,6 +2,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.Collections.ObjectModel;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Threading.Tasks;
 using Typedown.Core.Enums;
@@ -16,7 +17,7 @@ namespace Typedown.Presentation.Services
     {
         public ObservableCollection<ImageUploadConfig> ImageUploadConfigs { get; } = new();
 
-        private IServiceProvider serviceProvider;
+        private readonly IServiceProvider serviceProvider;
 
         public ImageUpload(IServiceProvider serviceProvider, SettingsViewModel settings)
         {
@@ -40,15 +41,15 @@ namespace Typedown.Presentation.Services
 
         private async Task ResetDefaultConfigs()
         {
-            using var ctx = await AppDbContext.Create();
+            using var ctx = await CreateDbContextAsync();
             ctx.ImageUploadConfigs.RemoveRange(ctx.ImageUploadConfigs);
             await ctx.SaveChangesAsync();
             await UpdateImageUploadConfigs();
         }
 
-        public async Task<ImageUploadConfig> AddImageUploadConfig(string name = null, ImageUploadMethod method = 0)
+        public async Task<ImageUploadConfig> AddImageUploadConfig(string? name = null, ImageUploadMethod method = 0)
         {
-            using var ctx = await AppDbContext.Create();
+            using var ctx = await CreateDbContextAsync();
             var model = ctx.ImageUploadConfigs;
             var res = new ImageUploadConfig() { Name = name ?? string.Empty, Method = method };
             await model.AddAsync(res);
@@ -59,7 +60,7 @@ namespace Typedown.Presentation.Services
 
         public async Task RemoveImageUploadConfig(int id)
         {
-            using var ctx = await AppDbContext.Create();
+            using var ctx = await CreateDbContextAsync();
             var model = ctx.ImageUploadConfigs;
             model.RemoveRange(model.Where(x => x.Id == id));
             await ctx.SaveChangesAsync();
@@ -70,7 +71,7 @@ namespace Typedown.Presentation.Services
         {
             try
             {
-                using var ctx = await AppDbContext.Create();
+                using var ctx = await CreateDbContextAsync();
                 var model = ctx.ImageUploadConfigs;
                 model.Update(config);
                 await ctx.SaveChangesAsync();
@@ -83,23 +84,23 @@ namespace Typedown.Presentation.Services
             }
         }
 
-        public async Task<ImageUploadConfig> GetImageUploadConfig(int id)
+        public async Task<ImageUploadConfig?> GetImageUploadConfig(int id)
         {
-            using var ctx = await AppDbContext.Create();
+            using var ctx = await CreateDbContextAsync();
             var model = ctx.ImageUploadConfigs;
             return await model.Where(x => x.Id == id).FirstOrDefaultAsync();
         }
 
         public async Task UpdateImageUploadConfigs()
         {
-            using var ctx = await AppDbContext.Create();
+            using var ctx = await CreateDbContextAsync();
             var newItems = await ctx.ImageUploadConfigs.ToListAsync();
             ImageUploadConfigs.UpdateCollection(newItems, (a, b) => a.Id == b.Id);
         }
 
         public async Task<string> Upload(ImageAction.InsertImageSource source, string filePath)
         {
-            var settings = serviceProvider.GetService<SettingsViewModel>();
+            var settings = serviceProvider.GetRequiredService<SettingsViewModel>();
             var configId = source switch
             {
                 ImageAction.InsertImageSource.Clipboard => settings.InsertClipboardImageUseUploadConfigId,
@@ -117,6 +118,13 @@ namespace Typedown.Presentation.Services
         public async Task<string> Upload(ImageUploadConfig config, string filePath)
         {
             return await config.LoadUploadConfig().Upload(serviceProvider, filePath);
+        }
+
+        [UnconditionalSuppressMessage("Trimming", "IL2026", Justification = "Image-upload config persistence uses EF Core by design and is isolated to this Presentation service.")]
+        [UnconditionalSuppressMessage("AOT", "IL3050", Justification = "Image-upload config persistence uses EF Core by design and is isolated to this Presentation service.")]
+        private static Task<AppDbContext> CreateDbContextAsync()
+        {
+            return AppDbContext.Create();
         }
     }
 }

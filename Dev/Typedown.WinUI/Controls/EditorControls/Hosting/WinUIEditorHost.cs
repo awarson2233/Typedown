@@ -211,7 +211,7 @@ namespace Typedown.WinUI.Controls
             TrySendPendingLoadFile();
         }
 
-        private bool SendMessage(string name, object args)
+        private bool SendMessage(string name, object? args)
         {
             var payload = JsonSerializer.Serialize(new { name, args });
             return SendRawMessage(payload);
@@ -440,7 +440,7 @@ namespace Typedown.WinUI.Controls
             return hostSink.Send(EditorHostCommands.CreateExport(request));
         }
 
-        internal bool SendCommand(string name, object args)
+        internal bool SendCommand(string name, object? args)
         {
             return SendMessage(name, args);
         }

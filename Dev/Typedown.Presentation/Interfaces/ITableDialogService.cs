@@ -4,9 +4,9 @@ namespace Typedown.Presentation.Interfaces
 {
     public interface ITableDialogService
     {
-        Task<TableDialogResult> OpenInsertTableDialogAsync();
+        Task<TableDialogResult?> OpenInsertTableDialogAsync();
 
-        Task<TableDialogResult> OpenResizeTableDialogAsync();
+        Task<TableDialogResult?> OpenResizeTableDialogAsync();
     }
 
     public sealed class TableDialogResult

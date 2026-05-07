@@ -11,7 +11,7 @@ namespace Typedown.Core.Utilities
     {
         private class ListType
         {
-            public string Type { get; set; }
+            public string Type { get; set; } = string.Empty;
             public int ListCount { get; set; } = 1;
         }
 

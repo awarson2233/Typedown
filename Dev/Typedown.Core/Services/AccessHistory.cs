@@ -1,8 +1,9 @@
-﻿using Microsoft.Data.Sqlite;
+using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Reactive.Linq;
 using System.Threading.Tasks;
@@ -22,7 +23,7 @@ namespace Typedown.Core.Services
 
         public async Task RecordFileHistory(string filePath)
         {
-            using var ctx = await AppDbContext.Create();
+            using var ctx = await CreateDbContextAsync();
             var model = ctx.FileAccessHistories;
             var item = new FileAccessHistory() { FilePath = filePath, AccessTime = DateTime.Now };
             await model.AddAsync(item);
@@ -32,7 +33,7 @@ namespace Typedown.Core.Services
 
         public async Task RemoveFileHistory(string filePath)
         {
-            using var ctx = await AppDbContext.Create();
+            using var ctx = await CreateDbContextAsync();
             var model = ctx.FileAccessHistories;
             model.RemoveRange(model.Where(x => x.FilePath == filePath));
             await ctx.SaveChangesAsync();
@@ -41,7 +42,7 @@ namespace Typedown.Core.Services
 
         public async Task ClearFileHistory()
         {
-            using var ctx = await AppDbContext.Create();
+            using var ctx = await CreateDbContextAsync();
             var model = ctx.FileAccessHistories;
             model.RemoveRange(model);
             await ctx.SaveChangesAsync();
@@ -77,7 +78,7 @@ namespace Typedown.Core.Services
 
         public async Task RecordFolderHistory(string folderPath)
         {
-            using var ctx = await AppDbContext.Create();
+            using var ctx = await CreateDbContextAsync();
             var model = ctx.FolderAccessHistories;
             var item = new FolderAccessHistory() { FolderPath = folderPath, AccessTime = DateTime.Now };
             await model.AddAsync(item);
@@ -87,7 +88,7 @@ namespace Typedown.Core.Services
 
         public async Task RemoveFolderHistory(string folderPath)
         {
-            using var ctx = await AppDbContext.Create();
+            using var ctx = await CreateDbContextAsync();
             var model = ctx.FolderAccessHistories;
             model.RemoveRange(model.Where(x => x.FolderPath == folderPath));
             await ctx.SaveChangesAsync();
@@ -96,7 +97,7 @@ namespace Typedown.Core.Services
 
         public async Task ClearFolderHistory()
         {
-            using var ctx = await AppDbContext.Create();
+            using var ctx = await CreateDbContextAsync();
             var model = ctx.FolderAccessHistories;
             model.RemoveRange(model);
             await ctx.SaveChangesAsync();
@@ -139,7 +140,7 @@ namespace Typedown.Core.Services
 
         private static async Task<string[]> LoadFileRecentlyOpenedAsync(int maxCount)
         {
-            using var ctx = await AppDbContext.Create();
+            using var ctx = await CreateDbContextAsync();
             return await ctx.FileAccessHistories
                 .AsNoTracking()
                 .OrderByDescending(x => x.AccessTime)
@@ -150,13 +151,20 @@ namespace Typedown.Core.Services
 
         private static async Task<string[]> LoadFolderRecentlyOpenedAsync(int maxCount)
         {
-            using var ctx = await AppDbContext.Create();
+            using var ctx = await CreateDbContextAsync();
             return await ctx.FolderAccessHistories
                 .AsNoTracking()
                 .OrderByDescending(x => x.AccessTime)
                 .Select(x => x.FolderPath)
                 .Take(maxCount)
                 .ToArrayAsync();
+        }
+
+        [UnconditionalSuppressMessage("Trimming", "IL2026", Justification = "Desktop EF Core history storage is intentionally centralized here.")]
+        [UnconditionalSuppressMessage("Aot", "IL3050", Justification = "Desktop EF Core history storage is intentionally centralized here.")]
+        private static Task<AppDbContext> CreateDbContextAsync()
+        {
+            return AppDbContext.Create();
         }
 
         public async Task EnsureInitialized()

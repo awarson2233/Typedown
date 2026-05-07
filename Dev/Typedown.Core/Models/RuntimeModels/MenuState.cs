@@ -12,6 +12,6 @@ namespace Typedown.Core.Models
         public bool IsCodeContent { get; set; }
         public bool IsTable { get; set; }
         public bool IsFootnote { get; set; }
-        public Dictionary<string, bool> Affiliation { get; set; }
+        public Dictionary<string, bool> Affiliation { get; set; } = new();
     }
 }

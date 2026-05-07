@@ -10,10 +10,10 @@ using Microsoft.UI.Xaml.Controls;
 
 namespace Typedown.WinUI.Controls
 {
-    public class PathPickerButton : Button
-    {
+        public class PathPickerButton : Button
+        {
         public static DependencyProperty PathProperty = DependencyProperty.Register(nameof(Path), typeof(string), typeof(PathPickerButton), new(""));
-        public string Path { get => (string)GetValue(PathProperty); set => SetValue(PathProperty, value.Replace("\\", "/")); }
+        public string Path { get => (string)GetValue(PathProperty); set => SetValue(PathProperty, (value ?? string.Empty).Replace("\\", "/")); }
 
         public static DependencyProperty ModeProperty = DependencyProperty.Register(nameof(Mode), typeof(PathPickMode), typeof(PathPickerButton), new(PathPickMode.File));
         public PathPickMode Mode { get => (PathPickMode)GetValue(ModeProperty); set => SetValue(ModeProperty, value); }
@@ -21,7 +21,7 @@ namespace Typedown.WinUI.Controls
         public static DependencyProperty FileTypeFilterProperty = DependencyProperty.Register(nameof(FileTypeFilter), typeof(IEnumerable<string>), typeof(PathPickerButton), new(new List<string>()));
         public IEnumerable<string> FileTypeFilter { get => (IEnumerable<string>)GetValue(FileTypeFilterProperty); set => SetValue(FileTypeFilterProperty, value); }
 
-        public event EventHandler<PickedEventArgs> Picked;
+        public event EventHandler<PickedEventArgs>? Picked;
 
         private nint Window => this.GetService<IWindowService>().GetWindow(this);
 
@@ -64,7 +64,11 @@ namespace Typedown.WinUI.Controls
                 filePicker.SetOwnerWindow(Window);
                 var file = await filePicker.PickSingleFileAsync();
                 var isCancel = file is null;
-                if (!isCancel) Path = file.Path;
+                if (file is not null)
+                {
+                    Path = file.Path;
+                }
+
                 Picked?.Invoke(this, new(isCancel, file?.Path));
             }
             catch (Exception ex)
@@ -82,7 +86,11 @@ namespace Typedown.WinUI.Controls
                 folderPicker.FileTypeFilter.Add("*");
                 var folder = await folderPicker.PickSingleFolderAsync();
                 var isCancel = folder is null;
-                if (!isCancel) Path = folder.Path;
+                if (folder is not null)
+                {
+                    Path = folder.Path;
+                }
+
                 Picked?.Invoke(this, new(isCancel, folder?.Path));
             }
             catch (Exception ex)
@@ -113,9 +121,9 @@ namespace Typedown.WinUI.Controls
     {
         public bool IsCancel { get; }
 
-        public string Path { get; }
+        public string? Path { get; }
 
-        public PickedEventArgs(bool isCancel, string path)
+        public PickedEventArgs(bool isCancel, string? path)
         {
             IsCancel = isCancel;
             Path = path;

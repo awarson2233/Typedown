@@ -22,7 +22,7 @@ namespace Typedown.Core.Enums
 
     public static partial class Enumerable
     {
-        public static IReadOnlyList<ExportType> ExportTypes { get; } = Enum.GetValues(typeof(ExportType)).Cast<ExportType>().ToList();
+        public static IReadOnlyList<ExportType> ExportTypes { get; } = Enum.GetValues<ExportType>();
 
         public static IReadOnlyList<ExportType> AvailableExportTypes { get; } = new List<ExportType>() { ExportType.PDF, ExportType.HTML };
     }

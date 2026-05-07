@@ -13,6 +13,6 @@ namespace Typedown.Core.Models
 
         public DateTime AccessTime { get; set; }
 
-        public string FolderPath { get; set; }
+        public string FolderPath { get; set; } = string.Empty;
     }
 }

@@ -93,6 +93,9 @@ namespace Typedown.Presentation.ViewModels
 
         public string GetImageAbsolutePath(string path)
         {
+            if (string.IsNullOrWhiteSpace(path))
+                throw new InvalidOperationException("Image path cannot be empty or whitespace.");
+
             try
             {
                 if (UriHelper.IsAbsolutePath(path))
@@ -101,7 +104,7 @@ namespace Typedown.Presentation.ViewModels
             }
             catch
             {
-                return null;
+                throw new InvalidOperationException("Failed to resolve image path.", new ArgumentException(path));
             }
         }
 

@@ -1,4 +1,4 @@
-﻿using Newtonsoft.Json.Linq;
+using Newtonsoft.Json.Linq;
 using System;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
@@ -71,7 +71,7 @@ namespace Typedown.Core.Models
                 ImageUploadMethod.OSS => "OSS",
                 ImageUploadMethod.SCP => "SCP",
                 ImageUploadMethod.PowerShell => "PowerShell",
-                _ => null
+                _ => throw new InvalidOperationException($"Unsupported image upload method: {Method}")
             };
         }
 
@@ -84,7 +84,7 @@ namespace Typedown.Core.Models
                 ImageUploadMethod.OSS => new OSSConfigModel(),
                 ImageUploadMethod.SCP => new SCPConfigModel(),
                 ImageUploadMethod.PowerShell => new PowerShellModel(),
-                _ => null
+                _ => throw new InvalidOperationException($"Unsupported image upload method: {Method}")
             };
         }
 

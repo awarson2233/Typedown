@@ -1,15 +1,16 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Timers;
 
 namespace Typedown.Core.Models
 {
     public class HistoryModel
     {
-        public string Text { get; set; } = null;
-        public CursorState Cursor { get; set; } = null;
+        public string? Text { get; set; }
+        public CursorState? Cursor { get; set; }
     }
 
     public class ContentHistory : INotifyPropertyChanged
@@ -30,6 +31,7 @@ namespace Typedown.Core.Models
             commitTimer.Elapsed += (s, e) => CommitPending();
         }
 
+        [return: MaybeNull]
         public HistoryModel Undo()
         {
             try
@@ -50,6 +52,7 @@ namespace Typedown.Core.Models
             return null;
         }
 
+        [return: MaybeNull]
         public HistoryModel Redo()
         {
             try
@@ -133,7 +136,7 @@ namespace Typedown.Core.Models
                 {
                     return;
                 }
-                if (IsPending && pending.Cursor.Focus.Line != cursor.Focus.Line)
+                if (IsPending && pending.Cursor!.Focus.Line != cursor.Focus.Line)
                 {
                     pending.Cursor = cursor;
                     CommitPending();
@@ -159,7 +162,7 @@ namespace Typedown.Core.Models
             {
                 content = content.TrimEnd('\r', '\n');
                 if ((pending.Text != null && pending.Text == content) ||
-                    (pending.Text == null && index > -1 && histories[index].Text.Trim('\r','\n') == content.Trim('\r', '\n')))
+                    (pending.Text == null && index > -1 && histories[index].Text!.Trim('\r', '\n') == content.Trim('\r', '\n')))
                 {
                     return;
                 }
@@ -194,5 +197,4 @@ namespace Typedown.Core.Models
         public event PropertyChangedEventHandler? PropertyChanged;
 #pragma warning restore CS0067
     }
-
 }

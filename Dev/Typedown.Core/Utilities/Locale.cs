@@ -10,7 +10,7 @@ namespace Typedown.Core.Utilities
 
         public string[] Keys { get; }
 
-        public string Text => Texts.FirstOrDefault();
+        public string Text => Texts.FirstOrDefault() ?? string.Empty;
 
         public IEnumerable<string> Texts => Keys.Select(StringResolver);
 

@@ -38,7 +38,7 @@ namespace Typedown.Presentation.Interfaces
     {
         public IList<SaveFileTypeChoice> FileTypeChoices { get; set; } = new List<SaveFileTypeChoice>();
 
-        public string SuggestedFileName { get; set; }
+        public string SuggestedFileName { get; set; } = string.Empty;
     }
 
     public class PickFolderRequest

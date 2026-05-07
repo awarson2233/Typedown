@@ -38,15 +38,38 @@ namespace Typedown.WinUI.Services
 
         public nint WindowHandle { get; set; }
 
-        public object? ViewRoot
+        public object ViewRoot
         {
-            get => viewRoot ?? (isClosed ? null : window.Content?.XamlRoot);
+            get
+            {
+                if (isClosed)
+                {
+                    throw new InvalidOperationException("WinUI window view root is unavailable after the window is closed.");
+                }
+
+                if (viewRoot is not null)
+                {
+                    return viewRoot;
+                }
+
+                if (window.Content?.XamlRoot is { } xamlRoot)
+                {
+                    return xamlRoot;
+                }
+
+                if (window.Content is { } content)
+                {
+                    return content;
+                }
+
+                throw new InvalidOperationException("WinUI window view root is not initialized.");
+            }
             set => viewRoot = value;
         }
 
-        public string? Title
+        public string Title
         {
-            get => isClosed ? string.Empty : window.Title;
+            get => isClosed ? string.Empty : window.Title ?? string.Empty;
             set
             {
                 if (!isClosed)
@@ -100,6 +123,7 @@ namespace Typedown.WinUI.Services
         {
             isClosed = true;
             isActive = false;
+            viewRoot = null;
             window.Activated -= OnWindowActivated;
             window.Closed -= OnWindowClosed;
         }

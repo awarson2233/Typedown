@@ -17,10 +17,10 @@ namespace Typedown.Presentation.ViewModels
         public ShortcutKey ShortcutOpenFile { get => GetSettingValue<ShortcutKey>(new(Mod.Control, Key.O)); set => SetSettingValue(value); }
 
         [Locale("File", "OpenFolder")]
-        public ShortcutKey ShortcutOpenFolder { get => GetSettingValue<ShortcutKey>(null); set => SetSettingValue(value); }
+        public ShortcutKey? ShortcutOpenFolder { get => GetSettingValue<ShortcutKey?>(null); set => SetSettingValue(value); }
 
         [Locale("File", "ClearRecentFiles")]
-        public ShortcutKey ShortcutClearRecentFiles { get => GetSettingValue<ShortcutKey>(null); set => SetSettingValue(value); }
+        public ShortcutKey? ShortcutClearRecentFiles { get => GetSettingValue<ShortcutKey?>(null); set => SetSettingValue(value); }
 
         [Locale("File", "Save")]
         public ShortcutKey ShortcutSave { get => GetSettingValue<ShortcutKey>(new(Mod.Control, Key.S)); set => SetSettingValue(value); }
@@ -29,7 +29,7 @@ namespace Typedown.Presentation.ViewModels
         public ShortcutKey ShortcutSaveAs { get => GetSettingValue<ShortcutKey>(new(Mod.Control | Mod.Shift, Key.S)); set => SetSettingValue(value); }
 
         [Locale("File", "ExportSettings")]
-        public ShortcutKey ShortcutExportSettings { get => GetSettingValue<ShortcutKey>(null); set => SetSettingValue(value); }
+        public ShortcutKey? ShortcutExportSettings { get => GetSettingValue<ShortcutKey?>(null); set => SetSettingValue(value); }
 
         [Locale("File", "Print")]
         public ShortcutKey ShortcutPrint { get => GetSettingValue<ShortcutKey>(new(Mod.Menu | Mod.Shift, Key.P)); set => SetSettingValue(value); }
@@ -56,13 +56,13 @@ namespace Typedown.Presentation.ViewModels
         public ShortcutKey ShortcutPaste { get => GetSettingValue<ShortcutKey>(new(Mod.Control, Key.V)); set => SetSettingValue(value); }
 
         [Locale("Edit", "CopyAsPlainText")]
-        public ShortcutKey ShortcutCopyAsPlainText { get => GetSettingValue<ShortcutKey>(null); set => SetSettingValue(value); }
+        public ShortcutKey? ShortcutCopyAsPlainText { get => GetSettingValue<ShortcutKey?>(null); set => SetSettingValue(value); }
 
         [Locale("Edit", "CopyAsMarkdown")]
         public ShortcutKey ShortcutCopyAsMarkdown { get => GetSettingValue<ShortcutKey>(new(Mod.Control | Mod.Shift, Key.C)); set => SetSettingValue(value); }
 
         [Locale("Edit", "CopyAsHTMLCode")]
-        public ShortcutKey ShortcutCopyAsHTMLCode { get => GetSettingValue<ShortcutKey>(null); set => SetSettingValue(value); }
+        public ShortcutKey? ShortcutCopyAsHTMLCode { get => GetSettingValue<ShortcutKey?>(null); set => SetSettingValue(value); }
 
         [Locale("Edit", "PasteAsPlainText")]
         public ShortcutKey ShortcutPasteAsPlainText { get => GetSettingValue<ShortcutKey>(new(Mod.Control | Mod.Shift, Key.V)); set => SetSettingValue(value); }
@@ -140,34 +140,34 @@ namespace Typedown.Presentation.ViewModels
         public ShortcutKey ShortcutInsertParagraphAfter { get => GetSettingValue<ShortcutKey>(new(Mod.Control, Key.Enter)); set => SetSettingValue(value); }
 
         [Locale("Paragraph", "Chart", "VegaChart")]
-        public ShortcutKey ShortcutVegaChart { get => GetSettingValue<ShortcutKey>(null); set => SetSettingValue(value); }
+        public ShortcutKey? ShortcutVegaChart { get => GetSettingValue<ShortcutKey?>(null); set => SetSettingValue(value); }
 
         [Locale("Paragraph", "Chart", "FlowChart")]
-        public ShortcutKey ShortcutFlowChart { get => GetSettingValue<ShortcutKey>(null); set => SetSettingValue(value); }
+        public ShortcutKey? ShortcutFlowChart { get => GetSettingValue<ShortcutKey?>(null); set => SetSettingValue(value); }
 
         [Locale("Paragraph", "Chart", "SequenceDiagram")]
-        public ShortcutKey ShortcutSequenceDiagram { get => GetSettingValue<ShortcutKey>(null); set => SetSettingValue(value); }
+        public ShortcutKey? ShortcutSequenceDiagram { get => GetSettingValue<ShortcutKey?>(null); set => SetSettingValue(value); }
 
         [Locale("Paragraph", "Chart", "PlantUMLDiagram")]
-        public ShortcutKey ShortcutPlantUMLDiagram { get => GetSettingValue<ShortcutKey>(null); set => SetSettingValue(value); }
+        public ShortcutKey? ShortcutPlantUMLDiagram { get => GetSettingValue<ShortcutKey?>(null); set => SetSettingValue(value); }
 
         [Locale("Paragraph", "Chart", "Mermaid")]
-        public ShortcutKey ShortcutMermaid { get => GetSettingValue<ShortcutKey>(null); set => SetSettingValue(value); }
+        public ShortcutKey? ShortcutMermaid { get => GetSettingValue<ShortcutKey?>(null); set => SetSettingValue(value); }
 
         [Locale("Paragraph", "LinkReference")]
-        public ShortcutKey ShortcutLinkReferences { get => GetSettingValue<ShortcutKey>(null); set => SetSettingValue(value); }
+        public ShortcutKey? ShortcutLinkReferences { get => GetSettingValue<ShortcutKey?>(null); set => SetSettingValue(value); }
 
         [Locale("Paragraph", "Footnote")]
-        public ShortcutKey ShortcutFootNote { get => GetSettingValue<ShortcutKey>(null); set => SetSettingValue(value); }
+        public ShortcutKey? ShortcutFootNote { get => GetSettingValue<ShortcutKey?>(null); set => SetSettingValue(value); }
 
         [Locale("Paragraph", "HorizontalLine")]
-        public ShortcutKey ShortcutHorizontalLine { get => GetSettingValue<ShortcutKey>(null); set => SetSettingValue(value); }
+        public ShortcutKey? ShortcutHorizontalLine { get => GetSettingValue<ShortcutKey?>(null); set => SetSettingValue(value); }
 
         [Locale("Paragraph", "Toc")]
-        public ShortcutKey ShortcutToc { get => GetSettingValue<ShortcutKey>(null); set => SetSettingValue(value); }
+        public ShortcutKey? ShortcutToc { get => GetSettingValue<ShortcutKey?>(null); set => SetSettingValue(value); }
 
         [Locale("Paragraph", "YAMLFrontMatter")]
-        public ShortcutKey ShortcutYAMLFrontMatter { get => GetSettingValue<ShortcutKey>(null); set => SetSettingValue(value); }
+        public ShortcutKey? ShortcutYAMLFrontMatter { get => GetSettingValue<ShortcutKey?>(null); set => SetSettingValue(value); }
 
         [Locale("Format", "Strong")]
         public ShortcutKey ShortcutStrong { get => GetSettingValue<ShortcutKey>(new(Mod.Control, Key.B)); set => SetSettingValue(value); }
@@ -182,13 +182,13 @@ namespace Typedown.Presentation.ViewModels
         public ShortcutKey ShortcutInlineCode { get => GetSettingValue<ShortcutKey>(new(Mod.Control | Mod.Shift, (Key)192)); set => SetSettingValue(value); }
 
         [Locale("Format", "InlineMath")]
-        public ShortcutKey ShortcutInlineMath { get => GetSettingValue<ShortcutKey>(null); set => SetSettingValue(value); }
+        public ShortcutKey? ShortcutInlineMath { get => GetSettingValue<ShortcutKey?>(null); set => SetSettingValue(value); }
 
         [Locale("Format", "Strikethrough")]
         public ShortcutKey ShortcutStrikethrough { get => GetSettingValue<ShortcutKey>(new(Mod.Menu | Mod.Shift, Key.Number5)); set => SetSettingValue(value); }
 
         [Locale("Format", "Highlight")]
-        public ShortcutKey ShortcutHighlight { get => GetSettingValue<ShortcutKey>(null); set => SetSettingValue(value); }
+        public ShortcutKey? ShortcutHighlight { get => GetSettingValue<ShortcutKey?>(null); set => SetSettingValue(value); }
 
         [Locale("Format", "Hyperlink")]
         public ShortcutKey ShortcutHyperlink { get => GetSettingValue<ShortcutKey>(new(Mod.Control, Key.K)); set => SetSettingValue(value); }
@@ -212,6 +212,6 @@ namespace Typedown.Presentation.ViewModels
         public ShortcutKey ShortcutTypewriterMode { get => GetSettingValue<ShortcutKey>(new(Mod.None, Key.F9)); set => SetSettingValue(value); }
 
         [Locale("View", "StatusBar")]
-        public ShortcutKey ShortcutStatusBar { get => GetSettingValue<ShortcutKey>(null); set => SetSettingValue(value); }
+        public ShortcutKey? ShortcutStatusBar { get => GetSettingValue<ShortcutKey?>(null); set => SetSettingValue(value); }
     }
 }

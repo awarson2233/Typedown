@@ -1,4 +1,4 @@
-﻿using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -30,7 +30,7 @@ namespace Typedown.Core.Models.ExportConfigModels
 
         public override async Task Export(IServiceProvider serviceProvider, string html, string filePath)
         {
-            var converter = serviceProvider.GetService<IFileConverter>();
+            var converter = serviceProvider.GetRequiredService<IFileConverter>();
             var settings = new PdfPrintSettings()
             {
                 Orientation = Orientation,
@@ -53,7 +53,6 @@ namespace Typedown.Core.Models.ExportConfigModels
 
         public PageSize()
         {
-            
         }
 
         public PageSize(DimNumber width, DimNumber height)
@@ -91,7 +90,6 @@ namespace Typedown.Core.Models.ExportConfigModels
 
         public PageMargin()
         {
-
         }
 
         public PageMargin(DimNumber left, DimNumber top, DimNumber right, DimNumber bottom)

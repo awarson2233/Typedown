@@ -5,13 +5,13 @@ using Microsoft.UI.Xaml.Controls;
 
 namespace Typedown.WinUI.Pages.SettingPages.UploadConfigPageParts
 {
-    public sealed partial class SCPConfig : UserControl
-    {
-        public static DependencyProperty ImageUploadConfigProperty { get; } = DependencyProperty.Register(nameof(ImageUploadConfig), typeof(ImageUploadConfig), typeof(SCPConfig), null);
-        public ImageUploadConfig ImageUploadConfig { get => (ImageUploadConfig)GetValue(ImageUploadConfigProperty); set => SetValue(ImageUploadConfigProperty, value); }
+        public sealed partial class SCPConfig : UserControl
+        {
+            public static DependencyProperty ImageUploadConfigProperty { get; } = DependencyProperty.Register(nameof(ImageUploadConfig), typeof(ImageUploadConfig), typeof(SCPConfig), null);
+        public ImageUploadConfig? ImageUploadConfig { get => (ImageUploadConfig?)GetValue(ImageUploadConfigProperty); set => SetValue(ImageUploadConfigProperty, value); }
 
         public static DependencyProperty SCPConfigModelProperty { get; } = DependencyProperty.Register(nameof(SCPConfigModel), typeof(SCPConfigModel), typeof(SCPConfig), null);
-        public SCPConfigModel SCPConfigModel { get => (SCPConfigModel)GetValue(SCPConfigModelProperty); set => SetValue(SCPConfigModelProperty, value); }
+        public SCPConfigModel? SCPConfigModel { get => (SCPConfigModel?)GetValue(SCPConfigModelProperty); set => SetValue(SCPConfigModelProperty, value); }
 
 
         public SCPConfig()
@@ -21,13 +21,17 @@ namespace Typedown.WinUI.Pages.SettingPages.UploadConfigPageParts
 
         private void OnLoaded(object sender, RoutedEventArgs e)
         {
-            SCPConfigModel = ImageUploadConfig.LoadUploadConfig() as SCPConfigModel;
+            SCPConfigModel = ImageUploadConfig?.LoadUploadConfig() as SCPConfigModel;
         }
 
         private void OnUnloaded(object sender, RoutedEventArgs e)
         {
-            ImageUploadConfig.StoreUploadConfig(SCPConfigModel);
-             Bindings?.StopTracking();
+            if (ImageUploadConfig is not null && SCPConfigModel is not null)
+            {
+                ImageUploadConfig.StoreUploadConfig(SCPConfigModel);
+            }
+
+              Bindings?.StopTracking();
         }
     }
 }

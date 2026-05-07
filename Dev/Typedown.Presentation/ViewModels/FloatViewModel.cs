@@ -22,13 +22,13 @@ namespace Typedown.Presentation.ViewModels
 
         public Command<FindReplaceDialogState> SearchCommand { get; } = new();
 
-        public AppViewModel ViewModel => ServiceProvider.GetService<AppViewModel>();
+        public AppViewModel ViewModel => ServiceProvider.GetRequiredService<AppViewModel>();
 
-        public EventCenter EventCenter => ServiceProvider.GetService<EventCenter>();
+        public EventCenter EventCenter => ServiceProvider.GetRequiredService<EventCenter>();
 
-        public IEditorCommandSink EditorCommandSink => ServiceProvider.GetService<IEditorCommandSink>();
+        public IEditorCommandSink EditorCommandSink => ServiceProvider.GetRequiredService<IEditorCommandSink>();
 
-        public IFloatViewService FloatViewService => ServiceProvider.GetService<IFloatViewService>();
+        public IFloatViewService FloatViewService => ServiceProvider.GetRequiredService<IFloatViewService>();
 
         private readonly CompositeDisposable disposables = new();
 

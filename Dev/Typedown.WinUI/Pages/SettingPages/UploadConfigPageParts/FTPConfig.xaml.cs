@@ -5,13 +5,13 @@ using Microsoft.UI.Xaml.Controls;
 
 namespace Typedown.WinUI.Pages.SettingPages.UploadConfigPageParts
 {
-    public sealed partial class FTPConfig : UserControl
-    {
-        public static DependencyProperty ImageUploadConfigProperty { get; } = DependencyProperty.Register(nameof(ImageUploadConfig), typeof(ImageUploadConfig), typeof(FTPConfig), null);
-        public ImageUploadConfig ImageUploadConfig { get => (ImageUploadConfig)GetValue(ImageUploadConfigProperty); set => SetValue(ImageUploadConfigProperty, value); }
+        public sealed partial class FTPConfig : UserControl
+        {
+            public static DependencyProperty ImageUploadConfigProperty { get; } = DependencyProperty.Register(nameof(ImageUploadConfig), typeof(ImageUploadConfig), typeof(FTPConfig), null);
+        public ImageUploadConfig? ImageUploadConfig { get => (ImageUploadConfig?)GetValue(ImageUploadConfigProperty); set => SetValue(ImageUploadConfigProperty, value); }
 
         public static DependencyProperty FTPConfigModelProperty { get; } = DependencyProperty.Register(nameof(FTPConfigModel), typeof(FTPConfigModel), typeof(FTPConfig), null);
-        public FTPConfigModel FTPConfigModel { get => (FTPConfigModel)GetValue(FTPConfigModelProperty); set => SetValue(FTPConfigModelProperty, value); }
+        public FTPConfigModel? FTPConfigModel { get => (FTPConfigModel?)GetValue(FTPConfigModelProperty); set => SetValue(FTPConfigModelProperty, value); }
 
         public FTPConfig()
         {
@@ -20,12 +20,16 @@ namespace Typedown.WinUI.Pages.SettingPages.UploadConfigPageParts
 
         private void OnLoaded(object sender, RoutedEventArgs e)
         {
-            FTPConfigModel = ImageUploadConfig.LoadUploadConfig() as FTPConfigModel;
+            FTPConfigModel = ImageUploadConfig?.LoadUploadConfig() as FTPConfigModel;
         }
 
         private void OnUnloaded(object sender, RoutedEventArgs e)
         {
-            ImageUploadConfig.StoreUploadConfig(FTPConfigModel);
+            if (ImageUploadConfig is not null && FTPConfigModel is not null)
+            {
+                ImageUploadConfig.StoreUploadConfig(FTPConfigModel);
+            }
+
             Bindings?.StopTracking();
         }
     }

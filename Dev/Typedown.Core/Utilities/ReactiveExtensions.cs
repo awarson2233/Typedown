@@ -1,7 +1,7 @@
 using System;
-using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.ComponentModel;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq.Expressions;
 using System.Reactive;
 using System.Reactive.Linq;
@@ -15,7 +15,7 @@ namespace Typedown.Core.Utilities
             var targetRef = new WeakReference(onNext.Target);
             var method = onNext.Method;
             var param = Expression.Parameter(typeof(T));
-            IDisposable d = null;
+            IDisposable? d = null;
             d = observable.Subscribe(x =>
             {
                 if (targetRef.Target is object target)
@@ -26,7 +26,7 @@ namespace Typedown.Core.Utilities
                 }
                 else
                 {
-                    d.Dispose();
+                    d?.Dispose();
                 }
             });
             return d;
@@ -34,18 +34,33 @@ namespace Typedown.Core.Utilities
 
         public static IObservable<EventPattern<NotifyCollectionChangedEventArgs>> GetCollectionObservable(this INotifyCollectionChanged collection)
         {
-            return Observable.FromEventPattern<NotifyCollectionChangedEventArgs>(collection, nameof(collection.CollectionChanged));
+            return Observable.FromEventPattern<NotifyCollectionChangedEventHandler, NotifyCollectionChangedEventArgs>(
+                handler => (_, args) => handler(_, args),
+                handler => collection.CollectionChanged += handler,
+                handler => collection.CollectionChanged -= handler);
         }
 
         public static IObservable<EventPattern<PropertyChangedEventArgs>> GetPropertyObservable(this INotifyPropertyChanged obj)
         {
-            return Observable.FromEventPattern<PropertyChangedEventArgs>(obj, nameof(obj.PropertyChanged));
+            return Observable.FromEventPattern<PropertyChangedEventHandler, PropertyChangedEventArgs>(
+                handler => (_, args) => handler(_, args),
+                handler => obj.PropertyChanged += handler,
+                handler => obj.PropertyChanged -= handler);
         }
 
-        public static IObservable<object> WhenPropertyChanged<T>(this T source, string propertyName) where T : INotifyPropertyChanged
+        public static IObservable<object?> WhenPropertyChanged<T>(this T source, string propertyName)
+            where T : INotifyPropertyChanged
         {
-            var property = source.GetType().GetProperty(propertyName);
-            return source.GetPropertyObservable().Where(x => x.EventArgs.PropertyName == propertyName).Select(_ => property.GetValue(source));
+            var property = ResolveRuntimeProperty(source, propertyName);
+            return source.GetPropertyObservable()
+                .Where(x => x.EventArgs.PropertyName == propertyName)
+                .Select(_ => property.GetValue(source));
+        }
+
+        [UnconditionalSuppressMessage("Trimming", "IL2075", Justification = "Runtime property lookup is required to support derived instances passed through a base or interface generic type.")]
+        private static System.Reflection.PropertyInfo ResolveRuntimeProperty(object source, string propertyName)
+        {
+            return source.GetType().GetProperty(propertyName) ?? throw new ArgumentException($"Property '{propertyName}' was not found.", nameof(propertyName));
         }
     }
 }

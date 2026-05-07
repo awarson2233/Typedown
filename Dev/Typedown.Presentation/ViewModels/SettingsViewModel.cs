@@ -53,8 +53,8 @@ namespace Typedown.Presentation.ViewModels
         public FileStartupAction FileStartupAction { get => GetSettingValue(FileStartupAction.None); set => SetSettingValue(value); }
         public FolderStartupAction FolderStartupAction { get => GetSettingValue(FolderStartupAction.OpenLast); set => SetSettingValue(value); }
         public string StartupOpenFolder { get => GetSettingValue(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments)); set => SetSettingValue(value); }
-        public string LastFilePath { get => GetSettingValue<string>(null); set => SetSettingValue(value); }
-        public string LastFolderPath { get => GetSettingValue<string>(null); set => SetSettingValue(value); }
+        public string? LastFilePath { get => GetSettingValue<string?>(null); set => SetSettingValue(value); }
+        public string? LastFolderPath { get => GetSettingValue<string?>(null); set => SetSettingValue(value); }
         public bool AppCompactMode { get => GetSettingValue(false); set => SetSettingValue(value); }
         public InsertImageAction InsertClipboardImageAction { get => GetSettingValue(InsertImageAction.None); set => SetSettingValue(value); }
         public string InsertClipboardImageCopyPath { get => GetSettingValue("./images"); set => SetSettingValue(value); }
@@ -65,8 +65,8 @@ namespace Typedown.Presentation.ViewModels
         public InsertImageAction InsertWebImageAction { get => GetSettingValue(InsertImageAction.None); set => SetSettingValue(value); }
         public string InsertWebImageCopyPath { get => GetSettingValue("./images"); set => SetSettingValue(value); }
         public int? InsertWebImageUseUploadConfigId { get => GetSettingValue<int?>(null); set => SetSettingValue(value); }
-        public IDialogService DialogService => ServiceProvider.GetService<IDialogService>();
-        public IEditorSettingsNotifier EditorSettingsNotifier => ServiceProvider.GetService<IEditorSettingsNotifier>();
+        public IDialogService DialogService => ServiceProvider.GetRequiredService<IDialogService>();
+        public IEditorSettingsNotifier EditorSettingsNotifier => ServiceProvider.GetRequiredService<IEditorSettingsNotifier>();
         public string DefaultImageBasePath { get => GetSettingValue(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyPictures), Config.AppName)); set => SetSettingValue(value); }
         public bool AutoCopyRelativePathImage { get => GetSettingValue(true); set => SetSettingValue(value); }
         public bool PreferRelativeImagePaths { get => GetSettingValue(false); set => SetSettingValue(value); }
@@ -83,7 +83,7 @@ namespace Typedown.Presentation.ViewModels
 
         private readonly string settingsFile = Config.GetSettingsFilePath();
 
-        private JToken store;
+        private JToken store = new JObject();
 
         private readonly IReadOnlyDictionary<string, string> editorSettingNameMap = new Dictionary<string, string>(StringComparer.Ordinal)
         {
@@ -152,12 +152,13 @@ namespace Typedown.Presentation.ViewModels
             }
         }
 
-        public T GetSettingValue<T>(T defaultValue = default, [CallerMemberName] string propertyName = null)
+        public T GetSettingValue<T>(T defaultValue = default!, [CallerMemberName] string propertyName = "")
         {
-            return (T)(store[propertyName]?.ToObject(typeof(T)) ?? defaultValue);
+            var value = store[propertyName];
+            return value is null || value.Type == JTokenType.Null ? defaultValue : value.ToObject<T>()!;
         }
 
-        public void SetSettingValue<T>(T value, [CallerMemberName] string propertyName = null)
+        public void SetSettingValue<T>(T value, [CallerMemberName] string propertyName = "")
         {
             if (value is null || value is string || value is long || value is int || value is short || value is sbyte || value is ulong ||
                 value is uint || value is ushort || value is byte || value is Enum || value is double || value is float || value is decimal ||

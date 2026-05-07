@@ -29,7 +29,7 @@ namespace Typedown.Presentation.Utilities
             if (canExecuteSubject.Value(parameter))
             {
                 if (parameter == null)
-                    executeSubject.OnNext(default);
+                    executeSubject.OnNext(default!);
                 else if (parameter is T typedParameter)
                     executeSubject.OnNext(typedParameter);
                 else if (typeof(T).IsEnum && parameter is string enumName)

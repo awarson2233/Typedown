@@ -1,4 +1,5 @@
-﻿using System;
+using System;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Text.RegularExpressions;
 
@@ -51,18 +52,20 @@ namespace Typedown.Core.Utilities
             }
         }
 
-        public static bool TryGetLocalPath(string str, out string path)
+        public static bool TryGetLocalPath(string str, [NotNullWhen(true)] out string? path)
         {
             if (IsAbsolutePath(str) || IsRelativePath(str))
             {
                 path = str;
                 return true;
             }
-            else if (IsLocalUrl(str))
+
+            if (IsLocalUrl(str))
             {
                 path = new Uri(str).LocalPath;
                 return true;
             }
+
             path = null;
             return false;
         }

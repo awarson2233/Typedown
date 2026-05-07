@@ -35,7 +35,7 @@ namespace Typedown.Core.Utilities
         }
 
 
-        [StructLayout(LayoutKind.Sequential, Pack = 1, CharSet = CharSet.Auto)]
+        [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Auto)]
         private struct SHFILEOPSTRUCT32
         {
             public IntPtr hwnd;
@@ -43,12 +43,12 @@ namespace Typedown.Core.Utilities
             [MarshalAs(UnmanagedType.LPTStr)]
             public string pFrom;
             [MarshalAs(UnmanagedType.LPTStr)]
-            public string pTo;
+            public string? pTo;
             public FILEOP_FLAGS fFlags;
             public bool fAnyOperationsAborted;
             public IntPtr hNameMappings;
             [MarshalAs(UnmanagedType.LPTStr)]
-            public string lpszProgressTitle;
+            public string? lpszProgressTitle;
         }
 
         [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Auto)]
@@ -59,12 +59,12 @@ namespace Typedown.Core.Utilities
             [MarshalAs(UnmanagedType.LPTStr)]
             public string pFrom;
             [MarshalAs(UnmanagedType.LPTStr)]
-            public string pTo;
+            public string? pTo;
             public FILEOP_FLAGS fFlags;
             public bool fAnyOperationsAborted;
             public IntPtr hNameMappings;
             [MarshalAs(UnmanagedType.LPTStr)]
-            public string lpszProgressTitle;
+            public string? lpszProgressTitle;
         }
 
         public struct SHFILEOPSTRUCT
@@ -74,12 +74,12 @@ namespace Typedown.Core.Utilities
             [MarshalAs(UnmanagedType.LPTStr)]
             public string pFrom;
             [MarshalAs(UnmanagedType.LPTStr)]
-            public string pTo;
+            public string? pTo;
             public FILEOP_FLAGS fFlags;
             public bool fAnyOperationsAborted;
             public IntPtr hNameMappings;
             [MarshalAs(UnmanagedType.LPTStr)]
-            public string lpszProgressTitle;
+            public string? lpszProgressTitle;
         }
 
         [DllImport("shell32.dll", EntryPoint = "SHFileOperationW", ExactSpelling = true, CharSet = CharSet.Unicode)]
@@ -103,7 +103,16 @@ namespace Typedown.Core.Utilities
                     hNameMappings = lpFileOp.hNameMappings,
                     lpszProgressTitle = lpFileOp.lpszProgressTitle,
                 };
-                return SHFileOperation64(ref data);
+                var result = SHFileOperation64(ref data);
+                lpFileOp.hwnd = data.hwnd;
+                lpFileOp.wFunc = data.wFunc;
+                lpFileOp.pFrom = data.pFrom;
+                lpFileOp.pTo = data.pTo;
+                lpFileOp.fFlags = data.fFlags;
+                lpFileOp.fAnyOperationsAborted = data.fAnyOperationsAborted;
+                lpFileOp.hNameMappings = data.hNameMappings;
+                lpFileOp.lpszProgressTitle = data.lpszProgressTitle;
+                return result;
             }
             else
             {
@@ -118,7 +127,16 @@ namespace Typedown.Core.Utilities
                     hNameMappings = lpFileOp.hNameMappings,
                     lpszProgressTitle = lpFileOp.lpszProgressTitle,
                 };
-                return SHFileOperation32(ref data);
+                var result = SHFileOperation32(ref data);
+                lpFileOp.hwnd = data.hwnd;
+                lpFileOp.wFunc = data.wFunc;
+                lpFileOp.pFrom = data.pFrom;
+                lpFileOp.pTo = data.pTo;
+                lpFileOp.fFlags = data.fFlags;
+                lpFileOp.fAnyOperationsAborted = data.fAnyOperationsAborted;
+                lpFileOp.hNameMappings = data.hNameMappings;
+                lpFileOp.lpszProgressTitle = data.lpszProgressTitle;
+                return result;
             }
         }
     }

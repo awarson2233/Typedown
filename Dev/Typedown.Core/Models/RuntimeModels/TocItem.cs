@@ -9,16 +9,16 @@ namespace Typedown.Core.Models
 {
     public partial class TocItem : INotifyPropertyChanged
     {
-        public string Slug { get; set; }
+        public string Slug { get; set; } = string.Empty;
 
         public int Lvl { get; set; }
 
-        public string Content { get; set; }
+        public string Content { get; set; } = string.Empty;
 
         [OnChangedMethod(nameof(OnIsSelectedChanged))]
         public bool IsSelected { get; set; }
 
-        public event EventHandler<bool> SelectedChanged;
+        public event EventHandler<bool>? SelectedChanged;
 
         private void OnIsSelectedChanged()
         {
@@ -28,7 +28,7 @@ namespace Typedown.Core.Models
 
     public partial class TocTreeItem : INotifyPropertyChanged
     {
-        public TocItem TocItem { get; set; }
+        public TocItem TocItem { get; set; } = new();
 
         public int Depth { get; set; } = 1;
 

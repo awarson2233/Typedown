@@ -119,27 +119,27 @@ namespace Typedown.WinUI.Views
 
             var settings = nextViewModel.SettingsViewModel;
             viewModelBindings.Add(settings.WhenPropertyChanged(nameof(SettingsViewModel.SidePaneOpen))
-                .Cast<bool>()
+                .Select(value => RequirePropertyValue<bool>(value, nameof(SettingsViewModel.SidePaneOpen)))
                 .StartWith(settings.SidePaneOpen)
                 .Subscribe(ApplySidePaneOpen));
 
             viewModelBindings.Add(settings.WhenPropertyChanged(nameof(SettingsViewModel.StatusBarOpen))
-                .Cast<bool>()
+                .Select(value => RequirePropertyValue<bool>(value, nameof(SettingsViewModel.StatusBarOpen)))
                 .StartWith(settings.StatusBarOpen)
                 .Subscribe(ApplyStatusBarVisibility));
 
             viewModelBindings.Add(settings.WhenPropertyChanged(nameof(SettingsViewModel.AnimationEnable))
-                .Cast<bool>()
+                .Select(value => RequirePropertyValue<bool>(value, nameof(SettingsViewModel.AnimationEnable)))
                 .StartWith(settings.AnimationEnable)
                 .Subscribe(ApplyAnimationEnabled));
 
             viewModelBindings.Add(settings.WhenPropertyChanged(nameof(SettingsViewModel.AppCompactMode))
-                .Cast<bool>()
+                .Select(value => RequirePropertyValue<bool>(value, nameof(SettingsViewModel.AppCompactMode)))
                 .StartWith(settings.AppCompactMode)
                 .Subscribe(ApplyCompactMode));
 
             viewModelBindings.Add(nextViewModel.UIViewModel.WhenPropertyChanged(nameof(UIViewModel.MainWindowTitle))
-                .Cast<string>()
+                .Select(value => RequirePropertyValue<string>(value, nameof(UIViewModel.MainWindowTitle)))
                 .StartWith(nextViewModel.UIViewModel.MainWindowTitle)
                 .Subscribe(UpdateCompactTitle));
         }
@@ -210,6 +210,16 @@ namespace Typedown.WinUI.Views
             {
                 compactTitleTextBlock.Text = string.IsNullOrWhiteSpace(title) ? Config.AppName : title;
             }
+        }
+
+        private static T RequirePropertyValue<T>(object? value, string propertyName)
+        {
+            return value switch
+            {
+                T typed => typed,
+                null => throw new InvalidOperationException($"Property '{propertyName}' emitted a null value."),
+                _ => throw new InvalidOperationException($"Property '{propertyName}' emitted '{value.GetType().FullName}' instead of '{typeof(T).FullName}'.")
+            };
         }
 
         private void EnsureMenuBarShellElements()

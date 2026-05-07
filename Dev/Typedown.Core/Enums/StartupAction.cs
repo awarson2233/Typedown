@@ -31,8 +31,8 @@ namespace Typedown.Core.Enums
 
     public static partial class Enumerable
     {
-        public static IReadOnlyList<FileStartupAction> FileStartupActions { get; } = Enum.GetValues(typeof(FileStartupAction)).Cast<FileStartupAction>().ToList();
+        public static IReadOnlyList<FileStartupAction> FileStartupActions { get; } = Enum.GetValues<FileStartupAction>();
 
-        public static IReadOnlyList<FolderStartupAction> FolderStartupActions { get; } = Enum.GetValues(typeof(FolderStartupAction)).Cast<FolderStartupAction>().ToList();
+        public static IReadOnlyList<FolderStartupAction> FolderStartupActions { get; } = Enum.GetValues<FolderStartupAction>();
     }
 }

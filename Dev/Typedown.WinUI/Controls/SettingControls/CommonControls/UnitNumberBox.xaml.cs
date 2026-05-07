@@ -5,27 +5,27 @@ using Typedown.Core.Utilities;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Data;
-using muxc = Microsoft.UI.Xaml.Controls;
+using Muxc = Microsoft.UI.Xaml.Controls;
 
 namespace Typedown.WinUI.Controls
 {
-    public sealed partial class UnitNumberBox : muxc.NumberBox
+    public sealed partial class UnitNumberBox : Muxc.NumberBox
     {
-        public static DependencyProperty UnitsProperty { get; } = DependencyProperty.Register(nameof(Units), typeof(IReadOnlyList<NumberUnit>), typeof(UnitNumberBox), new(null, (d, e) => (d as UnitNumberBox).OnDependencyPropertyChanged(e)));
+        public static DependencyProperty UnitsProperty { get; } = DependencyProperty.Register(nameof(Units), typeof(IReadOnlyList<NumberUnit>), typeof(UnitNumberBox), new(null, (d, e) => (d as UnitNumberBox)?.OnDependencyPropertyChanged(e)));
 
         public IReadOnlyList<NumberUnit> Units { get => (IReadOnlyList<NumberUnit>)GetValue(UnitsProperty); set => SetValue(UnitsProperty, value); }
 
-        public static DependencyProperty SelectedUnitProperty { get; } = DependencyProperty.Register(nameof(SelectedUnit), typeof(NumberUnit), typeof(UnitNumberBox), new(null, (d, e) => (d as UnitNumberBox).OnDependencyPropertyChanged(e)));
+        public static DependencyProperty SelectedUnitProperty { get; } = DependencyProperty.Register(nameof(SelectedUnit), typeof(NumberUnit), typeof(UnitNumberBox), new(null, (d, e) => (d as UnitNumberBox)?.OnDependencyPropertyChanged(e)));
 
         public NumberUnit SelectedUnit { get => (NumberUnit)GetValue(SelectedUnitProperty); set => SetValue(SelectedUnitProperty, value); }
 
-        public static DependencyProperty DimNumberValueProperty { get; } = DependencyProperty.Register(nameof(DimNumberValue), typeof(DimNumber), typeof(UnitNumberBox), new(null, (d, e) => (d as UnitNumberBox).OnDependencyPropertyChanged(e)));
+        public static DependencyProperty DimNumberValueProperty { get; } = DependencyProperty.Register(nameof(DimNumberValue), typeof(DimNumber), typeof(UnitNumberBox), new(null, (d, e) => (d as UnitNumberBox)?.OnDependencyPropertyChanged(e)));
 
         public DimNumber DimNumberValue { get => (DimNumber)GetValue(DimNumberValueProperty); set => SetValue(DimNumberValueProperty, value); }
 
-        public ComboBox UnitComboBox { get; set; }
+        public ComboBox? UnitComboBox { get; set; }
 
-        public event EventHandler<NumberUnit> SelectedUnitChanged;
+        public event EventHandler<NumberUnit>? SelectedUnitChanged;
 
         public UnitNumberBox()
         {
@@ -34,9 +34,14 @@ namespace Typedown.WinUI.Controls
 
         private void OnUnitComboBoxLoaded(object sender, RoutedEventArgs e)
         {
-            UnitComboBox = sender as ComboBox;
-            UnitComboBox.SetBinding(ComboBox.SelectedItemProperty, new Binding() { Source = this, Path = new(nameof(SelectedUnit)), Mode = BindingMode.TwoWay });
-            UnitComboBox.SetBinding(ComboBox.ItemsSourceProperty, new Binding() { Source = this, Path = new(nameof(Units)) });
+            if (sender is not ComboBox comboBox)
+            {
+                return;
+            }
+
+            UnitComboBox = comboBox;
+            comboBox.SetBinding(ComboBox.SelectedItemProperty, new Binding() { Source = this, Path = new(nameof(SelectedUnit)), Mode = BindingMode.TwoWay });
+            comboBox.SetBinding(ComboBox.ItemsSourceProperty, new Binding() { Source = this, Path = new(nameof(Units)) });
         }
 
         private void OnUnitComboBoxSelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -44,7 +49,7 @@ namespace Typedown.WinUI.Controls
             SelectedUnitChanged?.Invoke(this, SelectedUnit);
         }
 
-        private void OnValueChanged(muxc.NumberBox sender, muxc.NumberBoxValueChangedEventArgs args)
+        private void OnValueChanged(Muxc.NumberBox sender, Muxc.NumberBoxValueChangedEventArgs args)
         {
             if (DimNumberValue.Value != Value)
                 DimNumberValue = new(SelectedUnit, Value);

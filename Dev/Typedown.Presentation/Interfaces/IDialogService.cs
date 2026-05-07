@@ -24,15 +24,15 @@ namespace Typedown.Presentation.Interfaces
 
     public class DialogRequest
     {
-        public object Title { get; set; }
+        public object? Title { get; set; }
 
-        public object Content { get; set; }
+        public object? Content { get; set; }
 
-        public string CloseButtonText { get; set; }
+        public string? CloseButtonText { get; set; }
 
-        public string PrimaryButtonText { get; set; }
+        public string? PrimaryButtonText { get; set; }
 
-        public string SecondaryButtonText { get; set; }
+        public string? SecondaryButtonText { get; set; }
 
         public DialogDefaultButton DefaultButton { get; set; } = DialogDefaultButton.None;
     }

@@ -18,10 +18,10 @@ namespace Typedown.Presentation.Models
     {
         public enum ExplorerItemType { None, Folder, File };
 
-        public string Name { get; private set; }
+        public string Name { get; private set; } = string.Empty;
 
         [OnChangedMethod(nameof(OnFullPathChanged))]
-        public string FullPath { get; set; }
+        public string FullPath { get; set; } = string.Empty;
 
         public ExplorerItemType Type { get; private set; }
 
@@ -32,7 +32,7 @@ namespace Typedown.Presentation.Models
 
         public Func<FileAttributes, string, bool> Filter { get; set; } = DefaultFilter;
 
-        public Exception Exception { get; private set; }
+        public Exception? Exception { get; private set; }
 
         [OnChangedMethod(nameof(OnIsExpandedChanged))]
         public bool IsExpanded { get; set; } = false;
@@ -42,7 +42,7 @@ namespace Typedown.Presentation.Models
         [OnChangedMethod(nameof(OnIsWatchingChanged))]
         private bool IsWatching { get; set; } = false;
 
-        private FileSystemWatcher fileSystemWatcher;
+        private FileSystemWatcher? fileSystemWatcher;
 
         private FileViewModel ViewModel { get; }
 
@@ -86,7 +86,7 @@ namespace Typedown.Presentation.Models
 
         private void UpdateName()
         {
-            Name = Path.GetFileName(FullPath);
+            Name = Path.GetFileName(FullPath) ?? FullPath;
         }
 
         private void OnIsExpandedChanged()
@@ -250,12 +250,18 @@ namespace Typedown.Presentation.Models
 
         private void OnFileCreated(FileSystemEventArgs e, FileAttributes attr)
         {
+            if (string.IsNullOrEmpty(e.Name))
+                return;
+
             if (Filter(attr, e.Name) && !Children.Any(x => x.Name == e.Name))
                 AddChild(e.Name);
         }
 
         private void OnFileRenamed(RenamedEventArgs e, FileAttributes attr)
         {
+            if (string.IsNullOrEmpty(e.OldName))
+                return;
+
             RemoveChildren(e.OldName);
             OnFileCreated(e, attr);
         }
@@ -263,6 +269,9 @@ namespace Typedown.Presentation.Models
         [SuppressPropertyChangedWarnings]
         private void OnFileChanged(FileSystemEventArgs e, FileAttributes attr)
         {
+            if (string.IsNullOrEmpty(e.Name))
+                return;
+
             var test = Filter(attr, e.Name);
             var contains = ContainsChildren(e.Name);
             if (test && !contains)
@@ -273,6 +282,9 @@ namespace Typedown.Presentation.Models
 
         private void OnFileDeleted(FileSystemEventArgs e)
         {
+            if (string.IsNullOrEmpty(e.Name))
+                return;
+
             RemoveChildren(e.Name);
         }
 

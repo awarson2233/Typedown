@@ -62,8 +62,8 @@ namespace Typedown.WinUI.Pages.SidePanePages
             {
                 WorkFolderExplorerItem = new ExplorerItem(FileViewModel) { IsExpanded = true };
                 Bindings.Update();
-                disposables.Add(FileViewModel.WhenPropertyChanged(nameof(FileViewModel.WorkFolder)).Cast<string>().StartWith(FileViewModel.WorkFolder).Subscribe(UpdateWorkFolder));
-                disposables.Add(FileViewModel.WhenPropertyChanged(nameof(FileViewModel.FilePath)).Cast<string>().StartWith(FileViewModel.FilePath).Subscribe(_ => UpdateSelectedItem(WorkFolderExplorerItem)));
+                disposables.Add(FileViewModel.WhenPropertyChanged(nameof(FileViewModel.WorkFolder)).Select(value => value as string).StartWith(FileViewModel.WorkFolder).Subscribe(UpdateWorkFolder));
+                disposables.Add(FileViewModel.WhenPropertyChanged(nameof(FileViewModel.FilePath)).Select(value => value as string).StartWith(FileViewModel.FilePath).Subscribe(_ => UpdateSelectedItem(WorkFolderExplorerItem)));
             }
         }
 
@@ -71,7 +71,7 @@ namespace Typedown.WinUI.Pages.SidePanePages
         {
             if (WorkFolderExplorerItem is not null)
             {
-                WorkFolderExplorerItem.FullPath = workFolder;
+                WorkFolderExplorerItem.FullPath = workFolder ?? string.Empty;
             }
         }
 
@@ -242,8 +242,10 @@ namespace Typedown.WinUI.Pages.SidePanePages
 
         private void OnOpenFileLocationClick(object sender, RoutedEventArgs e)
         {
-            var item = GetExplorerItemFromMenuFlyoutItem(sender);
-            Common.OpenFileLocation(item?.FullPath);
+            if (GetExplorerItemFromMenuFlyoutItem(sender)?.FullPath is { } fullPath)
+            {
+                Common.OpenFileLocation(fullPath);
+            }
         }
 
         private void OnCutClick(object sender, RoutedEventArgs e)
@@ -260,14 +262,18 @@ namespace Typedown.WinUI.Pages.SidePanePages
 
         private void OnPasteClick(object sender, RoutedEventArgs e)
         {
-            var item = GetExplorerItemFromMenuFlyoutItem(sender);
-            FileOperation.PasteFromClipboard(item?.FullPath);
+            if (GetExplorerItemFromMenuFlyoutItem(sender)?.FullPath is { } fullPath)
+            {
+                FileOperation.PasteFromClipboard(fullPath);
+            }
         }
 
         private void OnCopyAsPathClick(object sender, RoutedEventArgs e)
         {
-            var item = GetExplorerItemFromMenuFlyoutItem(sender);
-            Clipboard.SetText(item?.FullPath);
+            if (GetExplorerItemFromMenuFlyoutItem(sender)?.FullPath is { } fullPath)
+            {
+                Clipboard.SetText(fullPath);
+            }
         }
 
         private void OnRenameClick(object sender, RoutedEventArgs e)

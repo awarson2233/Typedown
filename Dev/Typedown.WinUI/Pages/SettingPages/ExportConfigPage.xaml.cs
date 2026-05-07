@@ -56,7 +56,7 @@ namespace Typedown.WinUI.Pages.SettingPages
             if (ExportConfig != null)
             {
                 Bindings.Update();
-                disposables.Add(ExportConfig.WhenPropertyChanged(nameof(ExportConfig.Name)).Cast<string>().StartWith(ExportConfig.Name).Subscribe(UpdateTitle));
+                disposables.Add(ExportConfig.WhenPropertyChanged(nameof(ExportConfig.Name)).Select(value => value as string).StartWith(ExportConfig.Name).Subscribe(UpdateTitle));
             }
         }
 
@@ -70,9 +70,9 @@ namespace Typedown.WinUI.Pages.SettingPages
             disposables.Clear();
         }
 
-        private void UpdateTitle(string title)
+        private void UpdateTitle(string? title)
         {
-            this.GetAncestor<SettingsPage>()?.SetPageTitle(this, title);
+            this.GetAncestor<SettingsPage>()?.SetPageTitle(this, title ?? string.Empty);
         }
 
         private void OnDeleteButtonClick(object sender, RoutedEventArgs e)

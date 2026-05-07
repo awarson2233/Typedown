@@ -1,4 +1,4 @@
-﻿using Newtonsoft.Json.Linq;
+using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -79,7 +79,7 @@ namespace Typedown.Core.Models
                 ExportType.PDF => "PDF",
                 ExportType.HTML => "HTML",
                 ExportType.Image => "Image",
-                _ => null
+                _ => throw new InvalidOperationException($"Unsupported export type: {Type}")
             };
         }
 
@@ -90,7 +90,7 @@ namespace Typedown.Core.Models
                 ExportType.PDF => new PDFConfigModel(),
                 ExportType.HTML => new HTMLConfigModel(),
                 ExportType.Image => new ImageConfigModel(),
-                _ => null
+                _ => throw new InvalidOperationException($"Unsupported export type: {Type}")
             };
         }
 

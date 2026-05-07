@@ -9,7 +9,7 @@ namespace Typedown.Presentation.Interfaces
     {
         ObservableCollection<ExportConfig> ExportConfigs { get; }
 
-        Task<ExportConfig> AddExportConfig(string name = null, ExportType type = 0);
+        Task<ExportConfig> AddExportConfig(string? name = null, ExportType type = 0);
 
         Task RemoveExportConfig(int id);
 
@@ -19,6 +19,6 @@ namespace Typedown.Presentation.Interfaces
 
         Task UpdateExportConfigs();
 
-        Task Print(string basePath, string html, string documentName = null);
+        Task Print(string basePath, string html, string? documentName = null);
     }
 }

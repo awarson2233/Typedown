@@ -22,32 +22,32 @@ namespace Typedown.Presentation.ViewModels
     {
         public IServiceProvider ServiceProvider { get; }
 
-        public AppViewModel AppViewModel => ServiceProvider.GetService<AppViewModel>();
-        public FileViewModel FileViewModel => ServiceProvider.GetService<FileViewModel>();
-        public FloatViewModel FloatViewModel => ServiceProvider.GetService<FloatViewModel>();
-        public FormatViewModel FormatViewModel => ServiceProvider.GetService<FormatViewModel>();
-        public SettingsViewModel Settings => ServiceProvider.GetService<SettingsViewModel>();
-        public EventCenter EventCenter => ServiceProvider.GetService<EventCenter>();
-        public RemoteInvoke RemoteInvoke => ServiceProvider.GetService<RemoteInvoke>();
+        public AppViewModel AppViewModel => ServiceProvider.GetRequiredService<AppViewModel>();
+        public FileViewModel FileViewModel => ServiceProvider.GetRequiredService<FileViewModel>();
+        public FloatViewModel FloatViewModel => ServiceProvider.GetRequiredService<FloatViewModel>();
+        public FormatViewModel FormatViewModel => ServiceProvider.GetRequiredService<FormatViewModel>();
+        public SettingsViewModel Settings => ServiceProvider.GetRequiredService<SettingsViewModel>();
+        public EventCenter EventCenter => ServiceProvider.GetRequiredService<EventCenter>();
+        public RemoteInvoke RemoteInvoke => ServiceProvider.GetRequiredService<RemoteInvoke>();
 
-        public JToken Selection { get; set; }
-        public JToken CodeMirrorSelection { get; set; }
-        public ContentState ContentState { get; set; }
-        public MenuState MenuState { get; set; }
-        public ParagraphState ParagraphState { get; set; }
+        public JToken Selection { get; set; } = new JObject();
+        public JToken CodeMirrorSelection { get; set; } = new JObject();
+        public ContentState ContentState { get; set; } = new();
+        public MenuState MenuState { get; set; } = new();
+        public ParagraphState ParagraphState { get; set; } = new(new MenuState());
         public TocTreeItem Toc { get; } = new();
         public ContentHistory History { get; } = new();
 
         public string Markdown { get; set; } = "";
         public bool Selected { get; set; }
-        public string SelectionText { get; set; }
+        public string SelectionText { get; set; } = string.Empty;
         public bool TextSelected { get; set; }
         public bool Saved { get; set; } = true;
         public bool AutoSavedSucc { get; set; } = true;
         public bool DisplaySaved { get; set; } = true;
         public ulong FileHash { get; set; }
         public ulong CurrentHash { get; set; }
-        public string SearchValue { get; set; } = null;
+        public string? SearchValue { get; set; }
         public bool FirstStart { get; set; } = true;
         public bool FileLoaded { get; set; }
 
@@ -60,10 +60,10 @@ namespace Typedown.Presentation.ViewModels
         public Command<Unit> SelectAllCommand { get; } = new();
         public Command<string> FindCommand { get; } = new();
 
-        public IEditorCommandSink EditorCommandSink => ServiceProvider.GetService<IEditorCommandSink>();
-        public IClipboard Clipboard => ServiceProvider.GetService<IClipboard>();
-        public IDialogService DialogService => ServiceProvider.GetService<IDialogService>();
-        public AutoBackup AutoBackup => ServiceProvider.GetService<AutoBackup>();
+        public IEditorCommandSink EditorCommandSink => ServiceProvider.GetRequiredService<IEditorCommandSink>();
+        public IClipboard Clipboard => ServiceProvider.GetRequiredService<IClipboard>();
+        public IDialogService DialogService => ServiceProvider.GetRequiredService<IDialogService>();
+        public AutoBackup AutoBackup => ServiceProvider.GetRequiredService<AutoBackup>();
 
         private readonly CompositeDisposable disposables = new();
         private readonly SerialDisposable tocSelectionDisposables = new();
@@ -113,9 +113,9 @@ namespace Typedown.Presentation.ViewModels
 
         public void OnSelectionChange(JToken arg)
         {
-            Selection = arg["selection"];
-            MenuState = arg["menuState"].ToObject<MenuState>();
-            SelectionText = arg["selectionText"].ToString();
+            Selection = arg["selection"] ?? new JObject();
+            MenuState = arg["menuState"]?.ToObject<MenuState>() ?? new MenuState();
+            SelectionText = arg["selectionText"]?.ToString() ?? string.Empty;
             ParagraphState = new ParagraphState(MenuState);
             UpdateMuyaSelected();
         }
@@ -123,19 +123,28 @@ namespace Typedown.Presentation.ViewModels
         public void OnCodeMirrorSelectionChange(JToken arg)
         {
             contentUpdating = false;
-            CodeMirrorSelection = arg["cursor"];
-            var anchorLine = CodeMirrorSelection["anchor"]["line"].ToObject<int>();
-            var headLine = CodeMirrorSelection["head"]["line"].ToObject<int>();
-            var anchorCh = CodeMirrorSelection["anchor"]["ch"].ToObject<int>();
-            var headCh = CodeMirrorSelection["head"]["ch"].ToObject<int>();
+            CodeMirrorSelection = arg["cursor"] ?? new JObject();
+            var anchor = CodeMirrorSelection["anchor"];
+            var head = CodeMirrorSelection["head"];
+            if (anchor is null || head is null)
+            {
+                TextSelected = Selected = false;
+                SelectionText = string.Empty;
+                return;
+            }
+
+            var anchorLine = anchor["line"]?.ToObject<int>() ?? 0;
+            var headLine = head["line"]?.ToObject<int>() ?? 0;
+            var anchorCh = anchor["ch"]?.ToObject<int>() ?? 0;
+            var headCh = head["ch"]?.ToObject<int>() ?? 0;
             TextSelected = Selected = anchorLine != headLine || anchorCh != headCh;
-            SelectionText = arg["selectionText"].ToString();
+            SelectionText = arg["selectionText"]?.ToString() ?? string.Empty;
         }
 
         public void UpdateMuyaSelected()
         {
-            var formatViewModel = ServiceProvider.GetService<FormatViewModel>();
-            TextSelected = Selection["start"]["offset"].ToString() != Selection["end"]["offset"].ToString();
+            var formatViewModel = ServiceProvider.GetRequiredService<FormatViewModel>();
+            TextSelected = Selection["start"]?["offset"]?.ToString() != Selection["end"]?["offset"]?.ToString();
             Selected = TextSelected || formatViewModel.FormatState.Image;
         }
 
@@ -153,7 +162,7 @@ namespace Typedown.Presentation.ViewModels
             if (!FileLoaded)
             {
                 FileLoaded = true;
-                var newText = arg["text"].ToString();
+                var newText = arg["text"]?.ToString() ?? string.Empty;
                 FileHash = Common.SimpleHash(newText);
                 History.InitHistory(newText);
                 OnMarkdownChange(newText);
@@ -164,18 +173,23 @@ namespace Typedown.Presentation.ViewModels
 
         public void OnMarkdownChange(JToken arg)
         {
-            OnMarkdownChange(arg["text"].ToString());
+            OnMarkdownChange(arg["text"]?.ToString() ?? string.Empty);
         }
 
         public void OnCursorChange(JToken arg)
         {
-            History.CursorChange(arg["cursor"]?.ToObject<CursorState>());
+            if (arg["cursor"]?.ToObject<CursorState>() is CursorState cursor)
+                History.CursorChange(cursor);
         }
 
         public void OnStateChange(JToken arg)
         {
             contentUpdating = false;
-            ContentState = arg["state"].ToObject<ContentState>();
+            var contentState = arg["state"]?.ToObject<ContentState>();
+            if (contentState is null)
+                return;
+
+            ContentState = contentState;
             if (ContentState.Cur != null)
             {
                 var tocSelectionHandlers = new CompositeDisposable();
@@ -219,7 +233,7 @@ namespace Typedown.Presentation.ViewModels
             {
                 return;
             }
-            OnMarkdownChange(state.Text);
+            OnMarkdownChange(state.Text ?? string.Empty);
             contentUpdating = true;
             EditorCommandSink?.Send("SetMarkdown", new
             {
@@ -236,7 +250,7 @@ namespace Typedown.Presentation.ViewModels
             {
                 return;
             }
-            OnMarkdownChange(state.Text);
+            OnMarkdownChange(state.Text ?? string.Empty);
             contentUpdating = true;
             EditorCommandSink?.Send("SetMarkdown", new
             {
@@ -262,11 +276,13 @@ namespace Typedown.Presentation.ViewModels
                     {
                         if (UriHelper.IsWebUrl(img.Src))
                         {
-                            img.Src = await ServiceProvider.GetService<ImageAction>().DoWebFileAction(img.Src);
+                            img.Src = await ServiceProvider.GetRequiredService<ImageAction>().DoWebFileAction(img.Src);
                         }
                         else if (UriHelper.TryGetLocalPath(img.Src, out _))
                         {
-                            img.Src = await ServiceProvider.GetService<ImageAction>().DoLocalFileAction(img.Src);
+                            img.Src = await ServiceProvider.GetRequiredService<ImageAction>().DoLocalFileAction(img.Src);
+                            if (string.IsNullOrWhiteSpace(img.Src))
+                                return;
                             img.Src = img.Src.Replace('\\', '/');
                         }
                         EditorCommandSink?.Send("InsertImage", img);
@@ -276,15 +292,18 @@ namespace Typedown.Presentation.ViewModels
                 }
                 else if (await Clipboard.GetFileDropListAsync() is StringCollection files && files.Count == 1)
                 {
-                    if (FileTypeHelper.IsImageFile(files[0]))
+                    var file = files[0];
+                    if (!string.IsNullOrEmpty(file) && FileTypeHelper.IsImageFile(file))
                     {
-                        EditorCommandSink?.Send("InsertImage", new HtmlImgTag(src: files[0], alt: Path.GetFileNameWithoutExtension(files[0])));
+                        EditorCommandSink?.Send("InsertImage", new HtmlImgTag(src: file, alt: Path.GetFileNameWithoutExtension(file)));
                     }
                 }
                 else if (await Clipboard.GetImageAsync() is IClipboardImage image)
                 {
 
-                    var src = await ServiceProvider.GetService<ImageAction>().DoClipboardAction(image);
+                    var src = await ServiceProvider.GetRequiredService<ImageAction>().DoClipboardAction(image);
+                    if (string.IsNullOrWhiteSpace(src))
+                        return;
                     src = src.Replace('\\', '/');
                     EditorCommandSink?.Send("InsertImage", new HtmlImgTag(src));
 
@@ -309,8 +328,8 @@ namespace Typedown.Presentation.ViewModels
 
         public void OnSetClipboard(JToken arg)
         {
-            var type = arg["type"].ToString();
-            var data = arg["data"].ToString();
+            var type = arg["type"]?.ToString();
+            var data = arg["data"]?.ToString() ?? string.Empty;
             if (type == "text/plain")
             {
                 Clipboard.SetText(data, TextDataFormat.UnicodeText);
@@ -333,7 +352,7 @@ namespace Typedown.Presentation.ViewModels
 
         public void Find(string action)
         {
-            var appViewModel = ServiceProvider.GetService<AppViewModel>();
+            var appViewModel = ServiceProvider.GetRequiredService<AppViewModel>();
             if (appViewModel.FloatViewModel.FindReplaceDialogOpen == 0)
             {
                 appViewModel.FloatViewModel.FindReplaceDialogOpen = FloatViewModel.FindReplaceDialogState.Search;
@@ -347,7 +366,7 @@ namespace Typedown.Presentation.ViewModels
 
         public void SearchValueChanged()
         {
-            var floatViewModel = ServiceProvider.GetService<FloatViewModel>();
+            var floatViewModel = ServiceProvider.GetRequiredService<FloatViewModel>();
             if (floatViewModel.FindReplaceDialogOpen > 0)
                 OnSearch();
         }
@@ -356,9 +375,9 @@ namespace Typedown.Presentation.ViewModels
         {
             try
             {
-                var fileViewModel = ServiceProvider.GetService<FileViewModel>();
+                var fileViewModel = ServiceProvider.GetRequiredService<FileViewModel>();
                 DisplaySaved = Saved || (Settings.AutoSave && fileViewModel.FilePath != null && AutoSavedSucc);
-                if (Saved)
+                if (Saved && fileViewModel.FilePath is not null)
                     AutoBackup.DeleteBackup(fileViewModel.FilePath);
             }
             catch

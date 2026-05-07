@@ -1,13 +1,15 @@
-﻿using Newtonsoft.Json;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Numerics;
+using System.Reflection;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -71,7 +73,7 @@ namespace Typedown.Core.Utilities
             while (dividend != 0)
             {
                 dividend = BigInteger.DivRem(dividend, 36, out var remainder);
-                builder.Insert(0, alphabet[Math.Abs(((int)remainder))]);
+                builder.Insert(0, alphabet[Math.Abs((int)remainder)]);
             }
             return builder.ToString();
         }
@@ -124,15 +126,38 @@ namespace Typedown.Core.Utilities
 
         public static void CopyProperties<T>(this T source, T target)
         {
-            foreach (var prop in typeof(T).GetProperties())
+            ArgumentNullException.ThrowIfNull(source);
+            ArgumentNullException.ThrowIfNull(target);
+
+            foreach (var (sourceProperty, targetProperty) in GetSharedRuntimeProperties(source, target))
             {
-                if (prop.CanRead && prop.CanWrite)
-                {
-                    var oldValue = prop.GetValue(target);
-                    var newValue = prop.GetValue(source);
-                    if (!(oldValue?.Equals(newValue) ?? oldValue == newValue))
-                        prop.SetValue(target, newValue);
-                }
+                var oldValue = targetProperty.GetValue(target);
+                var newValue = sourceProperty.GetValue(source);
+                if (!(oldValue?.Equals(newValue) ?? oldValue == newValue))
+                    targetProperty.SetValue(target, newValue);
+            }
+        }
+
+        [UnconditionalSuppressMessage("Trimming", "IL2075", Justification = "Runtime property inspection is intentionally localized here for property copy semantics.")]
+        private static IEnumerable<(PropertyInfo Source, PropertyInfo Target)> GetSharedRuntimeProperties(object source, object target)
+        {
+            var sourceProperties = source.GetType()
+                .GetProperties(BindingFlags.Public | BindingFlags.Instance)
+                .Where(prop => prop.CanRead && prop.GetIndexParameters().Length == 0)
+                .ToDictionary(prop => prop.Name, StringComparer.Ordinal);
+
+            foreach (var targetProperty in target.GetType().GetProperties(BindingFlags.Public | BindingFlags.Instance))
+            {
+                if (!targetProperty.CanWrite || targetProperty.GetIndexParameters().Length != 0)
+                    continue;
+
+                if (!sourceProperties.TryGetValue(targetProperty.Name, out var sourceProperty))
+                    continue;
+
+                if (!targetProperty.PropertyType.IsAssignableFrom(sourceProperty.PropertyType))
+                    continue;
+
+                yield return (sourceProperty, targetProperty);
             }
         }
 
@@ -169,6 +194,7 @@ namespace Typedown.Core.Utilities
             return Path.Combine(Path.GetTempPath(), Guid.NewGuid() + extension);
         }
 
+        [return: MaybeNull]
         public static HtmlImgTag MatchHtmlImg(string html)
         {
             var tagRegex = @"(?<=<!--StartFragment-->\s*)(<img)[^>]*(/>|>)(?=\s*<!--EndFragment-->)";

@@ -8,7 +8,7 @@ namespace Typedown.WinUI.Services
         private readonly object gate = new();
         private WinUIEditorHost? activeHost;
 
-        public bool Send(string name, object args)
+        public bool Send(string name, object? args)
         {
             WinUIEditorHost? host;
             lock (gate)

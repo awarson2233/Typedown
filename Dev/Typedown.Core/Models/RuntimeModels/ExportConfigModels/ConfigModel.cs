@@ -12,6 +12,9 @@ namespace Typedown.Core.Models.ExportConfigModels
 
         public string ScriptAfter { get; } = string.Empty;
 
-        public virtual Task Export(IServiceProvider serviceProvider, string html, string filePath) => null;
+        public virtual Task Export(IServiceProvider serviceProvider, string html, string filePath)
+        {
+            return Task.FromException(new NotSupportedException($"{GetType().Name} does not implement export."));
+        }
     }
 }

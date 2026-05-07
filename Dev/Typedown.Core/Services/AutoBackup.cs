@@ -1,4 +1,5 @@
-﻿using System.IO;
+using System.Diagnostics.CodeAnalysis;
+using System.IO;
 using System.Threading.Tasks;
 using Typedown.Core.Utilities;
 
@@ -8,6 +9,7 @@ namespace Typedown.Core.Services
     {
         private readonly string backupPath = Config.GetBackupFolderPath();
 
+        [return: MaybeNull]
         public string GetBackupFilePath(string sourcePath)
         {
             if (string.IsNullOrWhiteSpace(sourcePath))
@@ -38,7 +40,7 @@ namespace Typedown.Core.Services
             }
         }
 
-        public async Task<string> GetBackup(string path)
+        public async Task<string?> GetBackup(string path)
         {
             try
             {

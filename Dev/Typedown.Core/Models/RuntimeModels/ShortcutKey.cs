@@ -4,7 +4,7 @@ namespace Typedown.Core.Models
     {
         public override string ToString()
         {
-            return base.ToString();
+            return $"{Modifiers}, {Key}";
         }
     }
 }

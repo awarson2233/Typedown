@@ -23,9 +23,10 @@ namespace Typedown.WinUI.Controls
         {
             public object Convert(object value, Type targetType, object parameter, string language)
             {
-                var field = value?.GetType().GetField(value.ToString());
+                var fieldName = value?.ToString();
+                var field = fieldName is null ? null : value?.GetType().GetField(fieldName);
                 var attribute = field?.GetCustomAttribute(typeof(LocaleAttribute)) as LocaleAttribute;
-                return attribute?.Text;
+                return attribute?.Text ?? string.Empty;
             }
 
             public object ConvertBack(object value, Type targetType, object parameter, string language)

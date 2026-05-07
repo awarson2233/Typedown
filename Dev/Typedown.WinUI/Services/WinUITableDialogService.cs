@@ -14,17 +14,17 @@ namespace Typedown.WinUI.Services
             this.windowContext = windowContext ?? throw new ArgumentNullException(nameof(windowContext));
         }
 
-        public Task<TableDialogResult> OpenInsertTableDialogAsync()
+        public Task<TableDialogResult?> OpenInsertTableDialogAsync()
         {
             return OpenTableDialogAsync(Locale.GetDialogString("InsertTableTitle"));
         }
 
-        public Task<TableDialogResult> OpenResizeTableDialogAsync()
+        public Task<TableDialogResult?> OpenResizeTableDialogAsync()
         {
             return OpenTableDialogAsync(Locale.GetDialogString("ResizeTableTitle"));
         }
 
-        private async Task<TableDialogResult> OpenTableDialogAsync(string title)
+        private async Task<TableDialogResult?> OpenTableDialogAsync(string title)
         {
             var rows = CreateNumberBox("Rows", 4);
             var columns = CreateNumberBox("Columns", 3);

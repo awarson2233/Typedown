@@ -36,6 +36,8 @@ namespace Typedown.Presentation.Services
             try
             {
                 var result = src;
+                if (string.IsNullOrWhiteSpace(src))
+                    throw new InvalidOperationException("Image source cannot be empty or whitespace.");
                 if (!UriHelper.TryGetLocalPath(src, out var filePath))
                     return result;
                 switch (Settings.InsertLocalImageAction)
@@ -57,7 +59,7 @@ namespace Typedown.Presentation.Services
             catch (Exception ex)
             {
                 await ShowErrorDialog(ex.Message);
-                return src;
+                return string.Empty;
             }
         }
 
@@ -113,7 +115,7 @@ namespace Typedown.Presentation.Services
             }
         }
 
-        public string CopyImage(InsertImageSource source, string sourceFile, string destFolder = null)
+        public string CopyImage(InsertImageSource source, string sourceFile, string? destFolder = null)
         {
             var fileName = Path.GetFileName(sourceFile);
             destFolder ??= GetDefaultDestFolder(source);
@@ -128,7 +130,7 @@ namespace Typedown.Presentation.Services
             return Path.Combine(destFolder, fileName);
         }
 
-        public async Task<string> SaveImage(InsertImageSource source, byte[] bytes, string fileName = null, string destFolder = null)
+        public async Task<string> SaveImage(InsertImageSource source, byte[] bytes, string? fileName = null, string? destFolder = null)
         {
             fileName ??= $"{Guid.NewGuid()}.{GetImageType(bytes, "png")}";
             destFolder ??= GetDefaultDestFolder(source);
@@ -143,7 +145,7 @@ namespace Typedown.Presentation.Services
             return Path.Combine(destFolder, fileName);
         }
 
-        public string SaveImage(InsertImageSource source, IClipboardImage image, string fileName = null, string destFolder = null)
+        public string SaveImage(InsertImageSource source, IClipboardImage image, string? fileName = null, string? destFolder = null)
         {
             fileName ??= $"{Guid.NewGuid()}.png";
             destFolder ??= GetDefaultDestFolder(source);
@@ -177,7 +179,7 @@ namespace Typedown.Presentation.Services
 
         public async Task<string> Upload(InsertImageSource source, string filePath)
         {
-            return await ServiceProvider.GetService<ImageUpload>().Upload(source, filePath);
+            return await ServiceProvider.GetRequiredService<ImageUpload>().Upload(source, filePath);
         }
 
         public async Task<string> Upload(InsertImageSource source, byte[] bytes)

@@ -19,12 +19,12 @@ using Windows.Storage.Pickers;
 
 namespace Typedown.WinUI.Pages.SettingPages
 {
-    public sealed partial class UploadConfigPage : Page
-    {
-        private static DependencyProperty ImageUploadConfigProperty { get; } = DependencyProperty.Register(nameof(ImageUploadConfig), typeof(ImageUploadConfig), typeof(UploadConfigPage), null);
-        private ImageUploadConfig ImageUploadConfig { get => (ImageUploadConfig)GetValue(ImageUploadConfigProperty); set => SetValue(ImageUploadConfigProperty, value); }
+        public sealed partial class UploadConfigPage : Page
+        {
+            private static DependencyProperty ImageUploadConfigProperty { get; } = DependencyProperty.Register(nameof(ImageUploadConfig), typeof(ImageUploadConfig), typeof(UploadConfigPage), null);
+            private ImageUploadConfig? ImageUploadConfig { get => (ImageUploadConfig?)GetValue(ImageUploadConfigProperty); set => SetValue(ImageUploadConfigProperty, value); }
 
-        public AppViewModel ViewModel => DataContext as AppViewModel;
+            public AppViewModel? ViewModel => DataContext as AppViewModel;
 
         public Lazy<ImageUpload> UploadService { get; }
 
@@ -55,7 +55,7 @@ namespace Typedown.WinUI.Pages.SettingPages
         {
             ImageUploadConfig = await UploadService.Value.GetImageUploadConfig(configId);
             if (ImageUploadConfig != null)
-                disposables.Add(ImageUploadConfig.WhenPropertyChanged(nameof(ImageUploadConfig.Name)).Cast<string>().StartWith(ImageUploadConfig.Name).Subscribe(UpdateTitle));
+                disposables.Add(ImageUploadConfig.WhenPropertyChanged(nameof(ImageUploadConfig.Name)).Select(value => value as string).StartWith(ImageUploadConfig.Name).Subscribe(UpdateTitle));
         }
 
         private void OnUnloaded(object sender, RoutedEventArgs e)
@@ -68,9 +68,9 @@ namespace Typedown.WinUI.Pages.SettingPages
             disposables.Clear();
         }
 
-        private void UpdateTitle(string title)
+        private void UpdateTitle(string? title)
         {
-            this.GetAncestor<SettingsPage>()?.SetPageTitle(this, title);
+            this.GetAncestor<SettingsPage>()?.SetPageTitle(this, title ?? string.Empty);
         }
 
         private void OnDeleteButtonClick(object sender, RoutedEventArgs e)
@@ -80,7 +80,11 @@ namespace Typedown.WinUI.Pages.SettingPages
 
         private async void OnTestUploadButtonClick(object sender, RoutedEventArgs e)
         {
-            var button = sender as Button;
+            if (sender is not Button button)
+            {
+                return;
+            }
+
             try
             {
                 button.IsEnabled = false;
@@ -91,7 +95,13 @@ namespace Typedown.WinUI.Pages.SettingPages
                 if (file == null)
                     return;
 
-                var res = await ImageUploadConfig.LoadUploadConfig().Upload(this.GetService<IServiceProvider>(), file.Path);
+                var config = ImageUploadConfig;
+                if (config is null)
+                {
+                    return;
+                }
+
+                var res = await config.LoadUploadConfig().Upload(this.GetService<IServiceProvider>(), file.Path);
                 await ShowMessageAsync(Locale.GetDialogString("UploadSuccessfulTitle"), res);
             }
             catch (Exception ex)
@@ -104,7 +114,7 @@ namespace Typedown.WinUI.Pages.SettingPages
             }
         }
 
-        public FrameworkElement GetUploadConfigItem(ImageUploadMethod method)
+        public FrameworkElement? GetUploadConfigItem(ImageUploadMethod method)
         {
             return method switch
             {

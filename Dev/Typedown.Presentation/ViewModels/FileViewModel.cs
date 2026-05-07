@@ -23,27 +23,27 @@ namespace Typedown.Presentation.ViewModels
     {
         public IServiceProvider ServiceProvider { get; }
 
-        public AppViewModel AppViewModel => ServiceProvider.GetService<AppViewModel>();
+        public AppViewModel AppViewModel => ServiceProvider.GetRequiredService<AppViewModel>();
 
-        public SettingsViewModel SettingsViewModel => ServiceProvider.GetService<SettingsViewModel>();
+        public SettingsViewModel SettingsViewModel => ServiceProvider.GetRequiredService<SettingsViewModel>();
 
-        public EditorViewModel EditorViewModel => ServiceProvider.GetService<EditorViewModel>();
+        public EditorViewModel EditorViewModel => ServiceProvider.GetRequiredService<EditorViewModel>();
 
-        public EventCenter EventCenter => ServiceProvider.GetService<EventCenter>();
+        public EventCenter EventCenter => ServiceProvider.GetRequiredService<EventCenter>();
 
-        public RemoteInvoke RemoteInvoke => ServiceProvider.GetService<RemoteInvoke>();
+        public RemoteInvoke RemoteInvoke => ServiceProvider.GetRequiredService<RemoteInvoke>();
 
-        public AccessHistory AccessHistory => ServiceProvider.GetService<AccessHistory>();
+        public AccessHistory AccessHistory => ServiceProvider.GetRequiredService<AccessHistory>();
 
-        public string WorkFolder { get; private set; } = null;
+        public string? WorkFolder { get; private set; }
 
-        public string FilePath { get; private set; } = null;
+        public string? FilePath { get; private set; }
 
-        private string startupOpenedFilePath = null;
+        private string? startupOpenedFilePath;
 
-        public string ImageBasePath => string.IsNullOrEmpty(FilePath) ? SettingsViewModel.DefaultImageBasePath : Path.GetDirectoryName(FilePath);
+        public string ImageBasePath => string.IsNullOrEmpty(FilePath) ? SettingsViewModel.DefaultImageBasePath : Path.GetDirectoryName(FilePath) ?? SettingsViewModel.DefaultImageBasePath;
 
-        public string FileName => Path.GetFileName(FilePath);
+        public string? FileName => string.IsNullOrEmpty(FilePath) ? null : Path.GetFileName(FilePath);
 
         public Command<Unit> NewFileCommand { get; } = new();
         public Command<string> NewWindowCommand { get; } = new();
@@ -60,17 +60,17 @@ namespace Typedown.Presentation.ViewModels
 
         private readonly System.Timers.Timer saveFileTimer = new();
 
-        public AutoBackup AutoBackup => ServiceProvider.GetService<AutoBackup>();
+        public AutoBackup AutoBackup => ServiceProvider.GetRequiredService<AutoBackup>();
 
-        public IEditorCommandSink EditorCommandSink => ServiceProvider.GetService<IEditorCommandSink>();
+        public IEditorCommandSink EditorCommandSink => ServiceProvider.GetRequiredService<IEditorCommandSink>();
 
-        public IDialogService DialogService => ServiceProvider.GetService<IDialogService>();
+        public IDialogService DialogService => ServiceProvider.GetRequiredService<IDialogService>();
 
-        public IFilePickerService FilePickerService => ServiceProvider.GetService<IFilePickerService>();
+        public IFilePickerService FilePickerService => ServiceProvider.GetRequiredService<IFilePickerService>();
 
-        public IUiDispatcher UiDispatcher => ServiceProvider.GetService<IUiDispatcher>();
+        public IUiDispatcher UiDispatcher => ServiceProvider.GetRequiredService<IUiDispatcher>();
 
-        public IWindowContext WindowContext => ServiceProvider.GetService<IWindowContext>();
+        public IWindowContext WindowContext => ServiceProvider.GetRequiredService<IWindowContext>();
 
         private readonly CompositeDisposable disposables = new();
         private readonly TaskCompletionSource<bool> initialEditorFileLoadedTask = new(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -98,7 +98,7 @@ namespace Typedown.Presentation.ViewModels
             _ = UiDispatcher.RunIdleAsync(() => OnStartup());
         }
 
-        private async void SaveFileTimerTick(object sender, ElapsedEventArgs e)
+        private async void SaveFileTimerTick(object? sender, ElapsedEventArgs e)
         {
             if (disposables.IsDisposed)
             {
@@ -159,7 +159,7 @@ namespace Typedown.Presentation.ViewModels
             }
         }
 
-        public async Task<bool> OpenFile(string filePath = null)
+        public async Task<bool> OpenFile(string? filePath = null)
         {
             if (!await AskToSave())
                 return false;
@@ -172,7 +172,7 @@ namespace Typedown.Presentation.ViewModels
             return await LoadFile(filePath, true);
         }
 
-        public async Task<bool> OpenFolder(string folderPath = null)
+        public async Task<bool> OpenFolder(string? folderPath = null)
         {
             folderPath ??= await FilePickerService.PickFolderAsync(new PickFolderRequest());
             if (folderPath == null)
@@ -266,9 +266,9 @@ namespace Typedown.Presentation.ViewModels
             }
         }
 
-        private async Task<string> CheckBackup(string path, ulong fileHash)
+        private async Task<string?> CheckBackup(string path, ulong fileHash)
         {
-            string text = await AutoBackup.GetBackup(path);
+            string? text = await AutoBackup.GetBackup(path);
             if (text == null || Common.SimpleHash(text) == fileHash) return null;
             var result = await DialogService.ShowAsync(new DialogRequest
             {
@@ -331,7 +331,7 @@ namespace Typedown.Presentation.ViewModels
             }
         }
 
-        private async Task<string> SaveAs()
+        private async Task<string?> SaveAs()
         {
             try
             {
@@ -348,7 +348,8 @@ namespace Typedown.Presentation.ViewModels
                     var result = await WriteAllText(filePath, EditorViewModel.Markdown);
                     if (result)
                     {
-                        AutoBackup.DeleteBackup(FilePath);
+                        if (FilePath is not null)
+                            AutoBackup.DeleteBackup(FilePath);
                         FilePath = filePath;
                         SettingsViewModel.LastFilePath = filePath;
                         EditorViewModel.FileHash = EditorViewModel.CurrentHash;
@@ -374,9 +375,10 @@ namespace Typedown.Presentation.ViewModels
         {
             try
             {
-                var html = args["html"].ToString();
-                var fileExport = ServiceProvider.GetService<IFileExport>();
-                await fileExport.Print(Path.GetDirectoryName(FilePath), html, FileName);
+                var html = RequireString(args, "html");
+
+                var fileExport = ServiceProvider.GetRequiredService<IFileExport>();
+                await fileExport.Print(Path.GetDirectoryName(FilePath ?? string.Empty) ?? string.Empty, html, FileName);
                 return true;
             }
             catch (Exception ex)
@@ -393,10 +395,12 @@ namespace Typedown.Presentation.ViewModels
         {
             try
             {
-                var html = args["html"].ToString();
-                var filePath = args["context"]["filePath"].ToString();
-                var configId = args["context"]["configId"].ToObject<int>();
-                var config = await ServiceProvider.GetService<IFileExport>().GetExportConfig(configId);
+                var html = RequireString(args, "html");
+                var context = args["context"] ?? throw new InvalidOperationException("Editor export callback payload is missing context.");
+                var filePath = RequireString(context, "filePath");
+                var configId = RequireValue<int>(context, "configId");
+
+                var config = await ServiceProvider.GetRequiredService<IFileExport>().GetExportConfig(configId);
                 await config.LoadExportConfig().Export(ServiceProvider, html, filePath);
                 if (SettingsViewModel.OpenFolderAfterExport)
                     Common.OpenFileLocation(filePath);
@@ -441,7 +445,8 @@ namespace Typedown.Presentation.ViewModels
                     var saveResult = await Save();
                     return saveResult;
                 case DialogButton.Secondary:
-                    AutoBackup.DeleteBackup(FilePath);
+                    if (FilePath is not null)
+                        AutoBackup.DeleteBackup(FilePath);
                     return true;
                 case DialogButton.None:
                     return false;
@@ -493,7 +498,7 @@ namespace Typedown.Presentation.ViewModels
             }
         }
 
-        private async Task<string> ResolveOpenLastFolderAsync()
+        private async Task<string?> ResolveOpenLastFolderAsync()
         {
             var lastFolder = SettingsViewModel.LastFolderPath;
             if (string.IsNullOrWhiteSpace(lastFolder) || !Directory.Exists(lastFolder))
@@ -505,7 +510,7 @@ namespace Typedown.Presentation.ViewModels
             return !string.IsNullOrWhiteSpace(lastFolder) && Directory.Exists(lastFolder) ? lastFolder : null;
         }
 
-        private async Task<string> ResolveStartupFolderAsync()
+        private async Task<string?> ResolveStartupFolderAsync()
         {
             switch (SettingsViewModel.FolderStartupAction)
             {
@@ -532,7 +537,7 @@ namespace Typedown.Presentation.ViewModels
                     .ToList()
             });
             if (filePath == null) return;
-            string basePath = null;
+            string? basePath = null;
             if (config.Type == ExportType.PDF || config.Type == ExportType.Image)
                 basePath = ImageBasePath;
             EditorCommandSink?.Send("Export", new
@@ -642,7 +647,7 @@ namespace Typedown.Presentation.ViewModels
             initialEditorFileLoadedTask.TrySetResult(true);
         }
 
-        public static bool TryGetOpenedWindow(string filePath, out IntPtr window)
+        public static bool TryGetOpenedWindow(string? filePath, out IntPtr window)
         {
             if (string.IsNullOrEmpty(filePath))
             {
@@ -658,9 +663,9 @@ namespace Typedown.Presentation.ViewModels
 
         public bool RenameFile(string to)
         {
-            if (!File.Exists(FilePath))
+            if (string.IsNullOrEmpty(FilePath) || !File.Exists(FilePath))
                 return false;
-            var fileOperation = ServiceProvider.GetService<IFileOperation>();
+            var fileOperation = ServiceProvider.GetRequiredService<IFileOperation>();
             if (fileOperation.Rename(FilePath, to))
             {
                 FilePath = to;
@@ -690,6 +695,22 @@ namespace Typedown.Presentation.ViewModels
                 CloseButtonText = closeButtonText,
                 DefaultButton = DialogDefaultButton.Close
             });
+        }
+
+        private static string RequireString(JToken token, string propertyName)
+        {
+            var valueToken = token[propertyName];
+            return valueToken is JValue { Type: JTokenType.String, Value: string value } && !string.IsNullOrWhiteSpace(value)
+                ? value
+                : throw new InvalidOperationException($"Editor callback payload is missing valid string '{propertyName}'.");
+        }
+
+        private static T RequireValue<T>(JToken token, string propertyName)
+        {
+            var valueToken = token[propertyName];
+            return valueToken is not null && valueToken.Type != JTokenType.Null
+                ? valueToken.ToObject<T>()!
+                : throw new InvalidOperationException($"Editor callback payload is missing '{propertyName}'.");
         }
     }
 }

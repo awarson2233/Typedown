@@ -71,7 +71,7 @@ namespace Typedown.Core
 
         public static string GetAppVersion()
         {
-            var version = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version;
+            var version = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version ?? new Version(0, 0, 0, 0);
             return string.Format("{0}.{1}.{2}.{3}", version.Major, version.Minor, version.Build, version.Revision) + (IsPackaged ? "" : " (Unpackaged)");
         }
 

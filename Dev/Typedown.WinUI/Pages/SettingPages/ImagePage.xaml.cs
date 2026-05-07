@@ -23,7 +23,7 @@ namespace Typedown.WinUI.Pages.SettingPages
 
         public SettingsViewModel? SettingsViewModel { get; private set; }
 
-        public SettingsViewModel Settings => ViewModel?.SettingsViewModel;
+        public SettingsViewModel? Settings => ViewModel?.SettingsViewModel;
 
         public ImageUpload ImageUpload => this.GetService<ImageUpload>();
 
@@ -132,12 +132,17 @@ namespace Typedown.WinUI.Pages.SettingPages
                 (a, b) => a.Id == b.Id);
 
             await Task.Yield();
-            ClipboardImageUploadConfig = UploadConfigOptions.Where(x => x.Id == Settings.InsertClipboardImageUseUploadConfigId).FirstOrDefault() ?? UploadConfigOption.None;
-            LocalImageUploadConfig = UploadConfigOptions.Where(x => x.Id == Settings.InsertLocalImageUseUploadConfigId).FirstOrDefault() ?? UploadConfigOption.None;
-            WebImageUploadConfig = UploadConfigOptions.Where(x => x.Id == Settings.InsertWebImageUseUploadConfigId).FirstOrDefault() ?? UploadConfigOption.None;
-            ImageUploadConfigsDisposables.Add(this.WhenPropertyChanged(nameof(ClipboardImageUploadConfig)).Cast<UploadConfigOption>().Subscribe(x => Settings.InsertClipboardImageUseUploadConfigId = x.Id));
-            ImageUploadConfigsDisposables.Add(this.WhenPropertyChanged(nameof(LocalImageUploadConfig)).Cast<UploadConfigOption>().Subscribe(x => Settings.InsertLocalImageUseUploadConfigId = x.Id));
-            ImageUploadConfigsDisposables.Add(this.WhenPropertyChanged(nameof(WebImageUploadConfig)).Cast<UploadConfigOption>().Subscribe(x => Settings.InsertWebImageUseUploadConfigId = x.Id));
+            if (Settings is not { } settings)
+            {
+                return;
+            }
+
+            ClipboardImageUploadConfig = UploadConfigOptions.FirstOrDefault(x => x.Id == settings.InsertClipboardImageUseUploadConfigId) ?? UploadConfigOption.None;
+            LocalImageUploadConfig = UploadConfigOptions.FirstOrDefault(x => x.Id == settings.InsertLocalImageUseUploadConfigId) ?? UploadConfigOption.None;
+            WebImageUploadConfig = UploadConfigOptions.FirstOrDefault(x => x.Id == settings.InsertWebImageUseUploadConfigId) ?? UploadConfigOption.None;
+            ImageUploadConfigsDisposables.Add(this.WhenPropertyChanged(nameof(ClipboardImageUploadConfig)).Select(value => value as UploadConfigOption ?? UploadConfigOption.None).Subscribe(x => settings.InsertClipboardImageUseUploadConfigId = x.Id));
+            ImageUploadConfigsDisposables.Add(this.WhenPropertyChanged(nameof(LocalImageUploadConfig)).Select(value => value as UploadConfigOption ?? UploadConfigOption.None).Subscribe(x => settings.InsertLocalImageUseUploadConfigId = x.Id));
+            ImageUploadConfigsDisposables.Add(this.WhenPropertyChanged(nameof(WebImageUploadConfig)).Select(value => value as UploadConfigOption ?? UploadConfigOption.None).Subscribe(x => settings.InsertWebImageUseUploadConfigId = x.Id));
         }
 
         private void OnUnloaded(object sender, RoutedEventArgs e)
@@ -152,12 +157,12 @@ namespace Typedown.WinUI.Pages.SettingPages
         }
     }
 
-    public record UploadConfigOption
-    {
-        public static UploadConfigOption None => new() { Id = null, Name = Locale.GetString("None") };
+        public record UploadConfigOption
+        {
+            public static UploadConfigOption None => new() { Id = null, Name = Locale.GetString("None") };
 
-        public int? Id { get; set; }
+            public int? Id { get; set; }
 
-        public string Name { get; set; }
-    }
+            public string Name { get; set; } = string.Empty;
+        }
 }

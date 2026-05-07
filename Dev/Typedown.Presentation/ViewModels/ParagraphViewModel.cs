@@ -15,15 +15,15 @@ namespace Typedown.Presentation.ViewModels
     {
         public IServiceProvider ServiceProvider { get; }
 
-        public EventCenter EventCenter => ServiceProvider.GetService<EventCenter>();
+        public EventCenter EventCenter => ServiceProvider.GetRequiredService<EventCenter>();
 
-        public AppViewModel ViewModel => ServiceProvider.GetService<AppViewModel>();
+        public AppViewModel ViewModel => ServiceProvider.GetRequiredService<AppViewModel>();
 
-        public RemoteInvoke RemoteInvoke => ServiceProvider.GetService<RemoteInvoke>();
+        public RemoteInvoke RemoteInvoke => ServiceProvider.GetRequiredService<RemoteInvoke>();
 
-        public IEditorCommandSink EditorCommandSink => ServiceProvider.GetService<IEditorCommandSink>();
+        public IEditorCommandSink EditorCommandSink => ServiceProvider.GetRequiredService<IEditorCommandSink>();
 
-        public ITableDialogService TableDialogService => ServiceProvider.GetService<ITableDialogService>();
+        public ITableDialogService TableDialogService => ServiceProvider.GetRequiredService<ITableDialogService>();
 
         public Command<string> UpdateParagraphCommand { get; } = new();
 
@@ -63,7 +63,7 @@ namespace Typedown.Presentation.ViewModels
                 EditorCommandSink?.Send("InsertTable", new { rows = result.Rows, columns = result.Columns });
         }
 
-        public async Task<object> ResizeTable()
+        public async Task<object?> ResizeTable()
         {
             var result = await TableDialogService.OpenResizeTableDialogAsync();
             return result != null ? new { rows = result.Rows, columns = result.Columns } : null;

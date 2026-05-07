@@ -7,7 +7,7 @@ namespace Typedown.Core.Models
     {
         public record SelectionFormat(string Type, string Tag);
 
-        public FormatState(List<SelectionFormat> selectionFormats = null)
+        public FormatState(List<SelectionFormat>? selectionFormats = null)
         {
             if (selectionFormats == null)
                 return;

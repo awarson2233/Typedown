@@ -22,7 +22,7 @@ namespace Typedown.WinUI.Pages.SettingPages
 
         public SettingsViewModel? SettingsViewModel { get; private set; }
 
-        public SettingsViewModel Settings => ViewModel?.SettingsViewModel;
+        public SettingsViewModel? Settings => ViewModel?.SettingsViewModel;
 
         public IFileExport FileExport => this.GetService<IFileExport>();
 
@@ -111,8 +111,8 @@ namespace Typedown.WinUI.Pages.SettingPages
         {
             var list = new List<string>();
             var field = method.GetType().GetField(method.ToString());
-            var attribute = field.GetCustomAttribute(typeof(LocaleAttribute)) as LocaleAttribute;
-            list.Add(attribute.Text);
+            var attribute = field?.GetCustomAttribute(typeof(LocaleAttribute)) as LocaleAttribute;
+            list.Add(attribute?.Text ?? method.ToString());
             return string.Join(", ", list);
         }
 

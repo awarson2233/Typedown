@@ -1,4 +1,4 @@
-﻿using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.Linq;
 using System.Threading.Tasks;
@@ -16,7 +16,7 @@ namespace Typedown.Core.Models.UploadConfigModels
         {
             return await Task.Run(() =>
             {
-                var powerShell = serviceProvider.GetService<IPowerShellService>();
+                var powerShell = serviceProvider.GetRequiredService<IPowerShellService>();
                 var result = powerShell.Invoke(Script, "Upload-Image", filePath);
                 return result.First();
             });

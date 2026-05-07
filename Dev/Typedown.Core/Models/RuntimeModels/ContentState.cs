@@ -4,10 +4,10 @@ namespace Typedown.Core.Models
 {
     public class ContentState
     {
-        public WordCount WordCount { get; set; }
+        public WordCount WordCount { get; set; } = new();
 
-        public List<TocItem> Toc { get; set; }
+        public List<TocItem> Toc { get; set; } = new();
 
-        public TocItem Cur { get; set; }
+        public TocItem? Cur { get; set; }
     }
 }

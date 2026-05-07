@@ -30,7 +30,7 @@ namespace Typedown.Core.Services
 
         public async Task ReceiveAsync(string json)
         {
-            EditorMessage msg;
+            EditorMessage? msg;
             try
             {
                 msg = JsonConvert.DeserializeObject<EditorMessage>(json, Core.Config.EditorJsonSerializerSettings);
@@ -79,13 +79,13 @@ namespace Typedown.Core.Services
 
         private sealed class EditorMessage
         {
-            public string Id { get; set; }
+            public string Id { get; set; } = string.Empty;
 
-            public string Name { get; set; }
+            public string Name { get; set; } = string.Empty;
 
-            public JToken Args { get; set; }
+            public JToken Args { get; set; } = JValue.CreateNull();
 
-            public string Type { get; set; }
+            public string Type { get; set; } = string.Empty;
 
             public bool Diff { get; set; }
 

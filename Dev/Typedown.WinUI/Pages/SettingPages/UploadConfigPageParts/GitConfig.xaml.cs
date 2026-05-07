@@ -5,13 +5,13 @@ using Microsoft.UI.Xaml.Controls;
 
 namespace Typedown.WinUI.Pages.SettingPages.UploadConfigPageParts
 {
-    public sealed partial class GitConfig : UserControl
-    {
-        public static DependencyProperty ImageUploadConfigProperty { get; } = DependencyProperty.Register(nameof(ImageUploadConfig), typeof(ImageUploadConfig), typeof(GitConfig), null);
-        public ImageUploadConfig ImageUploadConfig { get => (ImageUploadConfig)GetValue(ImageUploadConfigProperty); set => SetValue(ImageUploadConfigProperty, value); }
+        public sealed partial class GitConfig : UserControl
+        {
+            public static DependencyProperty ImageUploadConfigProperty { get; } = DependencyProperty.Register(nameof(ImageUploadConfig), typeof(ImageUploadConfig), typeof(GitConfig), null);
+        public ImageUploadConfig? ImageUploadConfig { get => (ImageUploadConfig?)GetValue(ImageUploadConfigProperty); set => SetValue(ImageUploadConfigProperty, value); }
 
         public static DependencyProperty GitConfigModelProperty { get; } = DependencyProperty.Register(nameof(GitConfigModel), typeof(GitConfigModel), typeof(GitConfig), null);
-        public GitConfigModel GitConfigModel { get => (GitConfigModel)GetValue(GitConfigModelProperty); set => SetValue(GitConfigModelProperty, value); }
+        public GitConfigModel? GitConfigModel { get => (GitConfigModel?)GetValue(GitConfigModelProperty); set => SetValue(GitConfigModelProperty, value); }
 
         public GitConfig()
         {
@@ -20,13 +20,17 @@ namespace Typedown.WinUI.Pages.SettingPages.UploadConfigPageParts
 
         private void OnLoaded(object sender, RoutedEventArgs e)
         {
-            GitConfigModel = ImageUploadConfig.LoadUploadConfig() as GitConfigModel;
+            GitConfigModel = ImageUploadConfig?.LoadUploadConfig() as GitConfigModel;
         }
 
         private void OnUnloaded(object sender, RoutedEventArgs e)
         {
-            ImageUploadConfig.StoreUploadConfig(GitConfigModel);
-             Bindings?.StopTracking();
+            if (ImageUploadConfig is not null && GitConfigModel is not null)
+            {
+                ImageUploadConfig.StoreUploadConfig(GitConfigModel);
+            }
+
+              Bindings?.StopTracking();
         }
     }
 }

@@ -15,20 +15,20 @@ namespace Typedown.WinUI.Controls
     public sealed partial class ShortcutPicker : UserControl
     {
         public static DependencyProperty ShortcutKeyProperty = DependencyProperty.Register(nameof(ShortcutKey), typeof(ShortcutKey), typeof(ShortcutPicker), new(null));
-        public ShortcutKey ShortcutKey { get => (ShortcutKey)GetValue(ShortcutKeyProperty); set => SetValue(ShortcutKeyProperty, value); }
+        public ShortcutKey? ShortcutKey { get => (ShortcutKey?)GetValue(ShortcutKeyProperty); set => SetValue(ShortcutKeyProperty, value); }
 
         public static DependencyProperty VerifiedProperty = DependencyProperty.Register(nameof(Verified), typeof(bool), typeof(ShortcutPicker), new(true));
         public bool Verified { get => (bool)GetValue(VerifiedProperty); set => SetValue(VerifiedProperty, value); }
 
-        private ShortcutKey currentShortcutKey;
+        private ShortcutKey? currentShortcutKey;
 
-        private Dictionary<ShortcutKey, PropertyInfo> existShortcutKeys;
+        private Dictionary<ShortcutKey, PropertyInfo> existShortcutKeys = [];
 
-        private HashSet<KeyboardKey> modifiers;
+        private HashSet<KeyboardKey> modifiers = [];
 
-        private SettingsViewModel settings;
+        private SettingsViewModel? settings;
 
-        public ShortcutPicker(ShortcutKey currentShortcutKey)
+        public ShortcutPicker(ShortcutKey? currentShortcutKey)
         {
             this.currentShortcutKey = currentShortcutKey;
             ShortcutKey = currentShortcutKey;
@@ -45,7 +45,13 @@ namespace Typedown.WinUI.Controls
                 .Select(x => (PropertyInfo: x, ShortcutKey: x.GetValue(settings) as ShortcutKey))
                 .Where(x => x.ShortcutKey != null && x.ShortcutKey != new ShortcutKey(0, 0))
                 .ToList()
-                .ForEach(x => existShortcutKeys[x.ShortcutKey] = x.PropertyInfo);
+                .ForEach(x =>
+                {
+                    if (x.ShortcutKey is { } shortcutKey)
+                    {
+                        existShortcutKeys[shortcutKey] = x.PropertyInfo;
+                    }
+                });
 
             modifiers = new HashSet<KeyboardKey>() {
                 (KeyboardKey)162,

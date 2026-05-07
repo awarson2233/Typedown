@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Reflection;
 using System.Runtime.InteropServices;
@@ -34,12 +35,16 @@ namespace Typedown.Core.Services
 
         private static readonly Dictionary<string, Task> migrateTasks = new(StringComparer.OrdinalIgnoreCase);
 
+        [RequiresDynamicCode("EF Core database access is not fully compatible with NativeAOT.")]
+        [RequiresUnreferencedCode("EF Core database access is not fully compatible with trimming.")]
         public AppDbContext()
             : this(null)
         {
         }
 
-        public AppDbContext(IAppDataPathProvider appDataPathProvider)
+        [RequiresDynamicCode("EF Core database access is not fully compatible with NativeAOT.")]
+        [RequiresUnreferencedCode("EF Core database access is not fully compatible with trimming.")]
+        public AppDbContext(IAppDataPathProvider? appDataPathProvider)
         {
             dbPath = (appDataPathProvider ?? Config.GetAppDataPathProvider()).GetDatabaseFilePath();
             migrateTaskKey = Path.GetFullPath(dbPath);
@@ -53,9 +58,11 @@ namespace Typedown.Core.Services
                 .ConfigureWarnings(warnings => warnings.Ignore(RelationalEventId.PendingModelChangesWarning));
         }
 
+        [RequiresDynamicCode("EF Core migrations are not supported with NativeAOT.")]
+        [RequiresUnreferencedCode("EF Core migrations are not fully compatible with trimming.")]
         public async Task EnsureMigrateAsync()
         {
-            Task migrateTask;
+            Task? migrateTask;
             lock (lockMigrateTask)
             {
                 if (!migrateTasks.TryGetValue(migrateTaskKey, out migrateTask) || migrateTask.IsFaulted || migrateTask.IsCanceled)
@@ -68,6 +75,8 @@ namespace Typedown.Core.Services
             await migrateTask;
         }
 
+        [RequiresDynamicCode("EF Core migrations are not supported with NativeAOT.")]
+        [RequiresUnreferencedCode("EF Core migrations are not fully compatible with trimming.")]
         private async Task EnsureMigrateCoreAsync()
         {
             EnsureDatabaseDirectory();
@@ -199,7 +208,9 @@ namespace Typedown.Core.Services
             return GetCurrentPackageFullName(ref length, IntPtr.Zero) == ErrorInsufficientBuffer;
         }
 
-        public static Task<AppDbContext> Create(IAppDataPathProvider appDataPathProvider = null)
+        [RequiresDynamicCode("EF Core database access is not fully compatible with NativeAOT.")]
+        [RequiresUnreferencedCode("EF Core database access is not fully compatible with trimming.")]
+        public static Task<AppDbContext> Create(IAppDataPathProvider? appDataPathProvider = null)
         {
             return Task.Run(async () =>
             {

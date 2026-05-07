@@ -16,15 +16,15 @@ namespace Typedown.Presentation.ViewModels
     {
         public IServiceProvider ServiceProvider { get; }
 
-        public AppViewModel ViewModel => ServiceProvider.GetService<AppViewModel>();
+        public AppViewModel ViewModel => ServiceProvider.GetRequiredService<AppViewModel>();
 
-        public EditorViewModel EditorViewModel => ServiceProvider.GetService<EditorViewModel>();
+        public EditorViewModel EditorViewModel => ServiceProvider.GetRequiredService<EditorViewModel>();
 
-        public EventCenter EventCenter => ServiceProvider.GetService<EventCenter>();
+        public EventCenter EventCenter => ServiceProvider.GetRequiredService<EventCenter>();
 
         public FormatState FormatState { get; private set; } = new();
 
-        public IEditorCommandSink EditorCommandSink => ServiceProvider.GetService<IEditorCommandSink>();
+        public IEditorCommandSink EditorCommandSink => ServiceProvider.GetRequiredService<IEditorCommandSink>();
 
         public Command<string> SetFormatCommand { get; } = new();
 

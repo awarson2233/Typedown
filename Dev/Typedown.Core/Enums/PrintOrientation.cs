@@ -16,6 +16,6 @@ namespace Typedown.Core.Enums
 
     public static partial class Enumerable
     {
-        public static IReadOnlyList<PrintOrientation> PrintOrientations { get; } = Enum.GetValues(typeof(PrintOrientation)).Cast<PrintOrientation>().ToList();
+        public static IReadOnlyList<PrintOrientation> PrintOrientations { get; } = Enum.GetValues<PrintOrientation>();
     }
 }
