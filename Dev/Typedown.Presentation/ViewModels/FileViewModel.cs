@@ -459,6 +459,11 @@ namespace Typedown.Presentation.ViewModels
                 if (await LoadFile(path, true, false))
                 {
                     startupOpenedFilePath = FilePath;
+                    var openedFileFolder = Path.GetDirectoryName(FilePath);
+                    if (!string.IsNullOrWhiteSpace(openedFileFolder))
+                    {
+                        await LoadFolder(openedFileFolder);
+                    }
                 }
                 else
                 {

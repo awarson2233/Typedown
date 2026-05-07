@@ -4,12 +4,22 @@ param()
 $ErrorActionPreference = "Stop"
 
 $editorRoot = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
-$sourceDir = Join-Path $editorRoot "build"
+$sourceCandidates = @(
+    (Join-Path $editorRoot "..\Typedown\Resources\Statics"),
+    (Join-Path $editorRoot "build")
+)
 $targetDir = Join-Path $editorRoot "..\Typedown.WinUI\Resources\Statics"
 $targetParent = Split-Path -Parent $targetDir
 
-if (-not (Test-Path -LiteralPath $sourceDir)) {
-    throw "Editor build output not found: $sourceDir"
+foreach ($candidate in $sourceCandidates) {
+    if (Test-Path -LiteralPath $candidate) {
+        $sourceDir = (Resolve-Path $candidate).Path
+        break
+    }
+}
+
+if (-not $sourceDir) {
+    throw "Editor build output not found. Checked: $($sourceCandidates -join ', ')"
 }
 
 if (-not (Test-Path -LiteralPath $targetParent)) {

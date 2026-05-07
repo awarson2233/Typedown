@@ -35,6 +35,7 @@ const importRegister = ContentState => {
       superSubScript,
       trimUnnecessaryCodeBlockEmptyLines
     } = this.muya.options
+    const leadingLineBreaks = (markdown.match(/^\n+/) || [''])[0].length
 
     const tokens = new Lexer({
       disableInline: true,
@@ -42,6 +43,12 @@ const importRegister = ContentState => {
       isGitlabCompatibilityEnabled,
       superSubScript
     }).lex(markdown)
+
+    for (let i = 0; i < leadingLineBreaks; i++) {
+      const blankLineBlock = this.createBlockP()
+      blankLineBlock.isLeadingBlankLine = true
+      this.appendChild(rootState, blankLineBlock)
+    }
 
     let token
     let block

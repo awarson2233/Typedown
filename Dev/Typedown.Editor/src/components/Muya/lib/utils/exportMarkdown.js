@@ -30,7 +30,18 @@ class ExportMarkdown {
   }
 
   generate() {
-    return this.translateBlocks2Markdown(this.blocks)
+    let leadingBlankLineCount = 0
+    while (
+      leadingBlankLineCount < this.blocks.length &&
+      this.blocks[leadingBlankLineCount].type === 'p' &&
+      this.blocks[leadingBlankLineCount].isLeadingBlankLine &&
+      this.blocks[leadingBlankLineCount].children?.length === 1 &&
+      this.blocks[leadingBlankLineCount].children[0].text === ''
+    ) {
+      leadingBlankLineCount++
+    }
+
+    return '\n'.repeat(leadingBlankLineCount) + this.translateBlocks2Markdown(this.blocks.slice(leadingBlankLineCount))
   }
 
   translateBlocks2Markdown(blocks, indent = '', listIndent = '') {

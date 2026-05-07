@@ -210,6 +210,16 @@ public class Phase14WinUILayoutTests
     }
 
     [TestMethod]
+    public void FileStartup_OpeningCommandLineFileAlsoLoadsItsContainingFolder()
+    {
+        var fileViewModel = File.ReadAllText(Path.Combine(RepoRoot, "Dev", "Typedown.Presentation", "ViewModels", "FileViewModel.cs"));
+
+        AssertContains(fileViewModel, "var openedFileFolder = Path.GetDirectoryName(FilePath);");
+        AssertContains(fileViewModel, "if (!string.IsNullOrWhiteSpace(openedFileFolder))");
+        AssertContains(fileViewModel, "await LoadFolder(openedFileFolder);");
+    }
+
+    [TestMethod]
     public void AccessHistory_DoesNotBackfillDatabaseOnEveryMutation()
     {
         var accessHistory = File.ReadAllText(Path.Combine(RepoRoot, "Dev", "Typedown.Core", "Services", "AccessHistory.cs"));

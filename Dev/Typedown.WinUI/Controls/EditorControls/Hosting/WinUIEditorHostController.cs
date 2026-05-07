@@ -13,7 +13,7 @@ namespace Typedown.WinUI.Controls
         {
             this.documentSession = documentSession ?? throw new ArgumentNullException(nameof(documentSession));
             this.hostSink = hostSink ?? throw new ArgumentNullException(nameof(hostSink));
-            pendingLoadFile = true;
+            pendingLoadFile = false;
         }
 
         public string? InitialFilePath { get; set; }
@@ -25,7 +25,7 @@ namespace Typedown.WinUI.Controls
         public void ResetForNavigation()
         {
             editorReady = false;
-            pendingLoadFile = true;
+            pendingLoadFile = false;
         }
 
         public void MarkEditorReady()

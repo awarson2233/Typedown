@@ -36,6 +36,7 @@ Muya.use(TableBarTools)
 Muya.use(FootnoteTool)
 
 const STANDAR_Y = 320
+const PROGRAMMATIC_CHANGE_GUARD_MS = 200
 
 const MuyaEditor: React.FC<IMuyaEditor> = (props) => {
     const [editor, setEditor] = useState<Muya>();
@@ -44,6 +45,8 @@ const MuyaEditor: React.FC<IMuyaEditor> = (props) => {
     const searchArgRef = useRef<any>();
     const cursorRef = useRef<any>();
     const optionsRef = useRef<any>(props.options);
+    const suppressProgrammaticContentChangeRef = useRef(false);
+    const programmaticChangeGuardTimerRef = useRef<number | undefined>(undefined);
 
     const relativeScroll = useCallback((delta: number) => {
         window.scrollBy(0, delta)
@@ -108,6 +111,14 @@ const MuyaEditor: React.FC<IMuyaEditor> = (props) => {
     useEffect(() => {
         if (markdownRef.current != props.markdown && editor) {
             markdownRef.current = props.markdown
+            suppressProgrammaticContentChangeRef.current = true
+            if (programmaticChangeGuardTimerRef.current !== undefined) {
+                clearTimeout(programmaticChangeGuardTimerRef.current)
+            }
+            programmaticChangeGuardTimerRef.current = window.setTimeout(() => {
+                suppressProgrammaticContentChangeRef.current = false
+                programmaticChangeGuardTimerRef.current = undefined
+            }, PROGRAMMATIC_CHANGE_GUARD_MS)
             editor.setMarkdown(props.markdown, cursorRef.current)
             const scrollTop = props.scrollTopRef.current;
             window.scrollTo(window.scrollX, scrollTop)
@@ -119,6 +130,12 @@ const MuyaEditor: React.FC<IMuyaEditor> = (props) => {
             }, 100);
         }
     }, [editor, props.markdown, props.scrollTopRef, scrollToCursorIfInvisible, scrollToElementIfInvisible, search])
+
+    useEffect(() => () => {
+        if (programmaticChangeGuardTimerRef.current !== undefined) {
+            clearTimeout(programmaticChangeGuardTimerRef.current)
+        }
+    }, [])
 
     useEffect(() => {
         search(props.searchArg)
@@ -258,6 +275,11 @@ const MuyaEditor: React.FC<IMuyaEditor> = (props) => {
 
     useEffect(() => editor?.on('contentChange', ({ markdown, wordCount, cursor, toc: { toc, cur } }: any) => {
         markdownRef.current = markdown;
+
+        if (suppressProgrammaticContentChangeRef.current) {
+            transport.postMessage('StateChange', { state: { wordCount, toc, cur }, muya: true });
+            return
+        }
 
         // 同步内容与光标
         props.onMarkdownChange(markdown)
