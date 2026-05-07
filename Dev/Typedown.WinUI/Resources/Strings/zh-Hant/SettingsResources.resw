@@ -409,6 +409,10 @@
     <value>打開指定資料夾</value>
     <comment>通用/打开指定文件夹</comment>
   </data>
+  <data name="General.StartupAction.FolderStartupAction.FollowOpenedFileFolder" xml:space="preserve">
+    <value>跟隨檔案所在資料夾</value>
+    <comment>通用/跟隨啟動檔案所在資料夾</comment>
+  </data>
   <data name="General.StartupAction.FolderStartupAction.OpenLast" xml:space="preserve">
     <value>打開上次使用的資料夾</value>
     <comment>通用/打开上次使用的文件夹</comment>

@@ -39,6 +39,8 @@ namespace Typedown.Presentation.ViewModels
 
         public string FilePath { get; private set; } = null;
 
+        private string startupOpenedFilePath = null;
+
         public string ImageBasePath => string.IsNullOrEmpty(FilePath) ? SettingsViewModel.DefaultImageBasePath : Path.GetDirectoryName(FilePath);
 
         public string FileName => Path.GetFileName(FilePath);
@@ -449,14 +451,16 @@ namespace Typedown.Presentation.ViewModels
 
         public async Task LoadStartUpMarkdown()
         {
+            startupOpenedFilePath = null;
+
             var path = CommandLine.GetOpenFilePath(AppViewModel.CommandLineArgs);
             if (!string.IsNullOrEmpty(path))
             {
-                try
+                if (await LoadFile(path, true, false))
                 {
-                    await LoadFile(path, true, false);
+                    startupOpenedFilePath = FilePath;
                 }
-                catch (Exception)
+                else
                 {
                     await NewFileFun(false);
                 }
@@ -481,6 +485,36 @@ namespace Typedown.Presentation.ViewModels
                         await NewFileFun(false);
                         break;
                 }
+            }
+        }
+
+        private async Task<string> ResolveOpenLastFolderAsync()
+        {
+            var lastFolder = SettingsViewModel.LastFolderPath;
+            if (string.IsNullOrWhiteSpace(lastFolder) || !Directory.Exists(lastFolder))
+            {
+                await AccessHistory.EnsureInitialized();
+                lastFolder = AccessHistory.FolderRecentlyOpened.FirstOrDefault();
+            }
+
+            return !string.IsNullOrWhiteSpace(lastFolder) && Directory.Exists(lastFolder) ? lastFolder : null;
+        }
+
+        private async Task<string> ResolveStartupFolderAsync()
+        {
+            switch (SettingsViewModel.FolderStartupAction)
+            {
+                case FolderStartupAction.FollowOpenedFileFolder:
+                    var startupFolder = string.IsNullOrWhiteSpace(startupOpenedFilePath) ? null : Path.GetDirectoryName(startupOpenedFilePath);
+                    if (!string.IsNullOrWhiteSpace(startupFolder) && Directory.Exists(startupFolder))
+                        return startupFolder;
+                    return await ResolveOpenLastFolderAsync();
+                case FolderStartupAction.OpenLast:
+                    return await ResolveOpenLastFolderAsync();
+                case FolderStartupAction.OpenFolder:
+                    return Directory.Exists(SettingsViewModel.StartupOpenFolder) ? SettingsViewModel.StartupOpenFolder : null;
+                default:
+                    return null;
             }
         }
 
@@ -546,24 +580,9 @@ namespace Typedown.Presentation.ViewModels
                 await WaitForInitialEditorFileLoadedAsync();
                 if (string.IsNullOrEmpty(WorkFolder))
                 {
-                    switch (SettingsViewModel.FolderStartupAction)
-                    {
-                        case FolderStartupAction.OpenLast:
-                            var lastFolder = SettingsViewModel.LastFolderPath;
-                            if (string.IsNullOrWhiteSpace(lastFolder) || !Directory.Exists(lastFolder))
-                            {
-                                await AccessHistory.EnsureInitialized();
-                                lastFolder = AccessHistory.FolderRecentlyOpened.FirstOrDefault();
-                            }
-
-                            if (!string.IsNullOrWhiteSpace(lastFolder) && Directory.Exists(lastFolder))
-                                await LoadFolder(lastFolder);
-                            break;
-                        case FolderStartupAction.OpenFolder:
-                            if (Directory.Exists(SettingsViewModel.StartupOpenFolder))
-                                await LoadFolder(SettingsViewModel.StartupOpenFolder);
-                            break;
-                    }
+                    var folderToLoad = await ResolveStartupFolderAsync();
+                    if (!string.IsNullOrWhiteSpace(folderToLoad))
+                        await LoadFolder(folderToLoad);
                 }
             }
             catch

@@ -258,6 +258,17 @@ public class Phase14WinUILayoutTests
     }
 
     [TestMethod]
+    public void FolderPage_Unloaded_DoesNotClearTreeViewTemplatesOrFlyouts()
+    {
+        var folderPage = File.ReadAllText(Path.Combine(RepoRoot, "Dev", "Typedown.WinUI", "Pages", "SidePanePages", "FolderPage.xaml.cs"));
+
+        AssertDoesNotContain(folderPage, "TreeView.ItemTemplateSelector = null;");
+        AssertDoesNotContain(folderPage, "TreeView.ContextFlyout = null;");
+        AssertDoesNotContain(folderPage, "TreeView.DataContext = null;");
+        AssertDoesNotContain(folderPage, "TreeView.ItemsSource = null;");
+    }
+
+    [TestMethod]
     public void WinUIFloatViewService_AnchorsEditorRelativeFlyoutsToEditorContainer()
     {
         var winuiRoot = Path.Combine(RepoRoot, "Dev", "Typedown.WinUI");

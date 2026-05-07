@@ -21,6 +21,19 @@ namespace Typedown.WinUI.Services
 
             window.Activated += OnWindowActivated;
             window.Closed += OnWindowClosed;
+
+            var appWindow = GetAppWindow(window);
+            if (appWindow != null)
+            {
+                appWindow.SetIcon("Assets/logo.ico");
+            }
+        }
+
+        private Microsoft.UI.Windowing.AppWindow? GetAppWindow(Window window)
+        {
+            var hwnd = WindowNative.GetWindowHandle(window);
+            var windowId = Microsoft.UI.Win32Interop.GetWindowIdFromWindow(hwnd);
+            return Microsoft.UI.Windowing.AppWindow.GetFromWindowId(windowId);
         }
 
         public nint WindowHandle { get; set; }

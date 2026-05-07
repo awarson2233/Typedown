@@ -47,6 +47,22 @@ public class Phase13LegacyTextResourceTests
     }
 
     [TestMethod]
+    public void TextResources_ReadsFollowOpenedFileFolderStartupText()
+    {
+        var english = TestTextResourceReader.GetString(
+            "en",
+            TextResourceGroup.SettingsResources,
+            "General.StartupAction.FolderStartupAction.FollowOpenedFileFolder");
+        var simplifiedChinese = TestTextResourceReader.GetString(
+            "zh-Hans",
+            TextResourceGroup.SettingsResources,
+            "General.StartupAction.FolderStartupAction.FollowOpenedFileFolder");
+
+        Assert.AreEqual("Follow opened file folder", english);
+        Assert.AreEqual("跟随文件所在文件夹", simplifiedChinese);
+    }
+
+    [TestMethod]
     public void TextResources_ReadsDialogResourceText()
     {
         Assert.AreEqual(
@@ -206,7 +222,7 @@ public class Phase13LegacyTextResourceTests
             TextResourceGroup.CommonResources => 204,
             TextResourceGroup.DialogResources => 33,
             TextResourceGroup.Resources => 12,
-            TextResourceGroup.SettingsResources => 141,
+            TextResourceGroup.SettingsResources => 142,
             _ => throw new ArgumentOutOfRangeException(nameof(group), group, null)
         };
     }

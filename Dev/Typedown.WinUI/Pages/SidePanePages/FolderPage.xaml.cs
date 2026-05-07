@@ -94,10 +94,10 @@ namespace Typedown.WinUI.Pages.SidePanePages
             WorkFolderExplorerItem?.Dispose();
             WorkFolderExplorerItem = null;
             disposables.Clear();
-            TreeView.DataContext = null;
-            TreeView.ItemTemplateSelector = null;
-            TreeView.ItemsSource = null;
-            TreeView.ContextFlyout = null;
+
+            // MainPage and its side pane are cached across settings navigation.
+            // Clearing TreeView templates/flyouts here leaves the cached page with
+            // plain object rendering after returning from settings.
             Bindings.StopTracking();
         }
 

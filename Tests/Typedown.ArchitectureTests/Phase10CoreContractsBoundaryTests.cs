@@ -523,7 +523,7 @@ public class Phase10CoreContractsBoundaryTests
     }
 
     [TestMethod]
-    public void AppAndActivationService_KeepMinimalCommandLineBasedOpenNewWindowFlow()
+    public void AppAndActivationService_KeepStartupActivationPipelineAndCommandLineOpenNewWindowFlow()
     {
         var appSource = File.ReadAllText(Path.Combine(RepoRoot, "Dev", "Typedown.WinUI", "App.xaml.cs"));
         var activationSource = File.ReadAllText(Path.Combine(RepoRoot, "Dev", "Typedown.WinUI", "Services", "WinUIAppActivationService.cs"));
@@ -533,6 +533,7 @@ public class Phase10CoreContractsBoundaryTests
 
         AssertContainsInOrder(
             appSource,
+            "var startupCommandLineArgs = ResolveStartupCommandLineArgs();",
             "platformServices ??= new WinUIPlatformServices(window);",
             "if (rootServices is null)",
             "rootServices = new ServiceCollection()",
@@ -543,10 +544,11 @@ public class Phase10CoreContractsBoundaryTests
             "if (uiScope is null)",
             "uiScope = rootServices.CreateScope();",
             "uiServices = uiScope.ServiceProvider;",
+            "uiServices.GetRequiredService<AppViewModel>().CommandLineArgs = startupCommandLineArgs;",
             "rootControl.MainPageNavigationParameter = new MainPageNavigationContext(platformServices, uiServices",
             "platformServices.WindowContext.ViewRoot = rootControl;",
             "platformServices.AppActivationService.StartListening(platformServices.UiDispatcher);",
-            "_ = platformServices.AppActivationService.Activate(Environment.GetCommandLineArgs());");
+            "_ = platformServices.AppActivationService.Activate(startupCommandLineArgs);");
 
         AssertHasTypeReference(platformSource, "new WinUIAppDataPathProvider()");
         AssertHasTypeReference(platformSource, "new WinUIWindowContext(window)");
@@ -568,6 +570,10 @@ public class Phase10CoreContractsBoundaryTests
             "? AppActivationKind.OpenFileRequest",
             ": AppActivationKind.FirstLaunch;");
         AssertHasTypeReference(activationSource, "public void StartListening(IUiDispatcher dispatcher)");
+        AssertHasTypeReference(appSource, "private static string[] ResolveStartupCommandLineArgs()");
+        AssertHasTypeReference(appSource, "AppInstance.GetCurrent().GetActivatedEventArgs()");
+        AssertHasTypeReference(appSource, "ExtendedActivationKind.File");
+        AssertHasTypeReference(appSource, "IFileActivatedEventArgs");
         AssertHasTypeReference(appSource, "NewWindowCommand.OnExecute.Subscribe");
         AssertHasTypeReference(appSource, "ProcessStartInfo");
         AssertHasTypeReference(appSource, "Environment.ProcessPath");

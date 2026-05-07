@@ -16,7 +16,7 @@ public class Phase13SettingsContractTests
         AssertEnumMembers<ExportType>(("None", 0), ("PDF", 1), ("HTML", 2), ("Image", 3));
         AssertEnumMembers<PrintOrientation>(("Portrait", 0), ("Landscape", 1));
         AssertEnumMembers<FileStartupAction>(("None", 0), ("OpenLast", 1));
-        AssertEnumMembers<FolderStartupAction>(("None", 0), ("OpenLast", 1), ("OpenFolder", 2));
+        AssertEnumMembers<FolderStartupAction>(("None", 0), ("OpenLast", 1), ("OpenFolder", 2), ("FollowOpenedFileFolder", 3));
         AssertEnumMembers<AppTheme>(("Default", 0), ("Light", 1), ("Dark", 2));
     }
 

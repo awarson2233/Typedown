@@ -409,6 +409,10 @@
     <value>Open custom folder</value>
     <comment>通用/打开指定文件夹</comment>
   </data>
+  <data name="General.StartupAction.FolderStartupAction.FollowOpenedFileFolder" xml:space="preserve">
+    <value>Follow opened file folder</value>
+    <comment>General/Follow the folder that contains the startup file</comment>
+  </data>
   <data name="General.StartupAction.FolderStartupAction.OpenLast" xml:space="preserve">
     <value>Restore last closed folder</value>
     <comment>通用/打开上次使用的文件夹</comment>

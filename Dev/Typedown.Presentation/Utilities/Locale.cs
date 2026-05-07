@@ -98,7 +98,8 @@ namespace Typedown.Presentation.Utilities
             {"zu","Isi-Zulu"},
         };
 
-        public static Dictionary<string, string> LangsOptions { get; } = new(SupportedLangs.Append(new("default", GetString("UseSystemSetting"))));
+        public static IReadOnlyDictionary<string, string> LangsOptions =>
+            new Dictionary<string, string>(SupportedLangs.Append(new("default", GetString("UseSystemSetting"))));
 
         public static string GetLangOptionDisplayName(string key) => LangsOptions[key];
 

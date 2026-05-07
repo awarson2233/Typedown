@@ -3,7 +3,9 @@ using Microsoft.UI;
 using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml.Navigation;
 using Microsoft.UI.Xaml.Media;
+using Microsoft.Windows.AppLifecycle;
 using System.Diagnostics;
+using System.Linq;
 using Typedown.Core;
 using Typedown.Core.Enums;
 using Typedown.Core.Interfaces;
@@ -19,6 +21,7 @@ using SQLitePCL;
 using Microsoft.UI.Xaml;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
+using FileActivatedEventArgsContract = Windows.ApplicationModel.Activation.IFileActivatedEventArgs;
 
 namespace Typedown.WinUI
 {
@@ -56,6 +59,7 @@ namespace Typedown.WinUI
         protected override void OnLaunched(LaunchActivatedEventArgs e)
         {
             StartupTrace.Mark("App.OnLaunched entered");
+            var startupCommandLineArgs = ResolveStartupCommandLineArgs();
             WinUILocale.Initialize();
 
             // Set SQLite temp directory before any connection is created, so
@@ -77,6 +81,10 @@ namespace Typedown.WinUI
             {
                 window = new Window();
                 window.Closed += OnWindowClosed;
+                var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(window);
+                var windowId = Microsoft.UI.Win32Interop.GetWindowIdFromWindow(hwnd);
+                var appWindow = Microsoft.UI.Windowing.AppWindow.GetFromWindowId(windowId);
+                appWindow.SetIcon("Assets/logo.ico");
             }
 
             platformServices ??= new WinUIPlatformServices(window);
@@ -117,6 +125,8 @@ namespace Typedown.WinUI
                 uiServices = uiScope.ServiceProvider;
             }
 
+            uiServices.GetRequiredService<AppViewModel>().CommandLineArgs = startupCommandLineArgs;
+
             platformServices.WindowContext.Title = "Typedown";
             ConfigureNativeTitleBar(window);
 
@@ -141,10 +151,41 @@ namespace Typedown.WinUI
             }
             platformServices.AppActivationService.StartListening(platformServices.UiDispatcher);
             StartupTrace.Mark("Activation service listening");
-            _ = platformServices.AppActivationService.Activate(Environment.GetCommandLineArgs());
+            _ = platformServices.AppActivationService.Activate(startupCommandLineArgs);
             StartupTrace.Mark("App activation request dispatched");
             platformServices.WindowContext.Activate();
             StartupTrace.Mark("Window activated");
+        }
+
+        private static string[] ResolveStartupCommandLineArgs()
+        {
+            var baseProcessPath = Environment.ProcessPath
+                ?? Environment.GetCommandLineArgs().FirstOrDefault()
+                ?? "Typedown.WinUI";
+
+            try
+            {
+                var activationArgs = AppInstance.GetCurrent().GetActivatedEventArgs();
+                if (activationArgs?.Kind == ExtendedActivationKind.File
+                    && activationArgs.Data is FileActivatedEventArgsContract fileArgs)
+                {
+                    var filePaths = fileArgs.Files
+                        .Select(x => x.Path)
+                        .Where(x => !string.IsNullOrWhiteSpace(x))
+                        .ToArray();
+
+                    if (filePaths.Length > 0)
+                    {
+                        return [baseProcessPath, .. filePaths];
+                    }
+                }
+            }
+            catch
+            {
+                // Fall back to the raw command line when packaged activation data is unavailable.
+            }
+
+            return Environment.GetCommandLineArgs();
         }
 
         private static void ConfigureNativeTitleBar(Window targetWindow)
@@ -347,3 +388,4 @@ namespace Typedown.WinUI
         }
     }
 }
+

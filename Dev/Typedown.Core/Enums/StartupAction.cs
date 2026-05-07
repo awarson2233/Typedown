@@ -23,7 +23,10 @@ namespace Typedown.Core.Enums
         OpenLast,
 
         [Locale("General.StartupAction.FolderStartupAction.OpenFolder")]
-        OpenFolder
+        OpenFolder,
+
+        [Locale("General.StartupAction.FolderStartupAction.FollowOpenedFileFolder")]
+        FollowOpenedFileFolder
     }
 
     public static partial class Enumerable

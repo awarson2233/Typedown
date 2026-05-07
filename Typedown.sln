@@ -19,8 +19,6 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "XamlDesignApp", "Tools\Xaml
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TranslationTool", "Tools\TranslationTool\TranslationTool.csproj", "{20B6A129-40EE-4483-BF97-D4F4CE682231}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Dev", "Dev", "{927EA651-2681-4AEB-E3A3-5C3CA4D22F3C}"
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Typedown.WinUI", "Dev\Typedown.WinUI\Typedown.WinUI.csproj", "{ED99C3B1-46F5-4786-BDC8-A759AA5F7BD3}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Typedown.Presentation", "Dev\Typedown.Presentation\Typedown.Presentation.csproj", "{67C0F9B6-8A76-492B-8402-CA1849E764C5}"
