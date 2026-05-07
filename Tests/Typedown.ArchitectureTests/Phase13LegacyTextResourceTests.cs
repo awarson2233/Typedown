@@ -161,6 +161,22 @@ public class Phase13LegacyTextResourceTests
     }
 
     [TestMethod]
+    public void TextResources_OwnerGovernanceDeclaresWinUIOwnershipAndLegacyReuseDebt()
+    {
+        var buildBaseline = File.ReadAllText(Path.Combine(RepoRoot, "docs", "build-baseline.md"));
+        var winUIProjectSource = File.ReadAllText(Path.Combine(RepoRoot, "Dev", "Typedown.WinUI", "Typedown.WinUI.csproj"));
+        var legacyAppProjectSource = File.ReadAllText(Path.Combine(RepoRoot, "Dev", "Typedown", "Typedown.csproj"));
+
+        StringAssert.Contains(buildBaseline, "WinUI resource owner");
+        StringAssert.Contains(buildBaseline, "`Dev\\Typedown.WinUI\\Resources\\Strings` is the deliberate owner of `.resw` text resources.");
+        StringAssert.Contains(buildBaseline, "`Dev\\Typedown` links those WinUI-owned strings as temporary migration debt");
+
+        StringAssert.Contains(winUIProjectSource, "<TypedownStringResourceOwner>Typedown.WinUI</TypedownStringResourceOwner>");
+        StringAssert.Contains(legacyAppProjectSource, "<TypedownStringResourceOwner>Typedown.WinUI</TypedownStringResourceOwner>");
+        StringAssert.Contains(legacyAppProjectSource, "<TypedownLegacyStringResourceReuseDebt>Temporary migration debt until the legacy shell is retired</TypedownLegacyStringResourceReuseDebt>");
+    }
+
+    [TestMethod]
     public void Presentation_DoesNotCarryLegacyTextResourceRuntimeHelpers()
     {
         var resourcesRoot = Path.Combine(RepoRoot, "Dev", "Typedown.Presentation", "Resources");

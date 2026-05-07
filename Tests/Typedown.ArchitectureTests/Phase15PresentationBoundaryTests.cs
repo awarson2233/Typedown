@@ -314,6 +314,48 @@ public class Phase15PresentationBoundaryTests
     }
 
     [TestMethod]
+    public void EditorBridgeStaticBundleAndPackagingOwnerGovernance_IsDeclared()
+    {
+        var bridgeProtocol = File.ReadAllText(Path.Combine(RepoRoot, "docs", "editor-bridge-protocol.md"));
+        var buildBaseline = File.ReadAllText(Path.Combine(RepoRoot, "docs", "build-baseline.md"));
+        var winUIProject = File.ReadAllText(Path.Combine(RepoRoot, "Dev", "Typedown.WinUI", "Typedown.WinUI.csproj"));
+        var legacyProject = File.ReadAllText(Path.Combine(RepoRoot, "Dev", "Typedown", "Typedown.csproj"));
+
+        AssertContainsInOrder(
+            bridgeProtocol,
+            "## Owner Governance",
+            "`docs/editor-bridge-protocol.md` owns the JSON message protocol",
+            "`Dev\\Typedown.WinUI\\Controls\\EditorControls\\Hosting\\EditorHostContracts.cs` is shell-local WinUI host contract surface",
+            "not Presentation or Core");
+        AssertContainsInOrder(
+            bridgeProtocol,
+            "## Static Bundle Boundary",
+            "`Dev\\Typedown.Editor` owns the React editor source and build output",
+            "`Dev\\Typedown\\Resources\\Statics` is the current shared staging path",
+            "temporary migration debt");
+
+        AssertContainsInOrder(
+            buildBaseline,
+            "## Owner Governance Baseline",
+            "Editor bridge protocol owner",
+            "Editor static bundle owner",
+            "WinUI resource owner",
+            "Packaged/MSIX support level");
+
+        AssertContainsInOrder(
+            winUIProject,
+            "<TypedownEditorBridgeContractOwner>Typedown.WinUI</TypedownEditorBridgeContractOwner>",
+            "<TypedownEditorStaticBundleProducer>Typedown.Editor</TypedownEditorStaticBundleProducer>",
+            "<TypedownEditorStaticBundleStagingPath>..\\Typedown\\Resources\\Statics</TypedownEditorStaticBundleStagingPath>",
+            "<TypedownPackagedSupportLevel>Project shape supported; certificate material is machine-local/manual</TypedownPackagedSupportLevel>");
+        AssertContainsInOrder(
+            legacyProject,
+            "<TypedownEditorStaticBundleProducer>Typedown.Editor</TypedownEditorStaticBundleProducer>",
+            "<TypedownEditorStaticBundleStagingOwner>Typedown legacy compatibility app</TypedownEditorStaticBundleStagingOwner>",
+            "<TypedownStaticBundleStagingDebt>Temporary migration debt until WinUI owns its own editor bundle staging path</TypedownStaticBundleStagingDebt>");
+    }
+
+    [TestMethod]
     public void ActiveWinUIMenuBar_UsesPresentationViewModelsAndCommands()
     {
         var menuRoot = Path.Combine(RepoRoot, "Dev", "Typedown.WinUI", "Controls", "EditorControls");

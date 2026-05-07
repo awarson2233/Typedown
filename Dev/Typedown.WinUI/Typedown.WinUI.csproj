@@ -32,6 +32,14 @@
         <RuntimeIdentifiers Condition="$([MSBuild]::GetTargetFrameworkVersion('$(TargetFramework)')) &lt; 8">win10-x64;win10-arm64</RuntimeIdentifiers>
     </PropertyGroup>
 
+    <PropertyGroup Label="Typedown Owner Governance">
+        <TypedownEditorBridgeContractOwner>Typedown.WinUI</TypedownEditorBridgeContractOwner>
+        <TypedownEditorStaticBundleProducer>Typedown.Editor</TypedownEditorStaticBundleProducer>
+        <TypedownEditorStaticBundleStagingPath>..\Typedown\Resources\Statics</TypedownEditorStaticBundleStagingPath>
+        <TypedownPackagedSupportLevel>Project shape supported; certificate material is machine-local/manual</TypedownPackagedSupportLevel>
+        <TypedownStringResourceOwner>Typedown.WinUI</TypedownStringResourceOwner>
+    </PropertyGroup>
+
     <PropertyGroup Condition="'$(Platform)'=='x64'">
         <RuntimeIdentifier>win-x64</RuntimeIdentifier>
         <AppxBundlePlatforms>x64</AppxBundlePlatforms>
@@ -55,7 +63,9 @@
         <Content Include="Assets\Square44x44Logo.targetsize-24_altform-unplated.png" />
         <Content Include="Assets\StoreLogo.png" />
         <Content Include="Assets\Wide310x150Logo.scale-200.png" />
+        <!-- Owner governance: Typedown.Editor produces this bundle; WinUI consumes the legacy staging path as temporary migration debt. -->
         <Content Include="..\Typedown\Resources\Statics\**\*" CopyToOutputDirectory="Always" CopyToPublishDirectory="Always" Link="Resources\Statics\%(RecursiveDir)%(Filename)%(Extension)" TargetPath="Resources\Statics\%(RecursiveDir)%(Filename)%(Extension)" />
+        <!-- Owner governance: WinUI owns .resw text resources; legacy links them while the old shell remains buildable. -->
         <Content Include="Resources\Strings\**\*.resw" CopyToOutputDirectory="PreserveNewest" />
     </ItemGroup>
 

@@ -2,6 +2,20 @@
 
 本文档定义 `Dev/Typedown.Editor/src/services/transport.ts` 与 Host (`Typedown`) 之间的稳定消息协议。
 
+## Owner Governance
+
+- `docs/editor-bridge-protocol.md` owns the JSON message protocol between the editor bundle and host shells.
+- `Dev\Typedown.WinUI\Controls\EditorControls\Hosting\EditorHostContracts.cs` is shell-local WinUI host contract surface for WinUI controller/session code.
+- The WinUI host contract surface must stay out of shared ViewModel layers; it is not Presentation or Core ownership.
+- Presentation may own user-facing editor commands and services, but it does not own WebView2 message transport details or host DTO serialization.
+
+## Static Bundle Boundary
+
+- `Dev\Typedown.Editor` owns the React editor source and build output.
+- `Dev\Typedown\Resources\Statics` is the current shared staging path for the generated editor bundle.
+- WinUI consumes that staging path for output and MSIX packaging so migration can preserve the existing editor bundle shape.
+- The WinUI-to-legacy staging reuse is temporary migration debt, not a deliberate long-term shell boundary.
+
 ## Direction
 
 - Editor -> Host: `window.chrome.webview.postMessage(JSON.stringify(payload))`

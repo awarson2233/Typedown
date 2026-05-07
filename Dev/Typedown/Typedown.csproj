@@ -7,6 +7,14 @@
 		<MakePri>C:\Program Files (x86)\Windows Kits\10\bin\10.0.26100.0\x86\makepri.exe</MakePri>
 	</PropertyGroup>
 
+	<PropertyGroup Label="Typedown Owner Governance">
+		<TypedownEditorStaticBundleProducer>Typedown.Editor</TypedownEditorStaticBundleProducer>
+		<TypedownEditorStaticBundleStagingOwner>Typedown legacy compatibility app</TypedownEditorStaticBundleStagingOwner>
+		<TypedownStaticBundleStagingDebt>Temporary migration debt until WinUI owns its own editor bundle staging path</TypedownStaticBundleStagingDebt>
+		<TypedownStringResourceOwner>Typedown.WinUI</TypedownStringResourceOwner>
+		<TypedownLegacyStringResourceReuseDebt>Temporary migration debt until the legacy shell is retired</TypedownLegacyStringResourceReuseDebt>
+	</PropertyGroup>
+
 	<Target Name="EnsureTypedownXamlUIDependency" BeforeTargets="PrepareForBuild">
 		<Error Condition="!Exists('$(TypedownXamlUIProject)')" Text="Missing required in-repo legacy XAML host: '$(TypedownXamlUIProject)'. See docs/xamlui-dependency.md for the expected repository layout." />
 	</Target>
@@ -92,7 +100,9 @@
 	</ItemGroup>
 
 	<ItemGroup>
+		<!-- Owner governance: editor bundle staging remains here for legacy compatibility and WinUI reuse until this migration debt is removed. -->
 		<None Include="Resources\Statics\**" CopyToOutputDirectory="Always" Link="Resources\Statics\%(RecursiveDir)\%(Filename)%(Extension)" />
+		<!-- Owner governance: WinUI owns text resources; the legacy app embeds them under its own resource scope as temporary migration debt. -->
 		<Content Include="..\Typedown.WinUI\Resources\Strings\**\*.resw" Link="Resources\Strings\%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
 	</ItemGroup>
 
