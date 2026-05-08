@@ -1,5 +1,6 @@
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Media.Animation;
 using Typedown.WinUI.Utilities;
 
 namespace Typedown.WinUI.Controls;
@@ -25,9 +26,14 @@ public sealed partial class LeftPane : UserControl
 
     private void OnLoaded(object sender, RoutedEventArgs e)
     {
-        if (NavigationView.MenuItems.Count > 0)
+        if (NavigationView.SelectedItem is NavigationViewItem selectedItem)
         {
-            NavigationView.SelectedItem = NavigationView.MenuItems[0];
+            NavigateToItem(selectedItem, new Microsoft.UI.Xaml.Media.Animation.SuppressNavigationTransitionInfo());
+        }
+        else if (NavigationView.MenuItems.Count > 0 &&
+                 NavigationView.MenuItems[0] is NavigationViewItem firstItem)
+        {
+            NavigationView.SelectedItem = firstItem;
         }
     }
 
@@ -40,8 +46,17 @@ public sealed partial class LeftPane : UserControl
         Microsoft.UI.Xaml.Controls.NavigationView sender,
         Microsoft.UI.Xaml.Controls.NavigationViewSelectionChangedEventArgs args)
     {
-        if (args.SelectedItem is not Microsoft.UI.Xaml.Controls.NavigationViewItem item ||
-            item.Tag is not string pageName)
+        if (args.SelectedItem is not Microsoft.UI.Xaml.Controls.NavigationViewItem item)
+        {
+            return;
+        }
+
+        NavigateToItem(item, args.RecommendedNavigationTransitionInfo);
+    }
+
+    private void NavigateToItem(NavigationViewItem item, NavigationTransitionInfo? transition = null)
+    {
+        if (item.Tag is not string pageName)
         {
             return;
         }
@@ -52,7 +67,7 @@ public sealed partial class LeftPane : UserControl
             return;
         }
 
-        var transition = args.RecommendedNavigationTransitionInfo ?? new Microsoft.UI.Xaml.Media.Animation.SuppressNavigationTransitionInfo();
+        transition ??= new SuppressNavigationTransitionInfo();
         using (StartupTrace.Phase($"LeftPane navigate {pageName}"))
         {
             Frame.Navigate(pageType, DataContext, transition);

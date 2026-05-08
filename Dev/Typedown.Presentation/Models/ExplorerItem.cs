@@ -32,6 +32,8 @@ namespace Typedown.Presentation.Models
 
         public Func<FileAttributes, string, bool> Filter { get; set; } = DefaultFilter;
 
+        public bool EnableLiveUpdates { get; set; } = true;
+
         public Exception? Exception { get; private set; }
 
         [OnChangedMethod(nameof(OnIsExpandedChanged))]
@@ -118,7 +120,10 @@ namespace Typedown.Presentation.Models
                 {
                     var files = await Task.Run(() => EnumerateFilteredFileSystemInfos().ToList());
                     SetChildren(files.Select(x => CreateChild(x.Name)).ToList());
-                    StartWatchFolder();
+                    if (EnableLiveUpdates)
+                    {
+                        StartWatchFolder();
+                    }
                 }
                 else
                 {
@@ -172,7 +177,7 @@ namespace Typedown.Presentation.Models
 
         private ExplorerItem CreateChild(string name)
         {
-            return new(ViewModel) { FullPath = Path.Combine(FullPath, name), Comparer = Comparer, IsWatching = IsExpanded };
+            return new(ViewModel) { FullPath = Path.Combine(FullPath, name), Comparer = Comparer, IsWatching = IsExpanded, EnableLiveUpdates = this.EnableLiveUpdates };
         }
 
         private bool ContainsChildren(string name)

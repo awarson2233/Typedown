@@ -34,6 +34,10 @@ namespace Typedown.WinUI.Pages.SidePanePages
         public ExplorerItem? WorkFolderExplorerItem { get; private set; }
 
         private readonly CompositeDisposable disposables = new();
+        private FileSystemWatcher? reloadWatcher;
+        private CancellationTokenSource? pendingReloadCts;
+
+        private const int ReloadDebounceMilliseconds = 150;
 
         public FolderPage()
         {
@@ -60,19 +64,118 @@ namespace Typedown.WinUI.Pages.SidePanePages
 
             using (StartupTrace.Phase("FolderPage.OnLoaded"))
             {
-                WorkFolderExplorerItem = new ExplorerItem(FileViewModel) { IsExpanded = true };
-                Bindings.Update();
-                disposables.Add(FileViewModel.WhenPropertyChanged(nameof(FileViewModel.WorkFolder)).Select(value => value as string).StartWith(FileViewModel.WorkFolder).Subscribe(UpdateWorkFolder));
+                disposables.Add(FileViewModel.WhenPropertyChanged(nameof(FileViewModel.WorkFolder)).Select(value => value as string).StartWith(FileViewModel.WorkFolder).Subscribe(ReloadWorkFolderTree));
                 disposables.Add(FileViewModel.WhenPropertyChanged(nameof(FileViewModel.FilePath)).Select(value => value as string).StartWith(FileViewModel.FilePath).Subscribe(_ => UpdateSelectedItem(WorkFolderExplorerItem)));
             }
         }
 
-        private void UpdateWorkFolder(string? workFolder)
+        private void ReloadWorkFolderTree(string? workFolder)
         {
-            if (WorkFolderExplorerItem is not null)
+            CancelPendingReload();
+            StopReloadWatcher();
+            WorkFolderExplorerItem?.Dispose();
+
+            WorkFolderExplorerItem = new ExplorerItem(FileViewModel)
             {
-                WorkFolderExplorerItem.FullPath = workFolder ?? string.Empty;
+                IsExpanded = true,
+                EnableLiveUpdates = false
+            };
+            WorkFolderExplorerItem.FullPath = workFolder ?? string.Empty;
+            Bindings.Update();
+            UpdateSelectedItem(WorkFolderExplorerItem);
+
+            if (!string.IsNullOrWhiteSpace(workFolder) && Directory.Exists(workFolder))
+            {
+                StartReloadWatcher(workFolder);
             }
+        }
+
+        private void StartReloadWatcher(string workFolder)
+        {
+            reloadWatcher = new FileSystemWatcher(workFolder)
+            {
+                NotifyFilter = NotifyFilters.FileName | NotifyFilters.DirectoryName | NotifyFilters.LastWrite | NotifyFilters.CreationTime
+            };
+            reloadWatcher.IncludeSubdirectories = true;
+
+            reloadWatcher.Created += OnReloadWatcherTriggered;
+            reloadWatcher.Changed += OnReloadWatcherTriggered;
+            reloadWatcher.Deleted += OnReloadWatcherTriggered;
+            reloadWatcher.Renamed += OnReloadWatcherTriggered;
+            reloadWatcher.Error += OnReloadWatcherError;
+            reloadWatcher.EnableRaisingEvents = true;
+        }
+
+        private void StopReloadWatcher()
+        {
+            if (reloadWatcher is null)
+            {
+                return;
+            }
+
+            reloadWatcher.EnableRaisingEvents = false;
+            reloadWatcher.Created -= OnReloadWatcherTriggered;
+            reloadWatcher.Changed -= OnReloadWatcherTriggered;
+            reloadWatcher.Deleted -= OnReloadWatcherTriggered;
+            reloadWatcher.Renamed -= OnReloadWatcherTriggered;
+            reloadWatcher.Error -= OnReloadWatcherError;
+            reloadWatcher.Dispose();
+            reloadWatcher = null;
+        }
+
+        private void OnReloadWatcherTriggered(object sender, FileSystemEventArgs e)
+        {
+            ScheduleReloadWorkFolderTree();
+        }
+
+        private void OnReloadWatcherError(object sender, ErrorEventArgs e)
+        {
+            ScheduleReloadWorkFolderTree();
+        }
+
+        private void ScheduleReloadWorkFolderTree()
+        {
+            pendingReloadCts?.Cancel();
+            pendingReloadCts?.Dispose();
+
+            var cts = new CancellationTokenSource();
+            pendingReloadCts = cts;
+
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    await Task.Delay(ReloadDebounceMilliseconds, cts.Token);
+                }
+                catch (TaskCanceledException)
+                {
+                    return;
+                }
+
+                if (cts.IsCancellationRequested)
+                {
+                    return;
+                }
+
+                DispatcherQueue.TryEnqueue(() =>
+                {
+                    if (pendingReloadCts != cts)
+                    {
+                        return;
+                    }
+
+                    pendingReloadCts?.Dispose();
+                    pendingReloadCts = null;
+                    ReloadWorkFolderTree(FileViewModel.WorkFolder);
+                });
+            });
+        }
+
+        private void CancelPendingReload()
+        {
+            pendingReloadCts?.Cancel();
+            pendingReloadCts?.Dispose();
+            pendingReloadCts = null;
         }
 
         private void UpdateSelectedItem(ExplorerItem? item)
@@ -89,8 +192,53 @@ namespace Typedown.WinUI.Pages.SidePanePages
             }
         }
 
+        private static ExplorerItem? FindExplorerItem(ExplorerItem? item, string fullPath)
+        {
+            if (item is null)
+            {
+                return null;
+            }
+
+            if (string.Equals(item.FullPath, fullPath, StringComparison.OrdinalIgnoreCase))
+            {
+                return item;
+            }
+
+            foreach (var child in item.Children)
+            {
+                var result = FindExplorerItem(child, fullPath);
+                if (result is not null)
+                {
+                    return result;
+                }
+            }
+
+            return null;
+        }
+
+        private async Task<ExplorerItem?> ReloadAndFindItemAsync(string parentPath, string name)
+        {
+            ReloadWorkFolderTree(FileViewModel.WorkFolder);
+            var fullPath = Path.Combine(parentPath, name);
+
+            for (var i = 0; i < 20; i++)
+            {
+                var found = FindExplorerItem(WorkFolderExplorerItem, fullPath);
+                if (found is not null)
+                {
+                    return found;
+                }
+
+                await Task.Delay(50);
+            }
+
+            return null;
+        }
+
         private void OnUnloaded(object sender, RoutedEventArgs e)
         {
+            CancelPendingReload();
+            StopReloadWatcher();
             WorkFolderExplorerItem?.Dispose();
             WorkFolderExplorerItem = null;
             disposables.Clear();
@@ -152,6 +300,7 @@ namespace Typedown.WinUI.Pages.SidePanePages
 
             try
             {
+                item.IsExpanded = true;
                 var filename = "Untitled";
                 var extension = ".md";
                 var fullname = filename + extension;
@@ -177,10 +326,7 @@ namespace Typedown.WinUI.Pages.SidePanePages
                         return;
                     }
                 }
-                await Task.Yield();
-                item.IsExpanded = true;
-                await Task.Delay(100);
-                RenameFile(item.Children.FirstOrDefault(x => Path.GetFileName(x.FullPath) == fullname));
+                RenameFile(await ReloadAndFindItemAsync(item.FullPath, fullname));
             }
             catch (Exception ex)
             {
@@ -198,6 +344,7 @@ namespace Typedown.WinUI.Pages.SidePanePages
 
             try
             {
+                item.IsExpanded = true;
                 var foldername = "New Folder";
                 var fullname = foldername;
                 if (FileOperation.IsFilenameValid(item.FullPath, fullname))
@@ -229,10 +376,7 @@ namespace Typedown.WinUI.Pages.SidePanePages
                         return;
                     }
                 }
-                await Task.Yield();
-                item.IsExpanded = true;
-                await Task.Delay(100);
-                RenameFile(item.Children.FirstOrDefault(x => Path.GetFileName(x.FullPath) == fullname));
+                RenameFile(await ReloadAndFindItemAsync(item.FullPath, fullname));
             }
             catch (Exception ex)
             {
@@ -265,6 +409,7 @@ namespace Typedown.WinUI.Pages.SidePanePages
             if (GetExplorerItemFromMenuFlyoutItem(sender)?.FullPath is { } fullPath)
             {
                 FileOperation.PasteFromClipboard(fullPath);
+                ScheduleReloadWorkFolderTree();
             }
         }
 
@@ -284,7 +429,10 @@ namespace Typedown.WinUI.Pages.SidePanePages
         private void OnDeleteClick(object sender, RoutedEventArgs e)
         {
             var item = GetExplorerItemFromMenuFlyoutItem(sender);
-            FileOperation.Delete(new StringCollection { item?.FullPath });
+            if (FileOperation.Delete(new StringCollection { item?.FullPath }))
+            {
+                ScheduleReloadWorkFolderTree();
+            }
         }
 
         private async void RenameFile(ExplorerItem? item)
@@ -351,15 +499,21 @@ namespace Typedown.WinUI.Pages.SidePanePages
                 }
 
                 var newPath = Path.Combine(parent, source.Task.Result);
+                var renamed = false;
                 if (item.FullPath == ViewModel.FileViewModel.FilePath)
                 {
-                    ViewModel.FileViewModel.RenameFile(newPath);
+                    renamed = ViewModel.FileViewModel.RenameFile(newPath);
                 }
                 else
                 {
-                    FileOperation.Rename(item.FullPath, newPath);
+                    renamed = FileOperation.Rename(item.FullPath, newPath);
                 }
-                DispatcherQueue.TryEnqueue(() => UpdateSelectedItem(WorkFolderExplorerItem));
+
+                if (renamed)
+                {
+                    ScheduleReloadWorkFolderTree();
+                    DispatcherQueue.TryEnqueue(() => UpdateSelectedItem(WorkFolderExplorerItem));
+                }
             }
         }
 
@@ -515,7 +669,10 @@ namespace Typedown.WinUI.Pages.SidePanePages
                     {
                         collection.Add(item.Path);
                     }
-                    page.FileOperation.Move(collection, target.FullPath);
+                    if (page.FileOperation.Move(collection, target.FullPath))
+                    {
+                        page.ScheduleReloadWorkFolderTree();
+                    }
                 }
             }
             catch (Exception ex)

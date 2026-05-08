@@ -14,7 +14,6 @@ namespace Typedown.WinUI.Pages.SidePanePages
         public TocPage()
         {
             InitializeComponent();
-            Unloaded += OnUnloaded;
         }
 
         protected override void OnNavigatedTo(NavigationEventArgs e)
@@ -24,11 +23,6 @@ namespace Typedown.WinUI.Pages.SidePanePages
                 DataContext = viewModel;
                 Bindings.Update();
             }
-        }
-
-        private void OnUnloaded(object sender, RoutedEventArgs e)
-        {
-            Bindings.StopTracking();
         }
     }
 }

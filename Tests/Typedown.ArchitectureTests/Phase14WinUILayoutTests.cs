@@ -279,6 +279,43 @@ public class Phase14WinUILayoutTests
     }
 
     [TestMethod]
+    public void LeftPane_OnLoaded_RecreatesCurrentlySelectedSidePanePage()
+    {
+        var leftPane = File.ReadAllText(Path.Combine(RepoRoot, "Dev", "Typedown.WinUI", "Controls", "SidePaneControls", "LeftPane.xaml.cs"));
+
+        AssertContains(leftPane, "if (NavigationView.SelectedItem is NavigationViewItem selectedItem)");
+        AssertContains(leftPane, "NavigateToItem(selectedItem, new Microsoft.UI.Xaml.Media.Animation.SuppressNavigationTransitionInfo());");
+        AssertContains(leftPane, "private void NavigateToItem(");
+    }
+
+    [TestMethod]
+    public void FolderPage_UsesDebouncedWatcherTriggeredFullReloads()
+    {
+        var folderPage = File.ReadAllText(Path.Combine(RepoRoot, "Dev", "Typedown.WinUI", "Pages", "SidePanePages", "FolderPage.xaml.cs"));
+        var explorerItem = File.ReadAllText(Path.Combine(RepoRoot, "Dev", "Typedown.Presentation", "Models", "ExplorerItem.cs"));
+
+        AssertContains(folderPage, "private FileSystemWatcher? reloadWatcher;");
+        AssertContains(folderPage, "private CancellationTokenSource? pendingReloadCts;");
+        AssertContains(folderPage, "ReloadWorkFolderTree(");
+        AssertContains(folderPage, "ScheduleReloadWorkFolderTree();");
+        AssertContains(folderPage, "reloadWatcher.IncludeSubdirectories = true;");
+        AssertContains(folderPage, "EnableLiveUpdates = false");
+
+        AssertContains(explorerItem, "public bool EnableLiveUpdates { get; set; } = true;");
+        AssertContains(explorerItem, "if (EnableLiveUpdates)");
+        AssertContains(explorerItem, "EnableLiveUpdates = this.EnableLiveUpdates");
+    }
+
+    [TestMethod]
+    public void TocPage_DoesNotStopTrackedBindingsOnUnload()
+    {
+        var tocPage = File.ReadAllText(Path.Combine(RepoRoot, "Dev", "Typedown.WinUI", "Pages", "SidePanePages", "TocPage.xaml.cs"));
+
+        AssertDoesNotContain(tocPage, "Unloaded += OnUnloaded;");
+        AssertDoesNotContain(tocPage, "Bindings.StopTracking();");
+    }
+
+    [TestMethod]
     public void WinUIFloatViewService_AnchorsEditorRelativeFlyoutsToEditorContainer()
     {
         var winuiRoot = Path.Combine(RepoRoot, "Dev", "Typedown.WinUI");
