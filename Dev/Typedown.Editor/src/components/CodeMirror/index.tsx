@@ -19,7 +19,6 @@ interface ICodeMirrorEditor {
 }
 
 const STANDAR_Y = 320
-const PROGRAMMATIC_CHANGE_GUARD_MS = 200
 
 const CodeMirrorEditor: React.FC<ICodeMirrorEditor> = (props) => {
     const [editor, setEditor] = useState<any>();
@@ -29,8 +28,6 @@ const CodeMirrorEditor: React.FC<ICodeMirrorEditor> = (props) => {
     const markdownRef = useRef('');
     const searchArgRef = useRef<any>();
     const cursorRef = useRef<any>();
-    const suppressProgrammaticContentChangeRef = useRef(false);
-    const programmaticChangeGuardTimerRef = useRef<number | undefined>(undefined);
 
     const relativeScroll = useCallback((delta: number) => {
         window.scrollBy(0, delta)
@@ -183,14 +180,6 @@ const CodeMirrorEditor: React.FC<ICodeMirrorEditor> = (props) => {
     useEffect(() => {
         if (markdownRef.current != props.markdown && editor) {
             markdownRef.current = props.markdown
-            suppressProgrammaticContentChangeRef.current = true
-            if (programmaticChangeGuardTimerRef.current !== undefined) {
-                clearTimeout(programmaticChangeGuardTimerRef.current)
-            }
-            programmaticChangeGuardTimerRef.current = window.setTimeout(() => {
-                suppressProgrammaticContentChangeRef.current = false
-                programmaticChangeGuardTimerRef.current = undefined
-            }, PROGRAMMATIC_CHANGE_GUARD_MS)
             const { anchor, head } = cursorRef.current ?? {}
             editor.setValue(markdownRef.current)
             if (anchor && head)
@@ -203,12 +192,6 @@ const CodeMirrorEditor: React.FC<ICodeMirrorEditor> = (props) => {
             }
         }
     }, [editor, props.markdown, props.scrollTopRef, search])
-
-    useEffect(() => () => {
-        if (programmaticChangeGuardTimerRef.current !== undefined) {
-            clearTimeout(programmaticChangeGuardTimerRef.current)
-        }
-    }, [])
 
     useEffect(() => {
         if (props.searchArg && editor) {
@@ -223,16 +206,6 @@ const CodeMirrorEditor: React.FC<ICodeMirrorEditor> = (props) => {
         cursorRef.current = { anchor, head }
     }, [editor, props.cursor])
 
-    useEffect(() => {
-        if (!editor) {
-            return
-        }
-
-        const tabSize = props.options?.tabSize ?? 4
-        editor.setOption('tabSize', tabSize)
-        editor.setOption('indentUnit', tabSize)
-    }, [editor, props.options?.tabSize])
-
     const handleCodeMirrorState = useCallback((value: string) => {
         const wordCount = { character: value.length, word: value.split(' ').length }
         const { toc } = getTOC(value)
@@ -243,9 +216,6 @@ const CodeMirrorEditor: React.FC<ICodeMirrorEditor> = (props) => {
     const handleCodeMirrorContent = useCallback((cm: any, data: any, value: string) => {
         handleCodeMirrorState(value)
         markdownRef.current = value;
-        if (suppressProgrammaticContentChangeRef.current) {
-            return
-        }
         props.onMarkdownChange(value)
     }, [handleCodeMirrorState, props])
 
@@ -316,9 +286,7 @@ const CodeMirrorEditor: React.FC<ICodeMirrorEditor> = (props) => {
                     theme: 'one-dark',
                     mode: 'markdown',
                     lineNumbers: true,
-                    lineWrapping: true,
-                    tabSize: props.options?.tabSize ?? 4,
-                    indentUnit: props.options?.tabSize ?? 4
+                    lineWrapping: true
                 }}
                 onChange={handleCodeMirrorContent}
                 onSelection={handleCodeMirrorSelection}

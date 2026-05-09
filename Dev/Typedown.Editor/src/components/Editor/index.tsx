@@ -19,19 +19,13 @@ const Editor: React.FC = () => {
     const [searchArg, setSearchArg] = useState<{ value: string, opt: any }>();
     const muyaScrollTopRef = useRef(0);
     const codeMirrorScrollRef = useRef(0);
-    const pendingLoadedMarkdownRef = useRef<string>();
 
-    const OnFileLoaded = useCallback(() => setTimeout(() => {
-        const loadedMarkdown = pendingLoadedMarkdownRef.current ?? markdownRef.current
-        transport.postMessage('FileLoaded', { text: loadedMarkdown })
-        pendingLoadedMarkdownRef.current = undefined
-    }, 100), [])
+    const OnFileLoaded = useCallback(() => setTimeout(() => transport.postMessage('FileLoaded', { text: markdownRef.current }), 100), [])
 
     useEffect(() => {
         remote.getSettings().then(({ markdown, basePath, ...opt }: any) => {
             window.basePath = basePath
             setOptions(opt)
-            pendingLoadedMarkdownRef.current = markdown
             setMarkdown(markdown)
             markdownRef.current = markdown
             OnFileLoaded();
@@ -71,7 +65,6 @@ const Editor: React.FC = () => {
     useEffect(() => transport.addListener<{ text: string, basePath: string }>('LoadFile', ({ text, basePath }) => {
         window.basePath = basePath
         setCursor(undefined)
-        pendingLoadedMarkdownRef.current = text
         setMarkdown(text)
         markdownRef.current = text
         OnFileLoaded();
