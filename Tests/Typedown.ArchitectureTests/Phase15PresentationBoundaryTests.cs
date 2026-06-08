@@ -247,7 +247,9 @@ public class Phase15PresentationBoundaryTests
         AssertDoesNotContain(sessionSource, "OpenNewWindow is not wired in the WinUI editor host yet");
 
         AssertContainsInOrder(appSource, "NewWindowCommand.OnExecute.Subscribe", "ProcessStartInfo", "UseShellExecute = true");
+        AssertContainsInOrder(appSource, "startInfo.ArgumentList.Add(Program.NewWindowArgument);", "startInfo.ArgumentList.Add(filePath);");
         AssertHasTypeReference(appSource, "Environment.ProcessPath");
+        AssertHasTypeReference(appSource, "Program.NewWindowArgument");
         AssertHasTypeReference(menuSource, "SetCommand(NewWindowItem, files?.NewWindowCommand);");
     }
 

@@ -36,17 +36,21 @@ public class Phase10PackagedFileActivationTests
     }
 
     [TestMethod]
-    public void FileActivationHelper_PrefersPackagedFileActivationPayloadOverRawEnvironmentArgs()
+    public void FileActivationHelper_UsesProgramCapturedActivationPayloadOverRawEnvironmentArgs()
     {
         var appSource = File.ReadAllText(Path.Combine(RepoRoot, "Dev", "Typedown.WinUI", "App.xaml.cs"));
+        var programSource = File.ReadAllText(Path.Combine(RepoRoot, "Dev", "Typedown.WinUI", "Program.cs"));
 
-        AssertContains(appSource, "var activationArgs = AppInstance.GetCurrent().GetActivatedEventArgs();");
-        AssertContains(appSource, "activationArgs?.Kind == ExtendedActivationKind.File");
-        AssertContains(appSource, "activationArgs.Data is FileActivatedEventArgsContract fileArgs");
+        AssertContains(programSource, "var initialActivationArgs = AppInstance.GetCurrent().GetActivatedEventArgs();");
+        AssertContains(programSource, "new App(initialActivationArgs, instanceRole, activationBroker);");
+        AssertDoesNotContain(appSource, "AppInstance.GetCurrent().GetActivatedEventArgs()");
+        AssertContains(appSource, "initialActivationArgs?.Kind == ExtendedActivationKind.File");
+        AssertContains(appSource, "initialActivationArgs.Data is FileActivatedEventArgsContract fileArgs");
         AssertContains(appSource, "fileArgs.Files");
         AssertContains(appSource, ".Select(x => x.Path)");
         AssertContains(appSource, "return [baseProcessPath, .. filePaths];");
-        AssertContains(appSource, "return Environment.GetCommandLineArgs();");
+        AssertContains(appSource, "return Environment.GetCommandLineArgs()");
+        AssertContains(appSource, "Program.NewWindowArgument");
     }
 
     private static void AssertContains(string source, string snippet)

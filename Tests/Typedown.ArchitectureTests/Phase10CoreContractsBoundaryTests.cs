@@ -530,16 +530,37 @@ public class Phase10CoreContractsBoundaryTests
     [TestMethod]
     public void AppAndActivationService_KeepStartupActivationPipelineAndCommandLineOpenNewWindowFlow()
     {
-        var appSource = File.ReadAllText(Path.Combine(RepoRoot, "Dev", "Typedown.WinUI", "App.xaml.cs"));
-        var activationSource = File.ReadAllText(Path.Combine(RepoRoot, "Dev", "Typedown.WinUI", "Services", "WinUIAppActivationService.cs"));
-        var platformSource = File.ReadAllText(Path.Combine(RepoRoot, "Dev", "Typedown.WinUI", "Services", "WinUIPlatformServices.cs"));
-        var pageSource = File.ReadAllText(Path.Combine(RepoRoot, "Dev", "Typedown.WinUI", "Views", "MainPage.xaml.cs"));
-        var rootSource = File.ReadAllText(Path.Combine(RepoRoot, "Dev", "Typedown.WinUI", "Controls", "RootControl.xaml.cs"));
+        var winuiRoot = Path.Combine(RepoRoot, "Dev", "Typedown.WinUI");
+        var appSource = File.ReadAllText(Path.Combine(winuiRoot, "App.xaml.cs"));
+        var projectSource = File.ReadAllText(Path.Combine(winuiRoot, "Typedown.WinUI.csproj"));
+        var programSource = File.ReadAllText(Path.Combine(winuiRoot, "Program.cs"));
+        var activationSource = File.ReadAllText(Path.Combine(winuiRoot, "Services", "WinUIAppActivationService.cs"));
+        var brokerSource = File.ReadAllText(Path.Combine(winuiRoot, "Services", "WinUIActivationBroker.cs"));
+        var platformSource = File.ReadAllText(Path.Combine(winuiRoot, "Services", "WinUIPlatformServices.cs"));
+        var activationContractSource = File.ReadAllText(Path.Combine(RepoRoot, "Dev", "Typedown.Presentation", "Interfaces", "IAppActivationService.cs"));
+        var pageSource = File.ReadAllText(Path.Combine(winuiRoot, "Views", "MainPage.xaml.cs"));
+        var rootSource = File.ReadAllText(Path.Combine(winuiRoot, "Controls", "RootControl.xaml.cs"));
+
+        AssertHasTypeReference(projectSource, "DISABLE_XAML_GENERATED_MAIN");
+        AssertContainsInOrder(
+            programSource,
+            "WinRT.ComWrappersSupport.InitializeComWrappers();",
+            "var initialActivationArgs = AppInstance.GetCurrent().GetActivatedEventArgs();",
+            "var mainInstance = AppInstance.FindOrRegisterForKey(MainInstanceKey);",
+            "RedirectActivationAndExit(mainInstance, initialActivationArgs);",
+            "Application.Start",
+            "new App(initialActivationArgs, instanceRole, activationBroker);");
+        AssertHasTypeReference(programSource, "internal const string MainInstanceKey");
+        AssertHasTypeReference(programSource, "internal const string NewWindowArgument");
+        AssertHasTypeReference(programSource, "HasNewWindowBypass(args)");
+        AssertHasTypeReference(programSource, "WinUIAppInstanceRole.Secondary");
+        AssertHasTypeReference(programSource, "RedirectActivationToAsync(initialActivationArgs)");
+        AssertHasTypeReference(programSource, "DispatcherQueueSynchronizationContext");
 
         AssertContainsInOrder(
             appSource,
             "var startupCommandLineArgs = ResolveStartupCommandLineArgs();",
-            "platformServices ??= new WinUIPlatformServices(window);",
+            "platformServices ??= new WinUIPlatformServices(window, activationBroker);",
             "if (rootServices is null)",
             "rootServices = new ServiceCollection()",
             ".AddSingleton(platformServices.WindowContext)",
@@ -560,13 +581,40 @@ public class Phase10CoreContractsBoundaryTests
         AssertHasTypeReference(platformSource, "new WinUIUiDispatcher(window.DispatcherQueue)");
         AssertHasTypeReference(platformSource, "new WinUIDialogService(WindowContext)");
         AssertHasTypeReference(platformSource, "new WinUIFilePickerService(WindowContext)");
-        AssertHasTypeReference(platformSource, "new WinUIAppActivationService(WindowContext)");
+        AssertHasTypeReference(platformSource, "new WinUIAppActivationService(WindowContext, activationBroker)");
 
+        AssertContainsInOrder(
+            brokerSource,
+            "this.appInstance.Activated += OnAppInstanceActivated;",
+            "public void FlushPendingActivations()",
+            "pendingActivations.Dequeue()",
+            "handler.Invoke(this, args);");
+        AssertContainsInOrder(brokerSource, "handler = activationReceived;", "pendingActivations.Enqueue(args);");
+        AssertHasTypeReference(brokerSource, "appInstance.Activated -= OnAppInstanceActivated");
+
+        AssertHasTypeReference(activationContractSource, "public enum AppActivationSource");
+        AssertHasTypeReference(activationContractSource, "InitialLaunch");
+        AssertHasTypeReference(activationContractSource, "Redirected");
+        AssertHasTypeReference(activationContractSource, "public AppActivationSource Source");
         AssertContainsInOrder(
             activationSource,
             "var userArgs = commandLineArgs?.Skip(1).ToArray() ?? Array.Empty<string>();",
             "var kind = ResolveKind(userArgs);",
-            "var request = new AppActivationRequest(kind, userArgs);");
+            "var request = new AppActivationRequest(kind, userArgs, AppActivationSource.InitialLaunch);");
+        AssertContainsInOrder(
+            activationSource,
+            "activationBroker.ActivationReceived += OnBrokerActivationReceived;",
+            "activationBroker.FlushPendingActivations();");
+        AssertContainsInOrder(
+            activationSource,
+            "await activeDispatcher.RunAsync(() =>",
+            "windowContext.Activate();",
+            "DispatchActivationRequest(request);");
+        AssertContainsInOrder(
+            activationSource,
+            "CreateActivationRequest(AppActivationArguments args, AppActivationSource source)",
+            "new AppActivationRequest(AppActivationKind.OpenFileRequest, filePaths, source)",
+            "new AppActivationRequest(ResolveKind(commandLineArgs, AppActivationKind.ForwardedToExistingInstance), commandLineArgs, source)");
         AssertContainsInOrder(
             activationSource,
             "if (commandLineArgs is null || commandLineArgs.Length == 0)",
@@ -574,15 +622,21 @@ public class Phase10CoreContractsBoundaryTests
             "return File.Exists(commandLineArgs[0])",
             "? AppActivationKind.OpenFileRequest",
             ": AppActivationKind.FirstLaunch;");
+        AssertNoTypeReference(activationSource, "AppInstance.GetCurrent().Activated");
         AssertHasTypeReference(activationSource, "public void StartListening(IUiDispatcher dispatcher)");
-        AssertHasTypeReference(appSource, "private static string[] ResolveStartupCommandLineArgs()");
-        AssertHasTypeReference(appSource, "AppInstance.GetCurrent().GetActivatedEventArgs()");
-        AssertHasTypeReference(appSource, "ExtendedActivationKind.File");
+        AssertHasTypeReference(appSource, "private string[] ResolveStartupCommandLineArgs()");
+        AssertNoTypeReference(appSource, "AppInstance.GetCurrent().GetActivatedEventArgs()");
+        AssertHasTypeReference(appSource, "initialActivationArgs?.Kind == ExtendedActivationKind.File");
         AssertHasTypeReference(appSource, "IFileActivatedEventArgs");
+        AssertHasTypeReference(appSource, "ActivationRequested += OnActivationRequested");
+        AssertContainsInOrder(appSource, "request.Source == AppActivationSource.InitialLaunch", "return platformServices.WindowContext.WindowHandle;");
+        AssertContainsInOrder(appSource, "platformServices.WindowContext.Activate();", "OpenRedirectedFileAsync(filePath)");
+        AssertContainsInOrder(appSource, "OpenRedirectedFileAsync", "FileViewModel", "OpenFile(filePath)", "Debug.WriteLine(ex);");
         AssertHasTypeReference(appSource, "NewWindowCommand.OnExecute.Subscribe");
         AssertHasTypeReference(appSource, "ProcessStartInfo");
         AssertHasTypeReference(appSource, "Environment.ProcessPath");
         AssertHasTypeReference(appSource, "UseShellExecute = true");
+        AssertHasTypeReference(appSource, "Program.NewWindowArgument");
         AssertHasTypeReference(appSource, "private sealed record MainPageNavigationContext");
         AssertHasTypeReference(appSource, "RootControl");
         AssertHasTypeReference(rootSource, "Frame.Navigate(typeof(Views.MainPage), MainPageNavigationParameter)");

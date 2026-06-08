@@ -47,8 +47,11 @@ public class Phase14StartupBehaviorTests
         AssertContains(appSource, "private void OnAppWindowClosing(AppWindow sender, AppWindowClosingEventArgs args)");
         AssertContains(appSource, "args.Cancel = true;");
         AssertContains(appSource, "_ = HandleAppWindowClosingAsync(sender);");
-        AssertContains(appSource, "if (appViewModel?.SettingsViewModel.KeepRun == true)");
+        AssertContains(appSource, "if (instanceRole == WinUIAppInstanceRole.Main");
+        AssertContains(appSource, "&& appViewModel?.SettingsViewModel.KeepRun == true)");
         AssertContains(appSource, "sender.Hide();");
+        AssertContains(appSource, "allowWindowClose = true;");
+        AssertContains(appSource, "window?.Close();");
         AssertContains(windowContextSource, "window.AppWindow.Show();");
         AssertContains(windowContextSource, "window.Activate();");
     }

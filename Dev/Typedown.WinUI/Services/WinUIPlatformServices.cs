@@ -6,7 +6,7 @@ namespace Typedown.WinUI.Services
 {
     internal sealed class WinUIPlatformServices
     {
-        public WinUIPlatformServices(Window window)
+        public WinUIPlatformServices(Window window, WinUIActivationBroker? activationBroker = null)
         {
             if (window is null)
             {
@@ -19,7 +19,7 @@ namespace Typedown.WinUI.Services
             WebViewEnvironmentService = new WinUIWebViewEnvironmentService(AppDataPathProvider);
             DialogService = new WinUIDialogService(WindowContext);
             FilePickerService = new WinUIFilePickerService(WindowContext);
-            AppActivationService = new WinUIAppActivationService(WindowContext);
+            AppActivationService = new WinUIAppActivationService(WindowContext, activationBroker);
         }
 
         public IAppDataPathProvider AppDataPathProvider { get; }

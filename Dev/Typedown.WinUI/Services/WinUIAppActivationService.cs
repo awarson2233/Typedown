@@ -14,13 +14,15 @@ namespace Typedown.WinUI.Services
     internal sealed class WinUIAppActivationService : IAppActivationService, IDisposable
     {
         private readonly IWindowContext windowContext;
+        private readonly WinUIActivationBroker? activationBroker;
         private IUiDispatcher? dispatcher;
         private bool isListening;
         private bool disposed;
 
-        public WinUIAppActivationService(IWindowContext windowContext)
+        public WinUIAppActivationService(IWindowContext windowContext, WinUIActivationBroker? activationBroker = null)
         {
             this.windowContext = windowContext ?? throw new ArgumentNullException(nameof(windowContext));
+            this.activationBroker = activationBroker;
         }
 
         public event Func<AppActivationRequest, nint>? ActivationRequested;
@@ -29,7 +31,7 @@ namespace Typedown.WinUI.Services
         {
             var userArgs = commandLineArgs?.Skip(1).ToArray() ?? Array.Empty<string>();
             var kind = ResolveKind(userArgs);
-            var request = new AppActivationRequest(kind, userArgs);
+            var request = new AppActivationRequest(kind, userArgs, AppActivationSource.InitialLaunch);
             return DispatchActivationRequest(request);
         }
 
@@ -47,7 +49,12 @@ namespace Typedown.WinUI.Services
                 return;
             }
 
-            AppInstance.GetCurrent().Activated += OnAppInstanceActivated;
+            if (activationBroker is not null)
+            {
+                activationBroker.ActivationReceived += OnBrokerActivationReceived;
+                activationBroker.FlushPendingActivations();
+            }
+
             isListening = true;
         }
 
@@ -58,7 +65,11 @@ namespace Typedown.WinUI.Services
                 return;
             }
 
-            AppInstance.GetCurrent().Activated -= OnAppInstanceActivated;
+            if (activationBroker is not null)
+            {
+                activationBroker.ActivationReceived -= OnBrokerActivationReceived;
+            }
+
             isListening = false;
             dispatcher = null;
         }
@@ -75,19 +86,24 @@ namespace Typedown.WinUI.Services
             disposed = true;
         }
 
-        private async void OnAppInstanceActivated(object? sender, AppActivationArguments args)
+        private async void OnBrokerActivationReceived(object? sender, AppActivationArguments args)
         {
             try
             {
-                var request = CreateActivationRequest(args);
+                var request = CreateActivationRequest(args, AppActivationSource.Redirected);
                 var activeDispatcher = dispatcher;
                 if (activeDispatcher is null)
                 {
+                    windowContext.Activate();
                     DispatchActivationRequest(request);
                     return;
                 }
 
-                await activeDispatcher.RunAsync(() => DispatchActivationRequest(request));
+                await activeDispatcher.RunAsync(() =>
+                {
+                    windowContext.Activate();
+                    DispatchActivationRequest(request);
+                });
             }
             catch (Exception ex)
             {
@@ -117,16 +133,16 @@ namespace Typedown.WinUI.Services
             return new AppActivationResult(request.Kind, requestedHandle);
         }
 
-        private static AppActivationRequest CreateActivationRequest(AppActivationArguments args)
+        private static AppActivationRequest CreateActivationRequest(AppActivationArguments args, AppActivationSource source)
         {
             var filePaths = GetActivatedFilePaths(args).ToArray();
             if (filePaths.Length > 0)
             {
-                return new AppActivationRequest(AppActivationKind.OpenFileRequest, filePaths);
+                return new AppActivationRequest(AppActivationKind.OpenFileRequest, filePaths, source);
             }
 
             var commandLineArgs = GetCommandLineArgs(args).ToArray();
-            return new AppActivationRequest(ResolveKind(commandLineArgs, AppActivationKind.ForwardedToExistingInstance), commandLineArgs);
+            return new AppActivationRequest(ResolveKind(commandLineArgs, AppActivationKind.ForwardedToExistingInstance), commandLineArgs, source);
         }
 
         private static IEnumerable<string> GetActivatedFilePaths(AppActivationArguments args)

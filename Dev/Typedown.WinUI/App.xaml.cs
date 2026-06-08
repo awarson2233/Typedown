@@ -30,6 +30,9 @@ namespace Typedown.WinUI
     /// </summary>
     public partial class App : Application
     {
+        private readonly AppActivationArguments? initialActivationArgs;
+        private readonly WinUIAppInstanceRole instanceRole;
+        private readonly WinUIActivationBroker? activationBroker;
         private Window? window;
         private WinUIPlatformServices? platformServices;
         private ServiceProvider? rootServices;
@@ -46,7 +49,18 @@ namespace Typedown.WinUI
         /// executed, and as such is the logical equivalent of main() or WinMain().
         /// </summary>
         public App()
+            : this(null, WinUIAppInstanceRole.Main, null)
         {
+        }
+
+        internal App(
+            AppActivationArguments? initialActivationArgs,
+            WinUIAppInstanceRole instanceRole,
+            WinUIActivationBroker? activationBroker)
+        {
+            this.initialActivationArgs = initialActivationArgs;
+            this.instanceRole = instanceRole;
+            this.activationBroker = activationBroker;
             Config.SetAppDataPathProvider(new WinUIAppDataPathProvider());
             WinUILocale.ApplyPersistedLanguageOverride();
 
@@ -94,7 +108,7 @@ namespace Typedown.WinUI
                 appWindow.Closing += OnAppWindowClosing;
             }
 
-            platformServices ??= new WinUIPlatformServices(window);
+            platformServices ??= new WinUIPlatformServices(window, activationBroker);
             platformServices.WebViewEnvironmentService.StartPrewarm();
             Config.SetAppDataPathProvider(platformServices.AppDataPathProvider);
             WinUILocale.ApplyPersistedLanguageOverride();
@@ -170,7 +184,7 @@ namespace Typedown.WinUI
             StartupTrace.Mark("Window activated");
         }
 
-        private static string[] ResolveStartupCommandLineArgs()
+        private string[] ResolveStartupCommandLineArgs()
         {
             var baseProcessPath = Environment.ProcessPath
                 ?? Environment.GetCommandLineArgs().FirstOrDefault()
@@ -178,9 +192,8 @@ namespace Typedown.WinUI
 
             try
             {
-                var activationArgs = AppInstance.GetCurrent().GetActivatedEventArgs();
-                if (activationArgs?.Kind == ExtendedActivationKind.File
-                    && activationArgs.Data is FileActivatedEventArgsContract fileArgs)
+                if (initialActivationArgs?.Kind == ExtendedActivationKind.File
+                    && initialActivationArgs.Data is FileActivatedEventArgsContract fileArgs)
                 {
                     var filePaths = fileArgs.Files
                         .Select(x => x.Path)
@@ -198,7 +211,9 @@ namespace Typedown.WinUI
                 // Fall back to the raw command line when packaged activation data is unavailable.
             }
 
-            return Environment.GetCommandLineArgs();
+            return Environment.GetCommandLineArgs()
+                .Where(x => !string.Equals(x, Program.NewWindowArgument, StringComparison.OrdinalIgnoreCase))
+                .ToArray();
         }
 
         private static void ConfigureNativeTitleBar(Window targetWindow)
@@ -240,7 +255,8 @@ namespace Typedown.WinUI
                     return;
                 }
 
-                if (appViewModel?.SettingsViewModel.KeepRun == true)
+                if (instanceRole == WinUIAppInstanceRole.Main
+                    && appViewModel?.SettingsViewModel.KeepRun == true)
                 {
                     sender.Hide();
                     return;
@@ -269,6 +285,7 @@ namespace Typedown.WinUI
 
             shellBindings.Dispose();
             (platformServices?.AppActivationService as IDisposable)?.Dispose();
+            activationBroker?.Dispose();
             uiScope?.Dispose();
             rootServices?.Dispose();
             uiScope = null;
@@ -331,12 +348,56 @@ namespace Typedown.WinUI
                 .Subscribe(rootControl.SetAnimationEnabled));
             shellBindings.Add(appViewModel.FileViewModel.NewWindowCommand.OnExecute.Subscribe(OpenNewWindowInNewProcess));
 
+            if (platformServices is not null)
+            {
+                var activationService = platformServices.AppActivationService;
+                activationService.ActivationRequested += OnActivationRequested;
+                shellBindings.Add(Disposable.Create(() => activationService.ActivationRequested -= OnActivationRequested));
+            }
+
             ApplyAppTheme(settings.AppTheme);
             ApplyMicaEffect(settings.UseMicaEffect);
             ApplyTopmost(settings.Topmost);
             ApplyEditorBackground(settings);
             rootControl.SetAnimationEnabled(settings.AnimationEnable);
             SyncActualTheme(rootControl.ActualTheme);
+        }
+
+        private nint OnActivationRequested(AppActivationRequest request)
+        {
+            if (platformServices is null)
+            {
+                return default;
+            }
+
+            if (request.Source == AppActivationSource.InitialLaunch)
+            {
+                return platformServices.WindowContext.WindowHandle;
+            }
+
+            platformServices.WindowContext.Activate();
+            var filePath = CommandLine.GetOpenFilePath(request.CommandLineArgs);
+            if (!string.IsNullOrWhiteSpace(filePath))
+            {
+                _ = OpenRedirectedFileAsync(filePath);
+            }
+
+            return platformServices.WindowContext.WindowHandle;
+        }
+
+        private async Task OpenRedirectedFileAsync(string filePath)
+        {
+            try
+            {
+                if (appViewModel?.FileViewModel is { } fileViewModel)
+                {
+                    await fileViewModel.OpenFile(filePath);
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine(ex);
+            }
         }
 
         private static void OpenNewWindowInNewProcess(string? filePath)
@@ -352,6 +413,8 @@ namespace Typedown.WinUI
                 FileName = processPath,
                 UseShellExecute = true
             };
+
+            startInfo.ArgumentList.Add(Program.NewWindowArgument);
 
             if (!string.IsNullOrWhiteSpace(filePath))
             {

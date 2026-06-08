@@ -10,17 +10,29 @@ namespace Typedown.Presentation.Interfaces
         OpenFileRequest
     }
 
+    public enum AppActivationSource
+    {
+        InitialLaunch,
+        Redirected
+    }
+
     public sealed class AppActivationRequest
     {
-        public AppActivationRequest(AppActivationKind kind, string[] commandLineArgs)
+        public AppActivationRequest(
+            AppActivationKind kind,
+            string[] commandLineArgs,
+            AppActivationSource source = AppActivationSource.InitialLaunch)
         {
             Kind = kind;
             CommandLineArgs = commandLineArgs ?? Array.Empty<string>();
+            Source = source;
         }
 
         public AppActivationKind Kind { get; }
 
         public string[] CommandLineArgs { get; }
+
+        public AppActivationSource Source { get; }
     }
 
     public sealed class AppActivationResult
