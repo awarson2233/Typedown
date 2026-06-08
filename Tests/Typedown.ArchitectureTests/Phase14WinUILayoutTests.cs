@@ -131,6 +131,20 @@ public class Phase14WinUILayoutTests
     }
 
     [TestMethod]
+    public void EditorHostSizeChanges_RequestWebScrollStateRefresh()
+    {
+        var winuiRoot = Path.Combine(RepoRoot, "Dev", "Typedown.WinUI");
+        var editorContainer = File.ReadAllText(Path.Combine(winuiRoot, "Controls", "EditorControls", "EditorContainer.xaml.cs"));
+        var scrollbarService = File.ReadAllText(Path.Combine(RepoRoot, "Dev", "Typedown.Editor", "src", "services", "scrollbar.ts"));
+
+        AssertContains(editorContainer, "RequestScrollStateRefresh();");
+        AssertContains(editorContainer, "private void RequestScrollStateRefresh()");
+        AssertContains(editorContainer, "IEditorCommandSink");
+        AssertContains(editorContainer, "Send(\"RefreshScrollState\", null)");
+        AssertContains(scrollbarService, "transport.addListener('RefreshScrollState', postScrollState)");
+    }
+
+    [TestMethod]
     public void StatusBar_WiresWordCountToEditorRuntimeState()
     {
         var winuiRoot = Path.Combine(RepoRoot, "Dev", "Typedown.WinUI");
@@ -140,7 +154,8 @@ public class Phase14WinUILayoutTests
         var editorViewModel = File.ReadAllText(Path.Combine(RepoRoot, "Dev", "Typedown.Presentation", "ViewModels", "EditorViewModel.cs"));
 
         AssertContains(settingsViewModel, "public int WordCountMethod");
-        AssertContains(editorViewModel, "ContentState = arg[\"state\"].ToObject<ContentState>();");
+        AssertContains(editorViewModel, "var contentState = arg[\"state\"]?.ToObject<ContentState>();");
+        AssertContains(editorViewModel, "ContentState = contentState;");
         AssertContains(statusBar, "SelectedIndex=\"{x:Bind Settings.WordCountMethod, Mode=TwoWay}\"");
         AssertContains(statusBar, "Text=\"{x:Bind Editor.ContentState.WordCount.Character, Mode=OneWay}\"");
         AssertContains(statusBar, "Text=\"{x:Bind Editor.ContentState.WordCount.Word, Mode=OneWay}\"");
@@ -201,8 +216,8 @@ public class Phase14WinUILayoutTests
         AssertContains(fileViewModel, "RunAfterInitialEditorFileLoadedAsync");
         AssertContains(fileViewModel, "SettingsViewModel.LastFilePath");
         AssertContains(fileViewModel, "SettingsViewModel.LastFolderPath");
-        AssertContains(settingsViewModel, "public string LastFilePath");
-        AssertContains(settingsViewModel, "public string LastFolderPath");
+        AssertContains(settingsViewModel, "public string? LastFilePath");
+        AssertContains(settingsViewModel, "public string? LastFolderPath");
         AssertDoesNotContain(accessHistory, "_ = UpdateRecentlyOpened();");
         AssertContains(accessHistory, "initializationTask ??= UpdateRecentlyOpened();");
         AssertDoesNotContain(fileExport, "Initialize();");

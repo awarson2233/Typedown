@@ -2,7 +2,7 @@ export const adjustCursor = (cursor, preline, line, nextline) => {
     let newCursor = Object.assign({}, { line: cursor.line, ch: cursor.ch })
     // It's need to adjust the cursor when cursor is at begin or end in table row.
     if (/\|[^|]+\|.+\|\s*$/.test(line)) {
-        if (/\|\s*:?-+:?\s*\|[:-\s|]+\|\s*$/.test(line)) { // cursor in `| --- | :---: |` :the second line of table
+        if (/\|\s*:?-+:?\s*\|[:-\s|]+\|\s*$/.test(line) && typeof nextline === 'string') { // cursor in `| --- | :---: |` :the second line of table
             newCursor.line += 1 // reset the cursor to the next line
             newCursor.ch = nextline.indexOf('|') + 1
         } else { // cursor is not at the second line to table

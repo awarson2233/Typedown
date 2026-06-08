@@ -1,10 +1,10 @@
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Navigation;
+using System.ComponentModel;
 using Typedown.Core.Enums;
-using Typedown.Presentation.Utilities;
 using Typedown.Presentation.ViewModels;
-using Windows.Globalization;
+using Typedown.WinUI.Utilities;
 
 namespace Typedown.WinUI.Pages.SettingPages
 {
@@ -15,6 +15,8 @@ namespace Typedown.WinUI.Pages.SettingPages
         public SettingsViewModel? SettingsViewModel { get; private set; }
 
         public SettingsViewModel? Settings => ViewModel?.SettingsViewModel;
+
+        private SettingsViewModel? subscribedSettings;
 
         public GeneralPage()
         {
@@ -28,9 +30,17 @@ namespace Typedown.WinUI.Pages.SettingPages
 
             if (e.Parameter is SettingsNavigationParameter parameter)
             {
+                if (!ReferenceEquals(subscribedSettings, parameter.SettingsViewModel))
+                {
+                    DetachSettingsChangeHandler();
+                    subscribedSettings = parameter.SettingsViewModel;
+                    subscribedSettings.PropertyChanged += OnSettingsPropertyChanged;
+                }
+
                 ViewModel = parameter.AppViewModel;
                 SettingsViewModel = parameter.SettingsViewModel;
                 DataContext = ViewModel;
+                Bindings.StopTracking();
                 Bindings.Update();
             }
         }
@@ -44,10 +54,7 @@ namespace Typedown.WinUI.Pages.SettingPages
         {
             try
             {
-                var settingLanguage = settingLang;
-                var currentLanguage = ApplicationLanguages.PrimaryLanguageOverride;
-                return Locale.SupportedLangs.ContainsKey(settingLanguage) != Locale.SupportedLangs.ContainsKey(currentLanguage)
-                    || (Locale.SupportedLangs.ContainsKey(settingLanguage) && settingLanguage != currentLanguage);
+                return WinUILocale.IsRestartRequiredForLanguage(settingLang);
             }
             catch
             {
@@ -55,8 +62,29 @@ namespace Typedown.WinUI.Pages.SettingPages
             }
         }
 
+        private void OnSettingsPropertyChanged(object? sender, PropertyChangedEventArgs e)
+        {
+            if (string.IsNullOrEmpty(e.PropertyName)
+                || e.PropertyName == nameof(SettingsViewModel.FolderStartupAction)
+                || e.PropertyName == nameof(SettingsViewModel.Language))
+            {
+                Bindings.Update();
+            }
+        }
+
         private void OnUnloaded(object sender, RoutedEventArgs e)
         {
+            DetachSettingsChangeHandler();
+            Bindings.StopTracking();
+        }
+
+        private void DetachSettingsChangeHandler()
+        {
+            if (subscribedSettings is not null)
+            {
+                subscribedSettings.PropertyChanged -= OnSettingsPropertyChanged;
+                subscribedSettings = null;
+            }
         }
     }
 }

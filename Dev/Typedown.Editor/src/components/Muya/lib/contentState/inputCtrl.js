@@ -4,30 +4,6 @@ import { beginRules } from '../parser/rules'
 import { tokenizer } from '../parser/'
 import { CLASS_OR_ID } from '../config'
 
-const BRACKET_HASH = {
-  '{': '}',
-  '[': ']',
-  '(': ')',
-  '*': '*',
-  _: '_',
-  '"': '"',
-  '\'': '\'',
-  $: '$',
-  '~': '~'
-}
-
-const BACK_HASH = {
-  '}': '{',
-  ']': '[',
-  ')': '(',
-  '*': '*',
-  _: '_',
-  '"': '"',
-  '\'': '\'',
-  $: '$',
-  '~': '~'
-}
-
 // TODO: refactor later.
 let renderCodeBlockTimer = null
 
@@ -37,18 +13,6 @@ const inputCtrl = ContentState => {
     const { type, text, functionType } = block
     if (type !== 'span' || functionType !== 'paragraphContent') return false
     return /^@\S*$/.test(text)
-  }
-
-  ContentState.prototype.checkCursorInTokenType = function (functionType, text, offset, type) {
-    if (!/atxLine|paragraphContent|cellContent/.test(functionType)) {
-      return false
-    }
-
-    const tokens = tokenizer(text, {
-      hasBeginRules: false,
-      options: this.muya.options
-    })
-    return tokens.filter(t => t.type === type).some(t => offset >= t.range.start && offset <= t.range.end)
   }
 
   ContentState.prototype.checkNotSameToken = function (functionType, oldText, text) {
@@ -182,70 +146,19 @@ const inputCtrl = ContentState => {
         start.offset === end.offset &&
         event.type === 'input'
       ) {
-        const { offset } = start
-        const { autoPairBracket, autoPairMarkdownSyntax, autoPairQuote } = this.muya.options
-        const inputChar = text.charAt(+offset - 1)
-        const preInputChar = text.charAt(+offset - 2)
-        const prePreInputChar = text.charAt(+offset - 3)
-        const postInputChar = text.charAt(+offset)
+        const pairResult = this.resolveTypingPairing({
+          block,
+          text,
+          start,
+          end,
+          event
+        })
 
-        if (/^delete/.test(event.inputType)) {
-          // handle `deleteContentBackward` or `deleteContentForward`
-          const deletedChar = block.text[offset]
-          if (event.inputType === 'deleteContentBackward' && postInputChar === BRACKET_HASH[deletedChar]) {
-            needRender = true
-            text = text.substring(0, offset) + text.substring(offset + 1)
-          }
-          if (event.inputType === 'deleteContentForward' && inputChar === BACK_HASH[deletedChar]) {
-            needRender = true
-            start.offset -= 1
-            end.offset -= 1
-            text = text.substring(0, offset - 1) + text.substring(offset)
-          }
-          /* eslint-disable no-useless-escape */
-        } else if (
-          (event.inputType.indexOf('delete') === -1) &&
-          (inputChar === postInputChar) &&
-          (
-            (autoPairQuote && /[']{1}/.test(inputChar)) ||
-            (autoPairQuote && /["]{1}/.test(inputChar)) ||
-            (autoPairBracket && /[\}\]\)]{1}/.test(inputChar)) ||
-            (autoPairMarkdownSyntax && /[$]{1}/.test(inputChar)) ||
-            (autoPairMarkdownSyntax && /[*$`~_]{1}/.test(inputChar)) && /[_*~]{1}/.test(prePreInputChar)
-          )
-        ) {
-          needRender = true
-          text = text.substring(0, offset) + text.substring(offset + 1)
-        } else {
-          /* eslint-disable no-useless-escape */
-          // Not Unicode aware, since things like \p{Alphabetic} or \p{L} are not supported yet
-          const isInInlineMath = this.checkCursorInTokenType(block.functionType, text, offset, 'inline_math')
-          const isInInlineCode = this.checkCursorInTokenType(block.functionType, text, offset, 'inline_code')
-          if (
-            // Issue 2566: Do not complete markdown syntax if the previous character is
-            // alphanumeric.
-            !/\\/.test(preInputChar) &&
-            ((autoPairQuote && /[']{1}/.test(inputChar) && !(/[\S]{1}/.test(postInputChar)) && !(/[a-zA-Z\d]{1}/.test(preInputChar))) ||
-              (autoPairQuote && /["]{1}/.test(inputChar) && !(/[\S]{1}/.test(postInputChar))) ||
-              (autoPairBracket && /[\{\[\(]{1}/.test(inputChar) && !(/[\S]{1}/.test(postInputChar))) ||
-              (block.functionType !== 'codeContent' && !isInInlineMath && !isInInlineCode && autoPairMarkdownSyntax && !/[a-z0-9]{1}/i.test(preInputChar) && /[*$`~_]{1}/.test(inputChar)))
-          ) {
-            needRender = true
-            text = BRACKET_HASH[event.data]
-              ? text.substring(0, offset) + BRACKET_HASH[inputChar] + text.substring(offset)
-              : text
-          }
-          /* eslint-enable no-useless-escape */
-          // Delete the last `*` of `**` when you insert one space between `**` to create a bullet list.
-          if (
-            /\s/.test(event.data) &&
-            /^\* /.test(text) &&
-            preInputChar === '*' &&
-            postInputChar === '*'
-          ) {
-            text = text.substring(0, offset) + text.substring(offset + 1)
-            needRender = true
-          }
+        if (pairResult) {
+          needRender = needRender || pairResult.needRender
+          text = pairResult.text
+          start.offset = pairResult.startOffset
+          end.offset = pairResult.endOffset
         }
       }
 

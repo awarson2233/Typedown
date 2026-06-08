@@ -33,24 +33,22 @@ git clone https://github.com/byxiaozhi/Typedown
 This will create a local copy of the repository.
 
 ### 3. Build the project
-First go to the directory `Typedown\Dev\Typedown.Editor` and run `yarn && yarn build`
+Build the editor bundle first when the frontend changed or when `Typedown\Dev\Typedown.WinUI\Resources\Statics\index.html` is missing.
 
 ```ps
 cd Typedown\Dev\Typedown.Editor
-yarn && yarn build
+yarn
+yarn build
 ```
 ![20240319232236_rec_](https://github.com/byxiaozhi/Typedown/assets/31278216/3f038707-9311-4aad-846b-a22e8bad6857)
 
-After finishing the compilation of `Typedown.Editor`, you can see the generated product in the directory `Typedown\Dev\Typedown.WinUI\Resources\Statics`.
+`yarn build` writes the compiled WebView bundle directly into `Typedown\Dev\Typedown.WinUI\Resources\Statics`. The WinUI project does not rebuild this bundle during normal startup/build; it only copies the existing files into its output and package payload.
 
-Then use VisualStudio 2022 to open `Typedown\Typedown.sln`, right-click on the Typedown project and select Set as Startup Project.
+Then use Visual Studio 2022 to open `Typedown\Typedown.sln`, right-click the `Typedown.WinUI` project, and select Set as Startup Project.
 
-In the top pane, select the solution configuration you want to build in, the difference between these configurations is as follows
-- Debug: The `Typedown.Editor` will be accessed using the http://localhost:3000 address, to use this configuration you need to also start the Typedown.Editor project using yarn start in the Typedown\Dev\Typedown.Editor directory.
-- Debug_Local: The `Typedown.Editor` will be accessed using the compiled product (Typedown\Dev\Typedown.WinUI\Resources\Statics)
-- Release: Used when releasing a project
+For daily local development, use `Debug_Local` and one of the supported platforms (`x64` or `ARM64`). If you rebuild only the editor bundle, rebuild or restart the WinUI project afterwards so `bin\...\Resources\Statics` receives the latest files.
 
-Then select the platform you want to build on (x64, x86, or arm64) and click Run!
+Then select the platform you want to build on and click Run!
 
 ![20240319232529_rec_](https://github.com/byxiaozhi/Typedown/assets/31278216/50ef6e56-b177-49b0-b361-83659d25a40e)
 

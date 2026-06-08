@@ -65,6 +65,10 @@
         <Content Include="Resources\Strings\**\*.resw" CopyToOutputDirectory="PreserveNewest" />
     </ItemGroup>
 
+    <ItemGroup Condition="'$(TypedownEditorStaticBundleStagingPath)'!='Resources\Statics'">
+        <Content Include="$(TypedownEditorStaticBundleStagingPath)\**\*" CopyToOutputDirectory="Always" CopyToPublishDirectory="Always" />
+    </ItemGroup>
+
     <ItemGroup>
         <PackageReference Include="CommunityToolkit.WinUI.Controls.SettingsControls" Version="8.2.251219" />
         <ProjectReference Include="..\Typedown.Core\Typedown.Core.csproj" />
@@ -96,6 +100,15 @@
     <PropertyGroup Condition="'$(DisableHasPackageAndPublishMenuAddedByProject)'!='true' and '$(EnableMsixTooling)'=='true'">
         <HasPackageAndPublishMenu>true</HasPackageAndPublishMenu>
     </PropertyGroup>
+
+    <Target Name="BuildTypedownEditorStaticBundle">
+        <Exec WorkingDirectory="$(MSBuildProjectDirectory)\..\Typedown.Editor" Command="yarn build" EnvironmentVariables="TYPEDOWN_EDITOR_BUILD_OUTPUT=$(MSBuildProjectDirectory)\$(TypedownEditorStaticBundleStagingPath)" />
+        <Error Condition="!Exists('$(MSBuildProjectDirectory)\$(TypedownEditorStaticBundleStagingPath)\index.html')" Text="Typedown.Editor static bundle was not generated. Run the BuildTypedownEditorStaticBundle target or yarn build in Dev\Typedown.Editor." />
+        <ItemGroup>
+            <Content Remove="$(TypedownEditorStaticBundleStagingPath)\**\*" />
+            <Content Include="$(TypedownEditorStaticBundleStagingPath)\**\*" CopyToOutputDirectory="Always" CopyToPublishDirectory="Always" />
+        </ItemGroup>
+    </Target>
 
     <Target Name="AddEditorStaticBundleToPackagingOutputs" AfterTargets="GetPackagingOutputs" BeforeTargets="_ComputeAppxPackagePayload">
         <ItemGroup>

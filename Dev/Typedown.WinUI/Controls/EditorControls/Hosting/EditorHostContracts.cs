@@ -1,3 +1,5 @@
+using System;
+using System.Collections.Generic;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
@@ -34,6 +36,75 @@ namespace Typedown.WinUI.Controls
     internal interface IEditorHostSink
     {
         bool Send(EditorHostMessage message);
+    }
+
+    internal sealed class PendingRawMessageQueue
+    {
+        internal const int DefaultCapacity = 128;
+        internal const int DefaultMaxRetryCount = 3;
+
+        private readonly Queue<PendingRawMessage> messages = new();
+        private readonly int capacity;
+        private readonly int maxRetryCount;
+
+        public PendingRawMessageQueue(int capacity = DefaultCapacity, int maxRetryCount = DefaultMaxRetryCount)
+        {
+            this.capacity = Math.Max(1, capacity);
+            this.maxRetryCount = Math.Max(1, maxRetryCount);
+        }
+
+        public int Count => messages.Count;
+
+        public void Enqueue(string payload, bool requireContentLoaded)
+        {
+            if (messages.Count >= capacity)
+            {
+                _ = messages.Dequeue();
+            }
+
+            messages.Enqueue(new PendingRawMessage(payload, requireContentLoaded, 0));
+        }
+
+        public void Clear()
+        {
+            messages.Clear();
+        }
+
+        public void Flush(Func<string, bool> sender, bool isContentLoaded)
+        {
+            var remaining = messages.Count;
+            while (remaining > 0 && messages.Count > 0)
+            {
+                remaining--;
+                var message = messages.Dequeue();
+                if (message.RequireContentLoaded && !isContentLoaded)
+                {
+                    messages.Enqueue(message);
+                    continue;
+                }
+
+                if (sender(message.Payload))
+                {
+                    continue;
+                }
+
+                var failedMessage = message with { RetryCount = message.RetryCount + 1 };
+                if (failedMessage.RetryCount < maxRetryCount)
+                {
+                    var remainingMessages = messages.ToArray();
+                    messages.Clear();
+                    messages.Enqueue(failedMessage);
+                    foreach (var remainingMessage in remainingMessages)
+                    {
+                        messages.Enqueue(remainingMessage);
+                    }
+
+                    break;
+                }
+            }
+        }
+
+        private sealed record PendingRawMessage(string Payload, bool RequireContentLoaded, int RetryCount);
     }
 
     internal sealed record EditorEventMessage(string Name, JsonElement? Args);

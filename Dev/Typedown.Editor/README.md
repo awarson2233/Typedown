@@ -1,46 +1,30 @@
-# Getting Started with Create React App
+# Typedown.Editor
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+This React editor bundle is hosted by `Typedown.WinUI` through WebView2.
 
-## Available Scripts
+## Build the WebView bundle
 
-In the project directory, you can run:
+Run the frontend build from this directory:
 
-### `npm start`
+```powershell
+yarn
+yarn build
+```
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in the browser.
+`config-overrides.js` redirects the Create React App build output to:
 
-The page will reload if you make edits.\
-You will also see any lint errors in the console.
+```text
+..\Typedown.WinUI\Resources\Statics
+```
 
-### `npm test`
+The output contains `index.html`, `asset-manifest.json`, `static/js/*`, `static/css/*`, `static/media/*`, and files copied from `public`.
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+## Let WinUI consume the bundle
 
-### `npm run build`
+After `yarn build`, build or start `Typedown.WinUI`. The WinUI project copies the existing `Resources\Statics` files into its output directory and MSIX package payload.
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+If you only run `yarn build` but do not rebuild/restart `Typedown.WinUI`, the app can still load an older bundle from `bin\...\Resources\Statics` because the runtime checks the output directory first.
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+## Development server
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
-
-### `npm run eject`
-
-**Note: this is a one-way operation. Once you `eject`, you can’t go back!**
-
-If you aren’t satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
-
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you’re on your own.
-
-You don’t have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn’t feel obligated to use this feature. However we understand that this tool wouldn’t be useful if you couldn’t customize it when you are ready for it.
-
-## Learn More
-
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
-
-To learn React, check out the [React documentation](https://reactjs.org/).
+`yarn start` runs the CRA development server, but the current WinUI host uses the compiled local bundle in `Resources\Statics`.

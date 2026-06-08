@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
@@ -98,10 +98,16 @@ namespace Typedown.Presentation.Utilities
             {"zu","Isi-Zulu"},
         };
 
-        public static IReadOnlyDictionary<string, string> LangsOptions =>
-            new Dictionary<string, string>(SupportedLangs.Append(new("default", GetString("UseSystemSetting"))));
+        private static readonly Lazy<IReadOnlyList<string>> langOptionKeys = new(() => SupportedLangs.Keys.Append("default").ToArray());
 
-        public static string GetLangOptionDisplayName(string key) => LangsOptions[key];
+        public static IReadOnlyDictionary<string, string> LangsOptions => LangOptionKeys.ToDictionary(key => key, GetLangOptionDisplayName);
+
+        public static IReadOnlyList<string> LangOptionKeys => langOptionKeys.Value;
+
+        public static string GetLangOptionDisplayName(string key)
+        {
+            return key == "default" ? GetString("UseSystemSetting") : SupportedLangs[key];
+        }
 
         public static string GetString(string key, ResourceSource source = 0)
         {

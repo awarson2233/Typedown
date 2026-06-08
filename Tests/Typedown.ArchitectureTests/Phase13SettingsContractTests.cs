@@ -109,6 +109,22 @@ public class Phase13SettingsContractTests
         AssertHasTypeReference(settingsSource, "[editorSettingNameMap[nameof(SpellcheckEnabled)]] = SpellcheckEnabled");
     }
 
+    [TestMethod]
+    public void LanguageSettings_UseStableOptionsAndConsistentXBindSelection()
+    {
+        var presentationLocale = File.ReadAllText(Path.Combine(RepoRoot, "Dev", "Typedown.Presentation", "Utilities", "Locale.cs"));
+        var generalPage = File.ReadAllText(Path.Combine(RepoRoot, "Dev", "Typedown.WinUI", "Pages", "SettingPages", "GeneralPage.xaml"));
+
+        AssertHasTypeReference(presentationLocale, "private static readonly Lazy<IReadOnlyDictionary<string, string>> langsOptions");
+        AssertHasTypeReference(presentationLocale, "private static readonly Lazy<IReadOnlyList<string>> langOptionKeys");
+        AssertHasTypeReference(presentationLocale, "public static IReadOnlyDictionary<string, string> LangsOptions => langsOptions.Value;");
+        AssertHasTypeReference(presentationLocale, "public static IReadOnlyList<string> LangOptionKeys => langOptionKeys.Value;");
+        AssertNoTypeReference(presentationLocale, "public static IReadOnlyDictionary<string, string> LangsOptions =>\r\n            new Dictionary<string, string>");
+        AssertHasTypeReference(generalPage, "ItemsSource=\"{x:Bind utils:Locale.LangOptionKeys}\"");
+        AssertHasTypeReference(generalPage, "SelectedItem=\"{x:Bind Settings.Language, Mode=TwoWay}\"");
+        AssertNoTypeReference(generalPage, "SelectedItem=\"{Binding SettingsViewModel.Language");
+    }
+
     private static void AssertEnumMembers<TEnum>(params (string Name, int Value)[] expectedMembers)
         where TEnum : struct, Enum
     {

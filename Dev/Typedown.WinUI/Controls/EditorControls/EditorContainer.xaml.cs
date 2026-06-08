@@ -192,6 +192,7 @@ public sealed partial class EditorContainer : UserControl
         }
 
         UpdateFindReplacePopupPlacement();
+        RequestScrollStateRefresh();
     }
 
     private void OnFindReplaceDialogSizeChanged(object sender, SizeChangedEventArgs e)
@@ -409,6 +410,11 @@ public sealed partial class EditorContainer : UserControl
         {
             viewModel.ServiceProvider.GetService<IEditorCommandSink>()?.Send("InsertImage", new { src = path });
         }
+    }
+
+    private void RequestScrollStateRefresh()
+    {
+        viewModel?.ServiceProvider.GetService<IEditorCommandSink>()?.Send("RefreshScrollState", null);
     }
 
     private void OnScroll(object sender, Microsoft.UI.Xaml.Controls.Primitives.ScrollEventArgs e)

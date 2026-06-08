@@ -18,6 +18,8 @@ namespace Typedown.WinUI.Controls.SettingControls
 
         public static IReadOnlyDictionary<string, string> LangsOptions => PresentationLocale.LangsOptions;
 
+        public static IReadOnlyList<string> LangOptionKeys => PresentationLocale.LangOptionKeys;
+
         public static string GetLangOptionDisplayName(string key) => PresentationLocale.GetLangOptionDisplayName(key);
 
         public static string GetString(string key, ResourceSource source = ResourceSource.All)

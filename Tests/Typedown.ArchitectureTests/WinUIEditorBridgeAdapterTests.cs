@@ -1,5 +1,8 @@
+using System.Collections.Generic;
 using System.Text.Json;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Typedown.Core.Services;
 using Typedown.WinUI.Controls;
 
 namespace Typedown.ArchitectureTests;
@@ -53,6 +56,146 @@ public class WinUIEditorBridgeAdapterTests
         Assert.AreEqual("Bold", getStringResources.GetProperty("args").GetProperty("data").GetProperty("Bold").GetString());
         Assert.AreEqual(0, openNewWindow.GetProperty("args").GetProperty("code").GetInt32());
         Assert.AreEqual(0, unhandledException.GetProperty("args").GetProperty("code").GetInt32());
+    }
+
+    [TestMethod]
+    public void DocumentSession_GetStringResources_FallsBackWithoutRemoteInvoke()
+    {
+        var session = new WinUIEditorDocumentSession();
+        using var args = JsonDocument.Parse("""{"names":["Bold","MissingEditorLabel"]}""");
+
+        var result = session.HandleRemoteInvokeAsync("GetStringResources", args.RootElement).GetAwaiter().GetResult();
+
+        Assert.IsInstanceOfType<Dictionary<string, string>>(result);
+        var resources = (Dictionary<string, string>)result!;
+        Assert.AreEqual("MissingEditorLabel", resources["MissingEditorLabel"]);
+        Assert.IsFalse(string.IsNullOrWhiteSpace(resources["Bold"]));
+    }
+
+    [TestMethod]
+    public void DocumentSession_ResizeTable_FallsBackToLocalPayloadWithoutRemoteInvoke()
+    {
+        var session = new WinUIEditorDocumentSession();
+        var adapter = new WinUIEditorBridgeAdapter(session);
+
+        var rowColumn = Invoke(adapter, """{"type":"invoke","id":"resize-row","name":"ResizeTable","args":{"row":4,"column":5}}""");
+        var rowsColumns = Invoke(adapter, """{"type":"invoke","id":"resize-rows","name":"ResizeTable","args":{"rows":6,"columns":7}}""");
+        var emptyPayload = Invoke(adapter, """{"type":"invoke","id":"resize-empty","name":"ResizeTable","args":{}}""");
+        var noPayload = Invoke(adapter, """{"type":"invoke","id":"resize-none","name":"ResizeTable"}""");
+
+        var rowColumnData = rowColumn.GetProperty("args").GetProperty("data");
+        var rowsColumnsData = rowsColumns.GetProperty("args").GetProperty("data");
+        Assert.AreEqual(0, rowColumn.GetProperty("args").GetProperty("code").GetInt32());
+        Assert.AreEqual(4, rowColumnData.GetProperty("row").GetInt32());
+        Assert.AreEqual(5, rowColumnData.GetProperty("column").GetInt32());
+        Assert.AreEqual(4, rowColumnData.GetProperty("rows").GetInt32());
+        Assert.AreEqual(5, rowColumnData.GetProperty("columns").GetInt32());
+        Assert.AreEqual(0, rowsColumns.GetProperty("args").GetProperty("code").GetInt32());
+        Assert.AreEqual(6, rowsColumnsData.GetProperty("row").GetInt32());
+        Assert.AreEqual(7, rowsColumnsData.GetProperty("column").GetInt32());
+        Assert.AreEqual(6, rowsColumnsData.GetProperty("rows").GetInt32());
+        Assert.AreEqual(7, rowsColumnsData.GetProperty("columns").GetInt32());
+        Assert.AreEqual(1, emptyPayload.GetProperty("args").GetProperty("code").GetInt32());
+        Assert.AreEqual(1, noPayload.GetProperty("args").GetProperty("code").GetInt32());
+    }
+
+    [TestMethod]
+    public void DocumentSession_ResizeTable_ForwardsToRegisteredRemoteInvokeHandler()
+    {
+        var remoteInvoke = new RemoteInvoke();
+        var serviceProvider = new ServiceCollection().AddSingleton(remoteInvoke).BuildServiceProvider();
+        var handlerCalled = false;
+        using var registration = remoteInvoke.Handle("ResizeTable", () =>
+        {
+            handlerCalled = true;
+            return new { row = 9, column = 10, rows = 9, columns = 10 };
+        });
+        var session = new WinUIEditorDocumentSession(serviceProvider: serviceProvider);
+        var adapter = new WinUIEditorBridgeAdapter(session);
+
+        var resizeTable = Invoke(adapter, """{"type":"invoke","id":"resize","name":"ResizeTable","args":{"rows":6,"columns":7}}""");
+
+        var data = resizeTable.GetProperty("args").GetProperty("data");
+        Assert.IsTrue(handlerCalled);
+        Assert.AreEqual(0, resizeTable.GetProperty("args").GetProperty("code").GetInt32());
+        Assert.AreEqual(9, data.GetProperty("row").GetInt32());
+        Assert.AreEqual(10, data.GetProperty("column").GetInt32());
+    }
+
+    [TestMethod]
+    public void DocumentSession_ResizeTable_RemoteInvokeHandlerExceptionReturnsBridgeError()
+    {
+        var remoteInvoke = new RemoteInvoke();
+        var serviceProvider = new ServiceCollection().AddSingleton(remoteInvoke).BuildServiceProvider();
+        using var registration = remoteInvoke.Handle<object>("ResizeTable", () => throw new InvalidOperationException("dialog failed"));
+        var session = new WinUIEditorDocumentSession(serviceProvider: serviceProvider);
+        var adapter = new WinUIEditorBridgeAdapter(session);
+
+        var resizeTable = Invoke(adapter, """{"type":"invoke","id":"resize","name":"ResizeTable","args":{"rows":6,"columns":7}}""");
+
+        Assert.AreEqual(1, resizeTable.GetProperty("args").GetProperty("code").GetInt32());
+        StringAssert.Contains(resizeTable.GetProperty("args").GetProperty("msg").GetString(), "dialog failed");
+    }
+
+    [TestMethod]
+    public void OpenUri_InvokeAcceptsUriHrefAndStringPayloadShapes()
+    {
+        var session = new WinUIEditorDocumentSession();
+        var adapter = new WinUIEditorBridgeAdapter(session);
+
+        var uriPayload = Invoke(adapter, """{"type":"invoke","id":"open-uri","name":"OpenURI","args":{"uri":""}}""");
+        var hrefPayload = Invoke(adapter, """{"type":"invoke","id":"open-href","name":"OpenURI","args":{"href":""}}""");
+        var stringPayload = Invoke(adapter, """{"type":"invoke","id":"open-string","name":"OpenURI","args":""}""");
+
+        Assert.AreEqual(0, uriPayload.GetProperty("args").GetProperty("code").GetInt32());
+        Assert.IsFalse(uriPayload.GetProperty("args").GetProperty("data").GetBoolean());
+        Assert.AreEqual(0, hrefPayload.GetProperty("args").GetProperty("code").GetInt32());
+        Assert.IsFalse(hrefPayload.GetProperty("args").GetProperty("data").GetBoolean());
+        Assert.AreEqual(0, stringPayload.GetProperty("args").GetProperty("code").GetInt32());
+        Assert.IsFalse(stringPayload.GetProperty("args").GetProperty("data").GetBoolean());
+        Assert.AreEqual("OpenURI", session.State.LastEventName);
+    }
+
+    [TestMethod]
+    public void PendingRawMessageQueue_EnforcesCapacityFlushOrderAndRetryDropPolicy()
+    {
+        var queue = new PendingRawMessageQueue(capacity: 3, maxRetryCount: 2);
+        var sent = new List<string>();
+
+        queue.Enqueue("oldest", requireContentLoaded: false);
+        queue.Enqueue("first", requireContentLoaded: false);
+        queue.Enqueue("second", requireContentLoaded: false);
+        queue.Enqueue("third", requireContentLoaded: false);
+
+        queue.Flush(payload =>
+        {
+            sent.Add(payload);
+            return payload != "first";
+        }, isContentLoaded: true);
+
+        Assert.AreEqual(3, queue.Count);
+        CollectionAssert.AreEqual(new[] { "first" }, sent);
+
+        queue.Flush(payload =>
+        {
+            sent.Add(payload);
+            return payload != "first";
+        }, isContentLoaded: true);
+
+        Assert.AreEqual(0, queue.Count);
+        CollectionAssert.AreEqual(new[] { "first", "first", "second", "third" }, sent);
+    }
+
+    [TestMethod]
+    public void OpenUri_MessageIsHandledBySessionWithoutPresentationEventDependency()
+    {
+        var session = new WinUIEditorDocumentSession();
+        var adapter = new WinUIEditorBridgeAdapter(session);
+
+        adapter.Receive("""{"type":"message","name":"OpenURI","args":{}}""", _ => true);
+
+        Assert.AreEqual("OpenURI", adapter.LastEventName);
+        Assert.AreEqual("OpenURI", session.State.LastEventName);
     }
 
     [TestMethod]

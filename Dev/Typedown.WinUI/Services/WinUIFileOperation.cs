@@ -67,7 +67,7 @@ namespace Typedown.WinUI.Services
             return RunShellFileOperation(PInvoke.FileFuncFlags.FO_MOVE, files, to);
         }
 
-        public void PasteFromClipboard(string to)
+        public async Task PasteFromClipboardAsync(string to)
         {
             if (string.IsNullOrEmpty(to) || !IsPasteEnabled)
             {
@@ -75,7 +75,7 @@ namespace Typedown.WinUI.Services
             }
 
             var view = Clipboard.GetContent();
-            var storageItems = view.GetStorageItemsAsync().AsTask().GetAwaiter().GetResult();
+            var storageItems = await view.GetStorageItemsAsync();
             var files = new StringCollection();
             foreach (var item in storageItems)
             {

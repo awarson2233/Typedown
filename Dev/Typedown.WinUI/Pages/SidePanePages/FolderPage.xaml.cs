@@ -404,12 +404,21 @@ namespace Typedown.WinUI.Pages.SidePanePages
             _ = FileOperation.CopyToClipboardAsync(new StringCollection { item?.FullPath });
         }
 
-        private void OnPasteClick(object sender, RoutedEventArgs e)
+        private async void OnPasteClick(object sender, RoutedEventArgs e)
         {
-            if (GetExplorerItemFromMenuFlyoutItem(sender)?.FullPath is { } fullPath)
+            if (GetExplorerItemFromMenuFlyoutItem(sender)?.FullPath is not { } fullPath)
             {
-                FileOperation.PasteFromClipboard(fullPath);
+                return;
+            }
+
+            try
+            {
+                await FileOperation.PasteFromClipboardAsync(fullPath);
                 ScheduleReloadWorkFolderTree();
+            }
+            catch (Exception ex)
+            {
+                await ShowErrorAsync(PresentationLocale.GetString("Error"), ex.Message);
             }
         }
 
@@ -500,7 +509,9 @@ namespace Typedown.WinUI.Pages.SidePanePages
 
                 var newPath = Path.Combine(parent, source.Task.Result);
                 var renamed = false;
-                if (item.FullPath == ViewModel.FileViewModel.FilePath)
+                if (!string.IsNullOrEmpty(item.FullPath)
+                    && !string.IsNullOrEmpty(ViewModel.FileViewModel.FilePath)
+                    && StringComparer.OrdinalIgnoreCase.Equals(item.FullPath, ViewModel.FileViewModel.FilePath))
                 {
                     renamed = ViewModel.FileViewModel.RenameFile(newPath);
                 }

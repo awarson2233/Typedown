@@ -11,7 +11,7 @@ This document records the current governance baseline for the WinUI3 architectur
 ## Owner Governance Baseline
 
 - Editor bridge protocol owner: `docs\editor-bridge-protocol.md` owns the JSON wire shape; WinUI owns its shell-local `EditorHostContracts.cs` DTO/controller surface. Presentation can own command semantics, but it must not own WebView2 transport details.
-- Editor static bundle owner: `Dev\Typedown.Editor` owns editor source and generated bundle content. `Dev\Typedown.WinUI\Resources\Statics` is the active staging path consumed by WinUI.
+- Editor static bundle owner: `Dev\Typedown.Editor` owns editor source and generated bundle content. `Dev\Typedown.WinUI\Resources\Statics` is the active staging path consumed by WinUI; normal WinUI build/startup consumes existing files and does not automatically run `yarn build`.
 - WinUI resource owner: `Dev\Typedown.WinUI\Resources\Strings` is the deliberate owner of `.resw` text resources. Presentation remains resource-consumer logic only and does not embed shell-owned `.resw` assets.
 - Packaged/MSIX support level: the WinUI project, manifest, launch-settings, install-script shape, and packaging output hook support the packaged path. Certificate material and full packaged validation remain machine-local/manual execution concerns.
 

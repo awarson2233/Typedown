@@ -68,6 +68,7 @@ public class Phase15PresentationBoundaryTests
             ".BuildServiceProvider();",
             "uiScope = rootServices.CreateScope();",
             "uiServices = uiScope.ServiceProvider;");
+        AssertHasTypeReference(appSource, "(platformServices?.AppActivationService as IDisposable)?.Dispose();");
         AssertHasTypeReference(appSource, "uiScope?.Dispose();");
         AssertHasTypeReference(appSource, "rootServices?.Dispose();");
         AssertHasTypeReference(appSource, "uiServices = null;");
@@ -75,10 +76,12 @@ public class Phase15PresentationBoundaryTests
             appSource,
             "private void OnWindowClosed(object sender, WindowEventArgs args)",
             "shellBindings.Dispose();",
+            "(platformServices?.AppActivationService as IDisposable)?.Dispose();",
             "uiScope?.Dispose();",
             "rootServices?.Dispose();",
             "appViewModel = null;",
-            "rootControl = null;");
+            "rootControl = null;",
+            "platformServices = null;");
     }
 
     [TestMethod]
@@ -687,7 +690,7 @@ public class Phase15PresentationBoundaryTests
         AssertContainsInOrder(leftPaneSource, "OnSelectionChanged", "Route.GetSidePanePageType", "Frame.Navigate");
 
         AssertContainsInOrder(fileOperationSource, "public bool Delete", "RunShellFileOperation(PInvoke.FileFuncFlags.FO_DELETE");
-        AssertContainsInOrder(fileOperationSource, "public void PasteFromClipboard", "Clipboard.GetContent()", "GetStorageItemsAsync().AsTask().GetAwaiter().GetResult()");
+        AssertContainsInOrder(fileOperationSource, "public async Task PasteFromClipboardAsync", "Clipboard.GetContent()", "await view.GetStorageItemsAsync()");
         AssertDoesNotContain(fileOperationSource, "WinUI file delete shell operation is not wired");
         AssertDoesNotContain(fileOperationSource, "WinUI file paste shell operation is not wired");
         AssertDoesNotContain(fileOperationSource, "throw new NotSupportedException");

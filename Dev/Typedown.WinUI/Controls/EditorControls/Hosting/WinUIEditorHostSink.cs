@@ -14,7 +14,7 @@ namespace Typedown.WinUI.Controls
         public bool Send(EditorHostMessage message)
         {
             var payload = JsonSerializer.Serialize(new { name = message.Name, args = message.Args });
-            return host.SendRawMessage(payload);
+            return host.SendRawMessage(payload, requireContentLoaded: true);
         }
     }
 }

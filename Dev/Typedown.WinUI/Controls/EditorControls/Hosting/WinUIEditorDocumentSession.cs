@@ -8,6 +8,7 @@ using Newtonsoft.Json.Linq;
 using Typedown.Core.Models;
 using Typedown.Core.Services;
 using Typedown.Core.Utilities;
+using Typedown.Presentation.Utilities;
 using Typedown.Presentation.ViewModels;
 
 namespace Typedown.WinUI.Controls
@@ -194,6 +195,9 @@ namespace Typedown.WinUI.Controls
                 case "MarkdownChange":
                     ApplyMarkdownChange(message.Args);
                     break;
+                case "OpenURI":
+                    HandleOpenUri(message.Args);
+                    break;
                 case "CursorChange":
                 case "StateChange":
                 case "ContentLoaded":
@@ -213,12 +217,13 @@ namespace Typedown.WinUI.Controls
                 "ContentLoaded" => Task.FromResult<object?>(HandleContentLoaded()),
                 "ExportCallback" => InvokePresentationAsync(name, args),
                 "PrintHTML" => InvokePresentationAsync(name, args),
-                "ResizeTable" => InvokePresentationAsync(name, args),
+                "ResizeTable" => HandleResizeTableAsync(args),
                 "LoadImage" => Task.FromResult<object?>(CreateLoadImagePayload(args)),
                 "GetSettings" => InvokePresentationAsync(name, args),
                 "SetClipboard" => InvokePresentationAsync(name, args),
-                "GetStringResources" => InvokePresentationAsync(name, args),
+                "GetStringResources" => HandleGetStringResourcesAsync(args),
                 "OpenNewWindow" => Task.FromResult<object?>(HandleOpenNewWindow(args)),
+                "OpenURI" => Task.FromResult<object?>(HandleOpenUri(args)),
                 "UnhandledException" => Task.FromResult<object?>(HandleUnhandledException()),
                 _ => throw new InvalidOperationException($"function [{name}] does not exist")
             };
@@ -233,7 +238,17 @@ namespace Typedown.WinUI.Controls
         private bool HandleOpenNewWindow(JsonElement? args)
         {
             State = State with { LastEventName = "OpenNewWindow" };
-            var uri = ReadStringArgument(args);
+            return OpenUri(ReadUriArgument(args));
+        }
+
+        private bool HandleOpenUri(JsonElement? args)
+        {
+            State = State with { LastEventName = "OpenURI" };
+            return OpenUri(ReadUriArgument(args));
+        }
+
+        private bool OpenUri(string? uri)
+        {
             if (string.IsNullOrWhiteSpace(uri))
             {
                 return false;
@@ -283,6 +298,33 @@ namespace Typedown.WinUI.Controls
             return await remoteInvoke.Invoke(name, ToJToken(args));
         }
 
+        private Task<object?> HandleGetStringResourcesAsync(JsonElement? args)
+        {
+            if (remoteInvoke is null)
+            {
+                State = State with { LastEventName = "GetStringResources" };
+                return Task.FromResult<object?>(CreateStringResources(args));
+            }
+
+            return InvokePresentationAsync("GetStringResources", args);
+        }
+
+        private Task<object?> HandleResizeTableAsync(JsonElement? args)
+        {
+            if (remoteInvoke is not null)
+            {
+                return InvokePresentationAsync("ResizeTable", args);
+            }
+
+            if (TryCreateResizeTablePayload(args, out var payload))
+            {
+                State = State with { LastEventName = "ResizeTable" };
+                return Task.FromResult<object?>(payload);
+            }
+
+            return InvokePresentationAsync("ResizeTable", args);
+        }
+
         private void ForwardPresentationEvent(EditorEventMessage message)
         {
             if (eventCenter is null || !IsPresentationEvent(message.Name))
@@ -304,6 +346,9 @@ namespace Typedown.WinUI.Controls
                 or "SelectionFormats"
                 or "OnScroll"
                 or "OpenFindReplace"
+                or "Save"
+                or "SaveAs"
+                or "Close"
                 or "OpenFrontMenu"
                 or "OpenFormatPicker"
                 or "OpenImageSelector"
@@ -399,53 +444,6 @@ namespace Typedown.WinUI.Controls
             };
         }
 
-        private static Dictionary<string, string> CreateStringResources(JsonElement? args)
-        {
-            var resources = new Dictionary<string, string>(StringComparer.Ordinal);
-
-            if (args is not JsonElement element || element.ValueKind != JsonValueKind.Object)
-            {
-                return resources;
-            }
-
-            if (!element.TryGetProperty("names", out var namesElement) || namesElement.ValueKind != JsonValueKind.Array)
-            {
-                return resources;
-            }
-
-            foreach (var entry in namesElement.EnumerateArray())
-            {
-                if (entry.ValueKind != JsonValueKind.String)
-                {
-                    continue;
-                }
-
-                var key = entry.GetString();
-                if (!string.IsNullOrEmpty(key))
-                {
-                    resources[key] = key;
-                }
-            }
-
-            return resources;
-        }
-
-        private static object CreateResizeTablePayload(JsonElement? args)
-        {
-            var row = ReadIntProperty(args, "row");
-            var column = ReadIntProperty(args, "column");
-            var rows = ReadIntProperty(args, "rows");
-            var columns = ReadIntProperty(args, "columns");
-
-            return new
-            {
-                row = row ?? rows ?? 0,
-                column = column ?? columns ?? 0,
-                rows = rows ?? row ?? 0,
-                columns = columns ?? column ?? 0
-            };
-        }
-
         private static object CreateLoadImagePayload(JsonElement? args)
         {
             return new
@@ -454,16 +452,67 @@ namespace Typedown.WinUI.Controls
             };
         }
 
-        private static int? ReadIntProperty(JsonElement? args, string propertyName)
+        private static Dictionary<string, string> CreateStringResources(JsonElement? args)
         {
-            if (args is not JsonElement element || element.ValueKind != JsonValueKind.Object)
+            var resources = new Dictionary<string, string>(StringComparer.Ordinal);
+            if (args is not JsonElement element
+                || element.ValueKind != JsonValueKind.Object
+                || !element.TryGetProperty("names", out var names)
+                || names.ValueKind != JsonValueKind.Array)
             {
-                return null;
+                return resources;
             }
 
-            return element.TryGetProperty(propertyName, out var property) && property.TryGetInt32(out var value)
-                ? value
-                : null;
+            foreach (var nameElement in names.EnumerateArray())
+            {
+                if (nameElement.ValueKind != JsonValueKind.String)
+                {
+                    continue;
+                }
+
+                var name = nameElement.GetString();
+                if (string.IsNullOrWhiteSpace(name))
+                {
+                    continue;
+                }
+
+                resources[name] = GetStringResource(name);
+            }
+
+            return resources;
+        }
+
+        private static string GetStringResource(string name)
+        {
+            try
+            {
+                var value = Locale.GetString(name);
+                return string.IsNullOrWhiteSpace(value) ? name : value;
+            }
+            catch
+            {
+                return name;
+            }
+        }
+
+        private static bool TryCreateResizeTablePayload(JsonElement? args, out object? payload)
+        {
+            payload = null;
+            var row = ReadIntProperty(args, "row") ?? ReadIntProperty(args, "rows");
+            var column = ReadIntProperty(args, "column") ?? ReadIntProperty(args, "columns");
+            if (row is null || column is null)
+            {
+                return false;
+            }
+
+            payload = new
+            {
+                row = row.Value,
+                column = column.Value,
+                rows = row.Value,
+                columns = column.Value
+            };
+            return true;
         }
 
         private static string? ReadStringProperty(JsonElement? args, string propertyName)
@@ -482,6 +531,25 @@ namespace Typedown.WinUI.Controls
         {
             return args is JsonElement element && element.ValueKind == JsonValueKind.String
                 ? element.GetString()
+                : null;
+        }
+
+        private static string? ReadUriArgument(JsonElement? args)
+        {
+            return ReadStringArgument(args)
+                ?? ReadStringProperty(args, "uri")
+                ?? ReadStringProperty(args, "href");
+        }
+
+        private static int? ReadIntProperty(JsonElement? args, string propertyName)
+        {
+            if (args is not JsonElement element || element.ValueKind != JsonValueKind.Object)
+            {
+                return null;
+            }
+
+            return element.TryGetProperty(propertyName, out var property) && property.TryGetInt32(out var value)
+                ? value
                 : null;
         }
 

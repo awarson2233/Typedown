@@ -96,10 +96,10 @@ class Muya {
     }
 
     // Create an observer instance linked to the callback function
-    const observer = new MutationObserver(callback)
+    this.observer = new MutationObserver(callback)
 
     // Start observing the target node for configured mutations
-    observer.observe(container, config)
+    this.observer.observe(container, config)
   }
 
   dispatchChange = () => {
@@ -416,6 +416,10 @@ class Muya {
   destroy() {
     // this.quickInsert.destroy()
     // this.tablePicker.destroy()
+    if (this.observer) {
+      this.observer.disconnect()
+      this.observer = null
+    }
     this.contentState.clear()
     this.codePicker.destroy()
     this.emojiPicker.destroy()

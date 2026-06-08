@@ -23,6 +23,7 @@ public abstract partial class MenuBarItemBase : Microsoft.UI.Xaml.Controls.MenuB
     {
         Title = title;
         DataContextChanged += OnDataContextChanged;
+        Loaded += OnLoaded;
         Unloaded += OnUnloaded;
     }
 
@@ -167,6 +168,11 @@ public abstract partial class MenuBarItemBase : Microsoft.UI.Xaml.Controls.MenuB
     private void OnDataContextChanged(FrameworkElement sender, DataContextChangedEventArgs args)
     {
         ConfigureFor(args.NewValue as AppViewModel);
+    }
+
+    private void OnLoaded(object sender, RoutedEventArgs e)
+    {
+        ConfigureFor(ViewModel);
     }
 
     private void OnUnloaded(object sender, RoutedEventArgs e)

@@ -255,7 +255,8 @@ namespace Typedown.Presentation.ViewModels
             EditorCommandSink?.Send("SetMarkdown", new
             {
                 text = state.Text,
-                cursor = state.Cursor
+                cursor = state.Cursor,
+                basePath = FileViewModel.ImageBasePath
             });
         }
 

@@ -12,6 +12,11 @@ namespace Typedown.WinUI.Services
         public WinUIWindowService(IWindowContext windowContext)
         {
             this.windowContext = windowContext ?? throw new ArgumentNullException(nameof(windowContext));
+            if (windowContext is WinUIWindowContext winUIWindowContext)
+            {
+                winUIWindowContext.WindowActivationChanged += (_, handle) => WindowIsActivedChanged.OnNext(handle);
+                winUIWindowContext.WindowStateChanged += (_, handle) => WindowStateChanged.OnNext(handle);
+            }
         }
 
         public Subject<nint> WindowIsActivedChanged { get; } = new();

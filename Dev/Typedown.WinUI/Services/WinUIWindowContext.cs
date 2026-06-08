@@ -12,6 +12,10 @@ namespace Typedown.WinUI.Services
         private bool isActive;
         private bool isClosed;
 
+        internal event EventHandler<nint>? WindowActivationChanged;
+
+        internal event EventHandler<nint>? WindowStateChanged;
+
         public WinUIWindowContext(Window window)
         {
             this.window = window ?? throw new ArgumentNullException(nameof(window));
@@ -21,19 +25,7 @@ namespace Typedown.WinUI.Services
 
             window.Activated += OnWindowActivated;
             window.Closed += OnWindowClosed;
-
-            var appWindow = GetAppWindow(window);
-            if (appWindow != null)
-            {
-                appWindow.SetIcon("Assets/logo.ico");
-            }
-        }
-
-        private Microsoft.UI.Windowing.AppWindow? GetAppWindow(Window window)
-        {
-            var hwnd = WindowNative.GetWindowHandle(window);
-            var windowId = Microsoft.UI.Win32Interop.GetWindowIdFromWindow(hwnd);
-            return Microsoft.UI.Windowing.AppWindow.GetFromWindowId(windowId);
+            window.AppWindow.Changed += OnAppWindowChanged;
         }
 
         public nint WindowHandle { get; set; }
@@ -89,6 +81,7 @@ namespace Typedown.WinUI.Services
         {
             if (!isClosed)
             {
+                window.AppWindow.Show();
                 window.Activate();
             }
         }
@@ -110,13 +103,26 @@ namespace Typedown.WinUI.Services
         {
             IsActive = args.WindowActivationState != WindowActivationState.Deactivated;
 
-            if (isClosed || !IsActive)
+            if (isClosed)
             {
                 return;
             }
 
-            WindowHandle = WindowNative.GetWindowHandle(window);
-            viewRoot = window.Content?.XamlRoot ?? viewRoot;
+            if (IsActive)
+            {
+                WindowHandle = WindowNative.GetWindowHandle(window);
+                viewRoot = window.Content?.XamlRoot ?? viewRoot;
+            }
+
+            WindowActivationChanged?.Invoke(this, WindowHandle);
+        }
+
+        private void OnAppWindowChanged(Microsoft.UI.Windowing.AppWindow sender, Microsoft.UI.Windowing.AppWindowChangedEventArgs args)
+        {
+            if (!isClosed)
+            {
+                WindowStateChanged?.Invoke(this, WindowHandle);
+            }
         }
 
         private void OnWindowClosed(object sender, WindowEventArgs args)
@@ -124,8 +130,10 @@ namespace Typedown.WinUI.Services
             isClosed = true;
             isActive = false;
             viewRoot = null;
+            WindowHandle = default;
             window.Activated -= OnWindowActivated;
             window.Closed -= OnWindowClosed;
+            window.AppWindow.Changed -= OnAppWindowChanged;
         }
     }
 }

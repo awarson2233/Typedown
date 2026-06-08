@@ -26,6 +26,7 @@ namespace Typedown.WinUI.Controls
         private WinUIEditorBridgeAdapter bridgeAdapter;
         private string status;
         private string latestRawWebMessage;
+        private readonly PendingRawMessageQueue pendingRawMessages = new();
         private bool coreInitialized;
         private bool isLoaded;
         private bool coreEventsAttached;
@@ -94,6 +95,7 @@ namespace Typedown.WinUI.Controls
                 if (coreInitialized && editorNavigationStarted)
                 {
                     AttachCoreWebView();
+                    FlushPendingRawMessages();
                     if (bridgeAdapter.IsContentLoaded)
                     {
                         webView.Opacity = 1;
@@ -131,6 +133,7 @@ namespace Typedown.WinUI.Controls
                 bridgeAdapter = new WinUIEditorBridgeAdapter(documentSession);
                 bridgeAdapter.ResetForNavigation();
                 hostController.ResetForNavigation();
+                pendingRawMessages.Clear();
                 if (!string.IsNullOrWhiteSpace(InitialFilePath))
                 {
                     var loadResult = hostController.LoadFile(InitialFilePath);
@@ -163,6 +166,7 @@ namespace Typedown.WinUI.Controls
         {
             isLoaded = false;
             loadVersion++;
+            pendingRawMessages.Clear();
             commandSink?.UnregisterActiveHost(this);
             DetachCoreWebView();
         }
@@ -170,7 +174,7 @@ namespace Typedown.WinUI.Controls
         private async void OnWebMessageReceived(CoreWebView2 sender, CoreWebView2WebMessageReceivedEventArgs e)
         {
             var wasContentLoaded = bridgeAdapter.IsContentLoaded;
-            await bridgeAdapter.ReceiveAsync(e.TryGetWebMessageAsString(), SendRawMessage);
+            await bridgeAdapter.ReceiveAsync(e.TryGetWebMessageAsString(), payload => SendRawMessage(payload));
             status = bridgeAdapter.StatusText;
             latestRawWebMessage = bridgeAdapter.LastRawMessage;
 
@@ -178,6 +182,8 @@ namespace Typedown.WinUI.Controls
             {
                 webView.Opacity = 1;
                 hostController.MarkEditorReady();
+                FlushPendingRawMessages();
+                commandSink?.ResendLatestTheme(this);
                 TrySendPendingLoadFile();
             }
         }
@@ -214,7 +220,7 @@ namespace Typedown.WinUI.Controls
         private bool SendMessage(string name, object? args)
         {
             var payload = JsonSerializer.Serialize(new { name, args });
-            return SendRawMessage(payload);
+            return SendRawMessage(payload, requireContentLoaded: true);
         }
 
         private async Task<CoreWebView2Environment> GetEnvironmentAsync()
@@ -287,7 +293,23 @@ namespace Typedown.WinUI.Controls
             return """
                 (() => {
                     document.addEventListener('keydown', event => {
-                        if (!event.ctrlKey || event.shiftKey || event.altKey || String(event.key).toLowerCase() !== 'f') {
+                        if (event.defaultPrevented || event.repeat || !event.ctrlKey || event.altKey) {
+                            return;
+                        }
+
+                        const key = String(event.key).toLowerCase();
+                        let name = null;
+                        if (!event.shiftKey && key === 'f') {
+                            name = 'OpenFindReplace';
+                        } else if (!event.shiftKey && key === 's') {
+                            name = 'Save';
+                        } else if (event.shiftKey && key === 's') {
+                            name = 'SaveAs';
+                        } else if (!event.shiftKey && key === 'w') {
+                            name = 'Close';
+                        }
+
+                        if (name === null) {
                             return;
                         }
 
@@ -295,7 +317,7 @@ namespace Typedown.WinUI.Controls
                         event.stopPropagation();
                         window.chrome.webview.postMessage(JSON.stringify({
                             type: 'message',
-                            name: 'OpenFindReplace',
+                            name,
                             args: {}
                         }));
                     }, true);
@@ -445,12 +467,33 @@ namespace Typedown.WinUI.Controls
             return SendMessage(name, args);
         }
 
-        internal bool SendRawMessage(string payload)
+        internal bool SendRawMessage(string payload, bool requireContentLoaded = false)
+        {
+            if (webView.CoreWebView2 is null || (requireContentLoaded && !bridgeAdapter.IsContentLoaded))
+            {
+                pendingRawMessages.Enqueue(payload, requireContentLoaded);
+                return true;
+            }
+
+            return TryPostRawMessage(payload);
+        }
+
+        private void FlushPendingRawMessages()
+        {
+            if (webView.CoreWebView2 is null)
+            {
+                return;
+            }
+
+            pendingRawMessages.Flush(TryPostRawMessage, bridgeAdapter.IsContentLoaded);
+        }
+
+        private bool TryPostRawMessage(string payload)
         {
             try
             {
                 webView.CoreWebView2?.PostWebMessageAsString(payload);
-                return true;
+                return webView.CoreWebView2 is not null;
             }
             catch
             {

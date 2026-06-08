@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using System.Globalization;
+using System.Text.Json;
 using System.Xml.Linq;
 using Typedown.Core;
 using Typedown.Core.Utilities;
@@ -20,12 +21,99 @@ internal static class WinUILocale
 
     private static readonly IReadOnlyDictionary<PresentationLocale.ResourceSource, ResourceMap> ResourceMaps = CreateResourceMaps();
 
+    private const string DefaultLanguageKey = "default";
+
     private static readonly ConcurrentDictionary<string, IReadOnlyDictionary<string, string>> ReswCache = new();
+
+    private static readonly CultureInfo SystemUICulture = CultureInfo.CurrentUICulture;
 
     public static void Initialize()
     {
         PresentationLocale.StringResolver = GetString;
         LocaleAttribute.StringResolver = key => PresentationLocale.GetString(key);
+    }
+
+    public static void ApplyPersistedLanguageOverride()
+    {
+        ApplyLanguageOverride(ReadPersistedLanguage());
+    }
+
+    public static void ApplyLanguageOverride(string? language)
+    {
+        if (string.IsNullOrWhiteSpace(language) || StringComparer.OrdinalIgnoreCase.Equals(language, DefaultLanguageKey))
+        {
+            try
+            {
+                if (!string.IsNullOrWhiteSpace(Microsoft.Windows.Globalization.ApplicationLanguages.PrimaryLanguageOverride))
+                {
+                    Microsoft.Windows.Globalization.ApplicationLanguages.PrimaryLanguageOverride = string.Empty;
+                }
+            }
+            catch
+            {
+                // Keep using the system culture when WinRT rejects clearing the language override.
+            }
+
+            CultureInfo.CurrentUICulture = SystemUICulture;
+            CultureInfo.CurrentCulture = SystemUICulture;
+            return;
+        }
+
+        if (!PresentationLocale.SupportedLangs.ContainsKey(language))
+        {
+            return;
+        }
+
+        try
+        {
+            var culture = CultureInfo.GetCultureInfo(language);
+            Microsoft.Windows.Globalization.ApplicationLanguages.PrimaryLanguageOverride = language;
+            CultureInfo.CurrentUICulture = culture;
+            CultureInfo.CurrentCulture = culture;
+        }
+        catch
+        {
+            // Keep the existing culture if the persisted language tag is not supported by the OS.
+        }
+    }
+
+    public static bool IsRestartRequiredForLanguage(string? language)
+    {
+        var normalizedLanguage = string.IsNullOrWhiteSpace(language) ? DefaultLanguageKey : language;
+        var currentLanguage = Microsoft.Windows.Globalization.ApplicationLanguages.PrimaryLanguageOverride;
+
+        if (StringComparer.OrdinalIgnoreCase.Equals(normalizedLanguage, DefaultLanguageKey))
+        {
+            return !string.IsNullOrWhiteSpace(currentLanguage);
+        }
+
+        return !StringComparer.OrdinalIgnoreCase.Equals(normalizedLanguage, currentLanguage);
+    }
+
+    private static string ReadPersistedLanguage()
+    {
+        try
+        {
+            var settingsFile = Config.GetSettingsFilePath();
+            if (!File.Exists(settingsFile))
+            {
+                return DefaultLanguageKey;
+            }
+
+            using var document = JsonDocument.Parse(File.ReadAllText(settingsFile));
+            if (document.RootElement.TryGetProperty("Language", out var language)
+                && language.ValueKind == JsonValueKind.String
+                && language.GetString() is { Length: > 0 } value)
+            {
+                return value;
+            }
+        }
+        catch
+        {
+            // Fall back to system language when settings are unavailable or invalid.
+        }
+
+        return DefaultLanguageKey;
     }
 
     private static IReadOnlyDictionary<PresentationLocale.ResourceSource, ResourceMap> CreateResourceMaps()

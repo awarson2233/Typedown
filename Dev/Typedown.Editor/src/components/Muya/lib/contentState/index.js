@@ -21,6 +21,7 @@ import searchCtrl from './searchCtrl'
 import containerCtrl from './containerCtrl'
 import htmlBlockCtrl from './htmlBlock'
 import clickCtrl from './clickCtrl'
+import pairingCtrl from './pairingCtrl'
 import inputCtrl from './inputCtrl'
 import tocCtrl from './tocCtrl'
 import emojiCtrl from './emojiCtrl'
@@ -52,6 +53,7 @@ const prototypes = [
   containerCtrl,
   htmlBlockCtrl,
   clickCtrl,
+  pairingCtrl,
   inputCtrl,
   tocCtrl,
   emojiCtrl,

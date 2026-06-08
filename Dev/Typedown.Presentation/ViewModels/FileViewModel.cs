@@ -90,6 +90,9 @@ namespace Typedown.Presentation.ViewModels
             disposables.Add(ImportCommand.OnExecute.Subscribe(_ => Import()));
             disposables.Add(RemoteInvoke.Handle<JToken, bool>("ExportCallback", ExportCallback));
             disposables.Add(RemoteInvoke.Handle<JToken, bool>("PrintHTML", PrintHTML));
+            disposables.Add(EventCenter.GetObservable<EditorEventArgs>("Save").Subscribe(_ => SaveCommand.Execute(Unit.Default)));
+            disposables.Add(EventCenter.GetObservable<EditorEventArgs>("SaveAs").Subscribe(_ => SaveAsCommand.Execute(Unit.Default)));
+            disposables.Add(EventCenter.GetObservable<EditorEventArgs>("Close").Subscribe(_ => ExitCommand.Execute(Unit.Default)));
             disposables.Add(EventCenter.GetObservable<EditorEventArgs>("FileLoaded").Take(1).Subscribe(_ => MarkInitialEditorFileLoaded()));
             saveFileTimer.Interval = TimeSpan.FromSeconds(5).TotalMilliseconds;
             saveFileTimer.Elapsed += SaveFileTimerTick;
@@ -155,7 +158,7 @@ namespace Typedown.Presentation.ViewModels
             EditorViewModel.History.InitHistory(Common.DefaultMarkdwn);
             if (postMessage)
             {
-                EditorCommandSink?.Send("LoadFile", EditorViewModel.Markdown);
+                EditorCommandSink?.Send("LoadFile", new { text = EditorViewModel.Markdown, basePath = ImageBasePath });
             }
         }
 
@@ -209,7 +212,7 @@ namespace Typedown.Presentation.ViewModels
                 SettingsViewModel.LastFilePath = path;
                 var loadedPath = path;
                 _ = RunAfterInitialEditorFileLoadedAsync(() => AccessHistory.RecordFileHistory(loadedPath));
-                var backup = await CheckBackup(path, EditorViewModel.CurrentHash);
+                var backup = await CheckBackup(path, EditorViewModel.FileHash);
                 if (backup == null)
                 {
                     EditorViewModel.Markdown = text;
@@ -228,7 +231,7 @@ namespace Typedown.Presentation.ViewModels
                 EditorViewModel.History.InitHistory(EditorViewModel.Markdown);
                 if (postMessage)
                 {
-                    EditorCommandSink?.Send("LoadFile", new { text = EditorViewModel.Markdown, basePath = ImageBasePath });
+                    EditorCommandSink?.Send("LoadFile", new { text = EditorViewModel.Markdown, filePath = FilePath, basePath = ImageBasePath });
                 }
                 return true;
             }
@@ -333,6 +336,12 @@ namespace Typedown.Presentation.ViewModels
 
         private async Task<string?> SaveAs()
         {
+            if (saveAsOpened)
+            {
+                return null;
+            }
+
+            saveAsOpened = true;
             try
             {
                 var filePath = await FilePickerService.PickSaveFileAsync(new SaveFileRequest
@@ -368,6 +377,10 @@ namespace Typedown.Presentation.ViewModels
                     ex.Message,
                     Locale.GetString("Ok"));
                 return null;
+            }
+            finally
+            {
+                saveAsOpened = false;
             }
         }
 
@@ -417,6 +430,7 @@ namespace Typedown.Presentation.ViewModels
         }
 
         private bool askToSaveOpened;
+        private bool saveAsOpened;
 
         public async Task<bool> AskToSave()
         {
@@ -429,29 +443,35 @@ namespace Typedown.Presentation.ViewModels
                 return false;
             }
             askToSaveOpened = true;
-            var result = await DialogService.ShowAsync(new DialogRequest
+            try
             {
-                Title = Locale.GetDialogString("AsKToSaveTitle"),
-                Content = Locale.GetDialogString("AsKToSaveContent"),
-                CloseButtonText = Locale.GetDialogString("Cancel"),
-                PrimaryButtonText = Locale.GetDialogString("Save"),
-                SecondaryButtonText = Locale.GetDialogString("Don'tSave"),
-                DefaultButton = DialogDefaultButton.Primary
-            });
-            askToSaveOpened = false;
-            switch (result)
-            {
-                case DialogButton.Primary:
-                    var saveResult = await Save();
-                    return saveResult;
-                case DialogButton.Secondary:
-                    if (FilePath is not null)
-                        AutoBackup.DeleteBackup(FilePath);
-                    return true;
-                case DialogButton.None:
-                    return false;
+                var result = await DialogService.ShowAsync(new DialogRequest
+                {
+                    Title = Locale.GetDialogString("AsKToSaveTitle"),
+                    Content = Locale.GetDialogString("AsKToSaveContent"),
+                    CloseButtonText = Locale.GetDialogString("Cancel"),
+                    PrimaryButtonText = Locale.GetDialogString("Save"),
+                    SecondaryButtonText = Locale.GetDialogString("Don'tSave"),
+                    DefaultButton = DialogDefaultButton.Primary
+                });
+                switch (result)
+                {
+                    case DialogButton.Primary:
+                        var saveResult = await Save();
+                        return saveResult;
+                    case DialogButton.Secondary:
+                        if (FilePath is not null)
+                            AutoBackup.DeleteBackup(FilePath);
+                        return true;
+                    case DialogButton.None:
+                        return false;
+                }
+                return false;
             }
-            return false;
+            finally
+            {
+                askToSaveOpened = false;
+            }
         }
 
         public async Task LoadStartUpMarkdown()
@@ -655,7 +675,7 @@ namespace Typedown.Presentation.ViewModels
                 return false;
             }
             window = AppViewModel.GetInstances()
-                .Where(x => x.FileViewModel.FilePath?.ToLower() == filePath.ToLower())
+                .Where(x => string.Equals(x.FileViewModel.FilePath, filePath, StringComparison.OrdinalIgnoreCase))
                 .Select(x => x.WindowContext?.WindowHandle ?? default)
                 .FirstOrDefault();
             return window != default;
@@ -663,15 +683,44 @@ namespace Typedown.Presentation.ViewModels
 
         public bool RenameFile(string to)
         {
-            if (string.IsNullOrEmpty(FilePath) || !File.Exists(FilePath))
+            if (string.IsNullOrEmpty(FilePath) || !File.Exists(FilePath) || string.IsNullOrWhiteSpace(to))
                 return false;
+
+            var from = FilePath;
             var fileOperation = ServiceProvider.GetRequiredService<IFileOperation>();
-            if (fileOperation.Rename(FilePath, to))
+            if (fileOperation.Rename(from, to))
             {
+                MoveBackup(from, to);
                 FilePath = to;
+                SettingsViewModel.LastFilePath = to;
+                _ = RunAfterInitialEditorFileLoadedAsync(async () =>
+                {
+                    await AccessHistory.RemoveFileHistory(from);
+                    await AccessHistory.RecordFileHistory(to);
+                });
                 return true;
             }
             return false;
+        }
+
+        private void MoveBackup(string from, string to)
+        {
+            try
+            {
+                var fromBackup = AutoBackup.GetBackupFilePath(from);
+                if (fromBackup is null || !File.Exists(fromBackup))
+                    return;
+
+                var toBackup = AutoBackup.GetBackupFilePath(to);
+                if (toBackup is null)
+                    return;
+
+                File.Move(fromBackup, toBackup, true);
+            }
+            catch
+            {
+                // Backup migration must not fail the completed file rename.
+            }
         }
 
         public void Dispose()

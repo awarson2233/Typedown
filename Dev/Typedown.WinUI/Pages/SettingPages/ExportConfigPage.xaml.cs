@@ -11,6 +11,7 @@ using Typedown.Core.Models;
 using Typedown.Core.Utilities;
 using Typedown.WinUI.Controls;
 using Typedown.Presentation.ViewModels;
+using PresentationLocale = Typedown.Presentation.Utilities.Locale;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Navigation;
@@ -52,11 +53,25 @@ namespace Typedown.WinUI.Pages.SettingPages
 
         private async void OnLoaded(object sender, RoutedEventArgs e)
         {
-            ExportConfig = await ExportService.Value.GetExportConfig(configId);
-            if (ExportConfig != null)
+            try
             {
-                Bindings.Update();
-                disposables.Add(ExportConfig.WhenPropertyChanged(nameof(ExportConfig.Name)).Select(value => value as string).StartWith(ExportConfig.Name).Subscribe(UpdateTitle));
+                ExportConfig = await ExportService.Value.GetExportConfig(configId);
+                if (ExportConfig != null)
+                {
+                    Bindings.Update();
+                    disposables.Add(ExportConfig.WhenPropertyChanged(nameof(ExportConfig.Name)).Select(value => value as string).StartWith(ExportConfig.Name).Subscribe(UpdateTitle));
+                }
+            }
+            catch (Exception ex)
+            {
+                await this.GetService<IDialogService>().ShowAsync(new DialogRequest
+                {
+                    Title = PresentationLocale.GetString("Error"),
+                    Content = ex.Message,
+                    CloseButtonText = PresentationLocale.GetString("Ok"),
+                    DefaultButton = DialogDefaultButton.Close
+                });
+                ExportConfig = null;
             }
         }
 

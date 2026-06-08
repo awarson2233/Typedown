@@ -441,6 +441,11 @@ public class Phase10CoreContractsBoundaryTests
         AssertHasTypeReference(projectSource, @"<Content Include=""Resources\Statics\**\*""");
         AssertHasTypeReference(projectSource, "CopyToOutputDirectory=\"Always\"");
         AssertHasTypeReference(projectSource, "CopyToPublishDirectory=\"Always\"");
+        AssertHasTypeReference(projectSource, "Target Name=\"BuildTypedownEditorStaticBundle\"");
+        AssertHasTypeReference(projectSource, "TYPEDOWN_EDITOR_BUILD_OUTPUT=$(MSBuildProjectDirectory)\\$(TypedownEditorStaticBundleStagingPath)");
+        AssertHasTypeReference(projectSource, "Typedown.Editor static bundle was not generated.");
+        AssertHasTypeReference(projectSource, @"<Content Include=""$(TypedownEditorStaticBundleStagingPath)\**\*"" CopyToOutputDirectory=""Always"" CopyToPublishDirectory=""Always"" />");
+        AssertNoTypeReference(projectSource, "Target Name=\"BuildTypedownEditorStaticBundle\" BeforeTargets=");
         AssertHasTypeReference(projectSource, "Target Name=\"AddEditorStaticBundleToPackagingOutputs\"");
         AssertHasTypeReference(projectSource, "AfterTargets=\"GetPackagingOutputs\"");
         AssertHasTypeReference(projectSource, "BeforeTargets=\"_ComputeAppxPackagePayload\"");

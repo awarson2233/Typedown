@@ -127,7 +127,7 @@ namespace Typedown.Presentation.Services
                 new FileInfo(destFilePath).Directory?.Create();
                 File.Copy(sourceFile, destFilePath);
             }
-            return Path.Combine(destFolder, fileName);
+            return Path.Combine(destFolder, Path.GetFileName(destFilePath));
         }
 
         public async Task<string> SaveImage(InsertImageSource source, byte[] bytes, string? fileName = null, string? destFolder = null)
@@ -142,7 +142,7 @@ namespace Typedown.Presentation.Services
                 new FileInfo(destFilePath).Directory?.Create();
                 await File.WriteAllBytesAsync(destFilePath, bytes);
             }
-            return Path.Combine(destFolder, fileName);
+            return Path.Combine(destFolder, Path.GetFileName(destFilePath));
         }
 
         public string SaveImage(InsertImageSource source, IClipboardImage image, string? fileName = null, string? destFolder = null)
@@ -157,7 +157,7 @@ namespace Typedown.Presentation.Services
                 new FileInfo(destFilePath).Directory?.Create();
                 image.SaveAsPng(destFilePath);
             }
-            return Path.Combine(destFolder, fileName);
+            return Path.Combine(destFolder, Path.GetFileName(destFilePath));
         }
 
         public async Task<byte[]> GetWebImage(Uri uri)

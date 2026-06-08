@@ -91,7 +91,7 @@
                     FontSize="14"
                     Foreground="{ThemeResource SystemErrorTextColor}"
                     x:Load="{x:Bind IsLangChanged(Settings.Language), Mode=OneWay}"/>
-                <ComboBox Grid.Column="1" VerticalAlignment="Center" ItemsSource="{x:Bind utils:Locale.LangsOptions.Keys}" Width="200" SelectedItem="{Binding SettingsViewModel.Language, Mode=TwoWay}">
+                <ComboBox Grid.Column="1" VerticalAlignment="Center" ItemsSource="{x:Bind utils:Locale.LangOptionKeys}" Width="200" SelectedItem="{x:Bind Settings.Language, Mode=TwoWay}">
                     <ComboBox.ItemTemplate>
                         <DataTemplate x:DataType="x:String">
                             <TextBlock Text="{x:Bind utils:Locale.GetLangOptionDisplayName((x:String))}"/>

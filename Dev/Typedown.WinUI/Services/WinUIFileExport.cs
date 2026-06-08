@@ -29,13 +29,15 @@ namespace Typedown.WinUI.Services
         {
             lock (exportConfigsLoadLock)
             {
-                exportConfigsLoadTask ??= UpdateExportConfigs();
+                exportConfigsLoadTask ??= EnsureExportConfigsInitialized();
                 return exportConfigsLoadTask;
             }
         }
 
         public async Task<ExportConfig> AddExportConfig(string? name = null, ExportType type = 0)
         {
+            await EnsureExportConfigsLoaded();
+
             using var ctx = await CreateDbContext();
             var config = new ExportConfig() { Name = name ?? string.Empty, Type = type };
 
@@ -48,8 +50,11 @@ namespace Typedown.WinUI.Services
 
         public async Task<ExportConfig> GetExportConfig(int id)
         {
+            await EnsureExportConfigsLoaded();
+
             using var ctx = await CreateDbContext();
-            return (await ctx.ExportConfigs.Where(x => x.Id == id).FirstOrDefaultAsync())!;
+            var config = await ctx.ExportConfigs.Where(x => x.Id == id).FirstOrDefaultAsync();
+            return config ?? throw new InvalidOperationException($"Export config '{id}' was not found.");
         }
 
         public async Task Print(string basePath, string html, string? documentName = null)
@@ -96,6 +101,29 @@ namespace Typedown.WinUI.Services
             using var ctx = await CreateDbContext();
             var configs = await ctx.ExportConfigs.ToListAsync();
             ExportConfigs.UpdateCollection(configs, (a, b) => a.Id == b.Id);
+        }
+
+        private async Task EnsureExportConfigsInitialized()
+        {
+            using var ctx = await CreateDbContext();
+            var changed = false;
+
+            changed |= await EnsureDefaultExportConfig(ctx, "PDF", ExportType.PDF);
+            changed |= await EnsureDefaultExportConfig(ctx, "HTML", ExportType.HTML);
+
+            if (changed)
+                await ctx.SaveChangesAsync();
+
+            await UpdateExportConfigs();
+        }
+
+        private static async Task<bool> EnsureDefaultExportConfig(AppDbContext ctx, string name, ExportType type)
+        {
+            if (await ctx.ExportConfigs.AnyAsync(x => x.Type == type && x.Name == name))
+                return false;
+
+            ctx.ExportConfigs.Add(new ExportConfig { Name = name, Type = type });
+            return true;
         }
 
         private Task<AppDbContext> CreateDbContext()

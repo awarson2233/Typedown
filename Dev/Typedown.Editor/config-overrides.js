@@ -3,7 +3,9 @@ var path = require("path")
 var webpack = require("webpack")
 
 const paths = require('react-scripts/config/paths')
-paths.appBuild = path.join(path.dirname(paths.appBuild),'../Typedown/Resources/Statics')
+paths.appBuild = process.env.TYPEDOWN_EDITOR_BUILD_OUTPUT
+    ? path.resolve(__dirname, process.env.TYPEDOWN_EDITOR_BUILD_OUTPUT)
+    : path.resolve(__dirname, '../Typedown.WinUI/Resources/Statics')
 
 module.exports = function override(config, env) {
     const overrideConfig = {

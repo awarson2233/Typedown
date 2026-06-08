@@ -38,6 +38,8 @@ namespace Typedown.WinUI
         private CompositeDisposable shellBindings = new();
         private RootControl? rootControl;
         private AppViewModel? appViewModel;
+        private bool allowWindowClose;
+        private bool windowCloseInProgress;
 
         /// <summary>
         /// Initializes the singleton application object.  This is the first line of authored code
@@ -45,6 +47,9 @@ namespace Typedown.WinUI
         /// </summary>
         public App()
         {
+            Config.SetAppDataPathProvider(new WinUIAppDataPathProvider());
+            WinUILocale.ApplyPersistedLanguageOverride();
+
             using (StartupTrace.Phase("App.InitializeComponent"))
             {
                 this.InitializeComponent();
@@ -84,12 +89,15 @@ namespace Typedown.WinUI
                 var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(window);
                 var windowId = Microsoft.UI.Win32Interop.GetWindowIdFromWindow(hwnd);
                 var appWindow = Microsoft.UI.Windowing.AppWindow.GetFromWindowId(windowId);
-                appWindow.SetIcon("Assets/logo.ico");
+                appWindow.SetIcon(Path.Combine(AppContext.BaseDirectory, "Assets", "logo.ico"));
+                appWindow.Closing -= OnAppWindowClosing;
+                appWindow.Closing += OnAppWindowClosing;
             }
 
             platformServices ??= new WinUIPlatformServices(window);
             platformServices.WebViewEnvironmentService.StartPrewarm();
             Config.SetAppDataPathProvider(platformServices.AppDataPathProvider);
+            WinUILocale.ApplyPersistedLanguageOverride();
             if (rootServices is null)
             {
                 using (StartupTrace.Phase("Build service provider"))
@@ -125,8 +133,12 @@ namespace Typedown.WinUI
                 uiServices = uiScope.ServiceProvider;
             }
 
-            var scopedServices = uiServices ?? throw new InvalidOperationException("Typedown UI services are not initialized.");
-            scopedServices.GetRequiredService<AppViewModel>().CommandLineArgs = startupCommandLineArgs;
+            if (uiServices is null)
+            {
+                throw new InvalidOperationException("Typedown UI services are not initialized.");
+            }
+
+            uiServices.GetRequiredService<AppViewModel>().CommandLineArgs = startupCommandLineArgs;
 
             platformServices.WindowContext.Title = "Typedown";
             ConfigureNativeTitleBar(window);
@@ -143,8 +155,8 @@ namespace Typedown.WinUI
 
             this.rootControl = rootControl;
 
-            rootControl.AttachKeyboardAccelerator(scopedServices.GetRequiredService<IKeyboardAccelerator>());
-            rootControl.MainPageNavigationParameter = new MainPageNavigationContext(platformServices, scopedServices);
+            rootControl.AttachKeyboardAccelerator(uiServices.GetRequiredService<IKeyboardAccelerator>());
+            rootControl.MainPageNavigationParameter = new MainPageNavigationContext(platformServices, uiServices);
             platformServices.WindowContext.ViewRoot = rootControl;
             using (StartupTrace.Phase("Attach shell bindings"))
             {
@@ -201,14 +213,62 @@ namespace Typedown.WinUI
             titleBar.ButtonPressedBackgroundColor = Microsoft.UI.ColorHelper.FromArgb(48, 128, 128, 128);
         }
 
+        private void OnAppWindowClosing(AppWindow sender, AppWindowClosingEventArgs args)
+        {
+            if (allowWindowClose)
+            {
+                allowWindowClose = false;
+                return;
+            }
+
+            args.Cancel = true;
+            _ = HandleAppWindowClosingAsync(sender);
+        }
+
+        private async Task HandleAppWindowClosingAsync(AppWindow sender)
+        {
+            if (windowCloseInProgress)
+            {
+                return;
+            }
+
+            windowCloseInProgress = true;
+            try
+            {
+                if (appViewModel is not null && !await appViewModel.FileViewModel.AskToSave())
+                {
+                    return;
+                }
+
+                if (appViewModel?.SettingsViewModel.KeepRun == true)
+                {
+                    sender.Hide();
+                    return;
+                }
+
+                allowWindowClose = true;
+                window?.Close();
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine(ex);
+            }
+            finally
+            {
+                windowCloseInProgress = false;
+            }
+        }
+
         private void OnWindowClosed(object sender, WindowEventArgs args)
         {
             if (sender is Window closedWindow)
             {
                 closedWindow.Closed -= OnWindowClosed;
+                closedWindow.AppWindow.Closing -= OnAppWindowClosing;
             }
 
             shellBindings.Dispose();
+            (platformServices?.AppActivationService as IDisposable)?.Dispose();
             uiScope?.Dispose();
             rootServices?.Dispose();
             uiScope = null;
@@ -318,16 +378,19 @@ namespace Typedown.WinUI
                 return;
             }
 
-            rootControl.RequestedTheme = theme switch
+            var requestedTheme = theme switch
             {
                 AppTheme.Light => ElementTheme.Light,
                 AppTheme.Dark => ElementTheme.Dark,
                 _ => ElementTheme.Default
             };
 
+            rootControl.RequestedTheme = requestedTheme;
+
             if (theme != AppTheme.Default)
             {
                 appViewModel?.UIViewModel.SetActualTheme(theme);
+                NotifyActiveEditorThemeChanged(requestedTheme);
             }
         }
 
@@ -365,6 +428,7 @@ namespace Typedown.WinUI
         private void OnRootControlActualThemeChanged(FrameworkElement sender, object args)
         {
             SyncActualTheme(sender.ActualTheme);
+            NotifyActiveEditorThemeChanged(sender.ActualTheme);
 
             if (appViewModel is not null)
             {
@@ -380,6 +444,37 @@ namespace Typedown.WinUI
             }
 
             appViewModel?.UIViewModel.SetActualTheme(actualTheme == ElementTheme.Light ? AppTheme.Light : AppTheme.Dark);
+        }
+
+        private void NotifyActiveEditorThemeChanged(ElementTheme actualTheme)
+        {
+            var payload = CreateEditorThemePayload(actualTheme);
+            if (payload is null)
+            {
+                return;
+            }
+
+            uiServices?.GetService<IEditorCommandSink>()?.Send("ThemeChanged", payload);
+        }
+
+        private static EditorThemePayload? CreateEditorThemePayload(ElementTheme actualTheme)
+        {
+            if (actualTheme != ElementTheme.Light && actualTheme != ElementTheme.Dark)
+            {
+                return null;
+            }
+
+            var isDark = actualTheme == ElementTheme.Dark;
+            var background = isDark
+                ? new EditorColorPayload(40, 40, 40, 1)
+                : new EditorColorPayload(249, 249, 249, 1);
+
+            return new EditorThemePayload
+            {
+                Theme = isDark ? "Dark" : "Light",
+                AccentColor = new EditorColorPayload(27, 102, 107, 1),
+                Background = background
+            };
         }
 
         internal WinUIPlatformServices PlatformServices => platformServices ?? throw new InvalidOperationException("Platform services are not initialized.");
