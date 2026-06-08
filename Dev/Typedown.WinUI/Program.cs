@@ -21,6 +21,7 @@ namespace Typedown.WinUI
         internal const string MainInstanceKey = "Typedown.WinUI.Main";
         internal const string NewWindowArgument = "--typedown-new-window";
         private static readonly TimeSpan RedirectActivationTimeout = TimeSpan.FromSeconds(5);
+        private static readonly TimeSpan RedirectActivationCancellationTimeout = TimeSpan.FromSeconds(1);
 
         [STAThread]
         private static void Main(string[] args)
@@ -89,37 +90,69 @@ namespace Typedown.WinUI
             }
 
             var redirectCompletion = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+            var redirectCancellation = new CancellationTokenSource();
+            var disposeRedirectCancellation = true;
+            var redirectCanceled = false;
             Exception? redirectError = null;
 
-            ThreadPool.QueueUserWorkItem(async _ =>
+            try
             {
-                try
+                ThreadPool.QueueUserWorkItem(async _ =>
                 {
-                    await mainInstance.RedirectActivationToAsync(initialActivationArgs);
-                }
-                catch (Exception ex)
-                {
-                    redirectError = ex;
-                }
-                finally
-                {
-                    redirectCompletion.TrySetResult(true);
-                }
-            });
+                    try
+                    {
+                        await mainInstance.RedirectActivationToAsync(initialActivationArgs)
+                            .AsTask(redirectCancellation.Token)
+                            .ConfigureAwait(false);
+                    }
+                    catch (OperationCanceledException) when (redirectCancellation.IsCancellationRequested)
+                    {
+                        redirectCanceled = true;
+                    }
+                    catch (Exception ex)
+                    {
+                        redirectError = ex;
+                    }
+                    finally
+                    {
+                        redirectCompletion.TrySetResult(true);
+                    }
+                });
 
-            if (!redirectCompletion.Task.Wait(RedirectActivationTimeout))
-            {
-                Debug.WriteLine($"Typedown activation redirection timed out after {RedirectActivationTimeout.TotalSeconds:N0} seconds; continuing in this process.");
-                return false;
+                if (!redirectCompletion.Task.Wait(RedirectActivationTimeout))
+                {
+                    Debug.WriteLine($"Typedown activation redirection timed out after {RedirectActivationTimeout.TotalSeconds:N0} seconds; canceling pending redirect.");
+                    redirectCancellation.Cancel();
+
+                    if (!redirectCompletion.Task.Wait(RedirectActivationCancellationTimeout))
+                    {
+                        Debug.WriteLine($"Typedown activation redirection cancellation did not complete within {RedirectActivationCancellationTimeout.TotalSeconds:N0} seconds; exiting without fallback to avoid handling the same activation twice.");
+                        disposeRedirectCancellation = false;
+                        return true;
+                    }
+                }
+
+                if (redirectCanceled)
+                {
+                    Debug.WriteLine("Typedown activation redirection was canceled after timeout; continuing in this process.");
+                    return false;
+                }
+
+                if (redirectError is not null)
+                {
+                    Debug.WriteLine($"Typedown activation redirection failed; continuing in this process: {redirectError}");
+                    return false;
+                }
+
+                return true;
             }
-
-            if (redirectError is not null)
+            finally
             {
-                Debug.WriteLine($"Typedown activation redirection failed; continuing in this process: {redirectError}");
-                return false;
+                if (disposeRedirectCancellation)
+                {
+                    redirectCancellation.Dispose();
+                }
             }
-
-            return true;
         }
     }
 }

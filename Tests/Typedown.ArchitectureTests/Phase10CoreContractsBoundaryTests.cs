@@ -565,11 +565,23 @@ public class Phase10CoreContractsBoundaryTests
         AssertContainsInOrder(
             programSource,
             "var redirectCompletion = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);",
+            "var redirectCancellation = new CancellationTokenSource();",
+            "var disposeRedirectCancellation = true;",
             "ThreadPool.QueueUserWorkItem(async _ =>",
-            "await mainInstance.RedirectActivationToAsync(initialActivationArgs);",
+            "await mainInstance.RedirectActivationToAsync(initialActivationArgs)",
+            ".AsTask(redirectCancellation.Token)",
+            ".ConfigureAwait(false);",
+            "catch (OperationCanceledException) when (redirectCancellation.IsCancellationRequested)",
+            "redirectCanceled = true;",
             "redirectCompletion.TrySetResult(true);",
             "if (!redirectCompletion.Task.Wait(RedirectActivationTimeout))",
             "Debug.WriteLine($\"Typedown activation redirection timed out",
+            "redirectCancellation.Cancel();",
+            "if (!redirectCompletion.Task.Wait(RedirectActivationCancellationTimeout))",
+            "disposeRedirectCancellation = false;",
+            "return true;",
+            "if (redirectCanceled)",
+            "Debug.WriteLine(\"Typedown activation redirection was canceled after timeout; continuing in this process.\");",
             "return false;",
             "if (redirectError is not null)",
             "Debug.WriteLine($\"Typedown activation redirection failed; continuing in this process",
@@ -581,15 +593,23 @@ public class Phase10CoreContractsBoundaryTests
         AssertHasTypeReference(programSource, "internal const string MainInstanceKey");
         AssertHasTypeReference(programSource, "internal const string NewWindowArgument");
         AssertHasTypeReference(programSource, "private static readonly TimeSpan RedirectActivationTimeout");
+        AssertHasTypeReference(programSource, "private static readonly TimeSpan RedirectActivationCancellationTimeout");
         AssertHasTypeReference(programSource, "HasNewWindowBypass(args)");
         AssertHasTypeReference(programSource, "WinUIAppInstanceRole.Secondary");
         AssertHasTypeReference(programSource, "TryRedirectActivation(mainInstance, initialActivationArgs)");
         AssertHasTypeReference(programSource, "activationBroker.Dispose();");
         AssertHasTypeReference(programSource, "TaskCompletionSource<bool>");
+        AssertHasTypeReference(programSource, "CancellationTokenSource");
         AssertHasTypeReference(programSource, "ThreadPool.QueueUserWorkItem");
         AssertHasTypeReference(programSource, "redirectCompletion.Task.Wait(RedirectActivationTimeout)");
+        AssertHasTypeReference(programSource, "redirectCompletion.Task.Wait(RedirectActivationCancellationTimeout)");
         AssertHasTypeReference(programSource, "RedirectActivationToAsync(initialActivationArgs)");
+        AssertHasTypeReference(programSource, ".AsTask(redirectCancellation.Token)");
+        AssertHasTypeReference(programSource, "redirectCancellation.Cancel();");
+        AssertHasTypeReference(programSource, "OperationCanceledException");
+        AssertHasTypeReference(programSource, "avoid handling the same activation twice");
         AssertHasTypeReference(programSource, "continuing in this process");
+        AssertNoTypeReference(programSource, "await mainInstance.RedirectActivationToAsync(initialActivationArgs);");
         AssertNoTypeReference(programSource, "completion.Wait();");
         AssertHasTypeReference(programSource, "DispatcherQueueSynchronizationContext");
 
