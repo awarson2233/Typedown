@@ -25,7 +25,8 @@ namespace Typedown.WinUI
         {
             WinRT.ComWrappersSupport.InitializeComWrappers();
 
-            var initialActivationArgs = AppInstance.GetCurrent().GetActivatedEventArgs();
+            var currentInstance = AppInstance.GetCurrent();
+            var initialActivationArgs = currentInstance.GetActivatedEventArgs();
             var isSecondaryWindowLaunch = HasNewWindowBypass(args);
             var instanceRole = isSecondaryWindowLaunch
                 ? WinUIAppInstanceRole.Secondary
@@ -34,14 +35,24 @@ namespace Typedown.WinUI
 
             if (!isSecondaryWindowLaunch)
             {
+                activationBroker = new WinUIActivationBroker(currentInstance);
                 var mainInstance = AppInstance.FindOrRegisterForKey(MainInstanceKey);
                 if (!mainInstance.IsCurrent)
                 {
-                    RedirectActivationAndExit(mainInstance, initialActivationArgs);
-                    return;
-                }
+                    activationBroker.Dispose();
+                    activationBroker = null;
 
-                activationBroker = new WinUIActivationBroker(mainInstance);
+                    if (TryRedirectActivation(mainInstance, initialActivationArgs))
+                    {
+                        return;
+                    }
+
+                    instanceRole = WinUIAppInstanceRole.Secondary;
+                }
+                else
+                {
+                    activationBroker.EnableKeyUnregistrationOnDispose();
+                }
             }
 
             Application.Start(_ =>
@@ -57,8 +68,14 @@ namespace Typedown.WinUI
             return args.Any(arg => string.Equals(arg, NewWindowArgument, StringComparison.OrdinalIgnoreCase));
         }
 
-        private static void RedirectActivationAndExit(AppInstance mainInstance, AppActivationArguments initialActivationArgs)
+        private static bool TryRedirectActivation(AppInstance mainInstance, AppActivationArguments? initialActivationArgs)
         {
+            if (initialActivationArgs is null)
+            {
+                Debug.WriteLine("Typedown activation redirection skipped because activation arguments were unavailable.");
+                return false;
+            }
+
             using var completion = new ManualResetEventSlim();
             Exception? redirectError = null;
 
@@ -82,8 +99,11 @@ namespace Typedown.WinUI
 
             if (redirectError is not null)
             {
-                Debug.WriteLine($"Typedown activation redirection failed: {redirectError}");
+                Debug.WriteLine($"Typedown activation redirection failed; continuing in this process: {redirectError}");
+                return false;
             }
+
+            return true;
         }
     }
 }

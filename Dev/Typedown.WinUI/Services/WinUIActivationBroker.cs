@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using Microsoft.Windows.AppLifecycle;
 
 namespace Typedown.WinUI.Services
@@ -10,6 +11,7 @@ namespace Typedown.WinUI.Services
         private readonly object gate = new();
         private readonly Queue<AppActivationArguments> pendingActivations = new();
         private EventHandler<AppActivationArguments>? activationReceived;
+        private bool unregisterKeyOnDispose;
         private bool disposed;
 
         public WinUIActivationBroker(AppInstance appInstance)
@@ -37,6 +39,15 @@ namespace Typedown.WinUI.Services
             }
         }
 
+        public void EnableKeyUnregistrationOnDispose()
+        {
+            lock (gate)
+            {
+                ObjectDisposedException.ThrowIf(disposed, this);
+                unregisterKeyOnDispose = true;
+            }
+        }
+
         public void FlushPendingActivations()
         {
             while (true)
@@ -61,6 +72,8 @@ namespace Typedown.WinUI.Services
 
         public void Dispose()
         {
+            bool shouldUnregisterKey;
+
             lock (gate)
             {
                 if (disposed)
@@ -69,8 +82,21 @@ namespace Typedown.WinUI.Services
                 }
 
                 disposed = true;
+                shouldUnregisterKey = unregisterKeyOnDispose;
                 activationReceived = null;
                 pendingActivations.Clear();
+            }
+
+            if (shouldUnregisterKey)
+            {
+                try
+                {
+                    appInstance.UnregisterKey();
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine($"Typedown app instance key unregistration failed: {ex}");
+                }
             }
 
             appInstance.Activated -= OnAppInstanceActivated;

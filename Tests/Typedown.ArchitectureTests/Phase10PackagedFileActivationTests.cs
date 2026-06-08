@@ -41,7 +41,8 @@ public class Phase10PackagedFileActivationTests
         var appSource = File.ReadAllText(Path.Combine(RepoRoot, "Dev", "Typedown.WinUI", "App.xaml.cs"));
         var programSource = File.ReadAllText(Path.Combine(RepoRoot, "Dev", "Typedown.WinUI", "Program.cs"));
 
-        AssertContains(programSource, "var initialActivationArgs = AppInstance.GetCurrent().GetActivatedEventArgs();");
+        AssertContains(programSource, "var currentInstance = AppInstance.GetCurrent();");
+        AssertContains(programSource, "var initialActivationArgs = currentInstance.GetActivatedEventArgs();");
         AssertContains(programSource, "new App(initialActivationArgs, instanceRole, activationBroker);");
         AssertDoesNotContain(appSource, "AppInstance.GetCurrent().GetActivatedEventArgs()");
         AssertContains(appSource, "initialActivationArgs?.Kind == ExtendedActivationKind.File");

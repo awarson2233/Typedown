@@ -545,16 +545,23 @@ public class Phase10CoreContractsBoundaryTests
         AssertContainsInOrder(
             programSource,
             "WinRT.ComWrappersSupport.InitializeComWrappers();",
-            "var initialActivationArgs = AppInstance.GetCurrent().GetActivatedEventArgs();",
+            "var currentInstance = AppInstance.GetCurrent();",
+            "var initialActivationArgs = currentInstance.GetActivatedEventArgs();",
+            "activationBroker = new WinUIActivationBroker(currentInstance);",
             "var mainInstance = AppInstance.FindOrRegisterForKey(MainInstanceKey);",
-            "RedirectActivationAndExit(mainInstance, initialActivationArgs);",
+            "if (TryRedirectActivation(mainInstance, initialActivationArgs))",
+            "instanceRole = WinUIAppInstanceRole.Secondary;",
+            "activationBroker.EnableKeyUnregistrationOnDispose();",
             "Application.Start",
             "new App(initialActivationArgs, instanceRole, activationBroker);");
         AssertHasTypeReference(programSource, "internal const string MainInstanceKey");
         AssertHasTypeReference(programSource, "internal const string NewWindowArgument");
         AssertHasTypeReference(programSource, "HasNewWindowBypass(args)");
         AssertHasTypeReference(programSource, "WinUIAppInstanceRole.Secondary");
+        AssertHasTypeReference(programSource, "TryRedirectActivation(mainInstance, initialActivationArgs)");
+        AssertHasTypeReference(programSource, "activationBroker.Dispose();");
         AssertHasTypeReference(programSource, "RedirectActivationToAsync(initialActivationArgs)");
+        AssertHasTypeReference(programSource, "continuing in this process");
         AssertHasTypeReference(programSource, "DispatcherQueueSynchronizationContext");
 
         AssertContainsInOrder(
@@ -586,10 +593,13 @@ public class Phase10CoreContractsBoundaryTests
         AssertContainsInOrder(
             brokerSource,
             "this.appInstance.Activated += OnAppInstanceActivated;",
+            "public void EnableKeyUnregistrationOnDispose()",
+            "unregisterKeyOnDispose = true;",
             "public void FlushPendingActivations()",
             "pendingActivations.Dequeue()",
             "handler.Invoke(this, args);");
         AssertContainsInOrder(brokerSource, "handler = activationReceived;", "pendingActivations.Enqueue(args);");
+        AssertHasTypeReference(brokerSource, "appInstance.UnregisterKey();");
         AssertHasTypeReference(brokerSource, "appInstance.Activated -= OnAppInstanceActivated");
 
         AssertHasTypeReference(activationContractSource, "public enum AppActivationSource");
