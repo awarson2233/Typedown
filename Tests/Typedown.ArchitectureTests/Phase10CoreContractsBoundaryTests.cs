@@ -550,18 +550,47 @@ public class Phase10CoreContractsBoundaryTests
             "activationBroker = new WinUIActivationBroker(currentInstance);",
             "var mainInstance = AppInstance.FindOrRegisterForKey(MainInstanceKey);",
             "if (TryRedirectActivation(mainInstance, initialActivationArgs))",
+            "activationBroker.Dispose();",
+            "return;",
             "instanceRole = WinUIAppInstanceRole.Secondary;",
+            "mainInstance = AppInstance.FindOrRegisterForKey(MainInstanceKey);",
+            "if (mainInstance.IsCurrent)",
+            "instanceRole = WinUIAppInstanceRole.Main;",
             "activationBroker.EnableKeyUnregistrationOnDispose();",
+            "else",
+            "activationBroker.Dispose();",
+            "activationBroker = null;",
             "Application.Start",
             "new App(initialActivationArgs, instanceRole, activationBroker);");
+        AssertContainsInOrder(
+            programSource,
+            "var redirectCompletion = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);",
+            "ThreadPool.QueueUserWorkItem(async _ =>",
+            "await mainInstance.RedirectActivationToAsync(initialActivationArgs);",
+            "redirectCompletion.TrySetResult(true);",
+            "if (!redirectCompletion.Task.Wait(RedirectActivationTimeout))",
+            "Debug.WriteLine($\"Typedown activation redirection timed out",
+            "return false;",
+            "if (redirectError is not null)",
+            "Debug.WriteLine($\"Typedown activation redirection failed; continuing in this process",
+            "return false;",
+            "return true;");
+        Assert.AreEqual(2, Regex.Matches(programSource, Regex.Escape("AppInstance.FindOrRegisterForKey(MainInstanceKey)")).Count);
+        Assert.AreEqual(1, Regex.Matches(programSource, Regex.Escape("TryRedirectActivation(mainInstance, initialActivationArgs)")).Count);
+        Assert.AreEqual(2, Regex.Matches(programSource, Regex.Escape("activationBroker.EnableKeyUnregistrationOnDispose();")).Count);
         AssertHasTypeReference(programSource, "internal const string MainInstanceKey");
         AssertHasTypeReference(programSource, "internal const string NewWindowArgument");
+        AssertHasTypeReference(programSource, "private static readonly TimeSpan RedirectActivationTimeout");
         AssertHasTypeReference(programSource, "HasNewWindowBypass(args)");
         AssertHasTypeReference(programSource, "WinUIAppInstanceRole.Secondary");
         AssertHasTypeReference(programSource, "TryRedirectActivation(mainInstance, initialActivationArgs)");
         AssertHasTypeReference(programSource, "activationBroker.Dispose();");
+        AssertHasTypeReference(programSource, "TaskCompletionSource<bool>");
+        AssertHasTypeReference(programSource, "ThreadPool.QueueUserWorkItem");
+        AssertHasTypeReference(programSource, "redirectCompletion.Task.Wait(RedirectActivationTimeout)");
         AssertHasTypeReference(programSource, "RedirectActivationToAsync(initialActivationArgs)");
         AssertHasTypeReference(programSource, "continuing in this process");
+        AssertNoTypeReference(programSource, "completion.Wait();");
         AssertHasTypeReference(programSource, "DispatcherQueueSynchronizationContext");
 
         AssertContainsInOrder(

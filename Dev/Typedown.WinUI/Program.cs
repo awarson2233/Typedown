@@ -2,6 +2,7 @@ using System;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading;
+using System.Threading.Tasks;
 using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
 using Microsoft.Windows.AppLifecycle;
@@ -19,6 +20,7 @@ namespace Typedown.WinUI
     {
         internal const string MainInstanceKey = "Typedown.WinUI.Main";
         internal const string NewWindowArgument = "--typedown-new-window";
+        private static readonly TimeSpan RedirectActivationTimeout = TimeSpan.FromSeconds(5);
 
         [STAThread]
         private static void Main(string[] args)
@@ -39,15 +41,25 @@ namespace Typedown.WinUI
                 var mainInstance = AppInstance.FindOrRegisterForKey(MainInstanceKey);
                 if (!mainInstance.IsCurrent)
                 {
-                    activationBroker.Dispose();
-                    activationBroker = null;
-
                     if (TryRedirectActivation(mainInstance, initialActivationArgs))
                     {
+                        activationBroker.Dispose();
                         return;
                     }
 
                     instanceRole = WinUIAppInstanceRole.Secondary;
+                    mainInstance = AppInstance.FindOrRegisterForKey(MainInstanceKey);
+                    if (mainInstance.IsCurrent)
+                    {
+                        Debug.WriteLine("Typedown activation redirection target was unavailable; current process registered as main instance on retry.");
+                        instanceRole = WinUIAppInstanceRole.Main;
+                        activationBroker.EnableKeyUnregistrationOnDispose();
+                    }
+                    else
+                    {
+                        activationBroker.Dispose();
+                        activationBroker = null;
+                    }
                 }
                 else
                 {
@@ -76,7 +88,7 @@ namespace Typedown.WinUI
                 return false;
             }
 
-            using var completion = new ManualResetEventSlim();
+            var redirectCompletion = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
             Exception? redirectError = null;
 
             ThreadPool.QueueUserWorkItem(async _ =>
@@ -91,11 +103,15 @@ namespace Typedown.WinUI
                 }
                 finally
                 {
-                    completion.Set();
+                    redirectCompletion.TrySetResult(true);
                 }
             });
 
-            completion.Wait();
+            if (!redirectCompletion.Task.Wait(RedirectActivationTimeout))
+            {
+                Debug.WriteLine($"Typedown activation redirection timed out after {RedirectActivationTimeout.TotalSeconds:N0} seconds; continuing in this process.");
+                return false;
+            }
 
             if (redirectError is not null)
             {
