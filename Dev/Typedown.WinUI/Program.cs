@@ -122,7 +122,17 @@ namespace Typedown.WinUI
                 if (!redirectCompletion.Task.Wait(RedirectActivationTimeout))
                 {
                     Debug.WriteLine($"Typedown activation redirection timed out after {RedirectActivationTimeout.TotalSeconds:N0} seconds; canceling pending redirect.");
-                    redirectCancellation.Cancel();
+
+                    try
+                    {
+                        redirectCancellation.Cancel();
+                    }
+                    catch (Exception ex)
+                    {
+                        Debug.WriteLine($"Typedown activation redirection cancellation request failed; exiting without fallback to avoid handling the same activation twice: {ex}");
+                        disposeRedirectCancellation = false;
+                        return true;
+                    }
 
                     if (!redirectCompletion.Task.Wait(RedirectActivationCancellationTimeout))
                     {
