@@ -40,6 +40,9 @@ namespace Typedown.Presentation.ViewModels
         public string? FilePath { get; private set; }
 
         private string? startupOpenedFilePath;
+        private PendingDocument? pendingDocument;
+
+        private sealed record PendingDocument(string Id, string Text, ulong FileHash, string? FilePath, bool Saved);
 
         public string ImageBasePath => string.IsNullOrEmpty(FilePath) ? SettingsViewModel.DefaultImageBasePath : Path.GetDirectoryName(FilePath) ?? SettingsViewModel.DefaultImageBasePath;
 
@@ -145,20 +148,31 @@ namespace Typedown.Presentation.ViewModels
             return true;
         }
 
+        private void QueueDocument(string text, ulong fileHash, string? filePath, bool saved)
+        {
+            var pending = new PendingDocument(Guid.NewGuid().ToString("N"), text, fileHash, filePath, saved);
+            pendingDocument = pending;
+            EditorCommandSink?.Send("LoadFile", new { text, basePath = string.IsNullOrEmpty(filePath) ? SettingsViewModel.DefaultImageBasePath : Path.GetDirectoryName(filePath), documentId = pending.Id });
+        }
+
+        public void ActivatePendingDocument(string? id)
+        {
+            if (pendingDocument is not PendingDocument pending || pending.Id != id) return;
+            pendingDocument = null;
+            FilePath = pending.FilePath;
+            EditorViewModel.ActivateDocument(pending.Id, pending.Text, pending.FileHash, pending.Saved);
+        }
+
         private async Task NewFileFun(bool postMessage = true)
         {
             if (!await AskToSave()) return;
-            FilePath = null;
-            EditorViewModel.FileHash = Common.SimpleHash(Common.DefaultMarkdwn);
-            EditorViewModel.Markdown = Common.DefaultMarkdwn;
-            EditorViewModel.CurrentHash = EditorViewModel.FileHash;
-            EditorViewModel.Saved = true;
-            EditorViewModel.AutoSavedSucc = true;
-            EditorViewModel.FileLoaded = false;
-            EditorViewModel.History.InitHistory(Common.DefaultMarkdwn);
-            if (postMessage)
+            var text = Common.DefaultMarkdwn;
+            var hash = Common.SimpleHash(text);
+            if (postMessage) QueueDocument(text, hash, null, true);
+            else
             {
-                EditorCommandSink?.Send("LoadFile", new { text = EditorViewModel.Markdown, basePath = ImageBasePath, documentId = EditorViewModel.BeginDocumentLoad() });
+                FilePath = null;
+                EditorViewModel.ActivateDocument(EditorViewModel.CurrentDocumentId, text, hash, true);
             }
         }
 
@@ -207,31 +221,18 @@ namespace Typedown.Presentation.ViewModels
                 }
                 var text = await File.ReadAllTextAsync(path);
                 EditorViewModel.FirstStart = false;
-                EditorViewModel.FileHash = Common.SimpleHash(text);
-                FilePath = path;
+                var fileHash = Common.SimpleHash(text);
                 SettingsViewModel.LastFilePath = path;
                 var loadedPath = path;
                 _ = RunAfterInitialEditorFileLoadedAsync(() => AccessHistory.RecordFileHistory(loadedPath));
-                var backup = await CheckBackup(path, EditorViewModel.FileHash);
-                if (backup == null)
-                {
-                    EditorViewModel.Markdown = text;
-                    EditorViewModel.CurrentHash = EditorViewModel.FileHash;
-                    EditorViewModel.Saved = true;
-                    EditorViewModel.FileLoaded = false;
-                }
+                var backup = await CheckBackup(path, fileHash);
+                var markdown = backup ?? text;
+                var saved = backup is null;
+                if (postMessage) QueueDocument(markdown, fileHash, path, saved);
                 else
                 {
-                    EditorViewModel.Markdown = backup;
-                    EditorViewModel.CurrentHash = Common.SimpleHash(backup);
-                    EditorViewModel.Saved = false;
-                    EditorViewModel.FileLoaded = true;
-                }
-                EditorViewModel.AutoSavedSucc = true;
-                EditorViewModel.History.InitHistory(EditorViewModel.Markdown);
-                if (postMessage)
-                {
-                    EditorCommandSink?.Send("LoadFile", new { text = EditorViewModel.Markdown, filePath = FilePath, basePath = ImageBasePath, documentId = EditorViewModel.BeginDocumentLoad() });
+                    FilePath = path;
+                    EditorViewModel.ActivateDocument(EditorViewModel.CurrentDocumentId, markdown, fileHash, saved);
                 }
                 return true;
             }

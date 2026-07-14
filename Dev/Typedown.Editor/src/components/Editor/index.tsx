@@ -23,10 +23,6 @@ const Editor: React.FC = () => {
     const muyaScrollTopRef = useRef(0);
     const codeMirrorScrollRef = useRef(0);
 
-    const OnFileLoaded = useCallback((id: string, text: string) => setTimeout(() => {
-        if (documentIdRef.current === id) transport.postMessage('FileLoaded', { text, documentId: id })
-    }, 100), [])
-
     const activateDocument = useCallback((text: string, id: string) => {
         documentIdRef.current = id
         markdownRef.current = text
@@ -34,8 +30,7 @@ const Editor: React.FC = () => {
         setPendingDocument(undefined)
         setCursor(undefined)
         setMarkdown(text)
-        OnFileLoaded(id, text)
-    }, [OnFileLoaded])
+    }, [])
 
     const loadDocument = useCallback((text: string, id?: string) => {
         const nextId = id || `${Date.now()}-${Math.random()}`

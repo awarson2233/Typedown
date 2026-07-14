@@ -31,13 +31,17 @@ public sealed class MuyaV2ProtocolContractTests
         var viewModel = File.ReadAllText(Path.Combine(RepoRoot, "Dev", "Typedown.Presentation", "ViewModels", "EditorViewModel.cs"));
 
         StringAssert.Contains(host, "editor.flush()\n        const outgoingMarkdown = editor.getMarkdown()");
-        StringAssert.Contains(host, "props.onDocumentFlushed(props.pendingDocument.text, props.pendingDocument.id)");
+        StringAssert.Contains(host, "DocumentFlushed', { documentId: outgoingId, nextDocumentId: props.pendingDocument.id }");
+        StringAssert.Contains(host, "if (!editor || documentIdRef.current === props.documentId) return");
+        StringAssert.Contains(host, "FileLoaded', { text: markdownRef.current, documentId: props.documentId }");
         StringAssert.Contains(editor, "setPendingDocument({ text, id: nextId })");
         StringAssert.Contains(host, "else document.execCommand('copy')");
-        StringAssert.Contains(host, "arg?.type === 'pasteAsPlainText' ? '' : arg?.html");
+        StringAssert.Contains(host, "editor.pastePlainText(arg?.text ?? '')");
         StringAssert.Contains(viewModel, "Selection[\"isCollapsed\"]");
         StringAssert.Contains(host, "ActiveHeadingChange");
         StringAssert.Contains(viewModel, "OnActiveHeadingChange");
+        StringAssert.Contains(viewModel, "FileViewModel.ActivatePendingDocument");
+        StringAssert.Contains(viewModel, "History.InitHistory(markdown)");
     }
 
     private static string FindRepoRoot()

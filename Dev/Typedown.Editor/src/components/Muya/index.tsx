@@ -174,20 +174,22 @@ const MuyaEditor: React.FC<IMuyaEditor> = (props) => {
         markdownRef.current = outgoingMarkdown
         props.onMarkdownChange(outgoingMarkdown, outgoingId)
         props.onCursorChange(editor.getCursorOffset(), outgoingId)
+        transport.postMessageNoDiff('DocumentFlushed', { documentId: outgoingId, nextDocumentId: props.pendingDocument.id })
         props.onDocumentFlushed(props.pendingDocument.text, props.pendingDocument.id)
     // The parent callbacks are stable useCallback instances.
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [editor, props.pendingDocument, props.onCursorChange, props.onDocumentFlushed, props.onMarkdownChange])
 
     useEffect(() => {
-        if (!editor || markdownRef.current === props.markdown) return
+        if (!editor || documentIdRef.current === props.documentId) return
         loadingRef.current = true
         documentIdRef.current = props.documentId
-        editor.setContent(props.markdown)
+        if (markdownRef.current !== props.markdown) editor.setContent(props.markdown)
         editor.clearHistory()
         markdownRef.current = editor.getMarkdown()
         if (cursorRef.current) editor.setCursorByOffset(cursorRef.current)
         loadingRef.current = false
+        transport.postMessageNoDiff('FileLoaded', { text: markdownRef.current, documentId: props.documentId })
         const owner = editor.domNode
         owner.scrollTop = props.scrollTopRef.current
         requestAnimationFrame(() => {
@@ -220,10 +222,11 @@ const MuyaEditor: React.FC<IMuyaEditor> = (props) => {
     useEffect(() => transport.addListener<any>('Paste', arg => {
         if (!editor) return
         if (arg?.src) void editor.pasteImage(arg.src)
+        else if (arg?.type === 'pasteAsPlainText') void editor.pastePlainText(arg?.text ?? '')
         else {
             const data = new DataTransfer()
             data.setData('text/plain', arg?.text ?? '')
-            data.setData('text/html', arg?.type === 'pasteAsPlainText' ? '' : arg?.html ?? '')
+            data.setData('text/html', arg?.html ?? '')
             editor.domNode.dispatchEvent(new ClipboardEvent('paste', { bubbles: true, cancelable: true, clipboardData: data }))
         }
     }), [editor])

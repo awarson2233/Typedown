@@ -71,7 +71,6 @@ namespace Typedown.Presentation.ViewModels
 
         private bool contentUpdating = false;
         private string documentId = Guid.NewGuid().ToString("N");
-        private string? pendingDocumentId;
 
         public EditorViewModel(IServiceProvider serviceProvider)
         {
@@ -79,6 +78,7 @@ namespace Typedown.Presentation.ViewModels
             disposables.Add(tocSelectionDisposables);
             disposables.Add(EventCenter.GetObservable<EditorEventArgs>("MarkdownChange").Subscribe(x => OnMarkdownChange(x.Args)));
             disposables.Add(EventCenter.GetObservable<EditorEventArgs>("FileLoaded").Subscribe(x => OnFileLoaded(x.Args)));
+            disposables.Add(EventCenter.GetObservable<EditorEventArgs>("DocumentFlushed").Subscribe(x => OnDocumentFlushed(x.Args)));
             disposables.Add(EventCenter.GetObservable<EditorEventArgs>("CursorChange").Subscribe(x => OnCursorChange(x.Args)));
             disposables.Add(EventCenter.GetObservable<EditorEventArgs>("SelectionChange").Subscribe(x => OnSelectionChange(x.Args)));
             disposables.Add(EventCenter.GetObservable<EditorEventArgs>("CodeMirrorSelectionChange").Subscribe(x => OnCodeMirrorSelectionChange(x.Args)));
@@ -121,11 +121,25 @@ namespace Typedown.Presentation.ViewModels
         private bool IsCurrentDocument(JToken arg) =>
             arg["documentId"] is null || arg["documentId"]?.ToString() == documentId;
 
-        public string BeginDocumentLoad()
+        public string CurrentDocumentId => documentId;
+
+        public void OnDocumentFlushed(JToken arg)
         {
-            pendingDocumentId = Guid.NewGuid().ToString("N");
+            if (!IsCurrentDocument(arg)) return;
+            FileViewModel.ActivatePendingDocument(arg["nextDocumentId"]?.ToString());
+        }
+
+        public void ActivateDocument(string nextDocumentId, string markdown, ulong fileHash, bool saved)
+        {
+            documentId = nextDocumentId;
             contentUpdating = false;
-            return pendingDocumentId;
+            Markdown = markdown;
+            FileHash = fileHash;
+            CurrentHash = Common.SimpleHash(markdown);
+            Saved = saved;
+            AutoSavedSucc = true;
+            FileLoaded = true;
+            History.InitHistory(markdown);
         }
 
         public void OnSelectionChange(JToken arg)
@@ -180,23 +194,9 @@ namespace Typedown.Presentation.ViewModels
 
         public void OnFileLoaded(JToken arg)
         {
-            var loadedDocumentId = arg["documentId"]?.ToString();
-            if (pendingDocumentId is not null && loadedDocumentId == pendingDocumentId)
-            {
-                documentId = pendingDocumentId;
-                pendingDocumentId = null;
-            }
             if (!IsCurrentDocument(arg)) return;
-            if (!FileLoaded)
-            {
-                FileLoaded = true;
-                var newText = arg["text"]?.ToString() ?? string.Empty;
-                FileHash = Common.SimpleHash(newText);
-                History.InitHistory(newText);
-                OnMarkdownChange(newText);
-                if (FloatViewModel.FindReplaceDialogOpen > 0)
-                    OnSearch();
-            }
+            FileLoaded = true;
+            if (FloatViewModel.FindReplaceDialogOpen > 0) OnSearch();
         }
 
         public void OnMarkdownChange(JToken arg)

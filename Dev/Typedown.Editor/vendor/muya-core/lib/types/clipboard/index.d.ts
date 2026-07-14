@@ -20,6 +20,7 @@ declare class Clipboard {
     copyAsHtml(): void;
     copyAsRich(): void;
     pasteAsPlainText(): Promise<void>;
+    pastePlainText(rawText: string): Promise<void>;
     pasteImage(src: string): Promise<void>;
     private _readClipboardText;
     copy(type: CopyType, info: string): void;

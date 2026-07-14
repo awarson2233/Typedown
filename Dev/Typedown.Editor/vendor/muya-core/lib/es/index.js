@@ -55611,6 +55611,9 @@ var bT = class e {
 		let e = await this._readClipboardText();
 		e && await vT(this, e);
 	}
+	pastePlainText(e) {
+		return vT(this, e);
+	}
 	pasteImage(e) {
 		return Vw(this, e);
 	}
@@ -58514,6 +58517,9 @@ var wD = class e {
 	}
 	pasteAsPlainText() {
 		return this.editor.clipboard.pasteAsPlainText();
+	}
+	pastePlainText(e) {
+		return this.editor.clipboard.pastePlainText(e);
 	}
 	pasteImage(e) {
 		return this.editor.clipboard.pasteImage(e);
