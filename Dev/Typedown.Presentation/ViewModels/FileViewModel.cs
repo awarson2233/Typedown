@@ -116,48 +116,48 @@ namespace Typedown.Presentation.ViewModels
 
         private async Task RunAutoPersistenceTickAsync()
         {
-            var importCommitted = await EnsurePendingImportCommitted(false);
-            if (!importCommitted)
+            using var lease = await AcquirePersistenceLease(false);
+            if (lease is null)
             {
                 EditorViewModel.AutoSavedSucc = false;
                 return;
             }
             if (SettingsViewModel.AutoSave)
             {
-                EditorViewModel.AutoSavedSucc = await AutoSaveFile(importCommitted);
+                EditorViewModel.AutoSavedSucc = await AutoSaveFile(lease);
                 if (!EditorViewModel.AutoSavedSucc)
-                    await AutoBackupFile(importCommitted);
+                    await AutoBackupFile(lease);
             }
             else
             {
-                await AutoBackupFile(importCommitted);
+                await AutoBackupFile(lease);
             }
         }
 
-        private async Task<bool> EnsurePendingImportCommitted(bool showError)
+        private async Task<PendingImportGate.PersistenceLease?> AcquirePersistenceLease(bool showError)
         {
-            if (await EditorViewModel.WaitForPendingImportAsync()) return true;
-            if (showError)
+            var lease = await EditorViewModel.AcquirePersistenceLeaseAsync();
+            if (lease is null && showError)
                 await ShowDialog(
                     Locale.GetString("Error"),
                     "The imported content is still being finalized. Please try again.",
                     Locale.GetString("Ok"));
-            return false;
+            return lease;
         }
 
         public async Task<bool> AutoSaveFile()
         {
-            var importCommitted = await EnsurePendingImportCommitted(false);
-            return await AutoSaveFile(importCommitted);
+            using var lease = await AcquirePersistenceLease(false);
+            return lease is not null && await AutoSaveFile(lease);
         }
 
-        private async Task<bool> AutoSaveFile(bool importCommitted)
+        private async Task<bool> AutoSaveFile(PendingImportGate.PersistenceLease lease)
         {
             try
             {
-                if (!importCommitted) return false;
+                if (!lease.IsValid) return false;
                 if (SettingsViewModel.AutoSave && EditorViewModel.FileLoaded && (EditorViewModel.FileHash != EditorViewModel.CurrentHash) && FilePath != null)
-                    return await Save(false, importCommitted);
+                    return await Save(false, lease);
                 return FilePath != null;
             }
             catch
@@ -166,16 +166,17 @@ namespace Typedown.Presentation.ViewModels
             }
         }
 
-        private async Task<bool> AutoBackupFile(bool importCommitted)
+        private async Task<bool> AutoBackupFile(PendingImportGate.PersistenceLease lease)
         {
-            if (!importCommitted) return false;
-            if (string.IsNullOrWhiteSpace(FilePath))
-                return true;
+            if (!lease.IsValid) return false;
+            var path = FilePath;
+            var markdown = EditorViewModel.Markdown;
+            var changed = EditorViewModel.FileHash != EditorViewModel.CurrentHash;
+            if (string.IsNullOrWhiteSpace(path)) return true;
+            if (changed && !string.IsNullOrWhiteSpace(markdown))
+                return await AutoBackup.Backup(path, markdown);
 
-            if (EditorViewModel.FileHash != EditorViewModel.CurrentHash && !string.IsNullOrWhiteSpace(EditorViewModel.Markdown))
-                return await AutoBackup.Backup(FilePath, EditorViewModel.Markdown);
-
-            AutoBackup.DeleteBackup(FilePath);
+            AutoBackup.DeleteBackup(path);
             return true;
         }
 
@@ -392,32 +393,46 @@ namespace Typedown.Presentation.ViewModels
             }
         }
 
-        private async Task<bool> Save(bool alert = true, bool importCommitted = false)
+        private async Task<bool> Save(bool alert = true, PendingImportGate.PersistenceLease? existingLease = null)
         {
-            if (!importCommitted && !await EnsurePendingImportCommitted(true)) return false;
-            if (FilePath == null)
+            var lease = existingLease ?? await AcquirePersistenceLease(true);
+            if (lease is null) return false;
+            try
             {
-                var result = await SaveAs();
-                return result != null;
-            }
-            else
-            {
-                var result = await WriteAllText(FilePath, EditorViewModel.Markdown, alert);
+                if (!lease.IsValid) return false;
+                if (FilePath == null)
+                {
+                    var savedPath = await SaveAs(lease);
+                    return savedPath != null;
+                }
+                var path = FilePath;
+                var markdown = EditorViewModel.Markdown;
+                var currentHash = EditorViewModel.CurrentHash;
+                var result = await WriteAllText(path, markdown, alert);
                 if (result)
                 {
-                    EditorViewModel.FileHash = EditorViewModel.CurrentHash;
+                    EditorViewModel.FileHash = currentHash;
                     EditorViewModel.Saved = true;
-                    AutoBackup.DeleteBackup(FilePath);
-                    var savedPath = FilePath;
-                    _ = RunAfterInitialEditorFileLoadedAsync(() => AccessHistory.RecordFileHistory(savedPath));
+                    AutoBackup.DeleteBackup(path);
+                    _ = RunAfterInitialEditorFileLoadedAsync(() => AccessHistory.RecordFileHistory(path));
                 }
                 return result;
             }
+            finally
+            {
+                if (existingLease is null) lease.Dispose();
+            }
         }
 
-        private async Task<string?> SaveAs()
+        private async Task<string?> SaveAs(PendingImportGate.PersistenceLease? existingLease = null)
         {
-            if (!await EnsurePendingImportCommitted(true)) return null;
+            var lease = existingLease ?? await AcquirePersistenceLease(true);
+            if (lease is null) return null;
+            if (!lease.IsValid)
+            {
+                if (existingLease is null) lease.Dispose();
+                return null;
+            }
             if (saveAsOpened)
             {
                 return null;
@@ -463,6 +478,7 @@ namespace Typedown.Presentation.ViewModels
             finally
             {
                 saveAsOpened = false;
+                if (existingLease is null) lease.Dispose();
             }
         }
 
@@ -516,8 +532,9 @@ namespace Typedown.Presentation.ViewModels
 
         public async Task<bool> AskToSave()
         {
-            if (!await EnsurePendingImportCommitted(true)) return false;
-            if (EditorViewModel.Saved || (SettingsViewModel.AutoSave && await AutoSaveFile()))
+            using var lease = await AcquirePersistenceLease(true);
+            if (lease is null || !lease.IsValid) return false;
+            if (EditorViewModel.Saved || (SettingsViewModel.AutoSave && await AutoSaveFile(lease)))
             {
                 return true;
             }
@@ -540,7 +557,7 @@ namespace Typedown.Presentation.ViewModels
                 switch (result)
                 {
                     case DialogButton.Primary:
-                        var saveResult = await Save();
+                        var saveResult = await Save(existingLease: lease);
                         return saveResult;
                     case DialogButton.Secondary:
                         if (FilePath is not null)

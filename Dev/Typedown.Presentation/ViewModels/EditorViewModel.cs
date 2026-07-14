@@ -264,8 +264,8 @@ namespace Typedown.Presentation.ViewModels
                 EditorCommandSink.Send("ReplacementCommitted", new { documentId, revision, origin, text = Markdown, hash = CurrentHash });
         }
 
-        public Task<bool> WaitForPendingImportAsync() =>
-            PendingImportGate.WaitAsync(TimeSpan.FromSeconds(3));
+        public Task<PendingImportGate.PersistenceLease?> AcquirePersistenceLeaseAsync() =>
+            PendingImportGate.AcquireAsync(TimeSpan.FromSeconds(3));
 
         public void OnCursorChange(JToken arg)
         {

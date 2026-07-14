@@ -241,15 +241,44 @@ public class WinUIEditorBridgeAdapterTests
     {
         var gate = new PendingImportGate();
         gate.Begin("r1");
-        var staleWaiter = gate.WaitAsync(TimeSpan.FromSeconds(1));
+        var staleWaiter = gate.AcquireAsync(TimeSpan.FromSeconds(1));
 
         gate.Begin("r2");
 
-        Assert.IsFalse(await staleWaiter);
+        Assert.IsNull(await staleWaiter);
         Assert.IsFalse(gate.Complete("r1"));
         Assert.IsTrue(gate.IsPending);
         Assert.IsTrue(gate.Complete("r2"));
-        Assert.IsTrue(await gate.WaitAsync(TimeSpan.Zero));
+        using var lease = await gate.AcquireAsync(TimeSpan.Zero);
+        Assert.IsNotNull(lease);
+        Assert.IsTrue(lease.IsValid);
+    }
+
+    [TestMethod]
+    public async Task PendingImportLease_HoldsGenerationBoundaryAgainstInterleavedBegin()
+    {
+        var gate = new PendingImportGate();
+        gate.Begin("r1");
+        var waiter = gate.AcquireAsync(TimeSpan.FromSeconds(2));
+        Assert.IsTrue(gate.Complete("r1"));
+        using var lease = await waiter;
+        Assert.IsNotNull(lease);
+        Assert.IsTrue(lease.IsValid);
+
+        var beginR2 = Task.Run(() => gate.Begin("r2"));
+        await Task.Delay(50);
+        Assert.IsFalse(beginR2.IsCompleted);
+        Assert.IsTrue(lease.IsValid);
+
+        lease.Dispose();
+        await beginR2;
+        Assert.IsTrue(gate.IsPending);
+        Assert.AreEqual("r2", gate.Revision);
+        Assert.IsFalse(gate.Complete("r1"));
+        Assert.IsTrue(gate.Complete("r2"));
+        using var r2Lease = await gate.AcquireAsync(TimeSpan.Zero);
+        Assert.IsNotNull(r2Lease);
+        Assert.IsTrue(r2Lease.IsValid);
     }
 
     [TestMethod]

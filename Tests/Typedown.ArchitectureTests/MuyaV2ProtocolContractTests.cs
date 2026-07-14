@@ -75,7 +75,7 @@ public sealed class MuyaV2ProtocolContractTests
         Assert.IsTrue(viewModel.IndexOf("appliedReplacementRevisions.ContainsKey(revisionKey)", StringComparison.Ordinal)
             < viewModel.IndexOf("phase == \"final\" && revision != PendingImportGate.Revision", StringComparison.Ordinal));
         StringAssert.Contains(viewModel, "phase == \"final\" && revision != PendingImportGate.Revision");
-        StringAssert.Contains(viewModel, "WaitForPendingImportAsync");
+        StringAssert.Contains(viewModel, "AcquirePersistenceLeaseAsync");
         StringAssert.Contains(viewModel, "History.CommitPending()");
         StringAssert.Contains(viewModel, "text = Markdown, hash = CurrentHash");
         Assert.IsFalse(host.Contains("props.onReplacementConsumed(replacement.documentId, replacement.revision)", StringComparison.Ordinal));

@@ -64,8 +64,8 @@ namespace Typedown.WinUI.Controls
         // Expected IO/path failures are collapsed through catch () filters into EditorPersistenceResult.
         public EditorPersistenceResult LoadFile(string filePath)
         {
-            if (pendingImportGate.IsPending)
-                return PendingImportPersistenceFailure();
+            using var lease = AcquirePersistenceLease();
+            if (lease is null) return PendingImportPersistenceFailure();
             if (string.IsNullOrWhiteSpace(filePath))
             {
                 return new EditorPersistenceResult(false, State, "A file path is required to load markdown.");
@@ -99,8 +99,8 @@ namespace Typedown.WinUI.Controls
 
         public EditorPersistenceResult ReplaceFileText(string text, string? filePath = null, string? basePath = null)
         {
-            if (pendingImportGate.IsPending)
-                return PendingImportPersistenceFailure();
+            using var lease = AcquirePersistenceLease();
+            if (lease is null) return PendingImportPersistenceFailure();
             text ??= string.Empty;
             var nextFilePath = filePath ?? State.FilePath;
             var nextBasePath = basePath
@@ -124,8 +124,8 @@ namespace Typedown.WinUI.Controls
 
         public EditorPersistenceResult Save()
         {
-            if (pendingImportGate.IsPending)
-                return PendingImportPersistenceFailure();
+            using var lease = AcquirePersistenceLease();
+            if (lease is null) return PendingImportPersistenceFailure();
             if (string.IsNullOrWhiteSpace(State.FilePath))
             {
                 return new EditorPersistenceResult(false, State, "Cannot save a smoke document without a file path.");
@@ -155,8 +155,8 @@ namespace Typedown.WinUI.Controls
 
         public EditorPersistenceResult SaveAs(string filePath, bool saveCopy = false)
         {
-            if (pendingImportGate.IsPending)
-                return PendingImportPersistenceFailure(filePath, saveCopy);
+            using var lease = AcquirePersistenceLease();
+            if (lease is null) return PendingImportPersistenceFailure(filePath, saveCopy);
             if (string.IsNullOrWhiteSpace(filePath))
             {
                 return new EditorPersistenceResult(false, State, "A file path is required to save markdown.");
@@ -444,6 +444,9 @@ namespace Typedown.WinUI.Controls
             if (origin == "import" && phase == "final" && revision is not null)
                 pendingImportGate.Complete(revision);
         }
+
+        private PendingImportGate.PersistenceLease? AcquirePersistenceLease() =>
+            pendingImportGate.AcquireAsync(TimeSpan.Zero).GetAwaiter().GetResult();
 
         private EditorPersistenceResult PendingImportPersistenceFailure(string? filePath = null, bool saveCopy = false) =>
             new(false, State, "The imported content is still being finalized. Please try again.",
