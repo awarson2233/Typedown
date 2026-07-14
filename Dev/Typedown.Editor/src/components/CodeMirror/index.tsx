@@ -241,7 +241,7 @@ const CodeMirrorEditor: React.FC<ICodeMirrorEditor> = (props) => {
         if (anchor && head) editor.setSelection(anchor, head, { scroll: true })
         else editor.setCursor({ line: 0, ch: 0 })
         const currentCursor = { anchor: editor.getCursor('anchor'), focus: editor.getCursor('head') }
-        if (replacement.origin === 'import') transport.postMessage('MarkdownChange', { text: markdownRef.current, documentId: replacement.documentId, revision: replacement.revision, origin: replacement.origin })
+        if (replacement.origin === 'import') transport.postMessage('MarkdownChange', { text: markdownRef.current, documentId: replacement.documentId, revision: replacement.revision, origin: replacement.origin, phase: 'final' })
         transport.postMessage('CursorChange', { cursor: currentCursor, documentId: replacement.documentId })
         handleCodeMirrorState(markdownRef.current, replacement.documentId)
         transport.postMessage('CodeMirrorSelectionChange', { cursor: { anchor: currentCursor.anchor, head: currentCursor.focus }, selectionText: editor.getSelection(), documentId: replacement.documentId })

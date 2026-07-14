@@ -366,6 +366,7 @@ namespace Typedown.Presentation.ViewModels
 
         private async Task<bool> Save(bool alert = true)
         {
+            if (!await EditorViewModel.WaitForPendingImportAsync()) return false;
             if (FilePath == null)
             {
                 var result = await SaveAs();
@@ -388,6 +389,7 @@ namespace Typedown.Presentation.ViewModels
 
         private async Task<string?> SaveAs()
         {
+            if (!await EditorViewModel.WaitForPendingImportAsync()) return null;
             if (saveAsOpened)
             {
                 return null;

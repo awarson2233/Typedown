@@ -103,7 +103,7 @@ const Editor: React.FC = () => {
         setCursor(nextCursor)
         setMarkdown(text)
         setReplacement({ documentId: currentDocumentId, text, cursor: nextCursor, origin, revision })
-        if (origin === 'import') transport.postMessage('MarkdownChange', { text, documentId: currentDocumentId, revision, origin })
+        if (origin === 'import') transport.postMessage('MarkdownChange', { text, documentId: currentDocumentId, revision, origin, phase: 'provisional' })
     }, [])
 
     const consumeReplacement = useCallback((documentId: string, revision: string) => {

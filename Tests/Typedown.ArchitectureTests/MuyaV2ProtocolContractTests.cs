@@ -59,7 +59,7 @@ public sealed class MuyaV2ProtocolContractTests
         StringAssert.Contains(codeMirror, "replacement.documentId !== props.documentId");
         StringAssert.Contains(host, "editor.setContent(replacement.text)");
         StringAssert.Contains(codeMirror, "editor.setValue(replacement.text)");
-        StringAssert.Contains(editor, "origin === 'import') transport.postMessage('MarkdownChange', { text, documentId: currentDocumentId, revision, origin }");
+        StringAssert.Contains(editor, "origin === 'import') transport.postMessage('MarkdownChange', { text, documentId: currentDocumentId, revision, origin, phase: 'provisional' }");
         StringAssert.Contains(host, "revision: replacement.revision, origin: replacement.origin");
         StringAssert.Contains(editor, "(globalThis.crypto as any)?.randomUUID?.()");
         StringAssert.Contains(editor, "transport.addListener<{ documentId: string, revision: string }>('ReplacementCommitted'");
@@ -68,6 +68,12 @@ public sealed class MuyaV2ProtocolContractTests
         StringAssert.Contains(viewModel, "ReplacementRevisionWindow = 32");
         StringAssert.Contains(viewModel, "appliedReplacementRevisions.Remove(appliedReplacementRevisionOrder.Dequeue())");
         StringAssert.Contains(viewModel, "origin is not \"undo\" and not \"redo\"");
+        StringAssert.Contains(editor, "phase: 'provisional'");
+        StringAssert.Contains(host, "phase: 'final'");
+        StringAssert.Contains(codeMirror, "phase: 'final'");
+        StringAssert.Contains(viewModel, "phase == \"provisional\"");
+        StringAssert.Contains(viewModel, "phase == \"final\" && revision != pendingImportRevision");
+        StringAssert.Contains(viewModel, "WaitForPendingImportAsync");
         StringAssert.Contains(viewModel, "text = Markdown, hash = CurrentHash");
         StringAssert.Contains(host, "props.onReplacementConsumed(replacement.documentId, replacement.revision)");
         StringAssert.Contains(host, "SelectionFormats', { formats: live.formats, documentId: props.documentId }");
