@@ -68,9 +68,11 @@ function onThemeChanged(payload: any) {
     const bg = normalizeColor(payload?.background, defaultBackground)
 
     document.body.style.backgroundColor = formatRgba(bg);
-    document.documentElement.style.setProperty('--actualTheme', theme)
-    document.documentElement.style.setProperty('--themeColor', formatRgba(accent))
-    themeColorAlphas.forEach(e => document.documentElement.style.setProperty(`--themeColor${e}`, formatRgba({ ...accent, a: accent.a * (e / 100) })))
+    document.documentElement.style.setProperty('--actual-theme', theme)
+    document.documentElement.style.setProperty('--theme-color', formatRgba(accent))
+    document.documentElement.style.setProperty('--editor-color', theme === 'dark' ? '#f2f2f2' : '#1f1f1f')
+    document.documentElement.style.setProperty('--selection-color', formatRgba({ ...accent, a: accent.a * 0.3 }))
+    themeColorAlphas.forEach(e => document.documentElement.style.setProperty(`--theme-color-${e}`, formatRgba({ ...accent, a: accent.a * (e / 100) })))
 
     window.actualTheme = theme
 }

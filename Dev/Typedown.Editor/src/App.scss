@@ -10,3 +10,21 @@ body {
 .CodeMirror-sizer {
     margin-bottom: 64px !important;
 }
+
+.muya-host,
+.mu-editor {
+    width: 100%;
+    min-width: 320px;
+    writing-mode: horizontal-tb;
+}
+
+.mu-editor {
+    scrollbar-width: thin;
+    overflow-x: auto;
+}
+
+.mu-editor::-webkit-scrollbar {
+    display: block;
+    width: 8px;
+    height: 8px;
+}

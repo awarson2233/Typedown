@@ -6,7 +6,7 @@ import transport from "services/transport";
 import './index.scss'
 import ExportHtml from "services/exportHtml";
 import { htmlToMarkdown } from "services/importHtml";
-import { DEFAULT_TURNDOWN_CONFIG } from "components/Muya/lib/config";
+import { DEFAULT_TURNDOWN_CONFIG } from "services/importHtml";
 import { getHtmlToc, getTOC } from "services/common";
 
 const Editor: React.FC = () => {

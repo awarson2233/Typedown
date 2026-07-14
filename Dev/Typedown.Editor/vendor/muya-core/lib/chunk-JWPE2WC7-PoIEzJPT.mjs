@@ -1,0 +1,19 @@
+import { n as e } from "./chunk-Y2CYZVJY-i11wjrBe.mjs";
+//#region node_modules/mermaid/dist/chunks/mermaid.core/chunk-JWPE2WC7.mjs
+function t(e, t) {
+	if (e.accDescr) {
+		var n;
+		(n = t.setAccDescription) == null || n.call(t, e.accDescr);
+	}
+	if (e.accTitle) {
+		var r;
+		(r = t.setAccTitle) == null || r.call(t, e.accTitle);
+	}
+	if (e.title) {
+		var i;
+		(i = t.setDiagramTitle) == null || i.call(t, e.title);
+	}
+}
+e(t, "populateCommonDb");
+//#endregion
+export { t };

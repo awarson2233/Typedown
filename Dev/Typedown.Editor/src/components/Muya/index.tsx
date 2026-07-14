@@ -1,17 +1,26 @@
+import {
+    CodeBlockLanguageSelector,
+    EmojiSelector,
+    FootnoteTool,
+    ImageEditTool,
+    ImageResizeBar,
+    ImageToolBar,
+    InlineFormatToolbar,
+    LinkTools,
+    Muya,
+    ParagraphFrontButton,
+    ParagraphFrontMenu,
+    ParagraphQuickInsertMenu,
+    PreviewToolBar,
+    TableChessboard,
+    TableColumnToolbar,
+    TableDragBar,
+    TableRowColumMenu,
+    wordCount
+} from '@muyajs/core';
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import transport from "services/transport";
-import Muya from 'components/Muya/lib'
-import TablePicker from 'components/Muya/lib/ui/tablePicker'
-import CodePicker from 'components/Muya/lib/ui/codePicker'
-import EmojiPicker from 'components/Muya/lib/ui/emojiPicker'
-import ImageSelector from 'components/Muya/lib/ui/imageSelector'
-import ImageToolbar from 'components/Muya/lib/ui/imageToolbar'
-import LinkTools from 'components/Muya/lib/ui/linkTools'
-import TableBarTools from 'components/Muya/lib/ui/tableTools'
-import FootnoteTool from 'components/Muya/lib/ui/footnoteTool'
-import FrontMenu from 'components/Muya/lib/ui/frontMenu'
 import { createApplicationMenuState } from "services/menuState";
-import 'components/Muya/themes/default.css'
+import transport from "services/transport";
 
 interface IMuyaEditor {
     markdown: string
@@ -25,288 +34,255 @@ interface IMuyaEditor {
     onSearchArgChange: (arg: { value: string, opt: any } | undefined) => void
 }
 
-Muya.use(TablePicker)
-Muya.use(CodePicker)
-Muya.use(EmojiPicker)
-Muya.use(ImageSelector)
-Muya.use(ImageToolbar)
-Muya.use(FrontMenu)
-Muya.use(LinkTools, { jumpClick: (linkInfo: { href: string }) => { transport.postMessage('OpenURI', { uri: linkInfo.href }) } })
-Muya.use(TableBarTools)
-Muya.use(FootnoteTool)
+const register = (plugin: any, options: Record<string, unknown> = {}) => Muya.use(plugin, options)
+register(EmojiSelector)
+register(FootnoteTool)
+register(InlineFormatToolbar)
+register(ImageEditTool, {
+    imagePathPicker: async () => '',
+    imageAction: async (src: string) => src
+})
+register(ImageToolBar)
+register(ImageResizeBar)
+register(CodeBlockLanguageSelector)
+register(LinkTools, { jumpClick: (linkInfo: { href?: string } | null) => {
+    if (linkInfo?.href) transport.postMessage('OpenURI', { uri: linkInfo.href })
+} })
+register(ParagraphFrontButton)
+register(ParagraphFrontMenu)
+register(TableChessboard)
+register(TableColumnToolbar)
+register(ParagraphQuickInsertMenu)
+register(TableDragBar)
+register(TableRowColumMenu)
+register(PreviewToolBar)
 
-const STANDAR_Y = 320
+const STANDARD_Y = 320
+
+const plainCursor = (selection: any) => selection?.anchor && selection?.focus ? {
+    anchor: { offset: selection.anchor.offset },
+    focus: { offset: selection.focus.offset },
+    anchorPath: [...(selection.anchor.path ?? selection.anchorPath ?? [])],
+    focusPath: [...(selection.focus.path ?? selection.focusPath ?? [])]
+} : undefined
+
+const plainSelection = (selection: any) => ({
+    anchor: selection?.anchor ? { offset: selection.anchor.offset } : undefined,
+    focus: selection?.focus ? { offset: selection.focus.offset } : undefined,
+    anchorPath: [...(selection?.anchorPath ?? selection?.anchor?.path ?? [])],
+    focusPath: [...(selection?.focusPath ?? selection?.focus?.path ?? [])],
+    isCollapsed: Boolean(selection?.isCollapsed),
+    isSelectionInSameBlock: Boolean(selection?.isSelectionInSameBlock),
+    direction: selection?.direction,
+    type: selection?.type,
+    kind: selection?.kind,
+    cursorCoords: selection?.cursorCoords ? {
+        x: selection.cursorCoords.x,
+        y: selection.cursorCoords.y,
+        top: selection.cursorCoords.top,
+        bottom: selection.cursorCoords.bottom,
+        left: selection.cursorCoords.left,
+        right: selection.cursorCoords.right,
+        width: selection.cursorCoords.width,
+        height: selection.cursorCoords.height
+    } : undefined,
+    formats: (selection?.formats ?? []).map((format: any) => ({ type: format.type, tag: format.tag })),
+    affiliation: (selection?.affiliation ?? []).map((item: any) => ({
+        type: item.type,
+        blockName: item.blockName,
+        listType: item.listType,
+        listItemType: item.listItemType,
+        isLooseListItem: item.isLooseListItem
+    })),
+    anchorBlockInfo: selection?.anchorBlockInfo ? { ...selection.anchorBlockInfo } : undefined,
+    focusBlockInfo: selection?.focusBlockInfo ? { ...selection.focusBlockInfo } : undefined
+})
+
+const normalizeSearchOptions = (opt: any = {}) => ({
+    ...opt,
+    isCaseSensitive: opt.isCaseSensitive ?? opt.searchIsCaseSensitive,
+    isWholeWord: opt.isWholeWord ?? opt.searchIsWholeWord,
+    isRegexp: opt.isRegexp ?? opt.searchIsRegexp
+})
+
+const parseTableSize = (value: any) => {
+    if (value && typeof value === 'object') return value
+    const match = String(value ?? '').match(/(\d+)\D+(\d+)/)
+    return { rows: Number(match?.[1] ?? 2), columns: Number(match?.[2] ?? 2) }
+}
 
 const MuyaEditor: React.FC<IMuyaEditor> = (props) => {
-    const [editor, setEditor] = useState<Muya>();
-    const [marginTop, setMarginTop] = useState(0);
-    const markdownRef = useRef('');
-    const searchArgRef = useRef<any>();
-    const cursorRef = useRef<any>();
-    const optionsRef = useRef<any>(props.options);
+    const [editor, setEditor] = useState<Muya>()
+    const [marginTop, setMarginTop] = useState(0)
+    const markdownRef = useRef('')
+    const cursorRef = useRef<any>()
+    const searchArgRef = useRef<any>()
+    const optionsRef = useRef<any>(props.options)
 
-    const relativeScroll = useCallback((delta: number) => {
-        window.scrollBy(0, delta)
+    const scrollOwner = useCallback(() => editor?.domNode, [editor])
+    const relativeScroll = useCallback((delta: number) => scrollOwner()?.scrollBy(0, delta), [scrollOwner])
+    const scrollToElement = useCallback((selector: string) => {
+        const owner = scrollOwner()
+        const anchor = owner?.querySelector(selector)
+        if (owner && anchor) relativeScroll(anchor.getBoundingClientRect().y - owner.getBoundingClientRect().y - STANDARD_Y)
+    }, [relativeScroll, scrollOwner])
+    const scrollToElementIfInvisible = useCallback((selector: string) => {
+        const owner = scrollOwner()
+        const anchor = owner?.querySelector(selector)
+        if (!owner || !anchor) return
+        const ownerRect = owner.getBoundingClientRect()
+        const y = anchor.getBoundingClientRect().y
+        if (y < ownerRect.top || y > ownerRect.bottom) scrollToElement(selector)
+    }, [scrollOwner, scrollToElement])
+    const scrollToCursor = useCallback(() => {
+        const y = (editor?.getSelection() as any)?.cursorCoords?.y
+        if (typeof y === 'number') relativeScroll(y - STANDARD_Y)
+    }, [editor, relativeScroll])
+    const runSearch = useCallback((arg: any) => {
+        if (arg?.value && editor) editor.search(arg.value, { ...normalizeSearchOptions(arg.opt), selection: arg.opt?.selection?.start ? arg.opt.selection : undefined })
+    }, [editor])
+
+    useEffect(() => { cursorRef.current = props.cursor }, [props.cursor])
+    useEffect(() => { searchArgRef.current = props.searchArg }, [props.searchArg])
+
+    useEffect(() => {
+        const mount = document.getElementById('editor')
+        if (!mount) return
+        const muya = new Muya(mount, { markdown: props.markdown, ...optionsRef.current })
+        muya.init()
+        markdownRef.current = muya.getMarkdown()
+        setEditor(muya)
+        return () => { setEditor(undefined); muya.destroy() }
+        // Initial content is supplied to the constructor; later documents use setContent.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [])
 
-    const scrollToElement = useCallback((selector) => {
-        if (editor == null) {
-            return;
-        }
-        const anchor = document.querySelector(selector)
-        if (anchor) {
-            const { y } = anchor.getBoundingClientRect()
-            relativeScroll(y - STANDAR_Y)
-        }
-    }, [editor, relativeScroll])
-
-    const scrollToElementIfInvisible = useCallback((selector) => {
-        const anchor = document.querySelector(selector)
-        if (anchor) {
-            const { y } = anchor.getBoundingClientRect()
-            if (y < 0 || y > window.innerHeight) {
-                scrollToElement(selector)
-            }
-        }
-    }, [scrollToElement])
-
-    const scrollToCursor = useCallback(() => {
-        relativeScroll(editor?.getSelection().cursorCoords.y - STANDAR_Y)
-    }, [editor, relativeScroll])
-
-    const scrollToCursorIfInvisible = useCallback(() => {
-        try {
-            const y = editor?.getSelection().cursorCoords.y;
-            if (y < 0 || y > window.innerHeight) {
-                relativeScroll(y - STANDAR_Y)
-            }
-        } catch (err) {
-            console.log(err)
-        }
-    }, [editor, relativeScroll])
-
-    const search = useCallback(arg => {
-        if (arg?.value != "" && arg?.opt?.selection && editor) {
-            const { value, opt } = arg
-            const selection = opt.selection.start ? opt.selection : undefined
-            editor.search(value, { ...opt, selection })
-        }
-    }, [editor])
-
     useEffect(() => {
-        searchArgRef.current = props.searchArg
-    }, [props.searchArg])
+        if (!editor || markdownRef.current === props.markdown) return
+        editor.flush()
+        editor.setContent(props.markdown)
+        editor.clearHistory()
+        markdownRef.current = editor.getMarkdown()
+        if (cursorRef.current) editor.setCursor(cursorRef.current)
+        const owner = editor.domNode
+        owner.scrollTop = props.scrollTopRef.current
+        requestAnimationFrame(() => {
+            owner.scrollTop = props.scrollTopRef.current
+            runSearch(searchArgRef.current)
+            transport.postMessage('DocumentRendered', {})
+        })
+    }, [editor, props.markdown, props.scrollTopRef, runSearch])
 
-    useEffect(() => {
-        markdownRef.current = ''
-    }, [editor])
+    useEffect(() => { editor?.setOptions(props.options, true) }, [editor, props.options])
+    useEffect(() => { runSearch(props.searchArg) }, [props.searchArg, runSearch])
 
-    useEffect(() => {
-        cursorRef.current = props.cursor
-    }, [props.cursor])
-
-    useEffect(() => {
-        if (markdownRef.current != props.markdown && editor) {
-            markdownRef.current = props.markdown
-            editor.setMarkdown(props.markdown, cursorRef.current)
-            const scrollTop = props.scrollTopRef.current;
-            window.scrollTo(window.scrollX, scrollTop)
-            scrollToCursorIfInvisible()
-            setTimeout(() => {
-                window.scrollTo(window.scrollX, scrollTop)
-                scrollToCursorIfInvisible()
-                search(searchArgRef.current)
-            }, 100);
-        }
-    }, [editor, props.markdown, props.scrollTopRef, scrollToCursorIfInvisible, scrollToElementIfInvisible, search])
-
-    useEffect(() => {
-        search(props.searchArg)
-    }, [editor, props.searchArg, search])
-
-    useEffect(() => {
-        const ele = document.getElementById('editor');
-        const muya = new Muya(ele, optionsRef.current);
-        setEditor(muya);
-        return () => muya.destroy()
-    }, []);
-
-    useEffect(() => {
-        editor && Object.assign(editor.options, props.options)
-    }, [editor, props.options])
-
-    useEffect(() => {
-        editor?.setFocusMode(props.options.focusMode)
-    }, [editor, props.options.focusMode])
-
-    useEffect(() => {
-        editor?.setFont({ fontSize: props.options?.fontSize, lineHeight: props.options?.lineHeight })
-    }, [editor, props.options?.fontSize, props.options?.lineHeight])
-
-    useEffect(() => transport.addListener<{ slug: string }>('ScrollTo', ({ slug }) => {
-        scrollToElement(`#${slug}`)
-    }), [editor, scrollToElement]);
-
-    useEffect(() => transport.addListener('UpdateParagraph', type => {
-        editor?.updateParagraph(type)
-    }), [editor]);
-
-    useEffect(() => transport.addListener('InsertParagraph', pos => {
-        editor?.insertParagraph(pos, '', true)
-    }), [editor]);
-
-    useEffect(() => transport.addListener('DeleteParagraph', () => {
-        editor?.deleteParagraph()
-    }), [editor]);
-
-    useEffect(() => transport.addListener('Duplicate', () => {
-        editor?.duplicate()
-    }), [editor]);
-
-    useEffect(() => transport.addListener('Format', type => {
-        editor?.format(type)
-    }), [editor]);
-
-    useEffect(() => transport.addListener('DeleteSelection', () => {
-        editor?.delete()
-    }), [editor]);
-
-    useEffect(() => transport.addListener('SelectAll', () => {
-        editor?.selectAll()
-    }), [editor]);
-
-    useEffect(() => transport.addListener<any>('Copy', arg => {
-        editor?.clipboard.copy(arg)
-    }), [editor]);
-
-    useEffect(() => transport.addListener<any>('Cut', arg => {
-        editor?.clipboard.cut(arg)
-    }), [editor]);
-
+    useEffect(() => transport.addListener<{ slug: string }>('ScrollTo', ({ slug }) => scrollToElement(`#${CSS.escape(slug)}`)), [scrollToElement])
+    useEffect(() => transport.addListener<string>('UpdateParagraph', type => editor?.updateParagraph(type)), [editor])
+    useEffect(() => transport.addListener<any>('InsertParagraph', pos => editor?.insertParagraph(pos?.location ?? pos ?? 'after', '', true)), [editor])
+    useEffect(() => transport.addListener('DeleteParagraph', () => editor?.deleteParagraph()), [editor])
+    useEffect(() => transport.addListener('Duplicate', () => editor?.duplicate()), [editor])
+    useEffect(() => transport.addListener<string>('Format', type => editor?.format(type)), [editor])
+    useEffect(() => transport.addListener('DeleteSelection', () => document.execCommand('delete')), [editor])
+    useEffect(() => transport.addListener('SelectAll', () => editor?.selectAll()), [editor])
+    useEffect(() => transport.addListener('Copy', () => document.execCommand('copy')), [editor])
+    useEffect(() => transport.addListener('Cut', () => document.execCommand('cut')), [editor])
     useEffect(() => transport.addListener<any>('Paste', arg => {
-        editor?.clipboard.paste(arg)
-    }), [editor]);
-
-    useEffect(() => transport.addListener<string>('InsertTable', arg => {
-        editor?.createTable(arg)
-    }), [editor]);
-
-    useEffect(() => transport.addListener<string>('InsertImage', arg => {
-        editor?.insertImage(arg)
-    }), [editor]);
-
-    useEffect(() => transport.addListener<{ value: string, opt: unknown }>('Search', (arg) => {
+        if (arg?.src) void editor?.pasteImage(arg.src)
+        else void editor?.pasteAsPlainText()
+    }), [editor])
+    useEffect(() => transport.addListener<any>('InsertTable', arg => editor?.createTable(parseTableSize(arg))), [editor])
+    useEffect(() => transport.addListener<any>('InsertImage', arg => editor?.insertImage(typeof arg === 'string' ? { src: arg } : arg)), [editor])
+    useEffect(() => transport.addListener<any>('Search', arg => {
         props.onSearchArgChange(arg)
-        setTimeout(() => scrollToElementIfInvisible('.ag-highlight'), 0)
-    }), [editor, props, scrollToElementIfInvisible]);
-
-    useEffect(() => transport.addListener<{ action: string }>('Find', ({ action }) => {
+        runSearch(arg)
+        requestAnimationFrame(() => scrollToElementIfInvisible('.mu-search-match'))
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }), [props.onSearchArgChange, runSearch, scrollToElementIfInvisible])
+    useEffect(() => transport.addListener<{ action: 'previous' | 'next' }>('Find', ({ action }) => {
         editor?.find(action)
-        setTimeout(() => scrollToElementIfInvisible('.ag-highlight'), 0)
-    }), [editor, scrollToElementIfInvisible]);
-
-    useEffect(() => transport.addListener<{ value: string, opt: unknown }>('Replace', ({ value, opt }) => {
-        editor?.replace(value, opt)
-    }), [editor, scrollToElement]);
+        requestAnimationFrame(() => scrollToElementIfInvisible('.mu-search-match'))
+    }), [editor, scrollToElementIfInvisible])
+    useEffect(() => transport.addListener<any>('Replace', ({ value, opt }) => editor?.replace(value, normalizeSearchOptions(opt))), [editor])
+    useEffect(() => transport.addListener<{ open: number }>('SearchOpenChange', ({ open }) => {
+        if (open === 0 && editor) {
+            editor.search('')
+            props.onSearchArgChange(undefined)
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }), [editor, props.onSearchArgChange])
+    useEffect(() => transport.addListener<Record<string, unknown>>('SettingsChanged', newOptions => {
+        editor?.setOptions(newOptions, true)
+        if (newOptions.typewriter) scrollToCursor()
+    }), [editor, scrollToCursor])
 
     useEffect(() => {
-        setMarginTop(currentMarginTop => {
-            const newMarginTop = { 0: 0, 1: 50, 2: 90 }[props.searchOpen] ?? 0;
-            relativeScroll(newMarginTop - currentMarginTop)
-            return newMarginTop;
+        if (!editor) return
+        const listener = (live: any) => {
+            const selection = plainSelection(live)
+            const menuInput = {
+                ...selection,
+                start: { key: selection.anchorPath.join('/'), block: selection.anchorBlockInfo ?? {} },
+                end: { key: selection.focusPath.join('/'), block: selection.focusBlockInfo ?? {} }
+            }
+            const menuState = createApplicationMenuState(menuInput)
+            const selectionText = window.getSelection()?.toString() ?? ''
+            transport.postMessage('SelectionChange', { selection, menuState, selectionText })
+            transport.postMessage('SelectionFormats', { formats: selection.formats })
+            const y = selection.cursorCoords?.y
+            if (typeof y === 'number') {
+                if (props.options?.typewriter) relativeScroll(y - window.innerHeight / 2 + 136)
+                else if (window.innerHeight - y < 100) relativeScroll(y - window.innerHeight + 100)
+            }
+        }
+        editor.on('selection-change', listener)
+        return () => editor.off('selection-change', listener)
+    }, [editor, props.options?.typewriter, relativeScroll])
+
+    useEffect(() => {
+        if (!editor) return
+        const listener = () => {
+            const markdown = editor.getMarkdown()
+            const cursor = plainCursor(editor.getSelection())
+            const toc = editor.getTOC().map(item => ({ ...item }))
+            markdownRef.current = markdown
+            props.onMarkdownChange(markdown)
+            props.onCursorChange(cursor)
+            transport.postMessage('StateChange', { state: { wordCount: wordCount(markdown), toc, cur: undefined }, muya: true })
+        }
+        editor.on('json-change', listener)
+        return () => editor.off('json-change', listener)
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [editor, props.onCursorChange, props.onMarkdownChange])
+
+    useEffect(() => {
+        setMarginTop(current => {
+            const next = ({ 0: 0, 1: 50, 2: 90 } as Record<number, number>)[props.searchOpen] ?? 0
+            relativeScroll(next - current)
+            return next
         })
     }, [props.searchOpen, relativeScroll])
 
-    useEffect(() => transport.addListener<{ open: number }>('SearchOpenChange', ({ open }) => {
-        if (open == 0 && editor) {
-            const { contentState } = editor as any;
-            contentState.setCursorToHighlight();
-            contentState.searchMatches.matches = [];
-            contentState.render(true);
-            props.onSearchArgChange(undefined)
-        }
-    }), [editor, props, relativeScroll]);
-
-    useEffect(() => transport.addListener<Record<string, unknown>>('SettingsChanged', (newOptions) => {
-        for (const name in newOptions) {
-            const value = newOptions[name];
-            if (name == 'focusMode') {
-                editor?.setFocusMode(value)
-            } else if (name == 'typewriter') {
-                value && scrollToCursor()
-            }
-        }
-    }), [editor, scrollToCursor]);
-
-    useEffect(() => editor?.on('selectionChange', (selection: any) => {
-        const menuState = createApplicationMenuState(selection)
-        const selectionText = window.getSelection()?.toString();
-        transport.postMessage('SelectionChange', { selection, menuState, selectionText });
-        const { y } = selection.cursorCoords
-        props.options?.typewriter && relativeScroll(y - window.innerHeight / 2 + 136);
-        window.innerHeight - y < 100 && relativeScroll(y - window.innerHeight + 100);
-    }), [editor, props.options?.typewriter, relativeScroll])
-
-    useEffect(() => editor?.on('selectionFormats', (formats: any) => {
-        const fotmats_simple = formats.map((e: any) => ({ type: e.type, tag: e.tag }));
-        transport.postMessage('SelectionFormats', { formats: fotmats_simple });
-    }), [editor])
-
-    useEffect(() => editor?.on('contentChange', ({ markdown, wordCount, cursor, toc: { toc, cur } }: any) => {
-        markdownRef.current = markdown;
-
-        // 同步内容与光标
-        props.onMarkdownChange(markdown)
-        props.onCursorChange(cursor)
-
-        // StateChange 必须在 onMarkdownChange、onCursorChange 之后发送，否则会导致编辑器内容/光标不同步
-        transport.postMessage('StateChange', { state: { wordCount, toc, cur }, muya: true });
-    }), [editor, props])
-
     useEffect(() => {
-        const ele = document.getElementById('editor');
-        if (ele) {
-            ele.style.boxSizing = `border-box`
-            ele.style.minHeight = `100vh`
-            if (props.options?.typewriter) {
-                ele.style.paddingTop = `calc(50vh - ${136 - marginTop}px)`
-                ele.style.paddingBottom = 'calc(50vh - 54px)'
-            } else {
-                ele.style.paddingTop = `${marginTop}px`
-                ele.style.paddingBottom = '0'
-            }
-        }
-    }, [marginTop, props.options?.typewriter])
+        if (!editor) return
+        const owner = editor.domNode
+        owner.style.boxSizing = 'border-box'
+        owner.style.height = '100vh'
+        owner.style.overflow = 'auto'
+        owner.style.paddingTop = props.options?.typewriter ? `calc(50vh - ${136 - marginTop}px)` : `${marginTop}px`
+        owner.style.paddingBottom = props.options?.typewriter ? 'calc(50vh - 54px)' : '0'
+    }, [editor, marginTop, props.options?.typewriter])
 
+    useEffect(() => { document.documentElement.style.setProperty('--editor-area-width', props.options?.editorAreaWidth ?? '750px') }, [props.options?.editorAreaWidth])
+    useEffect(() => { try { editor?.focus() } catch (err) { console.error(err) } }, [editor])
     useEffect(() => {
-        document.body.style.setProperty('--editorAreaWidth', props.options?.editorAreaWidth)
-    }, [props.options?.editorAreaWidth])
+        const owner = editor?.domNode
+        if (!owner) return
+        const onScroll = () => { props.scrollTopRef.current = owner.scrollTop }
+        owner.addEventListener('scroll', onScroll)
+        return () => owner.removeEventListener('scroll', onScroll)
+    }, [editor, props.scrollTopRef])
 
-    useEffect(() => {
-        try {
-            editor?.focus()
-        } catch (err) {
-            console.log(err)
-        }
-    }, [editor])
-
-    useEffect(() => {
-        const onscroll = () => {
-            props.scrollTopRef.current = window.scrollY
-        }
-        addEventListener('scroll', onscroll);
-        return () => removeEventListener('scroll', onscroll)
-    }, [props.scrollTopRef])
-
-    return (
-        <div style={{
-            fontSize: props.options?.fontSize,
-            lineHeight: props.options?.lineHeight
-        }}>
-            <div id="editor" />
-        </div>
-    )
-
+    return <div className="muya-host"><div id="editor" /></div>
 }
 
 export default MuyaEditor

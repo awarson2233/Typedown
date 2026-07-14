@@ -1,4 +1,6 @@
-const createApplicationMenuState = ({ start, end, affiliation }) => {
+const createApplicationMenuState = ({ start = {}, end = {}, affiliation = [] }) => {
+  const startBlock = start.block || {}
+  const endBlock = end.block || {}
   const state = {
     isDisabled: false,
     // Whether multiple lines are selected.
@@ -21,15 +23,15 @@ const createApplicationMenuState = ({ start, end, affiliation }) => {
 
   // Get code block information from selection.
   if (
-    (start.block.functionType === 'cellContent' && end.block.functionType === 'cellContent') ||
-    (start.type === 'span' && start.block.functionType === 'codeContent') ||
-    (end.type === 'span' && end.block.functionType === 'codeContent')
+    (startBlock.functionType === 'cellContent' && endBlock.functionType === 'cellContent') ||
+    (start.type === 'span' && startBlock.functionType === 'codeContent') ||
+    (end.type === 'span' && endBlock.functionType === 'codeContent')
   ) {
     // A code block like block is selected (code, math, ...).
     state.isCodeFences = true
 
     // A code block line is selected.
-    if (start.block.functionType === 'codeContent' || end.block.functionType === 'codeContent') {
+    if (startBlock.functionType === 'codeContent' || endBlock.functionType === 'codeContent') {
       state.isCodeContent = true
     }
   }

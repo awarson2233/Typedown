@@ -1,0 +1,1 @@
+require("./chunk-KEIR6QF5-Dj7ZXyVY.js");const e=require("./chunk-MOZMSUNE-DAYk2AnR.js");exports.createArchitectureServices=e.n;
