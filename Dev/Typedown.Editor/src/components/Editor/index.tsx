@@ -34,7 +34,7 @@ const Editor: React.FC = () => {
 
     const loadDocument = useCallback((text: string, id?: string) => {
         const nextId = id || `${Date.now()}-${Math.random()}`
-        if (documentIdRef.current && !optionsRef.current?.sourceCode) {
+        if (documentIdRef.current) {
             setPendingDocument({ text, id: nextId })
         } else {
             activateDocument(text, nextId)
@@ -133,6 +133,8 @@ const Editor: React.FC = () => {
             <CodeMirror
                 options={options}
                 cursor={cursor}
+                documentId={documentId}
+                pendingDocument={pendingDocument}
                 markdown={markdown ?? ''}
                 searchOpen={searchOpen}
                 searchArg={searchArg}

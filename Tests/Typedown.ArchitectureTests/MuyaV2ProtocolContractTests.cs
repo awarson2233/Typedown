@@ -44,6 +44,12 @@ public sealed class MuyaV2ProtocolContractTests
         StringAssert.Contains(viewModel, "History.InitHistory(markdown)");
         StringAssert.Contains(editor, "transport.addListener<{ text: string, basePath: string, documentId: string }>('ActivateDocument'");
         StringAssert.Contains(host, "loadedDocumentIdRef.current = props.documentId");
+        StringAssert.Contains(editor, "if (documentIdRef.current) {");
+        Assert.IsFalse(editor.Contains("!optionsRef.current?.sourceCode", StringComparison.Ordinal));
+        var codeMirror = File.ReadAllText(Path.Combine(RepoRoot, "Dev", "Typedown.Editor", "src", "components", "CodeMirror", "index.tsx"));
+        StringAssert.Contains(codeMirror, "DocumentFlushed', { documentId: outgoingId, nextDocumentId: props.pendingDocument.id }");
+        StringAssert.Contains(codeMirror, "FileLoaded', { text: markdownRef.current, documentId: props.documentId }");
+        StringAssert.Contains(host, "SelectionFormats', { formats: live.formats, documentId: props.documentId }");
     }
 
     private static string FindRepoRoot()

@@ -39,8 +39,14 @@ namespace Typedown.Presentation.ViewModels
 
         public void OnSelectionFormats(JToken arg)
         {
+            if (arg["documentId"] is not null && arg["documentId"]?.ToString() != EditorViewModel.CurrentDocumentId) return;
             FormatState = new(arg["formats"]?.ToObject<List<FormatState.SelectionFormat>>());
             EditorViewModel.UpdateMuyaSelected();
+        }
+
+        public void ResetFormatState()
+        {
+            FormatState = new FormatState();
         }
 
         private void SetFormatFun(string type)

@@ -41,6 +41,7 @@ namespace Typedown.Presentation.ViewModels
 
         private string? startupOpenedFilePath;
         private PendingDocument? pendingDocument;
+        private PendingDocument? activatingDocument;
 
         private sealed record PendingDocument(string Id, string Text, ulong FileHash, string? FilePath, string BasePath, bool Saved);
 
@@ -159,10 +160,26 @@ namespace Typedown.Presentation.ViewModels
         public void ActivatePendingDocument(string? id)
         {
             if (pendingDocument is not PendingDocument pending || pending.Id != id) return;
-            pendingDocument = null;
             FilePath = pending.FilePath;
             EditorViewModel.ActivateDocument(pending.Id, pending.Text, pending.FileHash, pending.Saved);
-            EditorCommandSink.Send("ActivateDocument", new { text = pending.Text, basePath = pending.BasePath, documentId = pending.Id });
+            activatingDocument = pending;
+            if (EditorCommandSink.Send("ActivateDocument", new { text = pending.Text, basePath = pending.BasePath, documentId = pending.Id }))
+                pendingDocument = null;
+        }
+
+        public void CompleteDocumentActivation(string? id)
+        {
+            if (activatingDocument?.Id == id)
+                activatingDocument = null;
+        }
+
+        public bool RetryDocumentActivation(string? id)
+        {
+            if (activatingDocument is not PendingDocument pending || pending.Id != id) return false;
+            var sent = EditorCommandSink.Send("ActivateDocument", new { text = pending.Text, basePath = pending.BasePath, documentId = pending.Id });
+            if (sent && pendingDocument?.Id == pending.Id)
+                pendingDocument = null;
+            return sent;
         }
 
         private async Task NewFileFun(bool postMessage = true)
@@ -506,7 +523,7 @@ namespace Typedown.Presentation.ViewModels
                         var lastFile = SettingsViewModel.LastFilePath;
                         if (!string.IsNullOrWhiteSpace(lastFile) && !TryGetOpenedWindow(lastFile, out _) && File.Exists(lastFile))
                         {
-                            await LoadFile(lastFile, true);
+                            await LoadFile(lastFile, true, false);
                         }
                         else
                         {

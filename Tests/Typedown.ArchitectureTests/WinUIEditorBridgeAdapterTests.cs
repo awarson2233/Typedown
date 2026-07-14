@@ -138,6 +138,9 @@ public class WinUIEditorBridgeAdapterTests
         SetField(editorViewModel, "documentId", "A");
         var fileViewModel = (FileViewModel)RuntimeHelpers.GetUninitializedObject(typeof(FileViewModel));
         SetAutoProperty(fileViewModel, nameof(FileViewModel.ServiceProvider), services);
+        var formatViewModel = (FormatViewModel)RuntimeHelpers.GetUninitializedObject(typeof(FormatViewModel));
+        SetAutoProperty(formatViewModel, nameof(FormatViewModel.ServiceProvider), services);
+        SetAutoProperty(formatViewModel, nameof(FormatViewModel.FormatState), new Typedown.Core.Models.FormatState());
         var pendingType = typeof(FileViewModel).GetNestedType("PendingDocument", BindingFlags.NonPublic)!;
         var pending = Activator.CreateInstance(pendingType, "C", "# C", 42UL, "C:/docs/c.md", "C:/docs", true)!;
         SetField(fileViewModel, "pendingDocument", pending);
@@ -146,9 +149,11 @@ public class WinUIEditorBridgeAdapterTests
             .AddSingleton<IEditorCommandSink>(commandSink)
             .AddSingleton(editorViewModel)
             .AddSingleton(fileViewModel)
+            .AddSingleton(formatViewModel)
             .BuildServiceProvider();
         SetAutoProperty(editorViewModel, nameof(EditorViewModel.ServiceProvider), augmentedServices);
         SetAutoProperty(fileViewModel, nameof(FileViewModel.ServiceProvider), augmentedServices);
+        SetAutoProperty(formatViewModel, nameof(FormatViewModel.ServiceProvider), augmentedServices);
         using var editorSubscription = eventCenter.GetObservable<EditorEventArgs>("DocumentFlushed")
             .Subscribe(args => editorViewModel.OnDocumentFlushed(args.Args));
         var adapter = new WinUIEditorBridgeAdapter(new WinUIEditorDocumentSession(serviceProvider: augmentedServices));
@@ -159,16 +164,41 @@ public class WinUIEditorBridgeAdapterTests
         Assert.AreEqual("A", editorViewModel.CurrentDocumentId);
         Assert.AreEqual(0, commandSink.Messages.Count);
 
+        commandSink.Result = false;
         adapter.Receive("""{"type":"message","name":"DocumentFlushed","args":{"documentId":"A","nextDocumentId":"C"}}""", _ => true);
 
         Assert.AreEqual("C", editorViewModel.CurrentDocumentId);
         Assert.AreEqual("# C", editorViewModel.Markdown);
         Assert.AreEqual("C:/docs/c.md", fileViewModel.FilePath);
         Assert.AreEqual(1, commandSink.Messages.Count);
-        Assert.AreEqual("ActivateDocument", commandSink.Messages[0].Name);
-        using var activation = JsonDocument.Parse(JsonSerializer.Serialize(commandSink.Messages[0].Args));
+        commandSink.Result = true;
+        Assert.IsTrue(fileViewModel.RetryDocumentActivation("C"));
+        Assert.AreEqual(2, commandSink.Messages.Count);
+        Assert.AreEqual("ActivateDocument", commandSink.Messages[1].Name);
+        using var activation = JsonDocument.Parse(JsonSerializer.Serialize(commandSink.Messages[1].Args));
         Assert.AreEqual("C", activation.RootElement.GetProperty("documentId").GetString());
         Assert.AreEqual("# C", activation.RootElement.GetProperty("text").GetString());
+    }
+
+    [TestMethod]
+    public void ActiveHeadingChange_RoutesThroughAdapterAndUpdatesEditorSelection()
+    {
+        var eventCenter = new EventCenter();
+        var services = new ServiceCollection().AddSingleton(eventCenter).BuildServiceProvider();
+        var editor = (EditorViewModel)RuntimeHelpers.GetUninitializedObject(typeof(EditorViewModel));
+        SetAutoProperty(editor, nameof(EditorViewModel.ServiceProvider), services);
+        SetAutoProperty(editor, nameof(EditorViewModel.History), new Typedown.Core.Models.ContentHistory());
+        SetAutoProperty(editor, nameof(EditorViewModel.Toc), new Typedown.Core.Models.TocTreeItem());
+        editor.ContentState = new Typedown.Core.Models.ContentState();
+        SetField(editor, "documentId", "B");
+        editor.ContentState.Toc.Add(new Typedown.Core.Models.TocItem { Slug = "target" });
+        using var subscription = eventCenter.GetObservable<EditorEventArgs>("ActiveHeadingChange")
+            .Subscribe(args => editor.OnActiveHeadingChange(args.Args));
+        var adapter = new WinUIEditorBridgeAdapter(new WinUIEditorDocumentSession(serviceProvider: services));
+
+        adapter.Receive("""{"type":"message","name":"ActiveHeadingChange","args":{"documentId":"B","cur":{"slug":"target"}}}""", _ => true);
+
+        Assert.IsTrue(editor.ContentState.Toc[0].IsSelected);
     }
 
     [TestMethod]
@@ -694,11 +724,12 @@ public class WinUIEditorBridgeAdapterTests
     private sealed class RecordingEditorCommandSink : IEditorCommandSink
     {
         public List<(string Name, object? Args)> Messages { get; } = new();
+        public bool Result { get; set; } = true;
 
         public bool Send(string name, object? args)
         {
             Messages.Add((name, args));
-            return true;
+            return Result;
         }
     }
 

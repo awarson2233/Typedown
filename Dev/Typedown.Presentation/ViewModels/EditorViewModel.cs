@@ -125,8 +125,13 @@ namespace Typedown.Presentation.ViewModels
 
         public void OnDocumentFlushed(JToken arg)
         {
-            if (!IsCurrentDocument(arg)) return;
-            FileViewModel.ActivatePendingDocument(arg["nextDocumentId"]?.ToString());
+            var nextDocumentId = arg["nextDocumentId"]?.ToString();
+            if (!IsCurrentDocument(arg))
+            {
+                FileViewModel.RetryDocumentActivation(nextDocumentId);
+                return;
+            }
+            FileViewModel.ActivatePendingDocument(nextDocumentId);
         }
 
         public void ActivateDocument(string nextDocumentId, string markdown, ulong fileHash, bool saved)
@@ -149,6 +154,7 @@ namespace Typedown.Presentation.ViewModels
             SelectionText = string.Empty;
             TextSelected = false;
             Selected = false;
+            ServiceProvider.GetRequiredService<FormatViewModel>().ResetFormatState();
         }
 
         public void OnSelectionChange(JToken arg)
@@ -163,6 +169,7 @@ namespace Typedown.Presentation.ViewModels
 
         public void OnCodeMirrorSelectionChange(JToken arg)
         {
+            if (!IsCurrentDocument(arg)) return;
             contentUpdating = false;
             CodeMirrorSelection = arg["cursor"] ?? new JObject();
             var anchor = CodeMirrorSelection["anchor"];
@@ -204,6 +211,7 @@ namespace Typedown.Presentation.ViewModels
         public void OnFileLoaded(JToken arg)
         {
             if (!IsCurrentDocument(arg)) return;
+            FileViewModel.CompleteDocumentActivation(arg["documentId"]?.ToString());
             FileLoaded = true;
             if (FloatViewModel.FindReplaceDialogOpen > 0) OnSearch();
         }

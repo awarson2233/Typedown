@@ -187,6 +187,7 @@ const MuyaEditor: React.FC<IMuyaEditor> = (props) => {
         editor.clearHistory()
         markdownRef.current = editor.getMarkdown()
         if (cursorRef.current) editor.setCursorByOffset(cursorRef.current)
+        else editor.setCursorByOffset({ anchor: { line: 0, ch: 0 }, focus: { line: 0, ch: 0 } })
         loadingRef.current = false
         loadedDocumentIdRef.current = props.documentId
         transport.postMessageNoDiff('FileLoaded', { text: markdownRef.current, documentId: props.documentId })
@@ -201,6 +202,7 @@ const MuyaEditor: React.FC<IMuyaEditor> = (props) => {
             end: { key: live.focusPath.join('/'), block: live.focusBlockInfo ?? {} }
         })
         transport.postMessage('SelectionChange', { selection: live, menuState, selectionText: '', documentId: props.documentId })
+        transport.postMessage('SelectionFormats', { formats: live.formats, documentId: props.documentId })
         const owner = editor.domNode
         owner.scrollTop = props.scrollTopRef.current
         requestAnimationFrame(() => {
@@ -278,7 +280,7 @@ const MuyaEditor: React.FC<IMuyaEditor> = (props) => {
             const menuState = createApplicationMenuState(menuInput)
             const selectionText = window.getSelection()?.toString() ?? ''
             transport.postMessage('SelectionChange', { selection, menuState, selectionText, documentId: documentIdRef.current })
-            transport.postMessage('SelectionFormats', { formats: selection.formats })
+            transport.postMessage('SelectionFormats', { formats: selection.formats, documentId: documentIdRef.current })
             transport.postMessage('ActiveHeadingChange', { cur: getActiveHeading(), documentId: documentIdRef.current })
             const y = selection.cursorCoords?.y
             if (typeof y === 'number') {
