@@ -27,7 +27,8 @@ interface IMuyaEditor {
     markdown: string
     documentId: string
     pendingDocument?: { text: string, id: string }
-    replacement?: { text: string, cursor: any, revision: number }
+    replacement?: { documentId: string, revision: number, text: string, cursor: any, origin: 'import' | 'undo' | 'redo' }
+    onReplacementConsumed: (documentId: string, revision: number) => void
     cursor: any
     options: any
     searchOpen: number
@@ -215,14 +216,29 @@ const MuyaEditor: React.FC<IMuyaEditor> = (props) => {
     }, [editor, getActiveHeading, props.documentId, props.markdown, props.scrollTopRef, runSearch])
 
     useEffect(() => {
-        if (!editor || !props.replacement) return
+        const replacement = props.replacement
+        if (!editor || !replacement || replacement.documentId !== props.documentId) return
         loadingRef.current = true
-        editor.setContent(props.replacement.text)
+        editor.setContent(replacement.text)
         markdownRef.current = editor.getMarkdown()
-        if (props.replacement.cursor) editor.setCursorByOffset(props.replacement.cursor)
+        if (replacement.cursor) editor.setCursorByOffset(replacement.cursor)
         else editor.setCursorByOffset({ anchor: { line: 0, ch: 0 }, focus: { line: 0, ch: 0 } })
         loadingRef.current = false
-    }, [editor, props.replacement])
+        const currentCursor = editor.getCursorOffset()
+        const toc = editor.getTOC().map(item => ({ ...item }))
+        const active = getActiveHeading()
+        const cur = active ? toc.find(item => item.slug === active.slug) : undefined
+        const selection = plainSelection(editor.getSelection())
+        const menuState = createApplicationMenuState({ ...selection, start: { key: selection.anchorPath.join('/'), block: selection.anchorBlockInfo ?? {} }, end: { key: selection.focusPath.join('/'), block: selection.focusBlockInfo ?? {} } })
+        if (replacement.origin === 'import') transport.postMessage('MarkdownChange', { text: markdownRef.current, documentId: replacement.documentId })
+        transport.postMessage('CursorChange', { cursor: currentCursor, documentId: replacement.documentId })
+        transport.postMessage('StateChange', { state: { wordCount: wordCount(markdownRef.current), toc, cur }, muya: true, documentId: replacement.documentId })
+        transport.postMessage('SelectionChange', { selection, menuState, selectionText: '', documentId: replacement.documentId })
+        transport.postMessage('SelectionFormats', { formats: selection.formats, documentId: replacement.documentId })
+        props.onReplacementConsumed(replacement.documentId, replacement.revision)
+    // All accessed callback/data props are listed explicitly.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [editor, getActiveHeading, props.documentId, props.onReplacementConsumed, props.replacement])
 
     useEffect(() => { editor?.setOptions(props.options, true) }, [editor, props.options])
     useEffect(() => { runSearch(props.searchArg) }, [props.searchArg, runSearch])

@@ -288,7 +288,8 @@ namespace Typedown.Presentation.ViewModels
             {
                 text = state.Text,
                 cursor = state.Cursor,
-                basePath = FileViewModel.ImageBasePath
+                basePath = FileViewModel.ImageBasePath,
+                origin = "undo"
             });
         }
 
@@ -305,7 +306,8 @@ namespace Typedown.Presentation.ViewModels
             {
                 text = state.Text,
                 cursor = state.Cursor,
-                basePath = FileViewModel.ImageBasePath
+                basePath = FileViewModel.ImageBasePath,
+                origin = "redo"
             });
         }
 

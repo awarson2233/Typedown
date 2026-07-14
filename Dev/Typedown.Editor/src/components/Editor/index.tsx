@@ -9,6 +9,9 @@ import { htmlToMarkdown } from "services/importHtml";
 import { DEFAULT_TURNDOWN_CONFIG } from "services/importHtml";
 import { getHtmlToc, getTOC } from "services/common";
 
+type ReplacementOrigin = 'import' | 'undo' | 'redo'
+type DocumentReplacement = { documentId: string, revision: number, text: string, cursor: any, origin: ReplacementOrigin }
+
 const Editor: React.FC = () => {
     const [markdown, setMarkdown] = useState<string>();
     const markdownRef = useRef<string>();
@@ -16,7 +19,7 @@ const Editor: React.FC = () => {
     const documentIdRef = useRef<string>('');
     const [pendingDocument, setPendingDocument] = useState<{ text: string, id: string }>();
     const [cursor, setCursor] = useState<any>();
-    const [replacement, setReplacement] = useState<{ text: string, cursor: any, revision: number }>();
+    const [replacement, setReplacement] = useState<DocumentReplacement>();
     const [options, setOptions] = useState<any>();
     const optionsRef = useRef<any>();
     const [searchOpen, setSearchOpen] = useState(0);
@@ -29,6 +32,7 @@ const Editor: React.FC = () => {
         markdownRef.current = text
         setDocumentId(id)
         setPendingDocument(undefined)
+        setReplacement(undefined)
         setCursor(undefined)
         setMarkdown(text)
     }, [])
@@ -89,15 +93,21 @@ const Editor: React.FC = () => {
         }
     }), []);
 
-    const replaceCurrentDocument = useCallback((text: string, nextCursor?: any) => {
+    const replaceCurrentDocument = useCallback((text: string, nextCursor: any, origin: ReplacementOrigin) => {
+        const currentDocumentId = documentIdRef.current
+        if (!currentDocumentId) return
         markdownRef.current = text
         setCursor(nextCursor)
         setMarkdown(text)
-        setReplacement({ text, cursor: nextCursor, revision: Date.now() + Math.random() })
+        setReplacement({ documentId: currentDocumentId, text, cursor: nextCursor, origin, revision: Date.now() + Math.random() })
+    }, [])
+
+    const consumeReplacement = useCallback((documentId: string, revision: number) => {
+        setReplacement(current => current?.documentId === documentId && current.revision === revision ? undefined : current)
     }, [])
 
     useEffect(() => transport.addListener<{ type: string, text: string }>('ImportFile', ({ text }) => {
-        replaceCurrentDocument(htmlToMarkdown(text, [], DEFAULT_TURNDOWN_CONFIG))
+        replaceCurrentDocument(htmlToMarkdown(text, [], DEFAULT_TURNDOWN_CONFIG), undefined, 'import')
     }), [replaceCurrentDocument]);
 
     useEffect(() => transport.addListener<{ text: string, basePath: string, documentId?: string }>('LoadFile', ({ text, basePath, documentId }) => {
@@ -112,9 +122,9 @@ const Editor: React.FC = () => {
         activateDocument(text, documentId)
     }), [activateDocument, pendingDocument]);
 
-    useEffect(() => transport.addListener<{ text: string, cursor: any, basePath: string }>('SetMarkdown', ({ text, cursor, basePath }) => {
+    useEffect(() => transport.addListener<{ text: string, cursor: any, basePath: string, origin?: 'undo' | 'redo' }>('SetMarkdown', ({ text, cursor, basePath, origin }) => {
         window.basePath = basePath
-        replaceCurrentDocument(text, cursor)
+        replaceCurrentDocument(text, cursor, origin ?? 'undo')
     }), [replaceCurrentDocument]);
 
     useEffect(() => transport.addListener<Record<string, unknown>>('SettingsChanged', (newOptions) => {
@@ -140,6 +150,7 @@ const Editor: React.FC = () => {
                 options={options}
                 cursor={cursor}
                 replacement={replacement}
+                onReplacementConsumed={consumeReplacement}
                 documentId={documentId}
                 pendingDocument={pendingDocument}
                 markdown={markdown ?? ''}
@@ -157,6 +168,7 @@ const Editor: React.FC = () => {
                 options={options}
                 cursor={cursor}
                 replacement={replacement}
+                onReplacementConsumed={consumeReplacement}
                 documentId={documentId}
                 pendingDocument={pendingDocument}
                 markdown={markdown ?? ''}

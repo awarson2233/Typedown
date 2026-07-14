@@ -53,9 +53,14 @@ public sealed class MuyaV2ProtocolContractTests
         var flushIndex = codeMirror.IndexOf("transport.postMessageNoDiff('DocumentFlushed'", StringComparison.Ordinal);
         Assert.IsTrue(markdownIndex >= 0 && flushIndex > markdownIndex);
         StringAssert.Contains(codeMirror, "const { anchor, focus: head } = props.cursor ?? {}");
-        StringAssert.Contains(editor, "setReplacement({ text, cursor: nextCursor");
-        StringAssert.Contains(host, "editor.setContent(props.replacement.text)");
-        StringAssert.Contains(codeMirror, "editor.setValue(props.replacement.text)");
+        StringAssert.Contains(editor, "setReplacement({ documentId: currentDocumentId, text, cursor: nextCursor, origin");
+        StringAssert.Contains(editor, "current?.documentId === documentId && current.revision === revision ? undefined");
+        StringAssert.Contains(host, "replacement.documentId !== props.documentId");
+        StringAssert.Contains(codeMirror, "replacement.documentId !== props.documentId");
+        StringAssert.Contains(host, "editor.setContent(replacement.text)");
+        StringAssert.Contains(codeMirror, "editor.setValue(replacement.text)");
+        StringAssert.Contains(host, "if (replacement.origin === 'import') transport.postMessage('MarkdownChange'");
+        StringAssert.Contains(host, "props.onReplacementConsumed(replacement.documentId, replacement.revision)");
         StringAssert.Contains(host, "SelectionFormats', { formats: live.formats, documentId: props.documentId }");
     }
 

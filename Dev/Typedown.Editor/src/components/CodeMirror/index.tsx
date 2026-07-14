@@ -10,7 +10,8 @@ interface ICodeMirrorEditor {
     markdown: string
     documentId: string
     pendingDocument?: { text: string, id: string }
-    replacement?: { text: string, cursor: any, revision: number }
+    replacement?: { documentId: string, revision: number, text: string, cursor: any, origin: 'import' | 'undo' | 'redo' }
+    onReplacementConsumed: (documentId: string, revision: number) => void
     cursor: any
     options: any
     searchOpen: number
@@ -232,13 +233,22 @@ const CodeMirrorEditor: React.FC<ICodeMirrorEditor> = (props) => {
     }, [editor, handleCodeMirrorState, props.cursor, props.documentId, props.markdown, props.scrollTopRef, search])
 
     useEffect(() => {
-        if (!editor || !props.replacement) return
-        markdownRef.current = props.replacement.text
-        editor.setValue(props.replacement.text)
-        const { anchor, focus: head } = props.replacement.cursor ?? {}
+        const replacement = props.replacement
+        if (!editor || !replacement || replacement.documentId !== props.documentId) return
+        markdownRef.current = replacement.text
+        editor.setValue(replacement.text)
+        const { anchor, focus: head } = replacement.cursor ?? {}
         if (anchor && head) editor.setSelection(anchor, head, { scroll: true })
         else editor.setCursor({ line: 0, ch: 0 })
-    }, [editor, props.replacement])
+        const currentCursor = { anchor: editor.getCursor('anchor'), focus: editor.getCursor('head') }
+        if (replacement.origin === 'import') transport.postMessage('MarkdownChange', { text: markdownRef.current, documentId: replacement.documentId })
+        transport.postMessage('CursorChange', { cursor: currentCursor, documentId: replacement.documentId })
+        handleCodeMirrorState(markdownRef.current, replacement.documentId)
+        transport.postMessage('CodeMirrorSelectionChange', { cursor: { anchor: currentCursor.anchor, head: currentCursor.focus }, selectionText: editor.getSelection(), documentId: replacement.documentId })
+        props.onReplacementConsumed(replacement.documentId, replacement.revision)
+    // All accessed callback/data props are listed explicitly.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [editor, handleCodeMirrorState, props.documentId, props.onReplacementConsumed, props.replacement])
 
     useEffect(() => {
         if (props.searchArg && editor) {
