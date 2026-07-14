@@ -8,6 +8,7 @@ namespace Typedown.Core
     {
         public static IServiceCollection AddTypedownCore(this IServiceCollection services)
         {
+            services.AddScoped<IAtomicFileWriter, AtomicFileWriter>();
             services.AddScoped<AutoBackup>();
             services.AddScoped<EventCenter>();
             services.AddScoped<RemoteInvoke>();

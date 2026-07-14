@@ -120,6 +120,19 @@ namespace Typedown.Core.Services
                 }
             }
 
+            public bool TryCommit(Func<bool> snapshotMatches, Action commit)
+            {
+                ArgumentNullException.ThrowIfNull(snapshotMatches);
+                ArgumentNullException.ThrowIfNull(commit);
+                if (owner is not { } gate) return false;
+                lock (gate.stateLock)
+                {
+                    if (gate.completion is not null || gate.generation != Generation || !snapshotMatches()) return false;
+                    commit();
+                    return true;
+                }
+            }
+
             public void Dispose()
             {
                 Interlocked.Exchange(ref owner, null)?.persistenceLock.Release();

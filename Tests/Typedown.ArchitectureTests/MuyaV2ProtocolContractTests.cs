@@ -24,6 +24,20 @@ public sealed class MuyaV2ProtocolContractTests
     }
 
     [TestMethod]
+    public void ThemeAssets_UseOnlyV2PathsAndKebabCaseTokens()
+    {
+        var editorRoot = Path.Combine(RepoRoot, "Dev", "Typedown.Editor");
+        var themeService = File.ReadAllText(Path.Combine(editorRoot, "src", "services", "theme.ts"));
+        StringAssert.Contains(themeService, "theme/v2/prism/${theme}.theme.css");
+        StringAssert.Contains(themeService, "theme/v2/codemirror/${theme}.theme.css");
+        Assert.IsFalse(themeService.Contains("theme/editor/", StringComparison.Ordinal));
+        Assert.IsFalse(themeService.Contains("theme/prismjs/", StringComparison.Ordinal));
+
+        AssertLegacyThemeAssetsAbsent(Path.Combine(editorRoot, "public"));
+        AssertLegacyThemeAssetsAbsent(Path.Combine(RepoRoot, "Dev", "Typedown.WinUI", "Resources", "Statics"));
+    }
+
+    [TestMethod]
     public void MuyaHost_PreservesDocumentAndClipboardProtocols()
     {
         var host = File.ReadAllText(Path.Combine(RepoRoot, "Dev", "Typedown.Editor", "src", "components", "Muya", "index.tsx"));
@@ -83,6 +97,21 @@ public sealed class MuyaV2ProtocolContractTests
         StringAssert.Contains(host, "retryCount >= 5");
         StringAssert.Contains(codeMirror, "retryCount >= 5");
         StringAssert.Contains(host, "SelectionFormats', { formats: live.formats, documentId: props.documentId }");
+    }
+
+    private static void AssertLegacyThemeAssetsAbsent(string root)
+    {
+        Assert.IsFalse(Directory.Exists(Path.Combine(root, "theme", "editor")));
+        Assert.IsFalse(Directory.Exists(Path.Combine(root, "theme", "prismjs")));
+        Assert.IsFalse(Directory.Exists(Path.Combine(root, "theme", "codemirror")));
+        var forbidden = new[] { "--editorColor", "--themeColor", "--selectionColor", "--editorAreaWidth", ".ag-", "ag-paragraph" };
+        foreach (var path in Directory.EnumerateFiles(root, "*", SearchOption.AllDirectories))
+        {
+            if (Path.GetExtension(path) is not (".css" or ".js" or ".html" or ".json")) continue;
+            var content = File.ReadAllText(path);
+            foreach (var token in forbidden)
+                Assert.IsFalse(content.Contains(token, StringComparison.Ordinal), $"Legacy theme token '{token}' remains in {path}.");
+        }
     }
 
     private static string FindRepoRoot()

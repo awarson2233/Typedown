@@ -8,6 +8,12 @@ namespace Typedown.Core.Services
     public class AutoBackup
     {
         private readonly string backupPath = Config.GetBackupFolderPath();
+        private readonly IAtomicFileWriter fileWriter;
+
+        public AutoBackup(IAtomicFileWriter fileWriter)
+        {
+            this.fileWriter = fileWriter;
+        }
 
         [return: MaybeNull]
         public string GetBackupFilePath(string sourcePath)
@@ -23,21 +29,39 @@ namespace Typedown.Core.Services
             return Path.Combine(backupPath, $"{pathHash}_{pathFilename}");
         }
 
-        public async Task<bool> Backup(string path, string markdown)
+        public async Task<string?> PrepareBackup(string path, string markdown)
         {
             try
             {
                 var backupFilePath = GetBackupFilePath(path);
-                if (backupFilePath == null)
-                    return false;
+                return backupFilePath is null ? null : await fileWriter.WriteTemporaryAsync(backupFilePath, markdown);
+            }
+            catch
+            {
+                return null;
+            }
+        }
 
-                await File.WriteAllTextAsync(backupFilePath, markdown);
+        public bool CommitBackup(string path, string temporaryPath)
+        {
+            try
+            {
+                var backupFilePath = GetBackupFilePath(path);
+                if (backupFilePath is null) return false;
+                fileWriter.Commit(temporaryPath, backupFilePath);
                 return true;
             }
             catch
             {
+                fileWriter.Discard(temporaryPath);
                 return false;
             }
+        }
+
+        public async Task<bool> Backup(string path, string markdown)
+        {
+            var temporaryPath = await PrepareBackup(path, markdown);
+            return temporaryPath is not null && CommitBackup(path, temporaryPath);
         }
 
         public async Task<string?> GetBackup(string path)

@@ -51,16 +51,14 @@ function formatRgba(color: { r: number, g: number, b: number, a: number }) {
 }
 
 function onThemeChanged(payload: any) {
-    const editorStyleDocument = getorCreateStyle("link_style_editor");
     const prismjsStyleDocument = getorCreateStyle("link_style_prismjs");
     const codemirrorStyleDocument = getorCreateStyle("link_style_codemirror");
 
     const theme = normalizeTheme(payload?.theme)
-    editorStyleDocument.href = `theme/editor/${theme}.theme.css`
-    prismjsStyleDocument.href = `theme/prismjs/${theme}.theme.css`
-    codemirrorStyleDocument.href = `theme/codemirror/${theme}.theme.css`
+    prismjsStyleDocument.href = `theme/v2/prism/${theme}.theme.css`
+    codemirrorStyleDocument.href = `theme/v2/codemirror/${theme}.theme.css`
 
-    const themeColorAlphas = [10, 20, 30, 40, 50, 60, 70, 80, 90]
+    const themeColorSteps = [10, 20, 30, 40, 50, 60, 70, 80, 90]
     const accent = normalizeColor(payload?.accentColor, { r: 27, g: 102, b: 107, a: 1 })
     const defaultBackground = theme === 'dark'
         ? { r: 40, g: 40, b: 40, a: 1 }
@@ -72,7 +70,7 @@ function onThemeChanged(payload: any) {
     document.documentElement.style.setProperty('--theme-color', formatRgba(accent))
     document.documentElement.style.setProperty('--editor-color', theme === 'dark' ? '#f2f2f2' : '#1f1f1f')
     document.documentElement.style.setProperty('--selection-color', formatRgba({ ...accent, a: accent.a * 0.3 }))
-    themeColorAlphas.forEach(e => document.documentElement.style.setProperty(`--theme-color-${e}`, formatRgba({ ...accent, a: accent.a * (e / 100) })))
+    themeColorSteps.forEach(e => document.documentElement.style.setProperty(`--theme-color-${e}`, formatRgba({ ...accent, a: accent.a * (e / 100) })))
 
     window.actualTheme = theme
 }

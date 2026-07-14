@@ -30,7 +30,7 @@
 
 code[class*="language-"],
 pre[class*="language-"] {
-    color: var(--editorColor60);
+    color: var(--editor-color);
     text-shadow: 0 1px rgba(0, 0, 0, 0.3);
     font-family: "Fira Code", "Fira Mono", Menlo, Consolas, "DejaVu Sans Mono", monospace;
     direction: ltr;
@@ -66,8 +66,7 @@ pre[class*="language-"] *::selection {
 }
 
 /* Code blocks */
-pre[class*="language-"],
-pre.ag-paragraph {
+pre[class*="language-"] {
     padding: 1em;
     margin: 0.5em 0;
     border-radius: 0.3em;

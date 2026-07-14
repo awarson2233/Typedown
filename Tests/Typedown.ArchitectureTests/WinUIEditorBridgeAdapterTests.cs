@@ -302,6 +302,117 @@ public class WinUIEditorBridgeAdapterTests
     }
 
     [TestMethod]
+    public async Task Save_IgnoresOldGenerationAfterWriteCompletes()
+    {
+        var path = Path.Combine(Path.GetTempPath(), $"typedown-save-{Guid.NewGuid():N}.md");
+        var writer = new PausingAtomicFileWriter();
+        var editor = CreatePersistenceEditor("old", 11, 22);
+        var services = new ServiceCollection()
+            .AddSingleton(editor)
+            .AddSingleton<IAtomicFileWriter>(writer)
+            .BuildServiceProvider();
+        var file = CreatePersistenceFile(services, path);
+
+        try
+        {
+            var save = InvokePrivateAsync<bool>(file, "Save", true, null);
+            await writer.Entered.Task;
+            editor.PendingImportGate.Begin("r2");
+            editor.Markdown = "new";
+            editor.CurrentHash = 33;
+            Assert.IsTrue(editor.PendingImportGate.Complete("r2"));
+            writer.Release.SetResult();
+
+            Assert.IsFalse(await save);
+            Assert.AreEqual("new", editor.Markdown);
+            Assert.AreEqual(11UL, editor.FileHash);
+            Assert.IsFalse(editor.Saved);
+        }
+        finally
+        {
+            if (File.Exists(path)) File.Delete(path);
+        }
+    }
+
+    [TestMethod]
+    public async Task SaveAs_DoesNotSwitchPathAfterGenerationChangesDuringWrite()
+    {
+        var oldPath = Path.Combine(Path.GetTempPath(), $"typedown-old-{Guid.NewGuid():N}.md");
+        var newPath = Path.Combine(Path.GetTempPath(), $"typedown-new-{Guid.NewGuid():N}.md");
+        var writer = new PausingAtomicFileWriter();
+        var editor = CreatePersistenceEditor("old", 11, 22);
+        var picker = new FixedFilePickerService(newPath);
+        var services = new ServiceCollection()
+            .AddSingleton(editor)
+            .AddSingleton<IAtomicFileWriter>(writer)
+            .AddSingleton<IFilePickerService>(picker)
+            .BuildServiceProvider();
+        var file = CreatePersistenceFile(services, oldPath);
+
+        try
+        {
+            var saveAs = InvokePrivateAsync<string?>(file, "SaveAs", new object?[] { null });
+            await writer.Entered.Task;
+            editor.PendingImportGate.Begin("r2");
+            editor.Markdown = "new";
+            editor.CurrentHash = 33;
+            Assert.IsTrue(editor.PendingImportGate.Complete("r2"));
+            writer.Release.SetResult();
+
+            Assert.IsNull(await saveAs);
+            Assert.AreEqual(oldPath, file.FilePath);
+            Assert.AreEqual(11UL, editor.FileHash);
+            Assert.IsFalse(editor.Saved);
+        }
+        finally
+        {
+            if (File.Exists(oldPath)) File.Delete(oldPath);
+            if (File.Exists(newPath)) File.Delete(newPath);
+        }
+    }
+
+    [TestMethod]
+    public async Task AutoBackup_DiscardsOldGenerationTemporaryFile()
+    {
+        var sourcePath = Path.Combine(Path.GetTempPath(), $"typedown-backup-{Guid.NewGuid():N}.md");
+        var writer = new PausingAtomicFileWriter();
+        var backup = new AutoBackup(writer);
+        var editor = CreatePersistenceEditor("old", 11, 22);
+        var services = new ServiceCollection()
+            .AddSingleton(editor)
+            .AddSingleton<IAtomicFileWriter>(writer)
+            .AddSingleton(backup)
+            .BuildServiceProvider();
+        var file = CreatePersistenceFile(services, sourcePath);
+        var backupPath = backup.GetBackupFilePath(sourcePath)!;
+        Directory.CreateDirectory(Path.GetDirectoryName(backupPath)!);
+        await File.WriteAllTextAsync(backupPath, "new-generation-backup");
+        using var lease = await editor.PendingImportGate.AcquireAsync(TimeSpan.Zero);
+        Assert.IsNotNull(lease);
+
+        try
+        {
+            var backupTask = InvokePrivateAsync<bool>(file, "AutoBackupFile", lease);
+            await writer.Entered.Task;
+            editor.PendingImportGate.Begin("r2");
+            editor.Markdown = "new";
+            editor.CurrentHash = 33;
+            Assert.IsTrue(editor.PendingImportGate.Complete("r2"));
+            writer.Release.SetResult();
+
+            Assert.IsFalse(await backupTask);
+            Assert.AreEqual("new-generation-backup", await File.ReadAllTextAsync(backupPath));
+            Assert.IsFalse(File.Exists(writer.TemporaryPath));
+        }
+        finally
+        {
+            if (File.Exists(sourcePath)) File.Delete(sourcePath);
+            if (File.Exists(backupPath)) File.Delete(backupPath);
+            if (File.Exists(writer.TemporaryPath)) File.Delete(writer.TemporaryPath);
+        }
+    }
+
+    [TestMethod]
     public void ImportFinal_CommitsPendingEditorHistoryBeforeAuthoritativeReplacement()
     {
         var commandSink = new RecordingEditorCommandSink();
@@ -758,6 +869,30 @@ public class WinUIEditorBridgeAdapterTests
         Assert.AreEqual("Waiting", session.State.LastEventName);
     }
 
+    private static EditorViewModel CreatePersistenceEditor(string markdown, ulong fileHash, ulong currentHash)
+    {
+        var editor = (EditorViewModel)RuntimeHelpers.GetUninitializedObject(typeof(EditorViewModel));
+        editor.Markdown = markdown;
+        editor.FileHash = fileHash;
+        editor.CurrentHash = currentHash;
+        editor.Saved = false;
+        return editor;
+    }
+
+    private static FileViewModel CreatePersistenceFile(IServiceProvider services, string path)
+    {
+        var file = (FileViewModel)RuntimeHelpers.GetUninitializedObject(typeof(FileViewModel));
+        SetAutoProperty(file, nameof(FileViewModel.ServiceProvider), services);
+        SetAutoProperty(file, nameof(FileViewModel.FilePath), path);
+        return file;
+    }
+
+    private static async Task<T> InvokePrivateAsync<T>(object target, string methodName, params object?[] args)
+    {
+        var method = target.GetType().GetMethod(methodName, BindingFlags.Instance | BindingFlags.NonPublic)!;
+        return await (Task<T>)method.Invoke(target, args)!;
+    }
+
     private static void SetAutoProperty(object target, string propertyName, object value)
     {
         SetField(target, $"<{propertyName}>k__BackingField", value);
@@ -789,6 +924,44 @@ public class WinUIEditorBridgeAdapterTests
         Assert.IsNotNull(response, $"Expected a response for payload: {payload}");
         using var document = JsonDocument.Parse(response);
         return document.RootElement.Clone();
+    }
+
+    private sealed class PausingAtomicFileWriter : IAtomicFileWriter
+    {
+        public TaskCompletionSource Entered { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        public TaskCompletionSource Release { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        public string TemporaryPath { get; private set; } = string.Empty;
+
+        public async Task WriteAllTextAsync(string path, string content)
+        {
+            Entered.TrySetResult();
+            await Release.Task;
+            await File.WriteAllTextAsync(path, content);
+        }
+
+        public async Task<string> WriteTemporaryAsync(string destinationPath, string content)
+        {
+            TemporaryPath = Path.Combine(Path.GetDirectoryName(destinationPath)!, $".{Path.GetFileName(destinationPath)}.{Guid.NewGuid():N}.tmp");
+            Directory.CreateDirectory(Path.GetDirectoryName(TemporaryPath)!);
+            await File.WriteAllTextAsync(TemporaryPath, content);
+            Entered.TrySetResult();
+            await Release.Task;
+            return TemporaryPath;
+        }
+
+        public void Commit(string temporaryPath, string destinationPath) => File.Move(temporaryPath, destinationPath, true);
+
+        public void Discard(string? temporaryPath)
+        {
+            if (!string.IsNullOrEmpty(temporaryPath) && File.Exists(temporaryPath)) File.Delete(temporaryPath);
+        }
+    }
+
+    private sealed class FixedFilePickerService(string savePath) : IFilePickerService
+    {
+        public Task<string?> PickOpenFileAsync(OpenFileRequest request) => Task.FromResult<string?>(null);
+        public Task<string?> PickSaveFileAsync(SaveFileRequest request) => Task.FromResult<string?>(savePath);
+        public Task<string?> PickFolderAsync(PickFolderRequest request) => Task.FromResult<string?>(null);
     }
 
     private sealed class FakeEditorDocumentSession : IEditorDocumentSession

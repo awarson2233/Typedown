@@ -69,6 +69,8 @@ namespace Typedown.Presentation.ViewModels
 
         public AutoBackup AutoBackup => ServiceProvider.GetRequiredService<AutoBackup>();
 
+        public IAtomicFileWriter FileWriter => ServiceProvider.GetRequiredService<IAtomicFileWriter>();
+
         public IEditorCommandSink EditorCommandSink => ServiceProvider.GetRequiredService<IEditorCommandSink>();
 
         public IDialogService DialogService => ServiceProvider.GetRequiredService<IDialogService>();
@@ -174,10 +176,20 @@ namespace Typedown.Presentation.ViewModels
             var changed = EditorViewModel.FileHash != EditorViewModel.CurrentHash;
             if (string.IsNullOrWhiteSpace(path)) return true;
             if (changed && !string.IsNullOrWhiteSpace(markdown))
-                return await AutoBackup.Backup(path, markdown);
+            {
+                var temporaryPath = await AutoBackup.PrepareBackup(path, markdown);
+                if (temporaryPath is null) return false;
+                var committed = false;
+                var valid = lease.TryCommit(
+                    () => FilePath == path && EditorViewModel.Markdown == markdown && EditorViewModel.FileHash != EditorViewModel.CurrentHash,
+                    () => committed = AutoBackup.CommitBackup(path, temporaryPath));
+                if (!valid) FileWriter.Discard(temporaryPath);
+                return valid && committed;
+            }
 
-            AutoBackup.DeleteBackup(path);
-            return true;
+            return lease.TryCommit(
+                () => FilePath == path && EditorViewModel.Markdown == markdown && EditorViewModel.FileHash == EditorViewModel.CurrentHash,
+                () => AutoBackup.DeleteBackup(path));
         }
 
         private void QueueDocument(string text, ulong fileHash, string? filePath, bool saved)
@@ -377,7 +389,7 @@ namespace Typedown.Presentation.ViewModels
         {
             try
             {
-                await File.WriteAllTextAsync(path, text);
+                await FileWriter.WriteAllTextAsync(path, text);
                 return true;
             }
             catch (Exception ex)
@@ -408,15 +420,16 @@ namespace Typedown.Presentation.ViewModels
                 var path = FilePath;
                 var markdown = EditorViewModel.Markdown;
                 var currentHash = EditorViewModel.CurrentHash;
-                var result = await WriteAllText(path, markdown, alert);
-                if (result)
-                {
-                    EditorViewModel.FileHash = currentHash;
-                    EditorViewModel.Saved = true;
-                    AutoBackup.DeleteBackup(path);
-                    _ = RunAfterInitialEditorFileLoadedAsync(() => AccessHistory.RecordFileHistory(path));
-                }
-                return result;
+                if (!await WriteAllText(path, markdown, alert)) return false;
+                return lease.TryCommit(
+                    () => FilePath == path && EditorViewModel.Markdown == markdown && EditorViewModel.CurrentHash == currentHash,
+                    () =>
+                    {
+                        EditorViewModel.FileHash = currentHash;
+                        EditorViewModel.Saved = true;
+                        AutoBackup.DeleteBackup(path);
+                        _ = RunAfterInitialEditorFileLoadedAsync(() => AccessHistory.RecordFileHistory(path));
+                    });
             }
             finally
             {
@@ -426,59 +439,46 @@ namespace Typedown.Presentation.ViewModels
 
         private async Task<string?> SaveAs(PendingImportGate.PersistenceLease? existingLease = null)
         {
-            var lease = existingLease ?? await AcquirePersistenceLease(true);
-            if (lease is null) return null;
-            if (!lease.IsValid)
-            {
-                if (existingLease is null) lease.Dispose();
-                return null;
-            }
-            if (saveAsOpened)
-            {
-                return null;
-            }
-
+            existingLease?.Dispose();
+            if (saveAsOpened) return null;
             saveAsOpened = true;
             try
             {
                 var filePath = await FilePickerService.PickSaveFileAsync(new SaveFileRequest
                 {
-                    FileTypeChoices =
-                    {
-                        new SaveFileTypeChoice("Markdown Files", FileTypeHelper.Markdown)
-                    },
+                    FileTypeChoices = { new SaveFileTypeChoice("Markdown Files", FileTypeHelper.Markdown) },
                     SuggestedFileName = FileName ?? "untitled"
                 });
-                if (filePath != null)
-                {
-                    var result = await WriteAllText(filePath, EditorViewModel.Markdown);
-                    if (result)
+                if (filePath is null) return null;
+
+                using var lease = await AcquirePersistenceLease(true);
+                if (lease is null || !lease.IsValid) return null;
+                var oldPath = FilePath;
+                var markdown = EditorViewModel.Markdown;
+                var currentHash = EditorViewModel.CurrentHash;
+                if (!await WriteAllText(filePath, markdown)) return null;
+
+                var committed = lease.TryCommit(
+                    () => FilePath == oldPath && EditorViewModel.Markdown == markdown && EditorViewModel.CurrentHash == currentHash,
+                    () =>
                     {
-                        if (FilePath is not null)
-                            AutoBackup.DeleteBackup(FilePath);
+                        if (oldPath is not null) AutoBackup.DeleteBackup(oldPath);
                         FilePath = filePath;
                         SettingsViewModel.LastFilePath = filePath;
-                        EditorViewModel.FileHash = EditorViewModel.CurrentHash;
+                        EditorViewModel.FileHash = currentHash;
                         EditorViewModel.Saved = true;
-                        var savedPath = filePath;
-                        _ = RunAfterInitialEditorFileLoadedAsync(() => AccessHistory.RecordFileHistory(savedPath));
-                        return filePath;
-                    }
-                }
-                return null;
+                        _ = RunAfterInitialEditorFileLoadedAsync(() => AccessHistory.RecordFileHistory(filePath));
+                    });
+                return committed ? filePath : null;
             }
             catch (Exception ex)
             {
-                await ShowDialog(
-                    Locale.GetString("Error"),
-                    ex.Message,
-                    Locale.GetString("Ok"));
+                await ShowDialog(Locale.GetString("Error"), ex.Message, Locale.GetString("Ok"));
                 return null;
             }
             finally
             {
                 saveAsOpened = false;
-                if (existingLease is null) lease.Dispose();
             }
         }
 
