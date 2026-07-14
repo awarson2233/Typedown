@@ -339,6 +339,7 @@ namespace Typedown.WinUI.Controls
         {
             return name is "MarkdownChange"
                 or "FileLoaded"
+                or "DocumentFlushed"
                 or "CursorChange"
                 or "SelectionChange"
                 or "CodeMirrorSelectionChange"

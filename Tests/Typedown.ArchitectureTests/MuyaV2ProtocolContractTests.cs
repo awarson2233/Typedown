@@ -32,7 +32,7 @@ public sealed class MuyaV2ProtocolContractTests
 
         StringAssert.Contains(host, "editor.flush()\n        const outgoingMarkdown = editor.getMarkdown()");
         StringAssert.Contains(host, "DocumentFlushed', { documentId: outgoingId, nextDocumentId: props.pendingDocument.id }");
-        StringAssert.Contains(host, "if (!editor || documentIdRef.current === props.documentId) return");
+        StringAssert.Contains(host, "if (!editor || loadedDocumentIdRef.current === props.documentId) return");
         StringAssert.Contains(host, "FileLoaded', { text: markdownRef.current, documentId: props.documentId }");
         StringAssert.Contains(editor, "setPendingDocument({ text, id: nextId })");
         StringAssert.Contains(host, "else document.execCommand('copy')");
@@ -42,6 +42,8 @@ public sealed class MuyaV2ProtocolContractTests
         StringAssert.Contains(viewModel, "OnActiveHeadingChange");
         StringAssert.Contains(viewModel, "FileViewModel.ActivatePendingDocument");
         StringAssert.Contains(viewModel, "History.InitHistory(markdown)");
+        StringAssert.Contains(editor, "transport.addListener<{ text: string, basePath: string, documentId: string }>('ActivateDocument'");
+        StringAssert.Contains(host, "loadedDocumentIdRef.current = props.documentId");
     }
 
     private static string FindRepoRoot()

@@ -140,6 +140,15 @@ namespace Typedown.Presentation.ViewModels
             AutoSavedSucc = true;
             FileLoaded = true;
             History.InitHistory(markdown);
+            Selection = new JObject();
+            CodeMirrorSelection = new JObject();
+            MenuState = new MenuState();
+            ParagraphState = new ParagraphState(MenuState);
+            ContentState = new ContentState();
+            Toc.UpdateChildren(ContentState.Toc);
+            SelectionText = string.Empty;
+            TextSelected = false;
+            Selected = false;
         }
 
         public void OnSelectionChange(JToken arg)

@@ -1,8 +1,14 @@
 using System.Collections.Generic;
+using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Text.Json;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Typedown.Core.Models;
 using Typedown.Core.Services;
+using Typedown.Presentation.Interfaces;
+using Typedown.Presentation.Utilities;
+using Typedown.Presentation.ViewModels;
 using Typedown.WinUI.Controls;
 
 namespace Typedown.ArchitectureTests;
@@ -97,6 +103,72 @@ public class WinUIEditorBridgeAdapterTests
         Assert.AreEqual(7, rowsColumnsData.GetProperty("columns").GetInt32());
         Assert.AreEqual(1, emptyPayload.GetProperty("args").GetProperty("code").GetInt32());
         Assert.AreEqual(1, noPayload.GetProperty("args").GetProperty("code").GetInt32());
+    }
+
+    [TestMethod]
+    public void DocumentFlushed_RoutesThroughAdapterToPresentationEventCenter()
+    {
+        var eventCenter = new EventCenter();
+        var serviceProvider = new ServiceCollection().AddSingleton(eventCenter).BuildServiceProvider();
+        var session = new WinUIEditorDocumentSession(serviceProvider: serviceProvider);
+        var adapter = new WinUIEditorBridgeAdapter(session);
+        EditorEventArgs? received = null;
+        using var subscription = eventCenter.GetObservable<EditorEventArgs>("DocumentFlushed").Subscribe(args => received = args);
+
+        adapter.Receive("""{"type":"message","name":"DocumentFlushed","args":{"documentId":"A","nextDocumentId":"B"}}""", _ => true);
+
+        Assert.IsNotNull(received);
+        Assert.AreEqual("A", received.Args["documentId"]?.ToString());
+        Assert.AreEqual("B", received.Args["nextDocumentId"]?.ToString());
+    }
+
+    [TestMethod]
+    public void DocumentFlushed_CommitsOnlyMatchingPendingGenerationAndSendsActivation()
+    {
+        var eventCenter = new EventCenter();
+        var commandSink = new RecordingEditorCommandSink();
+        var services = new ServiceCollection()
+            .AddSingleton(eventCenter)
+            .AddSingleton<IEditorCommandSink>(commandSink)
+            .BuildServiceProvider();
+        var editorViewModel = (EditorViewModel)RuntimeHelpers.GetUninitializedObject(typeof(EditorViewModel));
+        SetAutoProperty(editorViewModel, nameof(EditorViewModel.ServiceProvider), services);
+        SetAutoProperty(editorViewModel, nameof(EditorViewModel.History), new Typedown.Core.Models.ContentHistory());
+        SetAutoProperty(editorViewModel, nameof(EditorViewModel.Toc), new Typedown.Core.Models.TocTreeItem());
+        SetField(editorViewModel, "documentId", "A");
+        var fileViewModel = (FileViewModel)RuntimeHelpers.GetUninitializedObject(typeof(FileViewModel));
+        SetAutoProperty(fileViewModel, nameof(FileViewModel.ServiceProvider), services);
+        var pendingType = typeof(FileViewModel).GetNestedType("PendingDocument", BindingFlags.NonPublic)!;
+        var pending = Activator.CreateInstance(pendingType, "C", "# C", 42UL, "C:/docs/c.md", "C:/docs", true)!;
+        SetField(fileViewModel, "pendingDocument", pending);
+        var augmentedServices = new ServiceCollection()
+            .AddSingleton(eventCenter)
+            .AddSingleton<IEditorCommandSink>(commandSink)
+            .AddSingleton(editorViewModel)
+            .AddSingleton(fileViewModel)
+            .BuildServiceProvider();
+        SetAutoProperty(editorViewModel, nameof(EditorViewModel.ServiceProvider), augmentedServices);
+        SetAutoProperty(fileViewModel, nameof(FileViewModel.ServiceProvider), augmentedServices);
+        using var editorSubscription = eventCenter.GetObservable<EditorEventArgs>("DocumentFlushed")
+            .Subscribe(args => editorViewModel.OnDocumentFlushed(args.Args));
+        var adapter = new WinUIEditorBridgeAdapter(new WinUIEditorDocumentSession(serviceProvider: augmentedServices));
+        Assert.AreSame(commandSink, fileViewModel.EditorCommandSink);
+
+        adapter.Receive("""{"type":"message","name":"DocumentFlushed","args":{"documentId":"A","nextDocumentId":"B"}}""", _ => true);
+
+        Assert.AreEqual("A", editorViewModel.CurrentDocumentId);
+        Assert.AreEqual(0, commandSink.Messages.Count);
+
+        adapter.Receive("""{"type":"message","name":"DocumentFlushed","args":{"documentId":"A","nextDocumentId":"C"}}""", _ => true);
+
+        Assert.AreEqual("C", editorViewModel.CurrentDocumentId);
+        Assert.AreEqual("# C", editorViewModel.Markdown);
+        Assert.AreEqual("C:/docs/c.md", fileViewModel.FilePath);
+        Assert.AreEqual(1, commandSink.Messages.Count);
+        Assert.AreEqual("ActivateDocument", commandSink.Messages[0].Name);
+        using var activation = JsonDocument.Parse(JsonSerializer.Serialize(commandSink.Messages[0].Args));
+        Assert.AreEqual("C", activation.RootElement.GetProperty("documentId").GetString());
+        Assert.AreEqual("# C", activation.RootElement.GetProperty("text").GetString());
     }
 
     [TestMethod]
@@ -497,6 +569,16 @@ public class WinUIEditorBridgeAdapterTests
         Assert.AreEqual("Waiting", session.State.LastEventName);
     }
 
+    private static void SetAutoProperty(object target, string propertyName, object value)
+    {
+        SetField(target, $"<{propertyName}>k__BackingField", value);
+    }
+
+    private static void SetField(object target, string fieldName, object value)
+    {
+        target.GetType().GetField(fieldName, BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public)!.SetValue(target, value);
+    }
+
     private static JsonElement Invoke(WinUIEditorBridgeAdapter adapter, string payload)
     {
         string? response = null;
@@ -606,6 +688,17 @@ public class WinUIEditorBridgeAdapterTests
         public void HandleEditorEvent(EditorEventMessage message)
         {
             State = State with { LastEventName = message.Name };
+        }
+    }
+
+    private sealed class RecordingEditorCommandSink : IEditorCommandSink
+    {
+        public List<(string Name, object? Args)> Messages { get; } = new();
+
+        public bool Send(string name, object? args)
+        {
+            Messages.Add((name, args));
+            return true;
         }
     }
 

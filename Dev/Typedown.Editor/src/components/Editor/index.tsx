@@ -97,6 +97,13 @@ const Editor: React.FC = () => {
         loadDocument(text, documentId)
     }), [loadDocument]);
 
+    useEffect(() => transport.addListener<{ text: string, basePath: string, documentId: string }>('ActivateDocument', ({ text, basePath, documentId }) => {
+        const pending = pendingDocument
+        if (!pending || pending.id !== documentId) return
+        window.basePath = basePath
+        activateDocument(text, documentId)
+    }), [activateDocument, pendingDocument]);
+
     useEffect(() => transport.addListener<{ text: string, cursor: any, basePath: string }>('SetMarkdown', ({ text, cursor, basePath }) => {
         window.basePath = basePath
         markdownRef.current = text
@@ -142,7 +149,6 @@ const Editor: React.FC = () => {
                 cursor={cursor}
                 documentId={documentId}
                 pendingDocument={pendingDocument}
-                onDocumentFlushed={activateDocument}
                 markdown={markdown ?? ''}
                 searchOpen={searchOpen}
                 searchArg={searchArg}

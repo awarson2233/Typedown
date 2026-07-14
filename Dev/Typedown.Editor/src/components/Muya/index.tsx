@@ -27,7 +27,6 @@ interface IMuyaEditor {
     markdown: string
     documentId: string
     pendingDocument?: { text: string, id: string }
-    onDocumentFlushed: (text: string, id: string) => void
     cursor: any
     options: any
     searchOpen: number
@@ -120,6 +119,7 @@ const MuyaEditor: React.FC<IMuyaEditor> = (props) => {
     const optionsRef = useRef<any>(props.options)
     const documentIdRef = useRef(props.documentId)
     const loadingRef = useRef(false)
+    const loadedDocumentIdRef = useRef<string>()
 
     const scrollOwner = useCallback(() => editor?.domNode, [editor])
     const relativeScroll = useCallback((delta: number) => scrollOwner()?.scrollBy(0, delta), [scrollOwner])
@@ -175,13 +175,12 @@ const MuyaEditor: React.FC<IMuyaEditor> = (props) => {
         props.onMarkdownChange(outgoingMarkdown, outgoingId)
         props.onCursorChange(editor.getCursorOffset(), outgoingId)
         transport.postMessageNoDiff('DocumentFlushed', { documentId: outgoingId, nextDocumentId: props.pendingDocument.id })
-        props.onDocumentFlushed(props.pendingDocument.text, props.pendingDocument.id)
     // The parent callbacks are stable useCallback instances.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [editor, props.pendingDocument, props.onCursorChange, props.onDocumentFlushed, props.onMarkdownChange])
+    }, [editor, props.pendingDocument, props.onCursorChange, props.onMarkdownChange])
 
     useEffect(() => {
-        if (!editor || documentIdRef.current === props.documentId) return
+        if (!editor || loadedDocumentIdRef.current === props.documentId) return
         loadingRef.current = true
         documentIdRef.current = props.documentId
         if (markdownRef.current !== props.markdown) editor.setContent(props.markdown)
@@ -189,7 +188,19 @@ const MuyaEditor: React.FC<IMuyaEditor> = (props) => {
         markdownRef.current = editor.getMarkdown()
         if (cursorRef.current) editor.setCursorByOffset(cursorRef.current)
         loadingRef.current = false
+        loadedDocumentIdRef.current = props.documentId
         transport.postMessageNoDiff('FileLoaded', { text: markdownRef.current, documentId: props.documentId })
+        const toc = editor.getTOC().map(item => ({ ...item }))
+        const active = getActiveHeading()
+        const cur = active ? toc.find(item => item.slug === active.slug) : undefined
+        transport.postMessage('StateChange', { state: { wordCount: wordCount(markdownRef.current), toc, cur }, muya: true, documentId: props.documentId })
+        const live = plainSelection(editor.getSelection())
+        const menuState = createApplicationMenuState({
+            ...live,
+            start: { key: live.anchorPath.join('/'), block: live.anchorBlockInfo ?? {} },
+            end: { key: live.focusPath.join('/'), block: live.focusBlockInfo ?? {} }
+        })
+        transport.postMessage('SelectionChange', { selection: live, menuState, selectionText: '', documentId: props.documentId })
         const owner = editor.domNode
         owner.scrollTop = props.scrollTopRef.current
         requestAnimationFrame(() => {
@@ -198,7 +209,7 @@ const MuyaEditor: React.FC<IMuyaEditor> = (props) => {
             runSearch(searchArgRef.current)
             transport.postMessage('DocumentRendered', { documentId: props.documentId })
         })
-    }, [editor, props.documentId, props.markdown, props.scrollTopRef, runSearch])
+    }, [editor, getActiveHeading, props.documentId, props.markdown, props.scrollTopRef, runSearch])
 
     useEffect(() => { editor?.setOptions(props.options, true) }, [editor, props.options])
     useEffect(() => { runSearch(props.searchArg) }, [props.searchArg, runSearch])

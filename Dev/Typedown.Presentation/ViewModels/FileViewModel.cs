@@ -42,7 +42,7 @@ namespace Typedown.Presentation.ViewModels
         private string? startupOpenedFilePath;
         private PendingDocument? pendingDocument;
 
-        private sealed record PendingDocument(string Id, string Text, ulong FileHash, string? FilePath, bool Saved);
+        private sealed record PendingDocument(string Id, string Text, ulong FileHash, string? FilePath, string BasePath, bool Saved);
 
         public string ImageBasePath => string.IsNullOrEmpty(FilePath) ? SettingsViewModel.DefaultImageBasePath : Path.GetDirectoryName(FilePath) ?? SettingsViewModel.DefaultImageBasePath;
 
@@ -150,9 +150,10 @@ namespace Typedown.Presentation.ViewModels
 
         private void QueueDocument(string text, ulong fileHash, string? filePath, bool saved)
         {
-            var pending = new PendingDocument(Guid.NewGuid().ToString("N"), text, fileHash, filePath, saved);
+            var basePath = string.IsNullOrEmpty(filePath) ? SettingsViewModel.DefaultImageBasePath : Path.GetDirectoryName(filePath) ?? SettingsViewModel.DefaultImageBasePath;
+            var pending = new PendingDocument(Guid.NewGuid().ToString("N"), text, fileHash, filePath, basePath, saved);
             pendingDocument = pending;
-            EditorCommandSink?.Send("LoadFile", new { text, basePath = string.IsNullOrEmpty(filePath) ? SettingsViewModel.DefaultImageBasePath : Path.GetDirectoryName(filePath), documentId = pending.Id });
+            EditorCommandSink?.Send("LoadFile", new { text, basePath, documentId = pending.Id });
         }
 
         public void ActivatePendingDocument(string? id)
@@ -161,6 +162,7 @@ namespace Typedown.Presentation.ViewModels
             pendingDocument = null;
             FilePath = pending.FilePath;
             EditorViewModel.ActivateDocument(pending.Id, pending.Text, pending.FileHash, pending.Saved);
+            EditorCommandSink.Send("ActivateDocument", new { text = pending.Text, basePath = pending.BasePath, documentId = pending.Id });
         }
 
         private async Task NewFileFun(bool postMessage = true)
