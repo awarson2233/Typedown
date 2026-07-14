@@ -7,35 +7,30 @@ namespace Typedown.Core.Services
 {
     public sealed class PendingImportGate
     {
-        private readonly SemaphoreSlim boundary = new(1, 1);
+        private readonly object stateLock = new();
+        private readonly SemaphoreSlim persistenceLock = new(1, 1);
         private string? revision;
         private TaskCompletionSource<bool>? completion;
         private long generation;
 
-        public bool IsPending => completion is not null;
-        public string? Revision => revision;
+        public bool IsPending { get { lock (stateLock) return completion is not null; } }
+        public string? Revision { get { lock (stateLock) return revision; } }
 
         public void Begin(string nextRevision)
         {
             ArgumentException.ThrowIfNullOrEmpty(nextRevision);
-            boundary.Wait();
-            try
+            lock (stateLock)
             {
                 completion?.TrySetResult(false);
                 generation++;
                 revision = nextRevision;
                 completion = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
             }
-            finally
-            {
-                boundary.Release();
-            }
         }
 
         public bool Complete(string completedRevision)
         {
-            boundary.Wait();
-            try
+            lock (stateLock)
             {
                 if (completion is null || !StringComparer.Ordinal.Equals(revision, completedRevision)) return false;
                 completion.TrySetResult(true);
@@ -43,25 +38,16 @@ namespace Typedown.Core.Services
                 revision = null;
                 return true;
             }
-            finally
-            {
-                boundary.Release();
-            }
         }
 
         public void Cancel()
         {
-            boundary.Wait();
-            try
+            lock (stateLock)
             {
                 completion?.TrySetResult(false);
                 generation++;
                 completion = null;
                 revision = null;
-            }
-            finally
-            {
-                boundary.Release();
             }
         }
 
@@ -70,38 +56,48 @@ namespace Typedown.Core.Services
             var stopwatch = Stopwatch.StartNew();
             while (true)
             {
-                Task<bool>? pending = null;
+                Task<bool>? pending;
                 long observedGeneration;
-                await boundary.WaitAsync(cancellationToken);
-                try
+                lock (stateLock)
                 {
                     pending = completion?.Task;
                     observedGeneration = generation;
-                    if (pending is null) return new PersistenceLease(this, observedGeneration);
-                }
-                finally
-                {
-                    if (pending is not null) boundary.Release();
                 }
 
-                var remaining = timeout - stopwatch.Elapsed;
-                if (remaining <= TimeSpan.Zero) return null;
-                try
+                if (pending is not null)
                 {
-                    if (!await pending.WaitAsync(remaining, cancellationToken)) continue;
-                }
-                catch (TimeoutException)
-                {
-                    return null;
+                    var pendingBudget = Remaining(timeout, stopwatch.Elapsed);
+                    if (pendingBudget == TimeSpan.Zero) return null;
+                    try
+                    {
+                        if (!await pending.WaitAsync(pendingBudget, cancellationToken)) continue;
+                    }
+                    catch (TimeoutException)
+                    {
+                        return null;
+                    }
                 }
 
-                remaining = timeout - stopwatch.Elapsed;
-                if (remaining <= TimeSpan.Zero) return null;
-                if (!await boundary.WaitAsync(remaining, cancellationToken)) return null;
-                if (completion is null && generation == observedGeneration)
-                    return new PersistenceLease(this, observedGeneration);
-                boundary.Release();
+                var lockBudget = Remaining(timeout, stopwatch.Elapsed);
+                var acquired = lockBudget == TimeSpan.Zero
+                    ? persistenceLock.Wait(0)
+                    : await persistenceLock.WaitAsync(lockBudget, cancellationToken);
+                if (!acquired) return null;
+
+                lock (stateLock)
+                {
+                    if (completion is null && generation == observedGeneration)
+                        return new PersistenceLease(this, observedGeneration);
+                }
+                persistenceLock.Release();
             }
+        }
+
+        private static TimeSpan Remaining(TimeSpan timeout, TimeSpan elapsed)
+        {
+            if (timeout == Timeout.InfiniteTimeSpan) return timeout;
+            var remaining = timeout - elapsed;
+            return remaining > TimeSpan.Zero ? remaining : TimeSpan.Zero;
         }
 
         public sealed class PersistenceLease : IDisposable
@@ -114,11 +110,19 @@ namespace Typedown.Core.Services
             }
 
             public long Generation { get; }
-            public bool IsValid => owner is { } gate && gate.completion is null && gate.generation == Generation;
+            public bool IsValid
+            {
+                get
+                {
+                    if (owner is not { } gate) return false;
+                    lock (gate.stateLock)
+                        return gate.completion is null && gate.generation == Generation;
+                }
+            }
 
             public void Dispose()
             {
-                Interlocked.Exchange(ref owner, null)?.boundary.Release();
+                Interlocked.Exchange(ref owner, null)?.persistenceLock.Release();
             }
         }
     }

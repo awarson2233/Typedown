@@ -532,16 +532,20 @@ namespace Typedown.Presentation.ViewModels
 
         public async Task<bool> AskToSave()
         {
-            using var lease = await AcquirePersistenceLease(true);
-            if (lease is null || !lease.IsValid) return false;
-            if (EditorViewModel.Saved || (SettingsViewModel.AutoSave && await AutoSaveFile(lease)))
+            var initialLease = await AcquirePersistenceLease(true);
+            if (initialLease is null || !initialLease.IsValid) return false;
+            var generation = initialLease.Generation;
+            var saved = EditorViewModel.Saved;
+            initialLease.Dispose();
+
+            if (saved)
             {
-                return true;
+                using var validationLease = await AcquirePersistenceLease(true);
+                return validationLease is not null && validationLease.Generation == generation && validationLease.IsValid;
             }
-            if (askToSaveOpened)
-            {
-                return false;
-            }
+            if (SettingsViewModel.AutoSave && await AutoSaveFile()) return true;
+            if (askToSaveOpened) return false;
+
             askToSaveOpened = true;
             try
             {
@@ -554,19 +558,18 @@ namespace Typedown.Presentation.ViewModels
                     SecondaryButtonText = Locale.GetDialogString("Don'tSave"),
                     DefaultButton = DialogDefaultButton.Primary
                 });
+                using var validationLease = await AcquirePersistenceLease(true);
+                if (validationLease is null || validationLease.Generation != generation || !validationLease.IsValid) return false;
                 switch (result)
                 {
                     case DialogButton.Primary:
-                        var saveResult = await Save(existingLease: lease);
-                        return saveResult;
+                        return await Save(existingLease: validationLease);
                     case DialogButton.Secondary:
-                        if (FilePath is not null)
-                            AutoBackup.DeleteBackup(FilePath);
+                        if (FilePath is not null) AutoBackup.DeleteBackup(FilePath);
                         return true;
-                    case DialogButton.None:
+                    default:
                         return false;
                 }
-                return false;
             }
             finally
             {

@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Text.Json;
@@ -255,30 +256,49 @@ public class WinUIEditorBridgeAdapterTests
     }
 
     [TestMethod]
-    public async Task PendingImportLease_HoldsGenerationBoundaryAgainstInterleavedBegin()
+    public async Task PendingImportLease_DoesNotBlockUiEventAndInvalidatesOldGeneration()
     {
         var gate = new PendingImportGate();
-        gate.Begin("r1");
-        var waiter = gate.AcquireAsync(TimeSpan.FromSeconds(2));
-        Assert.IsTrue(gate.Complete("r1"));
-        using var lease = await waiter;
+        using var lease = await gate.AcquireAsync(TimeSpan.Zero);
         Assert.IsNotNull(lease);
-        Assert.IsTrue(lease.IsValid);
 
         var beginR2 = Task.Run(() => gate.Begin("r2"));
-        await Task.Delay(50);
-        Assert.IsFalse(beginR2.IsCompleted);
-        Assert.IsTrue(lease.IsValid);
-
-        lease.Dispose();
-        await beginR2;
+        Assert.AreSame(beginR2, await Task.WhenAny(beginR2, Task.Delay(500)));
         Assert.IsTrue(gate.IsPending);
         Assert.AreEqual("r2", gate.Revision);
-        Assert.IsFalse(gate.Complete("r1"));
+        Assert.IsFalse(lease.IsValid);
+
         Assert.IsTrue(gate.Complete("r2"));
+        lease.Dispose();
         using var r2Lease = await gate.AcquireAsync(TimeSpan.Zero);
         Assert.IsNotNull(r2Lease);
         Assert.IsTrue(r2Lease.IsValid);
+    }
+
+    [TestMethod]
+    public async Task PendingImportAcquire_UsesBoundedTimeoutAndCancellation()
+    {
+        var gate = new PendingImportGate();
+        using var held = await gate.AcquireAsync(TimeSpan.Zero);
+        Assert.IsNotNull(held);
+
+        var stopwatch = Stopwatch.StartNew();
+        Assert.IsNull(await gate.AcquireAsync(TimeSpan.Zero));
+        Assert.IsTrue(stopwatch.Elapsed < TimeSpan.FromMilliseconds(200));
+
+        stopwatch.Restart();
+        Assert.IsNull(await gate.AcquireAsync(TimeSpan.FromMilliseconds(75)));
+        Assert.IsTrue(stopwatch.Elapsed < TimeSpan.FromSeconds(1));
+
+        using var cancellation = new CancellationTokenSource(50);
+        try
+        {
+            await gate.AcquireAsync(TimeSpan.FromSeconds(5), cancellation.Token);
+            Assert.Fail("Expected cancellation.");
+        }
+        catch (OperationCanceledException)
+        {
+        }
     }
 
     [TestMethod]
