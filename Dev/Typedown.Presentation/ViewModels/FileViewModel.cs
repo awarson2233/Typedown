@@ -158,7 +158,7 @@ namespace Typedown.Presentation.ViewModels
             EditorViewModel.History.InitHistory(Common.DefaultMarkdwn);
             if (postMessage)
             {
-                EditorCommandSink?.Send("LoadFile", new { text = EditorViewModel.Markdown, basePath = ImageBasePath });
+                EditorCommandSink?.Send("LoadFile", new { text = EditorViewModel.Markdown, basePath = ImageBasePath, documentId = EditorViewModel.BeginDocumentLoad() });
             }
         }
 
@@ -231,7 +231,7 @@ namespace Typedown.Presentation.ViewModels
                 EditorViewModel.History.InitHistory(EditorViewModel.Markdown);
                 if (postMessage)
                 {
-                    EditorCommandSink?.Send("LoadFile", new { text = EditorViewModel.Markdown, filePath = FilePath, basePath = ImageBasePath });
+                    EditorCommandSink?.Send("LoadFile", new { text = EditorViewModel.Markdown, filePath = FilePath, basePath = ImageBasePath, documentId = EditorViewModel.BeginDocumentLoad() });
                 }
                 return true;
             }

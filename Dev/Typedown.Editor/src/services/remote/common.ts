@@ -9,6 +9,8 @@ const remote = {
     loadImage: remoteFunction<{ url: string, width: number, height: number }, { url: string }>('LoadImage'),
     getSettings: remoteFunction<undefined, unknown>('GetSettings'),
     setClipboard: remoteFunction<{ type: string, data: unknown }, boolean>('SetClipboard'),
+    pickImage: remoteFunction<undefined, string>('PickImage'),
+    processImage: remoteFunction<{ src: string, alt: string, title: string }, string>('ProcessImage'),
     getStringResources: remoteFunction<{ names: string[] }, { [name: string]: string }>('GetStringResources'),
     openNewWindow: remoteFunction<string, undefined>('OpenNewWindow'),
     unhandledException: remoteFunction<string, undefined>('UnhandledException'),

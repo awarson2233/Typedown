@@ -1,4 +1,4 @@
-import { MarkdownToHtml } from '@muyajs/core'
+import { MarkdownToHtml, Muya } from '@muyajs/core'
 import DOMPurify from 'dompurify'
 import footerHeaderCss from '!!raw-loader!../assets/styles/headerFooterStyle.css'
 
@@ -9,19 +9,34 @@ class ExportHtml {
   }
 
   async generate(options) {
-    const { title, extraCss, extraHead, extraBody } = options
-    const renderer = new MarkdownToHtml(this.markdown)
-    const article = await renderer.renderHtml()
-    const body = this._prepareHtml(article, options)
-    const shell = await renderer.generate({
-      title,
-      inlineStyles: true,
-      extraCSS: `${extraCss || ''}${options.header || options.footer ? footerHeaderCss : ''}`
-    })
-    const parsed = new DOMParser().parseFromString(shell, 'text/html')
-    parsed.body.innerHTML = `${body}${extraBody || ''}`
-    if (extraHead) parsed.head.insertAdjacentHTML('beforeend', DOMPurify.sanitize(extraHead))
-    return '<!DOCTYPE html>\n' + parsed.documentElement.outerHTML
+    const { title, extraCss, extraHead, extraBody, toc } = options
+    const mount = document.createElement('div')
+    mount.style.display = 'none'
+    document.body.appendChild(mount)
+    const muya = new Muya(mount, { markdown: this.markdown, ...this.options })
+    muya.init()
+    try {
+      const renderer = new MarkdownToHtml(this.markdown, muya)
+      const article = await renderer.renderHtml()
+      const body = this._prepareHtml(`${toc || ''}${article}`, options)
+      const shell = await renderer.generate({
+        title,
+        inlineStyles: true,
+        extraCSS: `${extraCss || ''}${options.header || options.footer ? footerHeaderCss : ''}`
+      })
+      const parsed = new DOMParser().parseFromString(shell, 'text/html')
+      parsed.body.innerHTML = `${body}${extraBody || ''}`
+      if (this.options?.baseUrl) {
+        const base = parsed.createElement('base')
+        base.href = this.options.baseUrl
+        parsed.head.prepend(base)
+      }
+      if (extraHead) parsed.head.insertAdjacentHTML('beforeend', DOMPurify.sanitize(extraHead))
+      return '<!DOCTYPE html>\n' + parsed.documentElement.outerHTML
+    } finally {
+      muya.destroy()
+      mount.remove()
+    }
   }
 
   _prepareHtml(html, options) {

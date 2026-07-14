@@ -4,6 +4,7 @@ using System;
 using System.Collections.Specialized;
 using System.ComponentModel;
 using System.IO;
+using System.Linq;
 using System.Reactive;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
@@ -69,6 +70,7 @@ namespace Typedown.Presentation.ViewModels
         private readonly SerialDisposable tocSelectionDisposables = new();
 
         private bool contentUpdating = false;
+        private string documentId = Guid.NewGuid().ToString("N");
 
         public EditorViewModel(IServiceProvider serviceProvider)
         {
@@ -82,6 +84,8 @@ namespace Typedown.Presentation.ViewModels
             disposables.Add(EventCenter.GetObservable<EditorEventArgs>("StateChange").Subscribe(x => OnStateChange(x.Args)));
             disposables.Add(RemoteInvoke.Handle("GetSettings", GetSettings));
             disposables.Add(RemoteInvoke.Handle<JToken>("SetClipboard", OnSetClipboard));
+            disposables.Add(RemoteInvoke.Handle("PickImage", PickImage));
+            disposables.Add(RemoteInvoke.Handle<JToken, string>("ProcessImage", ProcessImage));
             disposables.Add(Settings.WhenPropertyChanged(nameof(Settings.AutoSave)).Subscribe(_ => Settings_AutoSaveChanged(Settings.AutoSave)));
             disposables.Add(this.WhenPropertyChanged(nameof(SearchValue)).Subscribe(_ => SearchValueChanged()));
             disposables.Add(this.WhenPropertyChanged(nameof(Saved)).Subscribe(_ => SavedOrAutoSavedSuccChanged()));
@@ -107,12 +111,24 @@ namespace Typedown.Presentation.ViewModels
             {
                 ["markdown"] = Markdown,
                 ["basePath"] = FileViewModel.ImageBasePath,
+                ["documentId"] = documentId,
             };
             return settings;
         }
 
+        private bool IsCurrentDocument(JToken arg) =>
+            arg["documentId"] is null || arg["documentId"]?.ToString() == documentId;
+
+        public string BeginDocumentLoad()
+        {
+            documentId = Guid.NewGuid().ToString("N");
+            contentUpdating = false;
+            return documentId;
+        }
+
         public void OnSelectionChange(JToken arg)
         {
+            if (!IsCurrentDocument(arg)) return;
             Selection = arg["selection"] ?? new JObject();
             MenuState = arg["menuState"]?.ToObject<MenuState>() ?? new MenuState();
             SelectionText = arg["selectionText"]?.ToString() ?? string.Empty;
@@ -159,6 +175,7 @@ namespace Typedown.Presentation.ViewModels
 
         public void OnFileLoaded(JToken arg)
         {
+            if (!IsCurrentDocument(arg)) return;
             if (!FileLoaded)
             {
                 FileLoaded = true;
@@ -173,39 +190,35 @@ namespace Typedown.Presentation.ViewModels
 
         public void OnMarkdownChange(JToken arg)
         {
+            if (!IsCurrentDocument(arg)) return;
             OnMarkdownChange(arg["text"]?.ToString() ?? string.Empty);
         }
 
         public void OnCursorChange(JToken arg)
         {
+            if (!IsCurrentDocument(arg)) return;
             if (arg["cursor"]?.ToObject<CursorState>() is CursorState cursor)
                 History.CursorChange(cursor);
         }
 
         public void OnStateChange(JToken arg)
         {
+            if (!IsCurrentDocument(arg)) return;
             contentUpdating = false;
             var contentState = arg["state"]?.ToObject<ContentState>();
             if (contentState is null)
                 return;
 
             ContentState = contentState;
-            if (ContentState.Cur != null)
+            var tocSelectionHandlers = new CompositeDisposable();
+            ContentState.Toc.ForEach(x =>
             {
-                var tocSelectionHandlers = new CompositeDisposable();
-                ContentState.Toc.ForEach(x =>
-                {
-                    x.IsSelected = x.Slug == ContentState.Cur.Slug;
-                    EventHandler<bool> handler = (_, b) => { if (b) JumpBySlug(x.Slug); };
-                    x.SelectedChanged += handler;
-                    tocSelectionHandlers.Add(Disposable.Create(() => x.SelectedChanged -= handler));
-                });
-                tocSelectionDisposables.Disposable = tocSelectionHandlers;
-            }
-            else
-            {
-                tocSelectionDisposables.Disposable = Disposable.Empty;
-            }
+                x.IsSelected = x.Slug == ContentState.Cur?.Slug;
+                EventHandler<bool> handler = (_, b) => { if (b) JumpBySlug(x.Slug); };
+                x.SelectedChanged += handler;
+                tocSelectionHandlers.Add(Disposable.Create(() => x.SelectedChanged -= handler));
+            });
+            tocSelectionDisposables.Disposable = tocSelectionHandlers;
             Toc.UpdateChildren(ContentState.Toc);
         }
 
@@ -325,6 +338,25 @@ namespace Typedown.Presentation.ViewModels
         public void Copy(string type)
         {
             EditorCommandSink?.Send("Copy", new { type });
+        }
+
+        public async Task<string> PickImage()
+        {
+            return await ServiceProvider.GetRequiredService<IFilePickerService>().PickOpenFileAsync(new OpenFileRequest
+            {
+                FileTypeFilter = FileTypeHelper.Image.ToList()
+            }) ?? string.Empty;
+        }
+
+        public async Task<string> ProcessImage(JToken arg)
+        {
+            var src = arg["src"]?.ToString() ?? string.Empty;
+            var imageAction = ServiceProvider.GetRequiredService<ImageAction>();
+            if (UriHelper.IsWebUrl(src))
+                return await imageAction.DoWebFileAction(src);
+            if (UriHelper.TryGetLocalPath(src, out _))
+                return (await imageAction.DoLocalFileAction(src)).Replace('\\', '/');
+            return src;
         }
 
         public void OnSetClipboard(JToken arg)

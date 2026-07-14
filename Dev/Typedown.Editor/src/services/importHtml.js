@@ -32,6 +32,10 @@ const turnSoftBreakToBr = html => {
 export const htmlToMarkdown = (html, keeps = [], turndownConfig = DEFAULT_TURNDOWN_CONFIG) => {
     const service = new TurndownService(turndownConfig)
     service.use(gfm)
+    service.addRule('multiplemath', {
+        filter: node => node.nodeName === 'PRE' && node.classList.contains('multiple-math'),
+        replacement: content => `\n\n$$\n${content}\n$$\n\n`
+    })
     if (keeps.length) service.keep(keeps)
     return service.turndown(turnSoftBreakToBr(html.replace(/<span>&nbsp;<\/span>/g, String.fromCharCode(160))))
 }

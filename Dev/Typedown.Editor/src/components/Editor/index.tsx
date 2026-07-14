@@ -12,6 +12,8 @@ import { getHtmlToc, getTOC } from "services/common";
 const Editor: React.FC = () => {
     const [markdown, setMarkdown] = useState<string>();
     const markdownRef = useRef<string>();
+    const [documentId, setDocumentId] = useState<string>('');
+    const documentIdRef = useRef<string>('');
     const [cursor, setCursor] = useState<any>();
     const [options, setOptions] = useState<any>();
     const optionsRef = useRef<any>();
@@ -20,32 +22,55 @@ const Editor: React.FC = () => {
     const muyaScrollTopRef = useRef(0);
     const codeMirrorScrollRef = useRef(0);
 
-    const OnFileLoaded = useCallback(() => setTimeout(() => transport.postMessage('FileLoaded', { text: markdownRef.current }), 100), [])
+    const OnFileLoaded = useCallback((id: string, text: string) => setTimeout(() => {
+        if (documentIdRef.current === id) transport.postMessage('FileLoaded', { text, documentId: id })
+    }, 100), [])
+
+    const loadDocument = useCallback((text: string, id?: string) => {
+        const nextId = id || `${Date.now()}-${Math.random()}`
+        documentIdRef.current = nextId
+        markdownRef.current = text
+        setDocumentId(nextId)
+        setCursor(undefined)
+        setMarkdown(text)
+        OnFileLoaded(nextId, text)
+    }, [OnFileLoaded])
 
     useEffect(() => {
-        remote.getSettings().then(({ markdown, basePath, ...opt }: any) => {
+        remote.getSettings().then(({ markdown, basePath, documentId, ...opt }: any) => {
             window.basePath = basePath
             setOptions(opt)
-            setMarkdown(markdown)
-            markdownRef.current = markdown
-            OnFileLoaded();
+            loadDocument(markdown, documentId)
         })
-    }, [OnFileLoaded]);
+    }, [loadDocument]);
 
     useEffect(() => {
         optionsRef.current = options
     }, [options])
 
+    const onMuyaMarkdownChange = useCallback((text: string, id: string) => {
+        if (documentIdRef.current !== id) return
+        markdownRef.current = text
+        setMarkdown(text)
+        transport.postMessage('MarkdownChange', { text, documentId: id })
+    }, [])
+
+    const onMuyaCursorChange = useCallback((nextCursor: any, id: string) => {
+        if (documentIdRef.current !== id) return
+        setCursor(nextCursor)
+        transport.postMessage('CursorChange', { cursor: nextCursor, documentId: id })
+    }, [])
+
     useEffect(() => {
         if (markdown != undefined && markdownRef.current != markdown) {
-            transport.postMessage('MarkdownChange', { text: markdown });
+            transport.postMessage('MarkdownChange', { text: markdown, documentId: documentIdRef.current });
             markdownRef.current = markdown
         }
     }, [markdown])
 
     useEffect(() => {
-        transport.postMessage('CursorChange', { cursor })
-    }, [cursor])
+        if (options?.sourceCode) transport.postMessage('CursorChange', { cursor, documentId: documentIdRef.current })
+    }, [cursor, options?.sourceCode])
 
     useEffect(() => transport.addListener<IExportArgs>('Export', async ({ type, context, basePath, title, options }) => {
         const generateOption = { printOptimization: false, title, toc: getHtmlToc(getTOC(markdownRef.current ?? '').toc), ...options }
@@ -62,19 +87,16 @@ const Editor: React.FC = () => {
         setMarkdown(htmlToMarkdown(text, [], DEFAULT_TURNDOWN_CONFIG))
     }), [options]);
 
-    useEffect(() => transport.addListener<{ text: string, basePath: string }>('LoadFile', ({ text, basePath }) => {
+    useEffect(() => transport.addListener<{ text: string, basePath: string, documentId?: string }>('LoadFile', ({ text, basePath, documentId }) => {
         window.basePath = basePath
-        setCursor(undefined)
-        setMarkdown(text)
-        markdownRef.current = text
-        OnFileLoaded();
-    }), [OnFileLoaded]);
+        loadDocument(text, documentId)
+    }), [loadDocument]);
 
-    useEffect(() => transport.addListener<{ text: string, cursor: string, basePath: string }>('SetMarkdown', ({ text, cursor, basePath }) => {
+    useEffect(() => transport.addListener<{ text: string, cursor: any, basePath: string }>('SetMarkdown', ({ text, cursor, basePath }) => {
         window.basePath = basePath
-        setCursor(cursor)
-        setTimeout(() => setMarkdown(text))
         markdownRef.current = text
+        setCursor(cursor)
+        setMarkdown(text)
     }), []);
 
     useEffect(() => transport.addListener<Record<string, unknown>>('SettingsChanged', (newOptions) => {
@@ -113,12 +135,13 @@ const Editor: React.FC = () => {
             <MuyaEditor
                 options={options}
                 cursor={cursor}
+                documentId={documentId}
                 markdown={markdown ?? ''}
                 searchOpen={searchOpen}
                 searchArg={searchArg}
                 scrollTopRef={muyaScrollTopRef}
-                onMarkdownChange={setMarkdown}
-                onCursorChange={setCursor}
+                onMarkdownChange={onMuyaMarkdownChange}
+                onCursorChange={onMuyaCursorChange}
                 onSearchArgChange={setSearchArg}
             />
         )

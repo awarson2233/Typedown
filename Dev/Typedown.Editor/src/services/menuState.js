@@ -40,7 +40,7 @@ const createApplicationMenuState = ({ start = {}, end = {}, affiliation = [] }) 
   if (affiliation.length >= 1 && /ul|ol/.test(affiliation[0].type)) {
     const listBlock = affiliation[0]
     state.affiliation[listBlock.type] = true
-    state.isLooseListItem = listBlock.children[0].isLooseListItem
+    state.isLooseListItem = Boolean(listBlock.isLooseListItem)
     state.isTaskList = listBlock.listType === 'task'
   } else if (affiliation.length >= 3 && affiliation[1].type === 'li') {
     const listItem = affiliation[1]

@@ -21,16 +21,18 @@ import {
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { createApplicationMenuState } from "services/menuState";
 import transport from "services/transport";
+import { remote } from "services/remote";
 
 interface IMuyaEditor {
     markdown: string
+    documentId: string
     cursor: any
     options: any
     searchOpen: number
     searchArg: { value: string, opt: any } | undefined
     scrollTopRef: React.MutableRefObject<number>
-    onMarkdownChange: (markdown: string) => void
-    onCursorChange: (cursor: any) => void
+    onMarkdownChange: (markdown: string, documentId: string) => void
+    onCursorChange: (cursor: any, documentId: string) => void
     onSearchArgChange: (arg: { value: string, opt: any } | undefined) => void
 }
 
@@ -39,8 +41,9 @@ register(EmojiSelector)
 register(FootnoteTool)
 register(InlineFormatToolbar)
 register(ImageEditTool, {
-    imagePathPicker: async () => '',
-    imageAction: async (src: string) => src
+    imagePathPicker: () => remote.pickImage(),
+    imageAction: ({ src, alt, title }: { src: string, alt: string, title: string }) =>
+        remote.processImage({ src, alt, title })
 })
 register(ImageToolBar)
 register(ImageResizeBar)
@@ -59,14 +62,9 @@ register(PreviewToolBar)
 
 const STANDARD_Y = 320
 
-const plainCursor = (selection: any) => selection?.anchor && selection?.focus ? {
-    anchor: { offset: selection.anchor.offset },
-    focus: { offset: selection.focus.offset },
-    anchorPath: [...(selection.anchor.path ?? selection.anchorPath ?? [])],
-    focusPath: [...(selection.focus.path ?? selection.focusPath ?? [])]
-} : undefined
-
 const plainSelection = (selection: any) => ({
+    start: selection?.anchor ? { offset: selection.anchor.offset } : undefined,
+    end: selection?.focus ? { offset: selection.focus.offset } : undefined,
     anchor: selection?.anchor ? { offset: selection.anchor.offset } : undefined,
     focus: selection?.focus ? { offset: selection.focus.offset } : undefined,
     anchorPath: [...(selection?.anchorPath ?? selection?.anchor?.path ?? [])],
@@ -118,6 +116,8 @@ const MuyaEditor: React.FC<IMuyaEditor> = (props) => {
     const cursorRef = useRef<any>()
     const searchArgRef = useRef<any>()
     const optionsRef = useRef<any>(props.options)
+    const documentIdRef = useRef(props.documentId)
+    const loadingRef = useRef(false)
 
     const scrollOwner = useCallback(() => editor?.domNode, [editor])
     const relativeScroll = useCallback((delta: number) => scrollOwner()?.scrollBy(0, delta), [scrollOwner])
@@ -159,19 +159,24 @@ const MuyaEditor: React.FC<IMuyaEditor> = (props) => {
 
     useEffect(() => {
         if (!editor || markdownRef.current === props.markdown) return
-        editor.flush()
+        const switchingDocument = documentIdRef.current !== props.documentId
+        loadingRef.current = true
+        if (!switchingDocument) editor.flush()
+        documentIdRef.current = props.documentId
         editor.setContent(props.markdown)
         editor.clearHistory()
         markdownRef.current = editor.getMarkdown()
-        if (cursorRef.current) editor.setCursor(cursorRef.current)
+        if (cursorRef.current) editor.setCursorByOffset(cursorRef.current)
+        loadingRef.current = false
         const owner = editor.domNode
         owner.scrollTop = props.scrollTopRef.current
         requestAnimationFrame(() => {
+            if (documentIdRef.current !== props.documentId) return
             owner.scrollTop = props.scrollTopRef.current
             runSearch(searchArgRef.current)
-            transport.postMessage('DocumentRendered', {})
+            transport.postMessage('DocumentRendered', { documentId: props.documentId })
         })
-    }, [editor, props.markdown, props.scrollTopRef, runSearch])
+    }, [editor, props.documentId, props.markdown, props.scrollTopRef, runSearch])
 
     useEffect(() => { editor?.setOptions(props.options, true) }, [editor, props.options])
     useEffect(() => { runSearch(props.searchArg) }, [props.searchArg, runSearch])
@@ -184,11 +189,24 @@ const MuyaEditor: React.FC<IMuyaEditor> = (props) => {
     useEffect(() => transport.addListener<string>('Format', type => editor?.format(type)), [editor])
     useEffect(() => transport.addListener('DeleteSelection', () => document.execCommand('delete')), [editor])
     useEffect(() => transport.addListener('SelectAll', () => editor?.selectAll()), [editor])
-    useEffect(() => transport.addListener('Copy', () => document.execCommand('copy')), [editor])
+    useEffect(() => transport.addListener<{ type?: string }>('Copy', ({ type } = {}) => {
+        if (!editor) return
+        if (type === 'copyAsMarkdown') editor.copyAsMarkdown()
+        else if (type === 'copyAsHtml') editor.copyAsHtml()
+        else if (type === 'copyAsRich') editor.copyAsRich()
+        else editor.copyAsRich()
+    }), [editor])
     useEffect(() => transport.addListener('Cut', () => document.execCommand('cut')), [editor])
     useEffect(() => transport.addListener<any>('Paste', arg => {
-        if (arg?.src) void editor?.pasteImage(arg.src)
-        else void editor?.pasteAsPlainText()
+        if (!editor) return
+        if (arg?.src) void editor.pasteImage(arg.src)
+        else if (arg?.type === 'pasteAsPlainText') void editor.pasteAsPlainText()
+        else {
+            const data = new DataTransfer()
+            data.setData('text/plain', arg?.text ?? '')
+            data.setData('text/html', arg?.html ?? '')
+            editor.domNode.dispatchEvent(new ClipboardEvent('paste', { bubbles: true, cancelable: true, clipboardData: data }))
+        }
     }), [editor])
     useEffect(() => transport.addListener<any>('InsertTable', arg => editor?.createTable(parseTableSize(arg))), [editor])
     useEffect(() => transport.addListener<any>('InsertImage', arg => editor?.insertImage(typeof arg === 'string' ? { src: arg } : arg)), [editor])
@@ -226,7 +244,7 @@ const MuyaEditor: React.FC<IMuyaEditor> = (props) => {
             }
             const menuState = createApplicationMenuState(menuInput)
             const selectionText = window.getSelection()?.toString() ?? ''
-            transport.postMessage('SelectionChange', { selection, menuState, selectionText })
+            transport.postMessage('SelectionChange', { selection, menuState, selectionText, documentId: documentIdRef.current })
             transport.postMessage('SelectionFormats', { formats: selection.formats })
             const y = selection.cursorCoords?.y
             if (typeof y === 'number') {
@@ -241,13 +259,18 @@ const MuyaEditor: React.FC<IMuyaEditor> = (props) => {
     useEffect(() => {
         if (!editor) return
         const listener = () => {
+            if (loadingRef.current) return
             const markdown = editor.getMarkdown()
-            const cursor = plainCursor(editor.getSelection())
+            const cursor = editor.getCursorOffset()
             const toc = editor.getTOC().map(item => ({ ...item }))
+            const y = (editor.getSelection() as any)?.cursorCoords?.y ?? 0
+            const headings = Array.from(editor.domNode.querySelectorAll<HTMLElement>('h1[id], h2[id], h3[id], h4[id], h5[id], h6[id]'))
+            const active = [...headings].reverse().find(heading => heading.getBoundingClientRect().top <= y + 1) ?? headings[0]
+            const cur = active ? toc.find(item => item.slug === active.id) : undefined
             markdownRef.current = markdown
-            props.onMarkdownChange(markdown)
-            props.onCursorChange(cursor)
-            transport.postMessage('StateChange', { state: { wordCount: wordCount(markdown), toc, cur: undefined }, muya: true })
+            props.onMarkdownChange(markdown, documentIdRef.current)
+            props.onCursorChange(cursor, documentIdRef.current)
+            transport.postMessage('StateChange', { state: { wordCount: wordCount(markdown), toc, cur }, muya: true, documentId: documentIdRef.current })
         }
         editor.on('json-change', listener)
         return () => editor.off('json-change', listener)
