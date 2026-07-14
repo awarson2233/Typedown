@@ -72,10 +72,14 @@ public sealed class MuyaV2ProtocolContractTests
         StringAssert.Contains(host, "phase: 'final'");
         StringAssert.Contains(codeMirror, "phase: 'final'");
         StringAssert.Contains(viewModel, "phase == \"provisional\"");
-        StringAssert.Contains(viewModel, "phase == \"final\" && revision != pendingImportRevision");
+        StringAssert.Contains(viewModel, "phase == \"final\" && revision != PendingImportGate.Revision");
         StringAssert.Contains(viewModel, "WaitForPendingImportAsync");
+        StringAssert.Contains(viewModel, "History.CommitPending()");
         StringAssert.Contains(viewModel, "text = Markdown, hash = CurrentHash");
-        StringAssert.Contains(host, "props.onReplacementConsumed(replacement.documentId, replacement.revision)");
+        Assert.IsFalse(host.Contains("props.onReplacementConsumed(replacement.documentId, replacement.revision)", StringComparison.Ordinal));
+        Assert.IsFalse(codeMirror.Contains("props.onReplacementConsumed(replacement.documentId, replacement.revision)", StringComparison.Ordinal));
+        StringAssert.Contains(host, "retryCount >= 5");
+        StringAssert.Contains(codeMirror, "retryCount >= 5");
         StringAssert.Contains(host, "SelectionFormats', { formats: live.formats, documentId: props.documentId }");
     }
 

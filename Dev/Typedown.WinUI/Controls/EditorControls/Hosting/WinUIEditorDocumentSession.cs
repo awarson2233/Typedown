@@ -19,6 +19,7 @@ namespace Typedown.WinUI.Controls
         private readonly RemoteInvoke? remoteInvoke;
         private readonly EventCenter? eventCenter;
         private readonly AppViewModel? appViewModel;
+        private readonly PendingImportGate pendingImportGate = new();
 
         public WinUIEditorDocumentSession(
             string? initialMarkdown = null,
@@ -63,6 +64,8 @@ namespace Typedown.WinUI.Controls
         // Expected IO/path failures are collapsed through catch () filters into EditorPersistenceResult.
         public EditorPersistenceResult LoadFile(string filePath)
         {
+            if (pendingImportGate.IsPending)
+                return PendingImportPersistenceFailure();
             if (string.IsNullOrWhiteSpace(filePath))
             {
                 return new EditorPersistenceResult(false, State, "A file path is required to load markdown.");
@@ -96,6 +99,8 @@ namespace Typedown.WinUI.Controls
 
         public EditorPersistenceResult ReplaceFileText(string text, string? filePath = null, string? basePath = null)
         {
+            if (pendingImportGate.IsPending)
+                return PendingImportPersistenceFailure();
             text ??= string.Empty;
             var nextFilePath = filePath ?? State.FilePath;
             var nextBasePath = basePath
@@ -119,6 +124,8 @@ namespace Typedown.WinUI.Controls
 
         public EditorPersistenceResult Save()
         {
+            if (pendingImportGate.IsPending)
+                return PendingImportPersistenceFailure();
             if (string.IsNullOrWhiteSpace(State.FilePath))
             {
                 return new EditorPersistenceResult(false, State, "Cannot save a smoke document without a file path.");
@@ -148,6 +155,8 @@ namespace Typedown.WinUI.Controls
 
         public EditorPersistenceResult SaveAs(string filePath, bool saveCopy = false)
         {
+            if (pendingImportGate.IsPending)
+                return PendingImportPersistenceFailure(filePath, saveCopy);
             if (string.IsNullOrWhiteSpace(filePath))
             {
                 return new EditorPersistenceResult(false, State, "A file path is required to save markdown.");
@@ -411,9 +420,20 @@ namespace Typedown.WinUI.Controls
 
         private void ApplyMarkdownChange(JsonElement? args)
         {
+            var revision = ReadStringProperty(args, "revision");
+            var origin = ReadStringProperty(args, "origin");
+            var phase = ReadStringProperty(args, "phase");
+            if (origin == "import" && phase == "provisional" && !string.IsNullOrEmpty(revision))
+            {
+                pendingImportGate.Begin(revision);
+                State = State with { LastEventName = "MarkdownChange" };
+                return;
+            }
+            if (origin == "import" && phase == "final"
+                && (string.IsNullOrEmpty(revision) || revision != pendingImportGate.Revision)) return;
+
             var text = ReadStringProperty(args, "text") ?? State.Text;
             var currentHash = ComputeHash(text);
-
             UpdateState(State with
             {
                 Text = text,
@@ -421,7 +441,13 @@ namespace Typedown.WinUI.Controls
                 IsSaved = string.Equals(currentHash, State.FileHash, StringComparison.Ordinal),
                 LastEventName = "MarkdownChange"
             });
+            if (origin == "import" && phase == "final" && revision is not null)
+                pendingImportGate.Complete(revision);
         }
+
+        private EditorPersistenceResult PendingImportPersistenceFailure(string? filePath = null, bool saveCopy = false) =>
+            new(false, State, "The imported content is still being finalized. Please try again.",
+                PersistedFilePath: filePath ?? State.FilePath, IsCopy: saveCopy);
 
         private void UpdateState(EditorDocumentState state)
         {

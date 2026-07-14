@@ -230,15 +230,23 @@ const MuyaEditor: React.FC<IMuyaEditor> = (props) => {
         const cur = active ? toc.find(item => item.slug === active.slug) : undefined
         const selection = plainSelection(editor.getSelection())
         const menuState = createApplicationMenuState({ ...selection, start: { key: selection.anchorPath.join('/'), block: selection.anchorBlockInfo ?? {} }, end: { key: selection.focusPath.join('/'), block: selection.focusBlockInfo ?? {} } })
-        if (replacement.origin === 'import') transport.postMessage('MarkdownChange', { text: markdownRef.current, documentId: replacement.documentId, revision: replacement.revision, origin: replacement.origin, phase: 'final' })
+        let retryCount = 0
+        let retryTimer: number | undefined
+        const sendFinal = () => {
+            if (replacement.origin !== 'import' || retryCount >= 5) return
+            retryCount++
+            transport.postMessage('MarkdownChange', { text: markdownRef.current, documentId: replacement.documentId, revision: replacement.revision, origin: replacement.origin, phase: 'final' })
+            retryTimer = window.setTimeout(sendFinal, 750)
+        }
+        sendFinal()
         transport.postMessage('CursorChange', { cursor: currentCursor, documentId: replacement.documentId })
         transport.postMessage('StateChange', { state: { wordCount: wordCount(markdownRef.current), toc, cur }, muya: true, documentId: replacement.documentId })
         transport.postMessage('SelectionChange', { selection, menuState, selectionText: '', documentId: replacement.documentId })
         transport.postMessage('SelectionFormats', { formats: selection.formats, documentId: replacement.documentId })
-        props.onReplacementConsumed(replacement.documentId, replacement.revision)
-    // All accessed callback/data props are listed explicitly.
+        return () => { if (retryTimer !== undefined) window.clearTimeout(retryTimer) }
+    // All accessed data props are listed explicitly.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [editor, getActiveHeading, props.documentId, props.onReplacementConsumed, props.replacement])
+    }, [editor, getActiveHeading, props.documentId, props.replacement])
 
     useEffect(() => { editor?.setOptions(props.options, true) }, [editor, props.options])
     useEffect(() => { runSearch(props.searchArg) }, [props.searchArg, runSearch])

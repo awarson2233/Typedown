@@ -72,9 +72,10 @@ namespace Typedown.Presentation.ViewModels
         private readonly Dictionary<string, string> appliedReplacementRevisions = new(StringComparer.Ordinal);
         private readonly Queue<string> appliedReplacementRevisionOrder = new();
         private const int ReplacementRevisionWindow = 32;
-        private string? pendingImportRevision;
-        private TaskCompletionSource<bool>? pendingImportCompletion;
+        private PendingImportGate? pendingImportGate;
         private string documentId = Guid.NewGuid().ToString("N");
+
+        public PendingImportGate PendingImportGate => pendingImportGate ??= new();
 
         public EditorViewModel(IServiceProvider serviceProvider)
         {
@@ -143,9 +144,7 @@ namespace Typedown.Presentation.ViewModels
             documentId = nextDocumentId;
             appliedReplacementRevisions.Clear();
             appliedReplacementRevisionOrder.Clear();
-            pendingImportRevision = null;
-            pendingImportCompletion?.TrySetResult(false);
-            pendingImportCompletion = null;
+            PendingImportGate.Cancel();
             Markdown = markdown;
             FileHash = fileHash;
             CurrentHash = Common.SimpleHash(markdown);
@@ -232,12 +231,10 @@ namespace Typedown.Presentation.ViewModels
             var markdown = arg["text"]?.ToString() ?? string.Empty;
             if (origin == "import" && phase == "provisional" && !string.IsNullOrEmpty(revision))
             {
-                pendingImportRevision = revision;
-                pendingImportCompletion?.TrySetResult(false);
-                pendingImportCompletion = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+                PendingImportGate.Begin(revision);
                 return;
             }
-            if (origin == "import" && phase == "final" && revision != pendingImportRevision) return;
+            if (origin == "import" && phase == "final" && revision != PendingImportGate.Revision) return;
             var isInitialRevision = false;
             if (!string.IsNullOrEmpty(revision))
             {
@@ -261,26 +258,21 @@ namespace Typedown.Presentation.ViewModels
                 }
             }
             Markdown = markdown;
-            if ((string.IsNullOrEmpty(revision) || isInitialRevision) && origin is not "undo" and not "redo") History.ContentChange(markdown);
+            if ((string.IsNullOrEmpty(revision) || isInitialRevision) && origin is not "undo" and not "redo")
+            {
+                if (origin == "import" && phase == "final") History.CommitPending();
+                History.ContentChange(markdown);
+            }
             CurrentHash = Common.SimpleHash(markdown);
             Saved = FileHash == CurrentHash;
-            if (origin == "import" && phase == "final")
-            {
-                pendingImportRevision = null;
-                pendingImportCompletion?.TrySetResult(true);
-                pendingImportCompletion = null;
-            }
+            if (origin == "import" && phase == "final" && revision is not null)
+                PendingImportGate.Complete(revision);
             if (!string.IsNullOrEmpty(revision))
                 EditorCommandSink.Send("ReplacementCommitted", new { documentId, revision, origin, text = Markdown, hash = CurrentHash });
         }
 
-        public async Task<bool> WaitForPendingImportAsync()
-        {
-            var pending = pendingImportCompletion;
-            if (pending is null) return true;
-            var completed = await Task.WhenAny(pending.Task, Task.Delay(TimeSpan.FromSeconds(3)));
-            return completed == pending.Task && await pending.Task;
-        }
+        public Task<bool> WaitForPendingImportAsync() =>
+            PendingImportGate.WaitAsync(TimeSpan.FromSeconds(3));
 
         public void OnCursorChange(JToken arg)
         {

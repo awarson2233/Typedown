@@ -125,10 +125,22 @@ namespace Typedown.Presentation.ViewModels
             }
         }
 
+        private async Task<bool> EnsurePendingImportCommitted(bool showError)
+        {
+            if (await EditorViewModel.WaitForPendingImportAsync()) return true;
+            if (showError)
+                await ShowDialog(
+                    Locale.GetString("Error"),
+                    "The imported content is still being finalized. Please try again.",
+                    Locale.GetString("Ok"));
+            return false;
+        }
+
         public async Task<bool> AutoSaveFile()
         {
             try
             {
+                if (!await EnsurePendingImportCommitted(false)) return false;
                 if (SettingsViewModel.AutoSave && EditorViewModel.FileLoaded && (EditorViewModel.FileHash != EditorViewModel.CurrentHash) && FilePath != null)
                     return await Save(false);
                 return FilePath != null;
@@ -141,6 +153,7 @@ namespace Typedown.Presentation.ViewModels
 
         private async Task<bool> AutoBackupFile()
         {
+            if (!await EnsurePendingImportCommitted(false)) return false;
             if (string.IsNullOrWhiteSpace(FilePath))
                 return true;
 
@@ -366,7 +379,7 @@ namespace Typedown.Presentation.ViewModels
 
         private async Task<bool> Save(bool alert = true)
         {
-            if (!await EditorViewModel.WaitForPendingImportAsync()) return false;
+            if (!await EnsurePendingImportCommitted(true)) return false;
             if (FilePath == null)
             {
                 var result = await SaveAs();
@@ -389,7 +402,7 @@ namespace Typedown.Presentation.ViewModels
 
         private async Task<string?> SaveAs()
         {
-            if (!await EditorViewModel.WaitForPendingImportAsync()) return null;
+            if (!await EnsurePendingImportCommitted(true)) return null;
             if (saveAsOpened)
             {
                 return null;
@@ -488,6 +501,7 @@ namespace Typedown.Presentation.ViewModels
 
         public async Task<bool> AskToSave()
         {
+            if (!await EnsurePendingImportCommitted(true)) return false;
             if (EditorViewModel.Saved || (SettingsViewModel.AutoSave && await AutoSaveFile()))
             {
                 return true;

@@ -241,14 +241,22 @@ const CodeMirrorEditor: React.FC<ICodeMirrorEditor> = (props) => {
         if (anchor && head) editor.setSelection(anchor, head, { scroll: true })
         else editor.setCursor({ line: 0, ch: 0 })
         const currentCursor = { anchor: editor.getCursor('anchor'), focus: editor.getCursor('head') }
-        if (replacement.origin === 'import') transport.postMessage('MarkdownChange', { text: markdownRef.current, documentId: replacement.documentId, revision: replacement.revision, origin: replacement.origin, phase: 'final' })
+        let retryCount = 0
+        let retryTimer: number | undefined
+        const sendFinal = () => {
+            if (replacement.origin !== 'import' || retryCount >= 5) return
+            retryCount++
+            transport.postMessage('MarkdownChange', { text: markdownRef.current, documentId: replacement.documentId, revision: replacement.revision, origin: replacement.origin, phase: 'final' })
+            retryTimer = window.setTimeout(sendFinal, 750)
+        }
+        sendFinal()
         transport.postMessage('CursorChange', { cursor: currentCursor, documentId: replacement.documentId })
         handleCodeMirrorState(markdownRef.current, replacement.documentId)
         transport.postMessage('CodeMirrorSelectionChange', { cursor: { anchor: currentCursor.anchor, head: currentCursor.focus }, selectionText: editor.getSelection(), documentId: replacement.documentId })
-        props.onReplacementConsumed(replacement.documentId, replacement.revision)
-    // All accessed callback/data props are listed explicitly.
+        return () => { if (retryTimer !== undefined) window.clearTimeout(retryTimer) }
+    // All accessed data props are listed explicitly.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [editor, handleCodeMirrorState, props.documentId, props.onReplacementConsumed, props.replacement])
+    }, [editor, handleCodeMirrorState, props.documentId, props.replacement])
 
     useEffect(() => {
         if (props.searchArg && editor) {

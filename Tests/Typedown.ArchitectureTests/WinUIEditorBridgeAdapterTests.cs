@@ -4,6 +4,7 @@ using System.Runtime.CompilerServices;
 using System.Text.Json;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Newtonsoft.Json.Linq;
 using Typedown.Core.Models;
 using Typedown.Core.Services;
 using Typedown.Presentation.Interfaces;
@@ -201,6 +202,80 @@ public class WinUIEditorBridgeAdapterTests
         adapter.Receive("""{"type":"message","name":"ActiveHeadingChange","args":{"documentId":"B","cur":{"slug":"target"}}}""", _ => true);
 
         Assert.IsTrue(editor.ContentState.Toc[0].IsSelected);
+    }
+
+    [TestMethod]
+    public void DocumentSession_PendingImportBlocksPersistenceUntilMatchingFinal()
+    {
+        var path = Path.Combine(Path.GetTempPath(), $"typedown-{Guid.NewGuid():N}.md");
+        try
+        {
+            File.WriteAllText(path, "disk-A");
+            var session = new WinUIEditorDocumentSession("A", filePath: path);
+
+            SendMessage(session, """{"name":"MarkdownChange","args":{"text":"B","documentId":"doc","revision":"r1","origin":"import","phase":"provisional"}}""");
+
+            Assert.AreEqual("A", session.State.Text);
+            Assert.IsFalse(session.Save().Success);
+            Assert.AreEqual("disk-A", File.ReadAllText(path));
+
+            SendMessage(session, """{"name":"MarkdownChange","args":{"text":"stale","documentId":"doc","revision":"old","origin":"import","phase":"final"}}""");
+            Assert.AreEqual("A", session.State.Text);
+
+            SendMessage(session, """{"name":"MarkdownChange","args":{"text":"B-prime","documentId":"doc","revision":"r1","origin":"import","phase":"final"}}""");
+            Assert.AreEqual("B-prime", session.State.Text);
+            Assert.IsTrue(session.Save().Success);
+            Assert.AreEqual("B-prime", File.ReadAllText(path));
+
+            SendMessage(session, """{"name":"MarkdownChange","args":{"text":"duplicate","documentId":"doc","revision":"r1","origin":"import","phase":"final"}}""");
+            Assert.AreEqual("B-prime", session.State.Text);
+        }
+        finally
+        {
+            if (File.Exists(path)) File.Delete(path);
+        }
+    }
+
+    [TestMethod]
+    public async Task PendingImportGate_RevisionsCancelStaleWaitersAndRequireMatchingFinal()
+    {
+        var gate = new PendingImportGate();
+        gate.Begin("r1");
+        var staleWaiter = gate.WaitAsync(TimeSpan.FromSeconds(1));
+
+        gate.Begin("r2");
+
+        Assert.IsFalse(await staleWaiter);
+        Assert.IsFalse(gate.Complete("r1"));
+        Assert.IsTrue(gate.IsPending);
+        Assert.IsTrue(gate.Complete("r2"));
+        Assert.IsTrue(await gate.WaitAsync(TimeSpan.Zero));
+    }
+
+    [TestMethod]
+    public void ImportFinal_CommitsPendingEditorHistoryBeforeAuthoritativeReplacement()
+    {
+        var commandSink = new RecordingEditorCommandSink();
+        var services = new ServiceCollection().AddSingleton<IEditorCommandSink>(commandSink).BuildServiceProvider();
+        var editor = (EditorViewModel)RuntimeHelpers.GetUninitializedObject(typeof(EditorViewModel));
+        var history = new Typedown.Core.Models.ContentHistory();
+        history.InitHistory("A");
+        SetAutoProperty(editor, nameof(EditorViewModel.ServiceProvider), services);
+        SetAutoProperty(editor, nameof(EditorViewModel.History), history);
+        SetField(editor, "appliedReplacementRevisions", new Dictionary<string, string>(StringComparer.Ordinal));
+        SetField(editor, "appliedReplacementRevisionOrder", new Queue<string>());
+        SetField(editor, "documentId", "doc");
+
+        editor.OnMarkdownChange(JObject.Parse("""{"text":"A2","documentId":"doc"}"""));
+        editor.OnCursorChange(JObject.Parse("""{"cursor":{"anchor":{"line":0,"ch":2},"focus":{"line":0,"ch":2}},"documentId":"doc"}"""));
+        editor.OnMarkdownChange(JObject.Parse("""{"text":"B","documentId":"doc","revision":"r1","origin":"import","phase":"provisional"}"""));
+        editor.OnMarkdownChange(JObject.Parse("""{"text":"B-prime","documentId":"doc","revision":"r1","origin":"import","phase":"final"}"""));
+        editor.OnCursorChange(JObject.Parse("""{"cursor":{"anchor":{"line":0,"ch":7},"focus":{"line":0,"ch":7}},"documentId":"doc"}"""));
+        history.CommitPending();
+
+        Assert.AreEqual("A2", history.Undo()?.Text);
+        Assert.AreEqual("B-prime", history.Redo()?.Text);
+        Assert.AreEqual(1, commandSink.Messages.Count(message => message.Name == "ReplacementCommitted"));
     }
 
     [TestMethod]
@@ -609,6 +684,15 @@ public class WinUIEditorBridgeAdapterTests
     private static void SetField(object target, string fieldName, object value)
     {
         target.GetType().GetField(fieldName, BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public)!.SetValue(target, value);
+    }
+
+    private static void SendMessage(WinUIEditorDocumentSession session, string payload)
+    {
+        using var document = JsonDocument.Parse(payload);
+        var root = document.RootElement;
+        session.HandleEditorEvent(new EditorEventMessage(
+            root.GetProperty("name").GetString()!,
+            root.GetProperty("args").Clone()));
     }
 
     private static JsonElement Invoke(WinUIEditorBridgeAdapter adapter, string payload)
