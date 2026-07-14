@@ -49,6 +49,13 @@ public sealed class MuyaV2ProtocolContractTests
         var codeMirror = File.ReadAllText(Path.Combine(RepoRoot, "Dev", "Typedown.Editor", "src", "components", "CodeMirror", "index.tsx"));
         StringAssert.Contains(codeMirror, "DocumentFlushed', { documentId: outgoingId, nextDocumentId: props.pendingDocument.id }");
         StringAssert.Contains(codeMirror, "FileLoaded', { text: markdownRef.current, documentId: props.documentId }");
+        var markdownIndex = codeMirror.IndexOf("transport.postMessage('MarkdownChange', { text: markdownRef.current, documentId: outgoingId })", StringComparison.Ordinal);
+        var flushIndex = codeMirror.IndexOf("transport.postMessageNoDiff('DocumentFlushed'", StringComparison.Ordinal);
+        Assert.IsTrue(markdownIndex >= 0 && flushIndex > markdownIndex);
+        StringAssert.Contains(codeMirror, "const { anchor, focus: head } = props.cursor ?? {}");
+        StringAssert.Contains(editor, "setReplacement({ text, cursor: nextCursor");
+        StringAssert.Contains(host, "editor.setContent(props.replacement.text)");
+        StringAssert.Contains(codeMirror, "editor.setValue(props.replacement.text)");
         StringAssert.Contains(host, "SelectionFormats', { formats: live.formats, documentId: props.documentId }");
     }
 

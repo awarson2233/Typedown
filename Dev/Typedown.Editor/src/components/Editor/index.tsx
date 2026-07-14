@@ -16,6 +16,7 @@ const Editor: React.FC = () => {
     const documentIdRef = useRef<string>('');
     const [pendingDocument, setPendingDocument] = useState<{ text: string, id: string }>();
     const [cursor, setCursor] = useState<any>();
+    const [replacement, setReplacement] = useState<{ text: string, cursor: any, revision: number }>();
     const [options, setOptions] = useState<any>();
     const optionsRef = useRef<any>();
     const [searchOpen, setSearchOpen] = useState(0);
@@ -88,9 +89,16 @@ const Editor: React.FC = () => {
         }
     }), []);
 
+    const replaceCurrentDocument = useCallback((text: string, nextCursor?: any) => {
+        markdownRef.current = text
+        setCursor(nextCursor)
+        setMarkdown(text)
+        setReplacement({ text, cursor: nextCursor, revision: Date.now() + Math.random() })
+    }, [])
+
     useEffect(() => transport.addListener<{ type: string, text: string }>('ImportFile', ({ text }) => {
-        setMarkdown(htmlToMarkdown(text, [], DEFAULT_TURNDOWN_CONFIG))
-    }), [options]);
+        replaceCurrentDocument(htmlToMarkdown(text, [], DEFAULT_TURNDOWN_CONFIG))
+    }), [replaceCurrentDocument]);
 
     useEffect(() => transport.addListener<{ text: string, basePath: string, documentId?: string }>('LoadFile', ({ text, basePath, documentId }) => {
         window.basePath = basePath
@@ -106,10 +114,8 @@ const Editor: React.FC = () => {
 
     useEffect(() => transport.addListener<{ text: string, cursor: any, basePath: string }>('SetMarkdown', ({ text, cursor, basePath }) => {
         window.basePath = basePath
-        markdownRef.current = text
-        setCursor(cursor)
-        setMarkdown(text)
-    }), []);
+        replaceCurrentDocument(text, cursor)
+    }), [replaceCurrentDocument]);
 
     useEffect(() => transport.addListener<Record<string, unknown>>('SettingsChanged', (newOptions) => {
         for (const name in newOptions) {
@@ -133,6 +139,7 @@ const Editor: React.FC = () => {
             <CodeMirror
                 options={options}
                 cursor={cursor}
+                replacement={replacement}
                 documentId={documentId}
                 pendingDocument={pendingDocument}
                 markdown={markdown ?? ''}
@@ -149,6 +156,7 @@ const Editor: React.FC = () => {
             <MuyaEditor
                 options={options}
                 cursor={cursor}
+                replacement={replacement}
                 documentId={documentId}
                 pendingDocument={pendingDocument}
                 markdown={markdown ?? ''}

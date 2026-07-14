@@ -10,6 +10,7 @@ interface ICodeMirrorEditor {
     markdown: string
     documentId: string
     pendingDocument?: { text: string, id: string }
+    replacement?: { text: string, cursor: any, revision: number }
     cursor: any
     options: any
     searchOpen: number
@@ -44,7 +45,13 @@ const CodeMirrorEditor: React.FC<ICodeMirrorEditor> = (props) => {
         const outgoingId = documentIdRef.current
         markdownRef.current = editor.getValue()
         flushedPendingIdRef.current = props.pendingDocument.id
+        const outgoingCursor = { anchor: editor.getCursor('anchor'), focus: editor.getCursor('head') }
         props.onMarkdownChange(markdownRef.current)
+        props.onCursorChange(outgoingCursor)
+        transport.postMessage('MarkdownChange', { text: markdownRef.current, documentId: outgoingId })
+        transport.postMessage('CursorChange', { cursor: outgoingCursor, documentId: outgoingId })
+        const { toc } = getTOC(markdownRef.current)
+        transport.postMessage('StateChange', { state: { wordCount: { character: markdownRef.current.length, word: markdownRef.current.split(' ').length }, toc, cur: toc[0] }, codeMirror: true, documentId: outgoingId })
         transport.postMessageNoDiff('DocumentFlushed', { documentId: outgoingId, nextDocumentId: props.pendingDocument.id })
     // The callback is stable and only the pending identity starts a flush.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -198,17 +205,17 @@ const CodeMirrorEditor: React.FC<ICodeMirrorEditor> = (props) => {
         markdownRef.current = ''
     }, [editor])
 
-    const handleCodeMirrorState = useCallback((value: string) => {
+    const handleCodeMirrorState = useCallback((value: string, id = documentIdRef.current) => {
         const wordCount = { character: value.length, word: value.split(' ').length }
         const { toc } = getTOC(value)
         const state = { wordCount, toc, cur: toc[0] }
-        transport.postMessage('StateChange', { state, codeMirror: true, documentId: documentIdRef.current })
+        transport.postMessage('StateChange', { state, codeMirror: true, documentId: id })
     }, [])
 
     useEffect(() => {
         if (!editor || loadedDocumentIdRef.current === props.documentId) return
         markdownRef.current = props.markdown
-        const { anchor, head } = cursorRef.current ?? {}
+        const { anchor, focus: head } = props.cursor ?? {}
         editor.setValue(markdownRef.current)
         if (anchor && head) editor.setSelection(anchor, head, { scroll: true })
         else editor.setCursor({ line: 0, ch: 0 })
@@ -222,7 +229,16 @@ const CodeMirrorEditor: React.FC<ICodeMirrorEditor> = (props) => {
             const selection = opt.selection.head ? opt.selection : undefined
             search({ value, opt: { ...opt, selection } })
         }
-    }, [editor, handleCodeMirrorState, props.documentId, props.markdown, props.scrollTopRef, search])
+    }, [editor, handleCodeMirrorState, props.cursor, props.documentId, props.markdown, props.scrollTopRef, search])
+
+    useEffect(() => {
+        if (!editor || !props.replacement) return
+        markdownRef.current = props.replacement.text
+        editor.setValue(props.replacement.text)
+        const { anchor, focus: head } = props.replacement.cursor ?? {}
+        if (anchor && head) editor.setSelection(anchor, head, { scroll: true })
+        else editor.setCursor({ line: 0, ch: 0 })
+    }, [editor, props.replacement])
 
     useEffect(() => {
         if (props.searchArg && editor) {

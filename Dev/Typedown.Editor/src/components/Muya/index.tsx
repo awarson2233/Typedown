@@ -27,6 +27,7 @@ interface IMuyaEditor {
     markdown: string
     documentId: string
     pendingDocument?: { text: string, id: string }
+    replacement?: { text: string, cursor: any, revision: number }
     cursor: any
     options: any
     searchOpen: number
@@ -212,6 +213,16 @@ const MuyaEditor: React.FC<IMuyaEditor> = (props) => {
             transport.postMessage('DocumentRendered', { documentId: props.documentId })
         })
     }, [editor, getActiveHeading, props.documentId, props.markdown, props.scrollTopRef, runSearch])
+
+    useEffect(() => {
+        if (!editor || !props.replacement) return
+        loadingRef.current = true
+        editor.setContent(props.replacement.text)
+        markdownRef.current = editor.getMarkdown()
+        if (props.replacement.cursor) editor.setCursorByOffset(props.replacement.cursor)
+        else editor.setCursorByOffset({ anchor: { line: 0, ch: 0 }, focus: { line: 0, ch: 0 } })
+        loadingRef.current = false
+    }, [editor, props.replacement])
 
     useEffect(() => { editor?.setOptions(props.options, true) }, [editor, props.options])
     useEffect(() => { runSearch(props.searchArg) }, [props.searchArg, runSearch])

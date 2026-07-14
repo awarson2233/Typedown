@@ -9,6 +9,7 @@ using System.Reactive;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
 using System.Timers;
+using System.Threading;
 using System.Threading.Tasks;
 using Typedown.Core.Enums;
 using Typedown.Core.Models;
@@ -42,6 +43,7 @@ namespace Typedown.Presentation.ViewModels
         private string? startupOpenedFilePath;
         private PendingDocument? pendingDocument;
         private PendingDocument? activatingDocument;
+        private CancellationTokenSource? activationRetryCancellation;
 
         private sealed record PendingDocument(string Id, string Text, ulong FileHash, string? FilePath, string BasePath, bool Saved);
 
@@ -163,23 +165,53 @@ namespace Typedown.Presentation.ViewModels
             FilePath = pending.FilePath;
             EditorViewModel.ActivateDocument(pending.Id, pending.Text, pending.FileHash, pending.Saved);
             activatingDocument = pending;
-            if (EditorCommandSink.Send("ActivateDocument", new { text = pending.Text, basePath = pending.BasePath, documentId = pending.Id }))
-                pendingDocument = null;
+            SendDocumentActivation(pending);
+            ScheduleActivationRetries(pending.Id);
         }
 
         public void CompleteDocumentActivation(string? id)
         {
             if (activatingDocument?.Id == id)
+            {
                 activatingDocument = null;
+                activationRetryCancellation?.Cancel();
+                activationRetryCancellation?.Dispose();
+                activationRetryCancellation = null;
+            }
         }
 
         public bool RetryDocumentActivation(string? id)
         {
             if (activatingDocument is not PendingDocument pending || pending.Id != id) return false;
+            return SendDocumentActivation(pending);
+        }
+
+        private bool SendDocumentActivation(PendingDocument pending)
+        {
+            if (activatingDocument?.Id != pending.Id) return false;
             var sent = EditorCommandSink.Send("ActivateDocument", new { text = pending.Text, basePath = pending.BasePath, documentId = pending.Id });
             if (sent && pendingDocument?.Id == pending.Id)
                 pendingDocument = null;
             return sent;
+        }
+
+        private void ScheduleActivationRetries(string id)
+        {
+            activationRetryCancellation?.Cancel();
+            activationRetryCancellation?.Dispose();
+            var cancellation = activationRetryCancellation = new CancellationTokenSource();
+            _ = RetryActivationUntilAcknowledgedAsync(id, cancellation.Token);
+        }
+
+        private async Task RetryActivationUntilAcknowledgedAsync(string id, CancellationToken cancellationToken)
+        {
+            foreach (var delay in new[] { 100, 500, 1500 })
+            {
+                try { await Task.Delay(delay, cancellationToken); }
+                catch (OperationCanceledException) { return; }
+                if (activatingDocument?.Id != id) return;
+                RetryDocumentActivation(id);
+            }
         }
 
         private async Task NewFileFun(bool postMessage = true)
