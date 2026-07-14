@@ -63,8 +63,8 @@ public sealed class MuyaV2ProtocolContractTests
         StringAssert.Contains(host, "revision: replacement.revision, origin: replacement.origin");
         StringAssert.Contains(editor, "(globalThis.crypto as any)?.randomUUID?.()");
         StringAssert.Contains(editor, "transport.addListener<{ documentId: string, revision: string }>('ReplacementCommitted'");
-        StringAssert.Contains(viewModel, "appliedReplacementRevisions.TryGetValue(key, out var appliedMarkdown)");
-        StringAssert.Contains(viewModel, "appliedReplacementRevisions[key] = markdown");
+        StringAssert.Contains(viewModel, "appliedReplacementRevisions.ContainsKey(revisionKey)");
+        StringAssert.Contains(viewModel, "appliedReplacementRevisions[revisionKey] = markdown");
         StringAssert.Contains(viewModel, "ReplacementRevisionWindow = 32");
         StringAssert.Contains(viewModel, "appliedReplacementRevisions.Remove(appliedReplacementRevisionOrder.Dequeue())");
         StringAssert.Contains(viewModel, "origin is not \"undo\" and not \"redo\"");
@@ -72,6 +72,8 @@ public sealed class MuyaV2ProtocolContractTests
         StringAssert.Contains(host, "phase: 'final'");
         StringAssert.Contains(codeMirror, "phase: 'final'");
         StringAssert.Contains(viewModel, "phase == \"provisional\"");
+        Assert.IsTrue(viewModel.IndexOf("appliedReplacementRevisions.ContainsKey(revisionKey)", StringComparison.Ordinal)
+            < viewModel.IndexOf("phase == \"final\" && revision != PendingImportGate.Revision", StringComparison.Ordinal));
         StringAssert.Contains(viewModel, "phase == \"final\" && revision != PendingImportGate.Revision");
         StringAssert.Contains(viewModel, "WaitForPendingImportAsync");
         StringAssert.Contains(viewModel, "History.CommitPending()");

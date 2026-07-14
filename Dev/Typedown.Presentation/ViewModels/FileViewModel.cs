@@ -65,6 +65,7 @@ namespace Typedown.Presentation.ViewModels
         public Command<Unit> ExitCommand { get; } = new();
 
         private readonly System.Timers.Timer saveFileTimer = new();
+        private readonly AsyncSingleOperation autoPersistenceOperation = new();
 
         public AutoBackup AutoBackup => ServiceProvider.GetRequiredService<AutoBackup>();
 
@@ -109,19 +110,27 @@ namespace Typedown.Presentation.ViewModels
 
         private async void SaveFileTimerTick(object? sender, ElapsedEventArgs e)
         {
-            if (disposables.IsDisposed)
+            if (disposables.IsDisposed) return;
+            await autoPersistenceOperation.TryRunAsync(RunAutoPersistenceTickAsync);
+        }
+
+        private async Task RunAutoPersistenceTickAsync()
+        {
+            var importCommitted = await EnsurePendingImportCommitted(false);
+            if (!importCommitted)
             {
+                EditorViewModel.AutoSavedSucc = false;
                 return;
             }
             if (SettingsViewModel.AutoSave)
             {
-                EditorViewModel.AutoSavedSucc = await AutoSaveFile();
+                EditorViewModel.AutoSavedSucc = await AutoSaveFile(importCommitted);
                 if (!EditorViewModel.AutoSavedSucc)
-                    await AutoBackupFile();
+                    await AutoBackupFile(importCommitted);
             }
             else
             {
-                await AutoBackupFile();
+                await AutoBackupFile(importCommitted);
             }
         }
 
@@ -138,11 +147,17 @@ namespace Typedown.Presentation.ViewModels
 
         public async Task<bool> AutoSaveFile()
         {
+            var importCommitted = await EnsurePendingImportCommitted(false);
+            return await AutoSaveFile(importCommitted);
+        }
+
+        private async Task<bool> AutoSaveFile(bool importCommitted)
+        {
             try
             {
-                if (!await EnsurePendingImportCommitted(false)) return false;
+                if (!importCommitted) return false;
                 if (SettingsViewModel.AutoSave && EditorViewModel.FileLoaded && (EditorViewModel.FileHash != EditorViewModel.CurrentHash) && FilePath != null)
-                    return await Save(false);
+                    return await Save(false, importCommitted);
                 return FilePath != null;
             }
             catch
@@ -151,9 +166,9 @@ namespace Typedown.Presentation.ViewModels
             }
         }
 
-        private async Task<bool> AutoBackupFile()
+        private async Task<bool> AutoBackupFile(bool importCommitted)
         {
-            if (!await EnsurePendingImportCommitted(false)) return false;
+            if (!importCommitted) return false;
             if (string.IsNullOrWhiteSpace(FilePath))
                 return true;
 
@@ -377,9 +392,9 @@ namespace Typedown.Presentation.ViewModels
             }
         }
 
-        private async Task<bool> Save(bool alert = true)
+        private async Task<bool> Save(bool alert = true, bool importCommitted = false)
         {
-            if (!await EnsurePendingImportCommitted(true)) return false;
+            if (!importCommitted && !await EnsurePendingImportCommitted(true)) return false;
             if (FilePath == null)
             {
                 var result = await SaveAs();

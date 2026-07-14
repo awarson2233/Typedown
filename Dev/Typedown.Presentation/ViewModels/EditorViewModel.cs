@@ -229,6 +229,12 @@ namespace Typedown.Presentation.ViewModels
             var origin = arg["origin"]?.ToString();
             var phase = arg["phase"]?.ToString();
             var markdown = arg["text"]?.ToString() ?? string.Empty;
+            var revisionKey = string.IsNullOrEmpty(revision) ? null : $"{documentId}:{revision}";
+            if (revisionKey is not null && appliedReplacementRevisions.ContainsKey(revisionKey))
+            {
+                EditorCommandSink.Send("ReplacementCommitted", new { documentId, revision, origin, text = Markdown, hash = CurrentHash });
+                return;
+            }
             if (origin == "import" && phase == "provisional" && !string.IsNullOrEmpty(revision))
             {
                 PendingImportGate.Begin(revision);
@@ -236,26 +242,13 @@ namespace Typedown.Presentation.ViewModels
             }
             if (origin == "import" && phase == "final" && revision != PendingImportGate.Revision) return;
             var isInitialRevision = false;
-            if (!string.IsNullOrEmpty(revision))
+            if (revisionKey is not null)
             {
-                var key = $"{documentId}:{revision}";
-                if (appliedReplacementRevisions.TryGetValue(key, out var appliedMarkdown))
-                {
-                    if (StringComparer.Ordinal.Equals(appliedMarkdown, markdown))
-                    {
-                        EditorCommandSink.Send("ReplacementCommitted", new { documentId, revision, origin, text = Markdown, hash = CurrentHash });
-                        return;
-                    }
-                    appliedReplacementRevisions[key] = markdown;
-                }
-                else
-                {
-                    appliedReplacementRevisions[key] = markdown;
-                    appliedReplacementRevisionOrder.Enqueue(key);
-                    isInitialRevision = true;
-                    while (appliedReplacementRevisionOrder.Count > ReplacementRevisionWindow)
-                        appliedReplacementRevisions.Remove(appliedReplacementRevisionOrder.Dequeue());
-                }
+                appliedReplacementRevisions[revisionKey] = markdown;
+                appliedReplacementRevisionOrder.Enqueue(revisionKey);
+                isInitialRevision = true;
+                while (appliedReplacementRevisionOrder.Count > ReplacementRevisionWindow)
+                    appliedReplacementRevisions.Remove(appliedReplacementRevisionOrder.Dequeue());
             }
             Markdown = markdown;
             if ((string.IsNullOrEmpty(revision) || isInitialRevision) && origin is not "undo" and not "redo")

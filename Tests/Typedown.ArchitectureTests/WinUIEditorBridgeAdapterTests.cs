@@ -275,7 +275,40 @@ public class WinUIEditorBridgeAdapterTests
 
         Assert.AreEqual("A2", history.Undo()?.Text);
         Assert.AreEqual("B-prime", history.Redo()?.Text);
-        Assert.AreEqual(1, commandSink.Messages.Count(message => message.Name == "ReplacementCommitted"));
+
+        editor.OnMarkdownChange(JObject.Parse("""{"text":"C-after-import","documentId":"doc"}"""));
+        editor.OnMarkdownChange(JObject.Parse("""{"text":"stale-retry-payload","documentId":"doc","revision":"r1","origin":"import","phase":"final"}"""));
+
+        Assert.AreEqual("C-after-import", editor.Markdown);
+        Assert.AreEqual(2, commandSink.Messages.Count(message => message.Name == "ReplacementCommitted"));
+    }
+
+    [TestMethod]
+    public async Task AsyncSingleOperation_SkipsOverlappingPersistenceTicks()
+    {
+        var operation = new AsyncSingleOperation();
+        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var persistenceOperations = 0;
+        var first = operation.TryRunAsync(async () =>
+        {
+            Interlocked.Increment(ref persistenceOperations);
+            entered.SetResult();
+            await release.Task;
+        });
+        await entered.Task;
+
+        var overlapping = await operation.TryRunAsync(() =>
+        {
+            Interlocked.Increment(ref persistenceOperations);
+            return Task.CompletedTask;
+        });
+        release.SetResult();
+
+        Assert.IsFalse(overlapping);
+        Assert.IsTrue(await first);
+        Assert.AreEqual(1, persistenceOperations);
+        Assert.IsFalse(operation.IsRunning);
     }
 
     [TestMethod]
