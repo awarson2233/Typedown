@@ -69,7 +69,7 @@ namespace Typedown.Presentation.ViewModels
         private readonly CompositeDisposable disposables = new();
         private readonly SerialDisposable tocSelectionDisposables = new();
 
-        private bool contentUpdating = false;
+        private readonly HashSet<string> appliedReplacementRevisions = new(StringComparer.Ordinal);
         private string documentId = Guid.NewGuid().ToString("N");
 
         public EditorViewModel(IServiceProvider serviceProvider)
@@ -137,7 +137,6 @@ namespace Typedown.Presentation.ViewModels
         public void ActivateDocument(string nextDocumentId, string markdown, ulong fileHash, bool saved)
         {
             documentId = nextDocumentId;
-            contentUpdating = false;
             Markdown = markdown;
             FileHash = fileHash;
             CurrentHash = Common.SimpleHash(markdown);
@@ -170,7 +169,6 @@ namespace Typedown.Presentation.ViewModels
         public void OnCodeMirrorSelectionChange(JToken arg)
         {
             if (!IsCurrentDocument(arg)) return;
-            contentUpdating = false;
             CodeMirrorSelection = arg["cursor"] ?? new JObject();
             var anchor = CodeMirrorSelection["anchor"];
             var head = CodeMirrorSelection["head"];
@@ -202,7 +200,7 @@ namespace Typedown.Presentation.ViewModels
         public async void OnMarkdownChange(string markdown)
         {
             Markdown = markdown;
-            if (!contentUpdating) History.ContentChange(Markdown);
+            History.ContentChange(Markdown);
             CurrentHash = Common.SimpleHash(Markdown);
             if (!FileLoaded) await Task.Delay(100);
             Saved = FileHash == CurrentHash;
@@ -219,7 +217,20 @@ namespace Typedown.Presentation.ViewModels
         public void OnMarkdownChange(JToken arg)
         {
             if (!IsCurrentDocument(arg)) return;
-            OnMarkdownChange(arg["text"]?.ToString() ?? string.Empty);
+            var revision = arg["revision"]?.ToString();
+            var origin = arg["origin"]?.ToString();
+            if (!string.IsNullOrEmpty(revision))
+            {
+                var key = $"{documentId}:{revision}";
+                if (!appliedReplacementRevisions.Add(key)) return;
+            }
+            var markdown = arg["text"]?.ToString() ?? string.Empty;
+            Markdown = markdown;
+            if (origin is not "undo" and not "redo") History.ContentChange(markdown);
+            CurrentHash = Common.SimpleHash(markdown);
+            Saved = FileHash == CurrentHash;
+            if (!string.IsNullOrEmpty(revision))
+                EditorCommandSink.Send("ReplacementCommitted", new { documentId, revision, origin });
         }
 
         public void OnCursorChange(JToken arg)
@@ -240,7 +251,6 @@ namespace Typedown.Presentation.ViewModels
         public void OnStateChange(JToken arg)
         {
             if (!IsCurrentDocument(arg)) return;
-            contentUpdating = false;
             var contentState = arg["state"]?.ToObject<ContentState>();
             if (contentState is null)
                 return;
@@ -283,7 +293,6 @@ namespace Typedown.Presentation.ViewModels
                 return;
             }
             OnMarkdownChange(state.Text ?? string.Empty);
-            contentUpdating = true;
             EditorCommandSink?.Send("SetMarkdown", new
             {
                 text = state.Text,
@@ -301,7 +310,6 @@ namespace Typedown.Presentation.ViewModels
                 return;
             }
             OnMarkdownChange(state.Text ?? string.Empty);
-            contentUpdating = true;
             EditorCommandSink?.Send("SetMarkdown", new
             {
                 text = state.Text,

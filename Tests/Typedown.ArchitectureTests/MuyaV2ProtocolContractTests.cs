@@ -59,7 +59,11 @@ public sealed class MuyaV2ProtocolContractTests
         StringAssert.Contains(codeMirror, "replacement.documentId !== props.documentId");
         StringAssert.Contains(host, "editor.setContent(replacement.text)");
         StringAssert.Contains(codeMirror, "editor.setValue(replacement.text)");
-        StringAssert.Contains(host, "if (replacement.origin === 'import') transport.postMessage('MarkdownChange'");
+        StringAssert.Contains(editor, "origin === 'import') transport.postMessage('MarkdownChange', { text, documentId: currentDocumentId, revision, origin }");
+        StringAssert.Contains(host, "revision: replacement.revision, origin: replacement.origin");
+        StringAssert.Contains(viewModel, "appliedReplacementRevisions.Add(key)");
+        StringAssert.Contains(viewModel, "origin is not \"undo\" and not \"redo\"");
+        StringAssert.Contains(viewModel, "ReplacementCommitted");
         StringAssert.Contains(host, "props.onReplacementConsumed(replacement.documentId, replacement.revision)");
         StringAssert.Contains(host, "SelectionFormats', { formats: live.formats, documentId: props.documentId }");
     }

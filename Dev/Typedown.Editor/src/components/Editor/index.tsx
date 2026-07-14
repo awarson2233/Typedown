@@ -96,10 +96,12 @@ const Editor: React.FC = () => {
     const replaceCurrentDocument = useCallback((text: string, nextCursor: any, origin: ReplacementOrigin) => {
         const currentDocumentId = documentIdRef.current
         if (!currentDocumentId) return
+        const revision = Date.now() + Math.random()
         markdownRef.current = text
         setCursor(nextCursor)
         setMarkdown(text)
-        setReplacement({ documentId: currentDocumentId, text, cursor: nextCursor, origin, revision: Date.now() + Math.random() })
+        setReplacement({ documentId: currentDocumentId, text, cursor: nextCursor, origin, revision })
+        if (origin === 'import') transport.postMessage('MarkdownChange', { text, documentId: currentDocumentId, revision, origin })
     }, [])
 
     const consumeReplacement = useCallback((documentId: string, revision: number) => {

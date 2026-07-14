@@ -230,7 +230,7 @@ const MuyaEditor: React.FC<IMuyaEditor> = (props) => {
         const cur = active ? toc.find(item => item.slug === active.slug) : undefined
         const selection = plainSelection(editor.getSelection())
         const menuState = createApplicationMenuState({ ...selection, start: { key: selection.anchorPath.join('/'), block: selection.anchorBlockInfo ?? {} }, end: { key: selection.focusPath.join('/'), block: selection.focusBlockInfo ?? {} } })
-        if (replacement.origin === 'import') transport.postMessage('MarkdownChange', { text: markdownRef.current, documentId: replacement.documentId })
+        if (replacement.origin === 'import') transport.postMessage('MarkdownChange', { text: markdownRef.current, documentId: replacement.documentId, revision: replacement.revision, origin: replacement.origin })
         transport.postMessage('CursorChange', { cursor: currentCursor, documentId: replacement.documentId })
         transport.postMessage('StateChange', { state: { wordCount: wordCount(markdownRef.current), toc, cur }, muya: true, documentId: replacement.documentId })
         transport.postMessage('SelectionChange', { selection, menuState, selectionText: '', documentId: replacement.documentId })
