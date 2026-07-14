@@ -71,6 +71,7 @@ namespace Typedown.Presentation.ViewModels
 
         private bool contentUpdating = false;
         private string documentId = Guid.NewGuid().ToString("N");
+        private string? pendingDocumentId;
 
         public EditorViewModel(IServiceProvider serviceProvider)
         {
@@ -82,6 +83,7 @@ namespace Typedown.Presentation.ViewModels
             disposables.Add(EventCenter.GetObservable<EditorEventArgs>("SelectionChange").Subscribe(x => OnSelectionChange(x.Args)));
             disposables.Add(EventCenter.GetObservable<EditorEventArgs>("CodeMirrorSelectionChange").Subscribe(x => OnCodeMirrorSelectionChange(x.Args)));
             disposables.Add(EventCenter.GetObservable<EditorEventArgs>("StateChange").Subscribe(x => OnStateChange(x.Args)));
+            disposables.Add(EventCenter.GetObservable<EditorEventArgs>("ActiveHeadingChange").Subscribe(x => OnActiveHeadingChange(x.Args)));
             disposables.Add(RemoteInvoke.Handle("GetSettings", GetSettings));
             disposables.Add(RemoteInvoke.Handle<JToken>("SetClipboard", OnSetClipboard));
             disposables.Add(RemoteInvoke.Handle("PickImage", PickImage));
@@ -121,9 +123,9 @@ namespace Typedown.Presentation.ViewModels
 
         public string BeginDocumentLoad()
         {
-            documentId = Guid.NewGuid().ToString("N");
+            pendingDocumentId = Guid.NewGuid().ToString("N");
             contentUpdating = false;
-            return documentId;
+            return pendingDocumentId;
         }
 
         public void OnSelectionChange(JToken arg)
@@ -160,7 +162,10 @@ namespace Typedown.Presentation.ViewModels
         public void UpdateMuyaSelected()
         {
             var formatViewModel = ServiceProvider.GetRequiredService<FormatViewModel>();
-            TextSelected = Selection["start"]?["offset"]?.ToString() != Selection["end"]?["offset"]?.ToString();
+            TextSelected = Selection["isCollapsed"]?.ToObject<bool?>() is bool isCollapsed
+                ? !isCollapsed
+                : Selection["start"]?["offset"]?.ToString() != Selection["end"]?["offset"]?.ToString()
+                    || !JToken.DeepEquals(Selection["anchorPath"], Selection["focusPath"]);
             Selected = TextSelected || formatViewModel.FormatState.Image;
         }
 
@@ -175,6 +180,12 @@ namespace Typedown.Presentation.ViewModels
 
         public void OnFileLoaded(JToken arg)
         {
+            var loadedDocumentId = arg["documentId"]?.ToString();
+            if (pendingDocumentId is not null && loadedDocumentId == pendingDocumentId)
+            {
+                documentId = pendingDocumentId;
+                pendingDocumentId = null;
+            }
             if (!IsCurrentDocument(arg)) return;
             if (!FileLoaded)
             {
@@ -199,6 +210,14 @@ namespace Typedown.Presentation.ViewModels
             if (!IsCurrentDocument(arg)) return;
             if (arg["cursor"]?.ToObject<CursorState>() is CursorState cursor)
                 History.CursorChange(cursor);
+        }
+
+        public void OnActiveHeadingChange(JToken arg)
+        {
+            if (!IsCurrentDocument(arg)) return;
+            var slug = arg["cur"]?["slug"]?.ToString();
+            foreach (var item in ContentState.Toc)
+                item.IsSelected = item.Slug == slug;
         }
 
         public void OnStateChange(JToken arg)

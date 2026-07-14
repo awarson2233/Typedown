@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.IO;
 using System.Threading.Tasks;
+using Typedown.Core.Utilities;
 using Typedown.Presentation.Interfaces;
 using Windows.ApplicationModel.DataTransfer;
 using Windows.Graphics.Imaging;
@@ -35,7 +36,7 @@ namespace Typedown.WinUI.Services
             return format switch
             {
                 TextDataFormat.Text or TextDataFormat.UnicodeText => await view.GetTextAsync(),
-                TextDataFormat.Html => await view.GetHtmlFormatAsync(),
+                TextDataFormat.Html => Common.ExtractHtmlFragment(await view.GetHtmlFormatAsync()),
                 TextDataFormat.Rtf => await view.GetRtfAsync(),
                 _ => throw new NotSupportedException($"Clipboard text format '{format}' is not supported by the WinUI adapter.")
             };

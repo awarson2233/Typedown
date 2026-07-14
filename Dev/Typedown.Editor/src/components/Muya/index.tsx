@@ -26,6 +26,8 @@ import { remote } from "services/remote";
 interface IMuyaEditor {
     markdown: string
     documentId: string
+    pendingDocument?: { text: string, id: string }
+    onDocumentFlushed: (text: string, id: string) => void
     cursor: any
     options: any
     searchOpen: number
@@ -141,6 +143,13 @@ const MuyaEditor: React.FC<IMuyaEditor> = (props) => {
     const runSearch = useCallback((arg: any) => {
         if (arg?.value && editor) editor.search(arg.value, { ...normalizeSearchOptions(arg.opt), selection: arg.opt?.selection?.start ? arg.opt.selection : undefined })
     }, [editor])
+    const getActiveHeading = useCallback(() => {
+        if (!editor) return undefined
+        const y = (editor.getSelection() as any)?.cursorCoords?.y ?? 0
+        const headings = Array.from(editor.domNode.querySelectorAll<HTMLElement>('h1[id], h2[id], h3[id], h4[id], h5[id], h6[id]'))
+        const active = [...headings].reverse().find(heading => heading.getBoundingClientRect().top <= y + 1) ?? headings[0]
+        return active ? { slug: active.id } : undefined
+    }, [editor])
 
     useEffect(() => { cursorRef.current = props.cursor }, [props.cursor])
     useEffect(() => { searchArgRef.current = props.searchArg }, [props.searchArg])
@@ -158,10 +167,21 @@ const MuyaEditor: React.FC<IMuyaEditor> = (props) => {
     }, [])
 
     useEffect(() => {
+        if (!editor || !props.pendingDocument) return
+        const outgoingId = documentIdRef.current
+        editor.flush()
+        const outgoingMarkdown = editor.getMarkdown()
+        markdownRef.current = outgoingMarkdown
+        props.onMarkdownChange(outgoingMarkdown, outgoingId)
+        props.onCursorChange(editor.getCursorOffset(), outgoingId)
+        props.onDocumentFlushed(props.pendingDocument.text, props.pendingDocument.id)
+    // The parent callbacks are stable useCallback instances.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [editor, props.pendingDocument, props.onCursorChange, props.onDocumentFlushed, props.onMarkdownChange])
+
+    useEffect(() => {
         if (!editor || markdownRef.current === props.markdown) return
-        const switchingDocument = documentIdRef.current !== props.documentId
         loadingRef.current = true
-        if (!switchingDocument) editor.flush()
         documentIdRef.current = props.documentId
         editor.setContent(props.markdown)
         editor.clearHistory()
@@ -194,17 +214,16 @@ const MuyaEditor: React.FC<IMuyaEditor> = (props) => {
         if (type === 'copyAsMarkdown') editor.copyAsMarkdown()
         else if (type === 'copyAsHtml') editor.copyAsHtml()
         else if (type === 'copyAsRich') editor.copyAsRich()
-        else editor.copyAsRich()
+        else document.execCommand('copy')
     }), [editor])
     useEffect(() => transport.addListener('Cut', () => document.execCommand('cut')), [editor])
     useEffect(() => transport.addListener<any>('Paste', arg => {
         if (!editor) return
         if (arg?.src) void editor.pasteImage(arg.src)
-        else if (arg?.type === 'pasteAsPlainText') void editor.pasteAsPlainText()
         else {
             const data = new DataTransfer()
             data.setData('text/plain', arg?.text ?? '')
-            data.setData('text/html', arg?.html ?? '')
+            data.setData('text/html', arg?.type === 'pasteAsPlainText' ? '' : arg?.html ?? '')
             editor.domNode.dispatchEvent(new ClipboardEvent('paste', { bubbles: true, cancelable: true, clipboardData: data }))
         }
     }), [editor])
@@ -246,6 +265,7 @@ const MuyaEditor: React.FC<IMuyaEditor> = (props) => {
             const selectionText = window.getSelection()?.toString() ?? ''
             transport.postMessage('SelectionChange', { selection, menuState, selectionText, documentId: documentIdRef.current })
             transport.postMessage('SelectionFormats', { formats: selection.formats })
+            transport.postMessage('ActiveHeadingChange', { cur: getActiveHeading(), documentId: documentIdRef.current })
             const y = selection.cursorCoords?.y
             if (typeof y === 'number') {
                 if (props.options?.typewriter) relativeScroll(y - window.innerHeight / 2 + 136)
@@ -254,7 +274,7 @@ const MuyaEditor: React.FC<IMuyaEditor> = (props) => {
         }
         editor.on('selection-change', listener)
         return () => editor.off('selection-change', listener)
-    }, [editor, props.options?.typewriter, relativeScroll])
+    }, [editor, getActiveHeading, props.options?.typewriter, relativeScroll])
 
     useEffect(() => {
         if (!editor) return
@@ -263,10 +283,8 @@ const MuyaEditor: React.FC<IMuyaEditor> = (props) => {
             const markdown = editor.getMarkdown()
             const cursor = editor.getCursorOffset()
             const toc = editor.getTOC().map(item => ({ ...item }))
-            const y = (editor.getSelection() as any)?.cursorCoords?.y ?? 0
-            const headings = Array.from(editor.domNode.querySelectorAll<HTMLElement>('h1[id], h2[id], h3[id], h4[id], h5[id], h6[id]'))
-            const active = [...headings].reverse().find(heading => heading.getBoundingClientRect().top <= y + 1) ?? headings[0]
-            const cur = active ? toc.find(item => item.slug === active.id) : undefined
+            const active = getActiveHeading()
+            const cur = active ? toc.find(item => item.slug === active.slug) : undefined
             markdownRef.current = markdown
             props.onMarkdownChange(markdown, documentIdRef.current)
             props.onCursorChange(cursor, documentIdRef.current)
@@ -275,7 +293,7 @@ const MuyaEditor: React.FC<IMuyaEditor> = (props) => {
         editor.on('json-change', listener)
         return () => editor.off('json-change', listener)
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [editor, props.onCursorChange, props.onMarkdownChange])
+    }, [editor, getActiveHeading, props.onCursorChange, props.onMarkdownChange])
 
     useEffect(() => {
         setMarginTop(current => {

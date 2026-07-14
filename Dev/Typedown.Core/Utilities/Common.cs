@@ -80,6 +80,31 @@ namespace Typedown.Core.Utilities
 
         public static string DefaultMarkdwn { get => "\n"; }
 
+        public static string ExtractHtmlFragment(string html)
+        {
+            if (string.IsNullOrEmpty(html)) return string.Empty;
+            const string startComment = "<!--StartFragment-->";
+            const string endComment = "<!--EndFragment-->";
+            var start = html.IndexOf(startComment, StringComparison.OrdinalIgnoreCase);
+            var end = html.IndexOf(endComment, StringComparison.OrdinalIgnoreCase);
+            if (start >= 0 && end > start)
+                return html[(start + startComment.Length)..end];
+
+            var startMatch = Regex.Match(html, @"(?im)^StartFragment:\s*(\d+)");
+            var endMatch = Regex.Match(html, @"(?im)^EndFragment:\s*(\d+)");
+            if (startMatch.Success && endMatch.Success
+                && int.TryParse(startMatch.Groups[1].Value, out start)
+                && int.TryParse(endMatch.Groups[1].Value, out end))
+            {
+                var bytes = Encoding.UTF8.GetBytes(html);
+                if (start >= 0 && end > start && end <= bytes.Length)
+                    return Encoding.UTF8.GetString(bytes, start, end - start);
+            }
+
+            var body = Regex.Match(html, @"(?is)<body\b[^>]*>(.*?)</body\s*>");
+            return body.Success ? body.Groups[1].Value : html;
+        }
+
         public static async Task<JObject> Post(string url, object obj)
         {
             var client = new HttpClient();

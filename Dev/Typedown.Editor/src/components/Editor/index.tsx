@@ -14,6 +14,7 @@ const Editor: React.FC = () => {
     const markdownRef = useRef<string>();
     const [documentId, setDocumentId] = useState<string>('');
     const documentIdRef = useRef<string>('');
+    const [pendingDocument, setPendingDocument] = useState<{ text: string, id: string }>();
     const [cursor, setCursor] = useState<any>();
     const [options, setOptions] = useState<any>();
     const optionsRef = useRef<any>();
@@ -26,15 +27,24 @@ const Editor: React.FC = () => {
         if (documentIdRef.current === id) transport.postMessage('FileLoaded', { text, documentId: id })
     }, 100), [])
 
-    const loadDocument = useCallback((text: string, id?: string) => {
-        const nextId = id || `${Date.now()}-${Math.random()}`
-        documentIdRef.current = nextId
+    const activateDocument = useCallback((text: string, id: string) => {
+        documentIdRef.current = id
         markdownRef.current = text
-        setDocumentId(nextId)
+        setDocumentId(id)
+        setPendingDocument(undefined)
         setCursor(undefined)
         setMarkdown(text)
-        OnFileLoaded(nextId, text)
+        OnFileLoaded(id, text)
     }, [OnFileLoaded])
+
+    const loadDocument = useCallback((text: string, id?: string) => {
+        const nextId = id || `${Date.now()}-${Math.random()}`
+        if (documentIdRef.current && !optionsRef.current?.sourceCode) {
+            setPendingDocument({ text, id: nextId })
+        } else {
+            activateDocument(text, nextId)
+        }
+    }, [activateDocument])
 
     useEffect(() => {
         remote.getSettings().then(({ markdown, basePath, documentId, ...opt }: any) => {
@@ -136,6 +146,8 @@ const Editor: React.FC = () => {
                 options={options}
                 cursor={cursor}
                 documentId={documentId}
+                pendingDocument={pendingDocument}
+                onDocumentFlushed={activateDocument}
                 markdown={markdown ?? ''}
                 searchOpen={searchOpen}
                 searchArg={searchArg}
