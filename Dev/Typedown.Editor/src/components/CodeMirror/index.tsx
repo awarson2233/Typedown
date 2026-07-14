@@ -87,7 +87,7 @@ const CodeMirrorEditor: React.FC<ICodeMirrorEditor> = (props) => {
             marker: editor.markText(
                 editor.posFromIndex(index),
                 editor.posFromIndex(index + match.length),
-                { className: i == matchIndexRef.current ? 'ag-highlight' : 'ag-selection' }
+                { className: i == matchIndexRef.current ? 'cm-search-highlight' : 'cm-search-selection' }
             ),
             index,
             match,
@@ -113,7 +113,7 @@ const CodeMirrorEditor: React.FC<ICodeMirrorEditor> = (props) => {
             item.marker = editor.markText(
                 editor.posFromIndex(item.index),
                 editor.posFromIndex(item.index + item.match.length),
-                { className: i == matchIndexRef.current ? 'ag-highlight' : 'ag-selection' }
+                { className: i == matchIndexRef.current ? 'cm-search-highlight' : 'cm-search-selection' }
             )
         })
     }, [editor, setMatchSelection])
@@ -245,12 +245,12 @@ const CodeMirrorEditor: React.FC<ICodeMirrorEditor> = (props) => {
 
     useEffect(() => transport.addListener<{ value: string, opt: any }>('Search', (arg) => {
         props.onSearchArgChange(arg)
-        setTimeout(() => scrollToElementIfInvisible('.ag-highlight'), 0)
+        setTimeout(() => scrollToElementIfInvisible('.cm-search-highlight'), 0)
     }), [editor, props, scrollToElementIfInvisible, search]);
 
     useEffect(() => transport.addListener<{ action: string }>('Find', (arg) => {
         find(arg)
-        setTimeout(() => scrollToElementIfInvisible('.ag-highlight'), 0)
+        setTimeout(() => scrollToElementIfInvisible('.cm-search-highlight'), 0)
     }), [editor, find, scrollToElementIfInvisible]);
 
     useEffect(() => transport.addListener<{ value: string, opt: any }>('Replace', (arg) => {

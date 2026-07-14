@@ -28,3 +28,12 @@ body {
     width: 8px;
     height: 8px;
 }
+
+.cm-search-highlight {
+    background: var(--theme-color-40);
+    color: var(--editor-color);
+}
+
+.cm-search-selection {
+    background: var(--selection-color);
+}
