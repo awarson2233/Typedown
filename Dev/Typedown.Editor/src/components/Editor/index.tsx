@@ -10,7 +10,9 @@ import { DEFAULT_TURNDOWN_CONFIG } from "services/importHtml";
 import { getHtmlToc, getTOC } from "services/common";
 
 type ReplacementOrigin = 'import' | 'undo' | 'redo'
-type DocumentReplacement = { documentId: string, revision: number, text: string, cursor: any, origin: ReplacementOrigin }
+type DocumentReplacement = { documentId: string, revision: string, text: string, cursor: any, origin: ReplacementOrigin }
+let replacementSequence = 0
+const nextReplacementRevision = () => (globalThis.crypto as any)?.randomUUID?.() ?? `${Date.now()}-${++replacementSequence}-${Math.random().toString(36).slice(2)}`
 
 const Editor: React.FC = () => {
     const [markdown, setMarkdown] = useState<string>();
@@ -96,7 +98,7 @@ const Editor: React.FC = () => {
     const replaceCurrentDocument = useCallback((text: string, nextCursor: any, origin: ReplacementOrigin) => {
         const currentDocumentId = documentIdRef.current
         if (!currentDocumentId) return
-        const revision = Date.now() + Math.random()
+        const revision = nextReplacementRevision()
         markdownRef.current = text
         setCursor(nextCursor)
         setMarkdown(text)
@@ -104,7 +106,7 @@ const Editor: React.FC = () => {
         if (origin === 'import') transport.postMessage('MarkdownChange', { text, documentId: currentDocumentId, revision, origin })
     }, [])
 
-    const consumeReplacement = useCallback((documentId: string, revision: number) => {
+    const consumeReplacement = useCallback((documentId: string, revision: string) => {
         setReplacement(current => current?.documentId === documentId && current.revision === revision ? undefined : current)
     }, [])
 
@@ -123,6 +125,10 @@ const Editor: React.FC = () => {
         window.basePath = basePath
         activateDocument(text, documentId)
     }), [activateDocument, pendingDocument]);
+
+    useEffect(() => transport.addListener<{ documentId: string, revision: string }>('ReplacementCommitted', ({ documentId, revision }) => {
+        consumeReplacement(documentId, revision)
+    }), [consumeReplacement]);
 
     useEffect(() => transport.addListener<{ text: string, cursor: any, basePath: string, origin?: 'undo' | 'redo' }>('SetMarkdown', ({ text, cursor, basePath, origin }) => {
         window.basePath = basePath

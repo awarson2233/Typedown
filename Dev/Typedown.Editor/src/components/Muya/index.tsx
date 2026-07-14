@@ -27,8 +27,8 @@ interface IMuyaEditor {
     markdown: string
     documentId: string
     pendingDocument?: { text: string, id: string }
-    replacement?: { documentId: string, revision: number, text: string, cursor: any, origin: 'import' | 'undo' | 'redo' }
-    onReplacementConsumed: (documentId: string, revision: number) => void
+    replacement?: { documentId: string, revision: string, text: string, cursor: any, origin: 'import' | 'undo' | 'redo' }
+    onReplacementConsumed: (documentId: string, revision: string) => void
     cursor: any
     options: any
     searchOpen: number

@@ -69,7 +69,9 @@ namespace Typedown.Presentation.ViewModels
         private readonly CompositeDisposable disposables = new();
         private readonly SerialDisposable tocSelectionDisposables = new();
 
-        private readonly HashSet<string> appliedReplacementRevisions = new(StringComparer.Ordinal);
+        private readonly Dictionary<string, string> appliedReplacementRevisions = new(StringComparer.Ordinal);
+        private readonly Queue<string> appliedReplacementRevisionOrder = new();
+        private const int ReplacementRevisionWindow = 32;
         private string documentId = Guid.NewGuid().ToString("N");
 
         public EditorViewModel(IServiceProvider serviceProvider)
@@ -137,6 +139,8 @@ namespace Typedown.Presentation.ViewModels
         public void ActivateDocument(string nextDocumentId, string markdown, ulong fileHash, bool saved)
         {
             documentId = nextDocumentId;
+            appliedReplacementRevisions.Clear();
+            appliedReplacementRevisionOrder.Clear();
             Markdown = markdown;
             FileHash = fileHash;
             CurrentHash = Common.SimpleHash(markdown);
@@ -219,18 +223,35 @@ namespace Typedown.Presentation.ViewModels
             if (!IsCurrentDocument(arg)) return;
             var revision = arg["revision"]?.ToString();
             var origin = arg["origin"]?.ToString();
+            var markdown = arg["text"]?.ToString() ?? string.Empty;
+            var isInitialRevision = false;
             if (!string.IsNullOrEmpty(revision))
             {
                 var key = $"{documentId}:{revision}";
-                if (!appliedReplacementRevisions.Add(key)) return;
+                if (appliedReplacementRevisions.TryGetValue(key, out var appliedMarkdown))
+                {
+                    if (StringComparer.Ordinal.Equals(appliedMarkdown, markdown))
+                    {
+                        EditorCommandSink.Send("ReplacementCommitted", new { documentId, revision, origin, text = Markdown, hash = CurrentHash });
+                        return;
+                    }
+                    appliedReplacementRevisions[key] = markdown;
+                }
+                else
+                {
+                    appliedReplacementRevisions[key] = markdown;
+                    appliedReplacementRevisionOrder.Enqueue(key);
+                    isInitialRevision = true;
+                    while (appliedReplacementRevisionOrder.Count > ReplacementRevisionWindow)
+                        appliedReplacementRevisions.Remove(appliedReplacementRevisionOrder.Dequeue());
+                }
             }
-            var markdown = arg["text"]?.ToString() ?? string.Empty;
             Markdown = markdown;
-            if (origin is not "undo" and not "redo") History.ContentChange(markdown);
+            if ((string.IsNullOrEmpty(revision) || isInitialRevision) && origin is not "undo" and not "redo") History.ContentChange(markdown);
             CurrentHash = Common.SimpleHash(markdown);
             Saved = FileHash == CurrentHash;
             if (!string.IsNullOrEmpty(revision))
-                EditorCommandSink.Send("ReplacementCommitted", new { documentId, revision, origin });
+                EditorCommandSink.Send("ReplacementCommitted", new { documentId, revision, origin, text = Markdown, hash = CurrentHash });
         }
 
         public void OnCursorChange(JToken arg)

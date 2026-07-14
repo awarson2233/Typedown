@@ -61,9 +61,14 @@ public sealed class MuyaV2ProtocolContractTests
         StringAssert.Contains(codeMirror, "editor.setValue(replacement.text)");
         StringAssert.Contains(editor, "origin === 'import') transport.postMessage('MarkdownChange', { text, documentId: currentDocumentId, revision, origin }");
         StringAssert.Contains(host, "revision: replacement.revision, origin: replacement.origin");
-        StringAssert.Contains(viewModel, "appliedReplacementRevisions.Add(key)");
+        StringAssert.Contains(editor, "(globalThis.crypto as any)?.randomUUID?.()");
+        StringAssert.Contains(editor, "transport.addListener<{ documentId: string, revision: string }>('ReplacementCommitted'");
+        StringAssert.Contains(viewModel, "appliedReplacementRevisions.TryGetValue(key, out var appliedMarkdown)");
+        StringAssert.Contains(viewModel, "appliedReplacementRevisions[key] = markdown");
+        StringAssert.Contains(viewModel, "ReplacementRevisionWindow = 32");
+        StringAssert.Contains(viewModel, "appliedReplacementRevisions.Remove(appliedReplacementRevisionOrder.Dequeue())");
         StringAssert.Contains(viewModel, "origin is not \"undo\" and not \"redo\"");
-        StringAssert.Contains(viewModel, "ReplacementCommitted");
+        StringAssert.Contains(viewModel, "text = Markdown, hash = CurrentHash");
         StringAssert.Contains(host, "props.onReplacementConsumed(replacement.documentId, replacement.revision)");
         StringAssert.Contains(host, "SelectionFormats', { formats: live.formats, documentId: props.documentId }");
     }

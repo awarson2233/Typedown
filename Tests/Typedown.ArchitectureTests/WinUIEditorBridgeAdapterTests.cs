@@ -135,6 +135,8 @@ public class WinUIEditorBridgeAdapterTests
         SetAutoProperty(editorViewModel, nameof(EditorViewModel.ServiceProvider), services);
         SetAutoProperty(editorViewModel, nameof(EditorViewModel.History), new Typedown.Core.Models.ContentHistory());
         SetAutoProperty(editorViewModel, nameof(EditorViewModel.Toc), new Typedown.Core.Models.TocTreeItem());
+        SetField(editorViewModel, "appliedReplacementRevisions", new Dictionary<string, string>(StringComparer.Ordinal));
+        SetField(editorViewModel, "appliedReplacementRevisionOrder", new Queue<string>());
         SetField(editorViewModel, "documentId", "A");
         var fileViewModel = (FileViewModel)RuntimeHelpers.GetUninitializedObject(typeof(FileViewModel));
         SetAutoProperty(fileViewModel, nameof(FileViewModel.ServiceProvider), services);
