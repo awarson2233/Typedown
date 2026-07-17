@@ -1,12 +1,14 @@
-.react-codemirror2 {
+.react-codemirror2,
+.CodeMirror,
+.CodeMirror-scroll {
   height: 100%;
 }
 
 .CodeMirror {
-  height: auto !important;
+  height: 100% !important;
 }
 
 .CodeMirror-scroll {
-  min-height: calc(100vh - 48px);
+  min-height: 0;
   cursor: text;
 }

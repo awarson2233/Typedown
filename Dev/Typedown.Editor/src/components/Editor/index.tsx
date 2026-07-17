@@ -8,6 +8,7 @@ import ExportHtml from "services/exportHtml";
 import { htmlToMarkdown } from "services/importHtml";
 import { DEFAULT_TURNDOWN_CONFIG } from "services/importHtml";
 import { getHtmlToc, getTOC } from "services/common";
+import { normalizeMarkdownLineEndings } from "services/markdown";
 
 type ReplacementOrigin = 'import' | 'undo' | 'redo'
 type DocumentReplacement = { documentId: string, revision: string, text: string, cursor: any, origin: ReplacementOrigin }
@@ -15,9 +16,9 @@ let replacementSequence = 0
 const nextReplacementRevision = () => (globalThis.crypto as any)?.randomUUID?.() ?? `${Date.now()}-${++replacementSequence}-${Math.random().toString(36).slice(2)}`
 
 const Editor: React.FC = () => {
-    const [markdown, setMarkdown] = useState<string>();
+    const [activeDocument, setActiveDocument] = useState<{ id: string, text: string }>({ id: '', text: '' });
+    const { id: documentId, text: markdown } = activeDocument;
     const markdownRef = useRef<string>();
-    const [documentId, setDocumentId] = useState<string>('');
     const documentIdRef = useRef<string>('');
     const [pendingDocument, setPendingDocument] = useState<{ text: string, id: string }>();
     const [cursor, setCursor] = useState<any>();
@@ -30,21 +31,22 @@ const Editor: React.FC = () => {
     const codeMirrorScrollRef = useRef(0);
 
     const activateDocument = useCallback((text: string, id: string) => {
+        const normalizedText = normalizeMarkdownLineEndings(text)
         documentIdRef.current = id
-        markdownRef.current = text
-        setDocumentId(id)
+        markdownRef.current = normalizedText
         setPendingDocument(undefined)
         setReplacement(undefined)
         setCursor(undefined)
-        setMarkdown(text)
+        setActiveDocument({ id, text: normalizedText })
     }, [])
 
     const loadDocument = useCallback((text: string, id?: string) => {
+        const normalizedText = normalizeMarkdownLineEndings(text)
         const nextId = id || `${Date.now()}-${Math.random()}`
         if (documentIdRef.current) {
-            setPendingDocument({ text, id: nextId })
+            setPendingDocument({ text: normalizedText, id: nextId })
         } else {
-            activateDocument(text, nextId)
+            activateDocument(normalizedText, nextId)
         }
     }, [activateDocument])
 
@@ -63,7 +65,7 @@ const Editor: React.FC = () => {
     const onMuyaMarkdownChange = useCallback((text: string, id: string) => {
         if (documentIdRef.current !== id) return
         markdownRef.current = text
-        setMarkdown(text)
+        setActiveDocument(current => current.id === id ? { ...current, text } : current)
         transport.postMessage('MarkdownChange', { text, documentId: id })
     }, [])
 
@@ -98,12 +100,13 @@ const Editor: React.FC = () => {
     const replaceCurrentDocument = useCallback((text: string, nextCursor: any, origin: ReplacementOrigin) => {
         const currentDocumentId = documentIdRef.current
         if (!currentDocumentId) return
+        const normalizedText = normalizeMarkdownLineEndings(text)
         const revision = nextReplacementRevision()
-        markdownRef.current = text
+        markdownRef.current = normalizedText
         setCursor(nextCursor)
-        setMarkdown(text)
-        setReplacement({ documentId: currentDocumentId, text, cursor: nextCursor, origin, revision })
-        if (origin === 'import') transport.postMessage('MarkdownChange', { text, documentId: currentDocumentId, revision, origin, phase: 'provisional' })
+        setActiveDocument(current => current.id === currentDocumentId ? { ...current, text: normalizedText } : current)
+        setReplacement({ documentId: currentDocumentId, text: normalizedText, cursor: nextCursor, origin, revision })
+        if (origin === 'import') transport.postMessage('MarkdownChange', { text: normalizedText, documentId: currentDocumentId, revision, origin, phase: 'provisional' })
     }, [])
 
     const consumeReplacement = useCallback((documentId: string, revision: string) => {
@@ -165,7 +168,7 @@ const Editor: React.FC = () => {
                 searchOpen={searchOpen}
                 searchArg={searchArg}
                 scrollTopRef={codeMirrorScrollRef}
-                onMarkdownChange={setMarkdown}
+                onMarkdownChange={text => setActiveDocument(current => ({ ...current, text }))}
                 onCursorChange={setCursor}
                 onSearchArgChange={setSearchArg}
             />

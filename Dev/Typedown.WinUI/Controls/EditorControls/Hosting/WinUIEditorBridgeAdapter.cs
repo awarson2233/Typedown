@@ -168,10 +168,11 @@ namespace Typedown.WinUI.Controls
 
             var isDiff = root.TryGetProperty("diff", out var diffElement) && diffElement.ValueKind == JsonValueKind.True;
             var serializedArgs = argsElement.GetString() ?? "null";
+            string candidate;
 
             if (!isDiff)
             {
-                diffCache[name] = serializedArgs;
+                candidate = serializedArgs;
             }
             else
             {
@@ -194,16 +195,18 @@ namespace Typedown.WinUI.Controls
                     return;
                 }
 
-                diffCache[name] = previous[..start] + serializedArgs + previous[end..];
+                candidate = previous[..start] + serializedArgs + previous[end..];
             }
 
             try
             {
-                using var argsDocument = JsonDocument.Parse(diffCache[name]);
+                using var argsDocument = JsonDocument.Parse(candidate);
+                diffCache[name] = candidate;
                 HandleEditorEvent(new EditorEventMessage(name, argsDocument.RootElement.Clone()));
             }
-            catch
+            catch (JsonException)
             {
+                diffCache.Remove(name);
                 LastEventName = name;
             }
         }

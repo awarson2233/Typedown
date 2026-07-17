@@ -1,0 +1,70 @@
+:root {
+  --highlight-color: rgba(102, 177, 255, .6);
+  --selection-color: rgba(102, 177, 255, .3);
+  --editor-color: rgb(255, 255, 255);
+  --editor-color-80: rgba(255, 255, 255, .8);
+  --editor-color-60: rgba(255, 255, 255, .6);
+  --editor-color-50: rgba(255, 255, 255, .5);
+  --editor-color-40: rgba(255, 255, 255, .4);
+  --editor-color-30: rgba(255, 255, 255, .3);
+  --editor-color-10: rgba(255, 255, 255, .1);
+  --editor-color-04: rgba(255, 255, 255, .04);
+  --editor-bg-color: #282828;
+  --delete-color: #409eff;
+  --icon-color: rgba(255, 255, 255, .56);
+  --code-bg-color: #FFFFFF0D;
+  --code-block-bg-color: #FFFFFF0D;
+  --footnote-bg-color: rgba(66, 67, 68, .3);
+  --input-bg-color: #2f3336;
+  --focus-color: var(--theme-color);
+  --table-border-color: #363839;
+  --item-bg-color: #2d2d2d;
+  --float-bg-color: #2d2d2d;
+  --float-hover-color: #FFFFFF0F;
+  --float-border-color: #00000030;
+  --mask-color: rgba(0, 0, 0, .7);
+  --float-shadow: 0 8px 12px 0 rgba(0, 0, 0, .2);
+}
+
+/* 💡 将行头的段落图标 ¶ 替换为字母 "P" */
+.mu-front-button-wrapper .mu-icon-wrapper i.paragraph {
+  font-family: inherit !important;
+  font-style: normal !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.mu-front-button-wrapper .mu-icon-wrapper i.paragraph::before {
+  content: "P" !important;
+  font-family: inherit !important;
+  font-weight: 600 !important;
+  font-size: 14px !important;
+}
+
+/* 💡 让左侧行头按钮容器往左微调，拉开与右侧文字头的间距 */
+.mu-front-button-wrapper {
+  transform: translateX(-16px) !important;
+}
+
+/* 💡 扁平化 Fluent (WinUI) 风格的行头按钮设计 */
+.mu-icon-wrapper {
+  border-radius: 4px !important;
+  border: 1px solid transparent !important;
+  background: transparent !important;
+  transition: background-color 0.15s ease, border-color 0.15s ease, opacity 0.15s ease !important;
+  opacity: 0.56 !important;
+}
+
+/* 💡 深色模式下的 Hover 效果 */
+.mu-icon-wrapper:hover {
+  background: rgba(255, 255, 255, 0.08) !important;
+  border-color: rgba(255, 255, 255, 0.04) !important;
+  opacity: 1 !important;
+}
+
+/* 💡 深色模式下的 Active (按下) 效果 */
+.mu-icon-wrapper:active {
+  background: rgba(255, 255, 255, 0.12) !important;
+  transform: scale(0.95) !important;
+}

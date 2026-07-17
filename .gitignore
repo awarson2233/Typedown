@@ -35,6 +35,13 @@ bld/
 .vs/
 .worktrees
 .worktrees/
+
+# Claude Code local worktrees
+/.claude/worktrees/
+
+# Local browser profile created when MCP variables are not expanded
+/Dev/Typedown.Editor/%LocalAppData%/
+
 # Uncomment if you have tasks that create the project's static files in wwwroot
 #wwwroot/
 

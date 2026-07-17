@@ -1,5 +1,13 @@
+html,
+body,
+#root {
+    width: 100%;
+    height: 100%;
+}
+
 body {
     margin: 0;
+    overflow: hidden;
 }
 
 :root::-webkit-scrollbar {
@@ -16,6 +24,11 @@ body {
     width: 100%;
     min-width: 320px;
     writing-mode: horizontal-tb;
+}
+
+.muya-host,
+.muya-host > div {
+    min-height: 100%;
 }
 
 .mu-editor {

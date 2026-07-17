@@ -124,7 +124,6 @@ namespace Typedown.WinUI.Controls
                     await webView.CoreWebView2.AddScriptToExecuteOnDocumentCreatedAsync(BuildFindShortcutScript());
                 }
 
-                AttachCoreWebView();
                 documentSession = CreateDocumentSession(ResolveBasePath(editorIndex));
                 hostController = new WinUIEditorHostController(documentSession, hostSink)
                 {
@@ -134,6 +133,7 @@ namespace Typedown.WinUI.Controls
                 bridgeAdapter.ResetForNavigation();
                 hostController.ResetForNavigation();
                 pendingRawMessages.Clear();
+                AttachCoreWebView();
                 if (!string.IsNullOrWhiteSpace(InitialFilePath))
                 {
                     var loadResult = hostController.LoadFile(InitialFilePath);
@@ -147,18 +147,56 @@ namespace Typedown.WinUI.Controls
 
                 webView.CoreWebView2.Settings.AreDefaultContextMenusEnabled = false;
                 webView.CoreWebView2.Settings.AreBrowserAcceleratorKeysEnabled = false;
+#if DEBUG
+                webView.CoreWebView2.Settings.AreDevToolsEnabled = true;
+#else
                 webView.CoreWebView2.Settings.AreDevToolsEnabled = false;
+#endif
                 webView.CoreWebView2.Settings.IsBuiltInErrorPageEnabled = false;
                 webView.CoreWebView2.Settings.IsStatusBarEnabled = false;
                 webView.CoreWebView2.Settings.IsZoomControlEnabled = false;
+#if DEBUG
+                webView.Opacity = 1;
+                bool useDevServer = false;
+                try
+                {
+                    using (var tcpClient = new System.Net.Sockets.TcpClient())
+                    {
+                        var result = tcpClient.BeginConnect("127.0.0.1", 3000, null, null);
+                        useDevServer = result.AsyncWaitHandle.WaitOne(TimeSpan.FromMilliseconds(200));
+                        if (useDevServer)
+                        {
+                            tcpClient.EndConnect(result);
+                        }
+                    }
+                }
+                catch { }
+
+                if (useDevServer)
+                {
+                    status = "Editor host navigating to Local Dev Server (http://localhost:3000) with HMR enabled.";
+                editorNavigationStarted = true;
+                webView.CoreWebView2.Navigate("http://localhost:3000");
+                }
+                else
+                {
+                    status = $"Local Dev Server offline. Navigating to fallback static bundle: {editorIndex}";
+                    editorNavigationStarted = true;
+                    webView.CoreWebView2.Navigate(new Uri(editorIndex).AbsoluteUri);
+                }
+                webView.CoreWebView2.OpenDevToolsWindow();
+#else
                 webView.Opacity = 0;
                 editorNavigationStarted = true;
                 webView.CoreWebView2.Navigate(new Uri(editorIndex).AbsoluteUri);
+#endif
                 status = $"Editor host navigating to {editorIndex}";
             }
             catch (Exception ex)
             {
                 status = $"WebView2 initialization failed: {ex.GetType().Name}: {ex.Message}";
+                System.Diagnostics.Debug.WriteLine($"[FATAL WEBVIEW2] {ex}");
+                throw;
             }
         }
 
@@ -174,7 +212,26 @@ namespace Typedown.WinUI.Controls
         private async void OnWebMessageReceived(CoreWebView2 sender, CoreWebView2WebMessageReceivedEventArgs e)
         {
             var wasContentLoaded = bridgeAdapter.IsContentLoaded;
-            await bridgeAdapter.ReceiveAsync(e.TryGetWebMessageAsString(), payload => SendRawMessage(payload));
+            var messageStr = e.TryGetWebMessageAsString();
+
+            if (!string.IsNullOrEmpty(messageStr) && messageStr.Contains("\"name\":\"OpenContextMenu\""))
+            {
+                try
+                {
+                    using var document = JsonDocument.Parse(messageStr);
+                    var root = document.RootElement;
+                    if (root.TryGetProperty("args", out var argsElement))
+                    {
+                        var x = argsElement.GetProperty("x").GetDouble();
+                        var y = argsElement.GetProperty("y").GetDouble();
+                        ContextMenuRequested?.Invoke(this, new WinUIEditorContextMenuRequestedEventArgs(new Point(x, y)));
+                        return;
+                    }
+                }
+                catch { }
+            }
+
+            await bridgeAdapter.ReceiveAsync(messageStr, payload => SendRawMessage(payload));
             status = bridgeAdapter.StatusText;
             latestRawWebMessage = bridgeAdapter.LastRawMessage;
 
@@ -215,6 +272,12 @@ namespace Typedown.WinUI.Controls
             });
             SendRawMessage(payload);
             TrySendPendingLoadFile();
+        }
+
+        private void OnProcessFailed(CoreWebView2 sender, CoreWebView2ProcessFailedEventArgs e)
+        {
+            webView.Opacity = 1;
+            status = $"WebView2 process failed: {e.ProcessFailedKind}";
         }
 
         private bool SendMessage(string name, object? args)
@@ -277,13 +340,16 @@ namespace Typedown.WinUI.Controls
                 (() => {
                     const color = '{{color}}';
                     const apply = () => {
+                        if (!document.documentElement) {
+                            return;
+                        }
                         document.documentElement.style.backgroundColor = color;
                         if (document.body) {
                             document.body.style.backgroundColor = color;
                         }
                     };
-                    apply();
                     document.addEventListener('DOMContentLoaded', apply, { once: true });
+                    apply();
                 })();
                 """);
         }
@@ -339,6 +405,7 @@ namespace Typedown.WinUI.Controls
 
             webView.CoreWebView2.WebMessageReceived += OnWebMessageReceived;
             webView.CoreWebView2.NavigationCompleted += OnNavigationCompleted;
+            webView.CoreWebView2.ProcessFailed += OnProcessFailed;
             webView.CoreWebView2.ContextMenuRequested += OnContextMenuRequested;
             webView.PreviewKeyDown += OnPreviewKeyDown;
             coreEventsAttached = true;
@@ -353,6 +420,7 @@ namespace Typedown.WinUI.Controls
 
             webView.CoreWebView2.WebMessageReceived -= OnWebMessageReceived;
             webView.CoreWebView2.NavigationCompleted -= OnNavigationCompleted;
+            webView.CoreWebView2.ProcessFailed -= OnProcessFailed;
             webView.CoreWebView2.ContextMenuRequested -= OnContextMenuRequested;
             webView.PreviewKeyDown -= OnPreviewKeyDown;
             coreEventsAttached = false;

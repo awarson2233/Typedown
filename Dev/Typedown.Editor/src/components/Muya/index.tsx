@@ -18,6 +18,7 @@ import {
     TableRowColumMenu,
     wordCount
 } from '@muyajs/core';
+import '../../../vendor/muya-core/lib/core.css';
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { createApplicationMenuState } from "services/menuState";
 import transport from "services/transport";
@@ -39,29 +40,37 @@ interface IMuyaEditor {
     onSearchArgChange: (arg: { value: string, opt: any } | undefined) => void
 }
 
-const register = (plugin: any, options: Record<string, unknown> = {}) => Muya.use(plugin, options)
-register(EmojiSelector)
-register(FootnoteTool)
-register(InlineFormatToolbar)
-register(ImageEditTool, {
+const register = (name: string, plugin: any, options: Record<string, unknown> = {}) => {
+    if (typeof plugin !== 'function') {
+        throw new TypeError(`Muya plugin "${name}" must be a constructor, received ${typeof plugin}.`)
+    }
+
+    Muya.use(plugin, options)
+}
+
+register('EmojiSelector', EmojiSelector)
+register('FootnoteTool', FootnoteTool)
+// register('InlineFormatToolbar', InlineFormatToolbar)
+register('ImageEditTool', ImageEditTool, {
     imagePathPicker: () => remote.pickImage(),
     imageAction: ({ src, alt, title }: { src: string, alt: string, title: string }) =>
         remote.processImage({ src, alt, title })
 })
-register(ImageToolBar)
-register(ImageResizeBar)
-register(CodeBlockLanguageSelector)
-register(LinkTools, { jumpClick: (linkInfo: { href?: string } | null) => {
+register('ImageToolBar', ImageToolBar)
+register('ImageResizeBar', ImageResizeBar)
+register('CodeBlockLanguageSelector', CodeBlockLanguageSelector)
+register('LinkTools', LinkTools, { jumpClick: (linkInfo: { href?: string } | null) => {
     if (linkInfo?.href) transport.postMessage('OpenURI', { uri: linkInfo.href })
-} })
-register(ParagraphFrontButton)
-register(ParagraphFrontMenu)
-register(TableChessboard)
-register(TableColumnToolbar)
-register(ParagraphQuickInsertMenu)
-register(TableDragBar)
-register(TableRowColumMenu)
-register(PreviewToolBar)
+} });
+(ParagraphFrontButton as any).pluginName = 'paragraphFrontButton'
+register('ParagraphFrontButton', ParagraphFrontButton)
+// register('ParagraphFrontMenu', ParagraphFrontMenu)
+register('TableChessboard', TableChessboard)
+register('TableColumnToolbar', TableColumnToolbar)
+register('ParagraphQuickInsertMenu', ParagraphQuickInsertMenu)
+register('TableDragBar', TableDragBar)
+register('TableRowColumMenu', TableRowColumMenu)
+register('PreviewToolBar', PreviewToolBar)
 
 const STANDARD_Y = 320
 
@@ -115,6 +124,7 @@ const parseTableSize = (value: any) => {
 const MuyaEditor: React.FC<IMuyaEditor> = (props) => {
     const [editor, setEditor] = useState<Muya>()
     const [marginTop, setMarginTop] = useState(0)
+    const mountRef = useRef<HTMLDivElement>(null)
     const markdownRef = useRef('')
     const cursorRef = useRef<any>()
     const searchArgRef = useRef<any>()
@@ -157,13 +167,51 @@ const MuyaEditor: React.FC<IMuyaEditor> = (props) => {
     useEffect(() => { searchArgRef.current = props.searchArg }, [props.searchArg])
 
     useEffect(() => {
-        const mount = document.getElementById('editor')
+        const mount = mountRef.current
         if (!mount) return
         const muya = new Muya(mount, { markdown: props.markdown, ...optionsRef.current })
         muya.init()
         markdownRef.current = muya.getMarkdown()
         setEditor(muya)
-        return () => { setEditor(undefined); muya.destroy() }
+
+        // 💡 订阅行头 ¶ 的点击，向 C# 发送 OpenFrontMenu 消息并携带坐标
+        muya.eventCenter.on('muya-front-menu', ({ reference }) => {
+            const rect = reference.getBoundingClientRect();
+            transport.postMessage('OpenFrontMenu', {
+                boundingClientRect: {
+                    x: rect.x,
+                    y: rect.y,
+                    width: rect.width,
+                    height: rect.height
+                }
+            });
+        });
+
+        // 💡 劫持隐藏方法以支持“按钮常驻当前光标编辑行”
+        const frontButton = (muya as any)._uiPlugins['paragraphFrontButton'];
+        if (frontButton) {
+            const originalHide = frontButton.hide.bind(frontButton);
+            (frontButton as any).originalHide = originalHide;
+            frontButton.hide = () => {
+                // 阻止其它地方（如 mousemove）自动隐藏
+            };
+        }
+
+        // 💡 监听全局右键点击，向 C# 发送 OpenContextMenu 并携带当前鼠标在窗口内的绝对坐标
+        const handleContextMenu = (e: MouseEvent) => {
+            e.preventDefault();
+            transport.postMessage('OpenContextMenu', {
+                x: e.clientX,
+                y: e.clientY
+            });
+        };
+        document.addEventListener('contextmenu', handleContextMenu);
+
+        return () => {
+            setEditor(undefined);
+            muya.destroy();
+            document.removeEventListener('contextmenu', handleContextMenu);
+        }
         // Initial content is supplied to the constructor; later documents use setContent.
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [])
@@ -185,7 +233,9 @@ const MuyaEditor: React.FC<IMuyaEditor> = (props) => {
         if (!editor || loadedDocumentIdRef.current === props.documentId) return
         loadingRef.current = true
         documentIdRef.current = props.documentId
-        if (markdownRef.current !== props.markdown) editor.setContent(props.markdown)
+        if (loadedDocumentIdRef.current !== undefined && markdownRef.current !== props.markdown) {
+            editor.setContent(props.markdown)
+        }
         editor.clearHistory()
         markdownRef.current = editor.getMarkdown()
         if (cursorRef.current) editor.setCursorByOffset(cursorRef.current)
@@ -317,6 +367,47 @@ const MuyaEditor: React.FC<IMuyaEditor> = (props) => {
             transport.postMessage('SelectionChange', { selection, menuState, selectionText, documentId: documentIdRef.current })
             transport.postMessage('SelectionFormats', { formats: selection.formats, documentId: documentIdRef.current })
             transport.postMessage('ActiveHeadingChange', { cur: getActiveHeading(), documentId: documentIdRef.current })
+
+
+
+            // 💡 2. 动态更新行头 P 按钮，使其贴在当前编辑行的左侧
+            try {
+                const frontButton = (editor as any)._uiPlugins['paragraphFrontButton'];
+                if (frontButton) {
+                    let activeBlock: any = null;
+                    const winSel = window.getSelection();
+                    if (winSel && winSel.rangeCount > 0) {
+                        const node: Node | null = winSel.getRangeAt(0).startContainer;
+                        let element: HTMLElement | null = node.nodeType === Node.ELEMENT_NODE ? (node as HTMLElement) : node.parentElement;
+                        while (element) {
+                            if ((element as any).__MUYA_BLOCK__) {
+                                activeBlock = (element as any).__MUYA_BLOCK__;
+                                break;
+                            }
+                            element = element.parentElement;
+                        }
+                    }
+                    if (activeBlock) {
+                        while (activeBlock && !activeBlock.isOutMostBlock) {
+                            activeBlock = activeBlock.parent;
+                        }
+                    }
+                    // 确保 activeBlock.domNode 依然挂载在当前文档中，避免 Floating UI 进行已销毁节点的测量异常
+                    if (activeBlock && document.body.contains(activeBlock.domNode) && activeBlock.blockName !== 'frontmatter') {
+                        frontButton.show(activeBlock);
+                    } else {
+                        if ((frontButton as any).originalHide) {
+                            (frontButton as any).originalHide();
+                        } else {
+                            frontButton.hide();
+                        }
+                    }
+                }
+            } catch (err) {
+                // 💡 彻底捕获 DOM 重置或 range 临时失效时的异常（如 IndexSizeError），保证文件加载不受任何干扰
+                console.warn("Repositioning front button caught error:", err);
+            }
+
             const y = selection.cursorCoords?.y
             if (typeof y === 'number') {
                 if (props.options?.typewriter) relativeScroll(y - window.innerHeight / 2 + 136)
@@ -374,7 +465,7 @@ const MuyaEditor: React.FC<IMuyaEditor> = (props) => {
         return () => owner.removeEventListener('scroll', onScroll)
     }, [editor, props.scrollTopRef])
 
-    return <div className="muya-host"><div id="editor" /></div>
+    return <div className="muya-host"><div ref={mountRef} /></div>
 }
 
 export default MuyaEditor

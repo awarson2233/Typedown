@@ -51,10 +51,12 @@ function formatRgba(color: { r: number, g: number, b: number, a: number }) {
 }
 
 function onThemeChanged(payload: any) {
+    const editorStyleDocument = getorCreateStyle("link_style_editor");
     const prismjsStyleDocument = getorCreateStyle("link_style_prismjs");
     const codemirrorStyleDocument = getorCreateStyle("link_style_codemirror");
 
     const theme = normalizeTheme(payload?.theme)
+    editorStyleDocument.href = `theme/v2/editor/${theme}.theme.css`
     prismjsStyleDocument.href = `theme/v2/prism/${theme}.theme.css`
     codemirrorStyleDocument.href = `theme/v2/codemirror/${theme}.theme.css`
 

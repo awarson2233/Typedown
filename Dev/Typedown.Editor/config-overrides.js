@@ -8,6 +8,15 @@ paths.appBuild = process.env.TYPEDOWN_EDITOR_BUILD_OUTPUT
     : path.resolve(__dirname, '../Typedown.WinUI/Resources/Statics')
 
 module.exports = function override(config, env) {
+    const muyaCoreCjs = path.join(__dirname, './vendor/muya-core/lib/cjs/index.js')
+    const moduleScopePlugin = config.resolve.plugins.find(plugin => plugin.constructor.name === 'ModuleScopePlugin')
+
+    if (moduleScopePlugin) {
+        moduleScopePlugin.allowedFiles.add(muyaCoreCjs)
+        moduleScopePlugin.allowedPaths.push(path.dirname(muyaCoreCjs))
+        moduleScopePlugin.allowedPaths.push(path.resolve(__dirname, './vendor/muya-core'))
+    }
+
     const overrideConfig = {
         ...config,
         module: {
@@ -24,6 +33,7 @@ module.exports = function override(config, env) {
             ...config.resolve,
             alias: {
                 ...config.resolve.alias,
+                '@muyajs/core$': muyaCoreCjs,
                 snapsvg: path.join(__dirname, './src/assets/libs/snap.svg-min.js')
             },
         },

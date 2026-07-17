@@ -9,7 +9,7 @@ const postScrollState = () => {
     const maximumX = maximumXRaw <= epsilon ? 0 : maximumXRaw
     const maximumY = maximumYRaw <= epsilon ? 0 : maximumYRaw
 
-    transport.postMessage('OnScroll', {
+    transport.postMessageNoDiff('OnScroll', {
         viewportWidth,
         viewportHeight,
         maximumX,

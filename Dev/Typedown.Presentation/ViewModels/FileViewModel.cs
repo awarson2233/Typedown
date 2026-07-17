@@ -248,9 +248,8 @@ namespace Typedown.Presentation.ViewModels
         {
             foreach (var delay in new[] { 100, 500, 1500 })
             {
-                try { await Task.Delay(delay, cancellationToken); }
-                catch (OperationCanceledException) { return; }
-                if (activatingDocument?.Id != id) return;
+                await Task.Delay(delay);
+                if (cancellationToken.IsCancellationRequested || activatingDocument?.Id != id) return;
                 RetryDocumentActivation(id);
             }
         }

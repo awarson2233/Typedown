@@ -3048,9 +3048,9 @@ var Mr = /* @__PURE__ */ function(e) {
 			});
 		}
 	}
-}, Ir = M.MU_TABLE_CELL_SELECTED, Lr = M.MU_TABLE_CELL_BORDER_TOP, Rr = M.MU_TABLE_CELL_BORDER_RIGHT, zr = M.MU_TABLE_CELL_BORDER_BOTTOM, Br = M.MU_TABLE_CELL_BORDER_LEFT, Vr = class e {
+}, Ir = M.MU_TABLE_CELL_SELECTED, Lr = M.MU_TABLE_CELL_BORDER_TOP, Rr = M.MU_TABLE_CELL_BORDER_RIGHT, zr = M.MU_TABLE_CELL_BORDER_BOTTOM, Br = M.MU_TABLE_CELL_BORDER_LEFT, Vr = class TableSelection {
 	static create(t) {
-		let n = new e(t);
+		let n = new TableSelection(t);
 		return n._attach(), n;
 	}
 	constructor(e) {
@@ -14065,7 +14065,42 @@ function sf(e) {
 		attributeFilter: ["width", "height"]
 	}), setTimeout(() => t.disconnect(), 5e3);
 }
-async function cf({ type: e, code: t, target: n, vegaTheme: r, mermaidTheme: i, plantumlServer: a, sequenceTheme: o }) {
+var mermaidRenderQueue = Promise.resolve(), mermaidRenderVersions = /* @__PURE__ */ new WeakMap(), mermaidRenderSequence = 0, mermaidRenderTheme;
+function formatDiagramError(e) {
+	if (e instanceof Error) return e.message;
+	if (e && typeof e == "object") {
+		if (typeof e.str == "string") return e.str;
+		if (typeof e.message == "string") return e.message;
+		try {
+			return JSON.stringify(e);
+		} catch {}
+	}
+	return String(e);
+}
+function scheduleMermaidRender({ mermaid: e, code: t, target: n, theme: r }) {
+	let i = (mermaidRenderVersions.get(n) || 0) + 1;
+	mermaidRenderVersions.set(n, i);
+	let a = async () => {
+		if (!n.isConnected || mermaidRenderVersions.get(n) !== i) return;
+		if (mermaidRenderTheme !== r && (e.initialize({
+			startOnLoad: !1,
+			securityLevel: "strict",
+			theme: r
+		}), mermaidRenderTheme = r), !n.isConnected || mermaidRenderVersions.get(n) !== i) return;
+		let a;
+		try {
+			a = await e.render(`muya-mermaid-${++mermaidRenderSequence}`, t, n);
+		} catch (e) {
+			if (!n.isConnected || mermaidRenderVersions.get(n) !== i) return;
+			throw e;
+		}
+		if (!n.isConnected || mermaidRenderVersions.get(n) !== i) return;
+		let { svg: o, bindFunctions: s } = a;
+		n.innerHTML = o, s && s(n);
+	}, o = mermaidRenderQueue.then(a, a);
+	return mermaidRenderQueue = o.catch(() => {}), o;
+}
+async function renderDiagram({ type: e, code: t, target: n, vegaTheme: r, mermaidTheme: i, plantumlServer: a, sequenceTheme: o }) {
 	let s = await rf(e), c = {};
 	if (e === "vega-lite" ? Object.assign(c, {
 		actions: !1,
@@ -14080,11 +14115,7 @@ async function cf({ type: e, code: t, target: n, vegaTheme: r, mermaidTheme: i, 
 	else if (e === "flowchart" || e === "sequence") {
 		let e = s.parse(t);
 		n.innerHTML = "", e.drawSVG(n, c), sf(n);
-	} else e === "mermaid" && (s.initialize({
-		startOnLoad: !1,
-		securityLevel: "strict",
-		theme: i
-	}), await s.parse(t), n.innerHTML = Ft(t, rt, !0), n.removeAttribute("data-processed"), await s.run({ nodes: [n] }));
+	} else e === "mermaid" && await pf({ mermaid: s, code: t, target: n, theme: i });
 }
 var lf = class e extends nn {
 	static create(t, n) {
@@ -14116,7 +14147,7 @@ var lf = class e extends nn {
 			this.domNode.innerHTML = t.t("Loading...");
 			let { mermaidTheme: n, vegaTheme: r, plantumlServer: i, sequenceTheme: a } = this.muya.options, { _type: o } = this;
 			try {
-				await cf({
+				await renderDiagram({
 					target: this.domNode,
 					code: e,
 					type: o,
@@ -14126,7 +14157,7 @@ var lf = class e extends nn {
 					sequenceTheme: a
 				});
 			} catch (e) {
-				let n = e instanceof Error ? e.message : String(e);
+				let n = formatDiagramError(e);
 				af.error(`render ${o} diagram failed: ${n}`), this.domNode.innerHTML = `<div class="mu-diagram-error">&lt; ${t.t("Invalid Diagram Code")} &gt;<div class="mu-diagram-error-detail">${Ft(n, rt, !0)}</div></div>`;
 			}
 		} else this.domNode.innerHTML = `<div class="${M.MU_EMPTY}">&lt; ${t.t("Empty Diagram")} &gt;</div>`;
@@ -55543,7 +55574,7 @@ function vT(e, t) {
 function yT(e, t, n) {
 	return !(/Alt|Option|Meta|Shift|CapsLock|ArrowUp|ArrowDown|ArrowLeft|ArrowRight/.test(e) || t || n);
 }
-var bT = class e {
+var bT = class TableSelection {
 	get selection() {
 		return this.muya.editor.selection;
 	}
@@ -55551,7 +55582,7 @@ var bT = class e {
 		return this.muya.editor.scrollPage;
 	}
 	static create(t) {
-		let n = new e(t);
+		let n = new TableSelection(t);
 		return n._listen(), n;
 	}
 	constructor(e) {
