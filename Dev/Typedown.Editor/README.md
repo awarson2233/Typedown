@@ -4,12 +4,7 @@ This React editor bundle is hosted by `Typedown.WinUI` through WebView2.
 
 ## Build the WebView bundle
 
-Run the frontend build from this directory:
-
-```powershell
-yarn
-yarn build
-```
+Install dependencies once from this directory with `yarn`. `Typedown.WinUI` has a `ProjectReference` to this `.esproj`, so a normal Visual Studio/MSBuild build runs `yarn build` automatically.
 
 `config-overrides.js` redirects the Create React App build output to:
 
@@ -21,9 +16,7 @@ The output contains `index.html`, `asset-manifest.json`, `static/js/*`, `static/
 
 ## Let WinUI consume the bundle
 
-After `yarn build`, build or start `Typedown.WinUI`. The WinUI project copies the existing `Resources\Statics` files into its output directory and MSIX package payload.
-
-If you only run `yarn build` but do not rebuild/restart `Typedown.WinUI`, the app can still load an older bundle from `bin\...\Resources\Statics` because the runtime checks the output directory first.
+The WinUI build waits for the editor project, then refreshes `Resources\Statics` before output-copy and MSIX packaging targets consume the files. This ensures newly generated hashed assets are copied instead of the item snapshot from project evaluation.
 
 ## Development server
 

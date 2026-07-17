@@ -14,8 +14,8 @@
 - `Dev\Typedown.Editor` owns the React editor source and build output.
 - `Dev\Typedown.WinUI\Resources\Statics` is the current staging path for the generated editor bundle.
 - WinUI consumes that staging path for output and MSIX packaging.
-- Normal WinUI build/startup does not run `yarn build`; generate the bundle manually from `Dev\Typedown.Editor` before building or starting WinUI when frontend files change.
-- `config-overrides.js` writes the editor build directly into the active shell staging path.
+- `Typedown.WinUI` references the `Typedown.Editor.esproj`; a normal Visual Studio/MSBuild WinUI build runs `yarn build` before consuming the bundle.
+- `config-overrides.js` writes the editor build directly into the active shell staging path, and the WinUI build refreshes Content items after project references complete.
 
 ## Direction
 
@@ -167,11 +167,4 @@ Phase 11 不再让 `WinUIEditorBridgeAdapter` 自己维护 smoke markdown/basePa
 1. 运行目录：`AppContext.BaseDirectory\Resources\Statics\index.html`
 2. 源码回退：`Dev\Typedown.WinUI\Resources\Statics\index.html`
 
-前端修改后的标准流程：
-
-```powershell
-cd Dev\Typedown.Editor
-yarn build
-```
-
-`yarn build` 会直接写入 `Dev\Typedown.WinUI\Resources\Statics`。随后需要重新 build 或启动 `Typedown.WinUI`，让 WinUI 输出目录同步到最新 bundle；否则运行时可能优先加载旧的 `bin\...\Resources\Statics`。
+前端依赖通过 `yarn` 安装后，直接 build 或启动 `Typedown.WinUI`。其 `ProjectReference` 会先构建 `Typedown.Editor.esproj`，由 `yarn build` 写入 `Dev\Typedown.WinUI\Resources\Statics`；随后 WinUI 在复制输出和打包前重新收集该目录，确保 `bin\...\Resources\Statics` 使用本次生成的 bundle。

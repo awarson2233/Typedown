@@ -33,20 +33,17 @@ git clone https://github.com/byxiaozhi/Typedown
 This will create a local copy of the repository.
 
 ### 3. Build the project
-Build the editor bundle first when the frontend changed or when `Typedown\Dev\Typedown.WinUI\Resources\Statics\index.html` is missing.
+Install the frontend dependencies once from the editor directory:
 
 ```ps
 cd Typedown\Dev\Typedown.Editor
 yarn
-yarn build
 ```
 ![20240319232236_rec_](https://github.com/byxiaozhi/Typedown/assets/31278216/3f038707-9311-4aad-846b-a22e8bad6857)
 
-`yarn build` writes the compiled WebView bundle directly into `Typedown\Dev\Typedown.WinUI\Resources\Statics`. The WinUI project does not rebuild this bundle during normal startup/build; it only copies the existing files into its output and package payload.
+Then use Visual Studio 2022 to open `Typedown\Typedown.sln`, right-click the `Typedown.WinUI` project, and select Set as Startup Project. Building `Typedown.WinUI` builds the referenced `Typedown.Editor` project with `yarn build`, writes the WebView bundle into `Typedown\Dev\Typedown.WinUI\Resources\Statics`, and refreshes the files copied to the output and package payload.
 
-Then use Visual Studio 2022 to open `Typedown\Typedown.sln`, right-click the `Typedown.WinUI` project, and select Set as Startup Project.
-
-For daily local development, use `Debug_Local` and one of the supported platforms (`x64` or `ARM64`). If you rebuild only the editor bundle, rebuild or restart the WinUI project afterwards so `bin\...\Resources\Statics` receives the latest files.
+For daily local development, use `Debug_Local` and one of the supported platforms (`x64` or `ARM64`). A separate manual `yarn build` is not required before the WinUI build.
 
 Then select the platform you want to build on and click Run!
 

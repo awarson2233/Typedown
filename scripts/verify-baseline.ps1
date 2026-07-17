@@ -2,10 +2,10 @@
 param(
     [string]$RepoRoot = "D:\source\repos\Typedown",
     [string]$Configuration = "Debug_Local",
-    [string]$Platform = "x64",
+    [string]$Platform = "ARM64",
+    [string]$MSBuildPath = "C:\Program Files\Microsoft Visual Studio\18\Community\MSBuild\Current\Bin\arm64\MSBuild.exe",
     [string]$ExpectedMainBranch = "winui3-migration",
-    [switch]$AllowMainDirty,
-    [switch]$SkipEditorBuild
+    [switch]$AllowMainDirty
 )
 
 $ErrorActionPreference = "Stop"
@@ -20,45 +20,19 @@ if ($LASTEXITCODE -ne 0) {
     throw "Repository verification failed."
 }
 
-$editorDir = Join-Path $RepoRoot "Dev\Typedown.Editor"
-if (-not $SkipEditorBuild) {
-    if (-not (Test-Path -LiteralPath (Join-Path $editorDir "package.json"))) {
-        throw "Editor package.json not found: $editorDir"
-    }
-
-    Push-Location $editorDir
-    try {
-        if (-not (Test-Path -LiteralPath "node_modules")) {
-            Write-Host "node_modules not found; running yarn."
-            & yarn
-            if ($LASTEXITCODE -ne 0) {
-                throw "yarn failed."
-            }
-        }
-
-        Write-Host "Building editor static assets."
-        & yarn build
-        if ($LASTEXITCODE -ne 0) {
-            throw "yarn build failed."
-        }
-    }
-    finally {
-        Pop-Location
-    }
-}
-else {
-    Write-Host "Skipping editor build by request."
-}
-
 $project = Join-Path $RepoRoot "Dev\Typedown.WinUI\Typedown.WinUI.csproj"
 if (-not (Test-Path -LiteralPath $project)) {
     throw "Typedown.WinUI project not found: $project"
 }
 
-Write-Host "Building Typedown.WinUI $Configuration|$Platform."
-& dotnet build $project -c $Configuration -p:Platform=$Platform -p:UseSharedCompilation=false /nodeReuse:false /v:minimal
+if (-not (Test-Path -LiteralPath $MSBuildPath)) {
+    throw "ARM64 MSBuild not found: $MSBuildPath"
+}
+
+Write-Host "Building Typedown.WinUI $Configuration|$Platform (Typedown.Editor is built through ProjectReference)."
+& $MSBuildPath $project /restore /t:Build /p:Configuration=$Configuration /p:Platform=$Platform /p:UseSharedCompilation=false /m:1 /nodeReuse:false /v:minimal
 if ($LASTEXITCODE -ne 0) {
-    throw "dotnet build failed for $Configuration|$Platform."
+    throw "MSBuild failed for $Configuration|$Platform."
 }
 
 $runtimeId = switch ($Platform.ToLowerInvariant()) {
