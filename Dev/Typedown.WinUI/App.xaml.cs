@@ -83,6 +83,18 @@ namespace Typedown.WinUI
         protected override void OnLaunched(LaunchActivatedEventArgs e)
         {
             StartupTrace.AppOnLaunchedStart();
+            try
+            {
+                OnLaunchedCore();
+            }
+            finally
+            {
+                StartupTrace.AppOnLaunchedStop();
+            }
+        }
+
+        private void OnLaunchedCore()
+        {
             var startupCommandLineArgs = ResolveStartupCommandLineArgs();
             WinUILocale.Initialize();
 
@@ -199,7 +211,6 @@ namespace Typedown.WinUI
             {
                 StartupTrace.WindowActivateStop();
             }
-            StartupTrace.AppOnLaunchedStop();
         }
 
         private string[] ResolveStartupCommandLineArgs()

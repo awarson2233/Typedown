@@ -303,6 +303,79 @@ internal static class StartupTrace
     }
 }
 
+internal enum StartupBridgeMilestone
+{
+    None,
+    ContentLoaded,
+    FileLoaded,
+    DocumentRendered
+}
+
+internal sealed class StartupNavigationTraceState
+{
+    private bool hasStartupNavigation;
+    private bool isStartupNavigationValid;
+    private StartupBridgeMilestone lastMilestone;
+
+    public ulong StartupNavigationId { get; private set; }
+
+    public void NavigationStarting(ulong navigationId)
+    {
+        if (!hasStartupNavigation)
+        {
+            hasStartupNavigation = true;
+            isStartupNavigationValid = true;
+            StartupNavigationId = navigationId;
+            return;
+        }
+
+        isStartupNavigationValid = false;
+    }
+
+    public StartupBridgeMilestone RecordBridgeMilestone(string? eventName)
+    {
+        if (!isStartupNavigationValid)
+        {
+            return StartupBridgeMilestone.None;
+        }
+
+        if (string.Equals(eventName, "ContentLoaded", StringComparison.Ordinal))
+        {
+            if (lastMilestone != StartupBridgeMilestone.None)
+            {
+                return StartupBridgeMilestone.None;
+            }
+
+            lastMilestone = StartupBridgeMilestone.ContentLoaded;
+            return lastMilestone;
+        }
+
+        if (string.Equals(eventName, "FileLoaded", StringComparison.Ordinal))
+        {
+            if (lastMilestone != StartupBridgeMilestone.ContentLoaded)
+            {
+                return StartupBridgeMilestone.None;
+            }
+
+            lastMilestone = StartupBridgeMilestone.FileLoaded;
+            return lastMilestone;
+        }
+
+        if (string.Equals(eventName, "DocumentRendered", StringComparison.Ordinal))
+        {
+            if (lastMilestone != StartupBridgeMilestone.FileLoaded)
+            {
+                return StartupBridgeMilestone.None;
+            }
+
+            lastMilestone = StartupBridgeMilestone.DocumentRendered;
+            return lastMilestone;
+        }
+
+        return StartupBridgeMilestone.None;
+    }
+}
+
 [EventSource(Name = ProviderName)]
 internal sealed class StartupEventSource : EventSource
 {
