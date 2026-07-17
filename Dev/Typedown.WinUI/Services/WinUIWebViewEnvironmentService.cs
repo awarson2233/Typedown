@@ -31,9 +31,14 @@ internal sealed class WinUIWebViewEnvironmentService
 
     private async Task<CoreWebView2Environment> CreateEnvironmentAsync()
     {
-        using (StartupTrace.Phase("CoreWebView2Environment.CreateAsync"))
+        StartupTrace.CoreWebView2EnvironmentCreateStart();
+        try
         {
             return await CoreWebView2Environment.CreateAsync();
+        }
+        finally
+        {
+            StartupTrace.CoreWebView2EnvironmentCreateStop();
         }
     }
 }

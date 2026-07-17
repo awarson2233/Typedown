@@ -7,6 +7,7 @@ using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
 using Microsoft.Windows.AppLifecycle;
 using Typedown.WinUI.Services;
+using Typedown.WinUI.Utilities;
 
 namespace Typedown.WinUI
 {
@@ -26,6 +27,7 @@ namespace Typedown.WinUI
         [STAThread]
         private static void Main(string[] args)
         {
+            StartupTrace.ProgramMain();
             WinRT.ComWrappersSupport.InitializeComWrappers();
 
             var currentInstance = AppInstance.GetCurrent();

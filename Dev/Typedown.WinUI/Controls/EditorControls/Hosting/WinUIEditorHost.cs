@@ -32,6 +32,12 @@ namespace Typedown.WinUI.Controls
         private bool coreEventsAttached;
         private bool editorNavigationStarted;
         private int loadVersion;
+        private ulong currentNavigationId;
+        private ulong domContentLoadedNavigationId;
+        private ulong bridgeReadyNavigationId;
+        private bool bridgeContentLoadedRecorded;
+        private bool bridgeFileLoadedRecorded;
+        private bool bridgeDocumentRenderedRecorded;
 
         public event EventHandler<WinUIEditorContextMenuRequestedEventArgs>? ContextMenuRequested;
 
@@ -110,9 +116,14 @@ namespace Typedown.WinUI.Controls
                 if (!coreInitialized)
                 {
                     var environment = await GetEnvironmentAsync();
-                    using (StartupTrace.Phase("WebView2.EnsureCoreWebView2Async"))
+                    StartupTrace.EnsureCoreWebView2Start();
+                    try
                     {
                         await webView.EnsureCoreWebView2Async(environment);
+                    }
+                    finally
+                    {
+                        StartupTrace.EnsureCoreWebView2Stop();
                     }
                     if (!isLoaded || currentLoadVersion != loadVersion)
                     {
@@ -234,6 +245,10 @@ namespace Typedown.WinUI.Controls
             await bridgeAdapter.ReceiveAsync(messageStr, payload => SendRawMessage(payload));
             status = bridgeAdapter.StatusText;
             latestRawWebMessage = bridgeAdapter.LastRawMessage;
+            if (StartupTrace.IsEnabled)
+            {
+                RecordBridgeMilestone(bridgeAdapter.LastEventName);
+            }
 
             if (!wasContentLoaded && bridgeAdapter.IsContentLoaded)
             {
@@ -245,8 +260,35 @@ namespace Typedown.WinUI.Controls
             }
         }
 
+        private void OnNavigationStarting(CoreWebView2 sender, CoreWebView2NavigationStartingEventArgs e)
+        {
+            currentNavigationId = e.NavigationId;
+            domContentLoadedNavigationId = 0;
+            bridgeReadyNavigationId = 0;
+            bridgeContentLoadedRecorded = false;
+            bridgeFileLoadedRecorded = false;
+            bridgeDocumentRenderedRecorded = false;
+            StartupTrace.NavigationStarting(e.NavigationId, StartupTrace.IsEnabled ? e.Uri : null);
+        }
+
+        private void OnContentLoading(CoreWebView2 sender, CoreWebView2ContentLoadingEventArgs e)
+        {
+            StartupTrace.ContentLoading(e.NavigationId);
+        }
+
+        private void OnDomContentLoaded(CoreWebView2 sender, CoreWebView2DOMContentLoadedEventArgs e)
+        {
+            if (e.NavigationId == currentNavigationId)
+            {
+                domContentLoadedNavigationId = e.NavigationId;
+            }
+
+            StartupTrace.DomContentLoaded(e.NavigationId);
+        }
+
         private async void OnNavigationCompleted(CoreWebView2 sender, CoreWebView2NavigationCompletedEventArgs e)
         {
+            StartupTrace.NavigationCompleted(e.NavigationId, e.IsSuccess, (int)e.WebErrorStatus);
             if (!isLoaded)
             {
                 return;
@@ -272,6 +314,51 @@ namespace Typedown.WinUI.Controls
             });
             SendRawMessage(payload);
             TrySendPendingLoadFile();
+        }
+
+        private void RecordBridgeMilestone(string eventName)
+        {
+            var navigationId = currentNavigationId;
+            if (navigationId == 0)
+            {
+                return;
+            }
+
+            if (string.Equals(eventName, "ContentLoaded", StringComparison.Ordinal))
+            {
+                if (bridgeContentLoadedRecorded || domContentLoadedNavigationId != navigationId)
+                {
+                    return;
+                }
+
+                bridgeReadyNavigationId = navigationId;
+                bridgeContentLoadedRecorded = true;
+                StartupTrace.BridgeContentLoaded(navigationId);
+                return;
+            }
+
+            if (bridgeReadyNavigationId != navigationId)
+            {
+                return;
+            }
+
+            if (string.Equals(eventName, "FileLoaded", StringComparison.Ordinal))
+            {
+                if (!bridgeFileLoadedRecorded)
+                {
+                    bridgeFileLoadedRecorded = true;
+                    StartupTrace.BridgeFileLoaded(navigationId);
+                }
+
+                return;
+            }
+
+            if (string.Equals(eventName, "DocumentRendered", StringComparison.Ordinal)
+                && !bridgeDocumentRenderedRecorded)
+            {
+                bridgeDocumentRenderedRecorded = true;
+                StartupTrace.BridgeDocumentRendered(navigationId);
+            }
         }
 
         private void OnProcessFailed(CoreWebView2 sender, CoreWebView2ProcessFailedEventArgs e)
@@ -404,6 +491,9 @@ namespace Typedown.WinUI.Controls
             }
 
             webView.CoreWebView2.WebMessageReceived += OnWebMessageReceived;
+            webView.CoreWebView2.NavigationStarting += OnNavigationStarting;
+            webView.CoreWebView2.ContentLoading += OnContentLoading;
+            webView.CoreWebView2.DOMContentLoaded += OnDomContentLoaded;
             webView.CoreWebView2.NavigationCompleted += OnNavigationCompleted;
             webView.CoreWebView2.ProcessFailed += OnProcessFailed;
             webView.CoreWebView2.ContextMenuRequested += OnContextMenuRequested;
@@ -419,6 +509,9 @@ namespace Typedown.WinUI.Controls
             }
 
             webView.CoreWebView2.WebMessageReceived -= OnWebMessageReceived;
+            webView.CoreWebView2.NavigationStarting -= OnNavigationStarting;
+            webView.CoreWebView2.ContentLoading -= OnContentLoading;
+            webView.CoreWebView2.DOMContentLoaded -= OnDomContentLoaded;
             webView.CoreWebView2.NavigationCompleted -= OnNavigationCompleted;
             webView.CoreWebView2.ProcessFailed -= OnProcessFailed;
             webView.CoreWebView2.ContextMenuRequested -= OnContextMenuRequested;

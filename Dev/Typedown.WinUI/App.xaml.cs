@@ -64,9 +64,14 @@ namespace Typedown.WinUI
             Config.SetAppDataPathProvider(new WinUIAppDataPathProvider());
             WinUILocale.ApplyPersistedLanguageOverride();
 
-            using (StartupTrace.Phase("App.InitializeComponent"))
+            StartupTrace.AppInitializeComponentStart();
+            try
             {
                 this.InitializeComponent();
+            }
+            finally
+            {
+                StartupTrace.AppInitializeComponentStop();
             }
         }
 
@@ -77,7 +82,7 @@ namespace Typedown.WinUI
         /// <param name="e">Details about the launch request and process.</param>
         protected override void OnLaunched(LaunchActivatedEventArgs e)
         {
-            StartupTrace.Mark("App.OnLaunched entered");
+            StartupTrace.AppOnLaunchedStart();
             var startupCommandLineArgs = ResolveStartupCommandLineArgs();
             WinUILocale.Initialize();
 
@@ -91,9 +96,14 @@ namespace Typedown.WinUI
             Directory.CreateDirectory(tmp);
             Environment.SetEnvironmentVariable("SQLITE_TMPDIR", tmp);
 
-            using (StartupTrace.Phase("SQLite Batteries.Init"))
+            StartupTrace.SQLiteInitializeStart();
+            try
             {
                 Batteries.Init();
+            }
+            finally
+            {
+                StartupTrace.SQLiteInitializeStop();
             }
 
             if (window is null)
@@ -180,8 +190,16 @@ namespace Typedown.WinUI
             StartupTrace.Mark("Activation service listening");
             _ = platformServices.AppActivationService.Activate(startupCommandLineArgs);
             StartupTrace.Mark("App activation request dispatched");
-            platformServices.WindowContext.Activate();
-            StartupTrace.Mark("Window activated");
+            StartupTrace.WindowActivateStart();
+            try
+            {
+                platformServices.WindowContext.Activate();
+            }
+            finally
+            {
+                StartupTrace.WindowActivateStop();
+            }
+            StartupTrace.AppOnLaunchedStop();
         }
 
         private string[] ResolveStartupCommandLineArgs()

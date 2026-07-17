@@ -21,5 +21,6 @@
     <Compile Include="..\..\Dev\Typedown.WinUI\Controls\EditorControls\Hosting\WinUIEditorBridgeAdapter.cs" Link="TestImports\WinUIEditorBridgeAdapter.cs" />
     <Compile Include="..\..\Dev\Typedown.WinUI\Controls\EditorControls\Hosting\WinUIEditorHostController.cs" Link="TestImports\WinUIEditorHostController.cs" />
     <Compile Include="..\..\Dev\Typedown.WinUI\Controls\EditorControls\Hosting\WinUIEditorDocumentSession.cs" Link="TestImports\WinUIEditorDocumentSession.cs" />
+    <Compile Include="..\..\Dev\Typedown.WinUI\Utilities\StartupTrace.cs" Link="TestImports\StartupTrace.cs" />
   </ItemGroup>
 </Project>
