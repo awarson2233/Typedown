@@ -20,9 +20,8 @@
     <JavaScriptTestRoot>src\</JavaScriptTestRoot>
     <JavaScriptTestFramework>Jest</JavaScriptTestFramework>
     <BuildWorkingDirectory>$(MSBuildProjectDirectory)</BuildWorkingDirectory>
-    <!-- Command to run on project build -->
-    <BuildCommand>yarn build</BuildCommand>
-    <!-- Publish depends on Build; leave this empty so the fixed SDK does not run the frontend build twice. -->
+    <!-- Frontend production builds are run manually with yarn build. -->
+    <BuildCommand></BuildCommand>
     <ProductionBuildCommand></ProductionBuildCommand>
     <!-- config-overrides.js writes the production bundle directly into the WinUI staging directory. -->
     <BuildOutputFolder>$(MSBuildProjectDirectory)\..\Typedown.WinUI\Resources\Statics</BuildOutputFolder>
@@ -30,13 +29,6 @@
 
   <Import Project="Sdk.targets" Sdk="Microsoft.VisualStudio.JavaScript.Sdk" Version="0.5.45-alpha" />
 
-  <!-- The fixed SDK's DebugEnsureNodeEnv uses npm. Override it and restore only from yarn.lock. -->
-  <Target Name="EnsureYarnNodeEnv"
-          BeforeTargets="CoreCompile"
-          Condition="!Exists('$(BuildWorkingDirectory)\node_modules')">
-    <Message Importance="high" Text="Restoring Typedown.Editor dependencies with Yarn." />
-    <Exec WorkingDirectory="$(BuildWorkingDirectory)" Command="yarn install --frozen-lockfile" />
-  </Target>
-
-  <Target Name="DebugEnsureNodeEnv" DependsOnTargets="EnsureYarnNodeEnv" />
+  <!-- Prevent the JavaScript SDK from restoring dependencies during an MSBuild build. -->
+  <Target Name="DebugEnsureNodeEnv" />
 </Project>
