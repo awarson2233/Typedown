@@ -25,7 +25,6 @@ namespace Typedown.WinUI.Controls
         public void ResetForNavigation()
         {
             editorReady = false;
-            pendingLoadFile = false;
         }
 
         public void MarkEditorReady()

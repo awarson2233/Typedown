@@ -1,7 +1,10 @@
 using System;
 using System.Globalization;
 using System.IO;
+using System.Net.Sockets;
 using System.Text.Json;
+using System.Threading;
+using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
@@ -21,12 +24,15 @@ namespace Typedown.WinUI.Controls
         private readonly IServiceProvider? serviceProvider;
         private readonly WinUIEditorCommandSink? commandSink;
         private readonly WinUIWebViewEnvironmentService? webViewEnvironmentService;
-        private IEditorDocumentSession documentSession;
-        private WinUIEditorHostController hostController;
-        private WinUIEditorBridgeAdapter bridgeAdapter;
+        private readonly string? editorIndex;
+        private readonly IEditorDocumentSession documentSession;
+        private readonly WinUIEditorHostController hostController;
+        private readonly WinUIEditorBridgeAdapter bridgeAdapter;
         private string status;
         private string latestRawWebMessage;
         private readonly PendingRawMessageQueue pendingRawMessages = new();
+        private Task? coreInitializationTask;
+        private CancellationTokenSource? loadCancellation;
         private bool coreInitialized;
         private bool isLoaded;
         private bool coreEventsAttached;
@@ -44,7 +50,8 @@ namespace Typedown.WinUI.Controls
                 commandSink = serviceProvider?.GetService<IEditorCommandSink>() as WinUIEditorCommandSink;
                 webViewEnvironmentService = serviceProvider?.GetService<WinUIWebViewEnvironmentService>();
                 hostSink = new WinUIEditorHostSink(this);
-                documentSession = CreateDocumentSession();
+                editorIndex = ResolveEditorIndexPath();
+                documentSession = CreateDocumentSession(editorIndex is null ? null : ResolveBasePath(editorIndex));
                 hostController = new WinUIEditorHostController(documentSession, hostSink);
                 bridgeAdapter = new WinUIEditorBridgeAdapter(documentSession);
                 webView = new WebView2
@@ -77,11 +84,15 @@ namespace Typedown.WinUI.Controls
 
         private async void OnLoaded(object sender, RoutedEventArgs e)
         {
-            isLoaded = true;
-            commandSink?.RegisterActiveHost(this);
+            loadCancellation?.Cancel();
+            loadCancellation?.Dispose();
+            loadCancellation = new CancellationTokenSource();
+            var cancellationToken = loadCancellation.Token;
             var currentLoadVersion = ++loadVersion;
 
-            var editorIndex = ResolveEditorIndexPath();
+            isLoaded = true;
+            commandSink?.RegisterActiveHost(this);
+
             if (editorIndex is null)
             {
                 status = "Editor static bundle is missing. Run yarn build in Dev\\Typedown.Editor to generate Dev\\Typedown.WinUI\\Resources\\Statics\\index.html.";
@@ -108,37 +119,14 @@ namespace Typedown.WinUI.Controls
                     return;
                 }
 
-                if (!coreInitialized)
+                await EnsureCoreInitializedAsync(themePayload.Background, cancellationToken);
+                if (!IsCurrentLoad(currentLoadVersion, cancellationToken))
                 {
-                    var environment = await GetEnvironmentAsync();
-                    StartupTrace.EnsureCoreWebView2Start();
-                    try
-                    {
-                        await webView.EnsureCoreWebView2Async(environment);
-                    }
-                    finally
-                    {
-                        StartupTrace.EnsureCoreWebView2Stop();
-                    }
-                    if (!isLoaded || currentLoadVersion != loadVersion)
-                    {
-                        return;
-                    }
-
-                    coreInitialized = true;
-                    await webView.CoreWebView2.AddScriptToExecuteOnDocumentCreatedAsync(BuildInitialEditorBackgroundScript(themePayload.Background));
-                    await webView.CoreWebView2.AddScriptToExecuteOnDocumentCreatedAsync(BuildFindShortcutScript());
+                    return;
                 }
 
-                documentSession = CreateDocumentSession(ResolveBasePath(editorIndex));
-                hostController = new WinUIEditorHostController(documentSession, hostSink)
-                {
-                    InitialFilePath = InitialFilePath
-                };
-                bridgeAdapter = new WinUIEditorBridgeAdapter(documentSession);
                 bridgeAdapter.ResetForNavigation();
                 hostController.ResetForNavigation();
-                pendingRawMessages.Clear();
                 AttachCoreWebView();
                 if (!string.IsNullOrWhiteSpace(InitialFilePath))
                 {
@@ -163,26 +151,17 @@ namespace Typedown.WinUI.Controls
                 webView.CoreWebView2.Settings.IsZoomControlEnabled = false;
 #if DEBUG
                 webView.Opacity = 1;
-                bool useDevServer = false;
-                try
+                var useDevServer = await IsDevServerAvailableAsync(cancellationToken);
+                if (!IsCurrentLoad(currentLoadVersion, cancellationToken))
                 {
-                    using (var tcpClient = new System.Net.Sockets.TcpClient())
-                    {
-                        var result = tcpClient.BeginConnect("127.0.0.1", 3000, null, null);
-                        useDevServer = result.AsyncWaitHandle.WaitOne(TimeSpan.FromMilliseconds(200));
-                        if (useDevServer)
-                        {
-                            tcpClient.EndConnect(result);
-                        }
-                    }
+                    return;
                 }
-                catch { }
 
                 if (useDevServer)
                 {
                     status = "Editor host navigating to Local Dev Server (http://localhost:3000) with HMR enabled.";
-                editorNavigationStarted = true;
-                webView.CoreWebView2.Navigate("http://localhost:3000");
+                    editorNavigationStarted = true;
+                    webView.CoreWebView2.Navigate("http://localhost:3000");
                 }
                 else
                 {
@@ -193,16 +172,21 @@ namespace Typedown.WinUI.Controls
                 webView.CoreWebView2.OpenDevToolsWindow();
 #else
                 webView.Opacity = 0;
+                status = $"Editor host navigating to {editorIndex}";
                 editorNavigationStarted = true;
                 webView.CoreWebView2.Navigate(new Uri(editorIndex).AbsoluteUri);
 #endif
-                status = $"Editor host navigating to {editorIndex}";
+            }
+            catch (OperationCanceledException) when (!IsCurrentLoad(currentLoadVersion, cancellationToken))
+            {
             }
             catch (Exception ex)
             {
-                status = $"WebView2 initialization failed: {ex.GetType().Name}: {ex.Message}";
+                if (IsCurrentLoad(currentLoadVersion, cancellationToken))
+                {
+                    status = $"WebView2 initialization failed: {ex.GetType().Name}: {ex.Message}";
+                }
                 System.Diagnostics.Debug.WriteLine($"[FATAL WEBVIEW2] {ex}");
-                throw;
             }
         }
 
@@ -210,6 +194,9 @@ namespace Typedown.WinUI.Controls
         {
             isLoaded = false;
             loadVersion++;
+            loadCancellation?.Cancel();
+            loadCancellation?.Dispose();
+            loadCancellation = null;
             pendingRawMessages.Clear();
             commandSink?.UnregisterActiveHost(this);
             DetachCoreWebView();
@@ -217,6 +204,7 @@ namespace Typedown.WinUI.Controls
 
         private async void OnWebMessageReceived(CoreWebView2 sender, CoreWebView2WebMessageReceivedEventArgs e)
         {
+            var messageLoadVersion = loadVersion;
             var wasContentLoaded = bridgeAdapter.IsContentLoaded;
             var messageStr = e.TryGetWebMessageAsString();
 
@@ -237,9 +225,16 @@ namespace Typedown.WinUI.Controls
                 catch { }
             }
 
-            var receiveTask = bridgeAdapter.ReceiveAsync(messageStr, payload => SendRawMessage(payload));
+            var receiveTask = bridgeAdapter.ReceiveAsync(
+                messageStr,
+                payload => IsCurrentLoad(messageLoadVersion) && SendRawMessage(payload));
             var bridgeMilestoneName = StartupTrace.IsEnabled ? bridgeAdapter.LastEventName : null;
             await receiveTask;
+            if (!IsCurrentLoad(messageLoadVersion))
+            {
+                return;
+            }
+
             status = bridgeAdapter.StatusText;
             latestRawWebMessage = bridgeAdapter.LastRawMessage;
             if (bridgeMilestoneName is not null)
@@ -333,6 +328,78 @@ namespace Typedown.WinUI.Controls
             return SendRawMessage(payload, requireContentLoaded: true);
         }
 
+        private bool IsCurrentLoad(int version)
+        {
+            return isLoaded && version == loadVersion;
+        }
+
+        private bool IsCurrentLoad(int version, CancellationToken cancellationToken)
+        {
+            return IsCurrentLoad(version) && !cancellationToken.IsCancellationRequested;
+        }
+
+        private async Task EnsureCoreInitializedAsync(EditorColorPayload background, CancellationToken cancellationToken)
+        {
+            var initializationTask = coreInitializationTask ??= InitializeCoreAsync(background);
+            try
+            {
+                await initializationTask.WaitAsync(cancellationToken);
+            }
+            catch when (initializationTask.IsFaulted || initializationTask.IsCanceled)
+            {
+                if (ReferenceEquals(coreInitializationTask, initializationTask))
+                {
+                    coreInitializationTask = null;
+                }
+
+                throw;
+            }
+        }
+
+        private async Task InitializeCoreAsync(EditorColorPayload background)
+        {
+            var environment = await GetEnvironmentAsync();
+            StartupTrace.EnsureCoreWebView2Start();
+            try
+            {
+                await webView.EnsureCoreWebView2Async(environment);
+            }
+            finally
+            {
+                StartupTrace.EnsureCoreWebView2Stop();
+            }
+
+            await webView.CoreWebView2.AddScriptToExecuteOnDocumentCreatedAsync(BuildDocumentCreatedScript(background));
+            coreInitialized = true;
+        }
+
+#if DEBUG
+        private static async Task<bool> IsDevServerAvailableAsync(CancellationToken cancellationToken)
+        {
+            using var timeoutCancellation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            timeoutCancellation.CancelAfter(TimeSpan.FromMilliseconds(200));
+
+            try
+            {
+                using var tcpClient = new TcpClient();
+                await tcpClient.ConnectAsync("127.0.0.1", 3000, timeoutCancellation.Token);
+                return true;
+            }
+            catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+            {
+                return false;
+            }
+            catch (OperationCanceledException)
+            {
+                throw;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+#endif
+
         private async Task<CoreWebView2Environment> GetEnvironmentAsync()
         {
             if (webViewEnvironmentService is not null)
@@ -383,7 +450,7 @@ namespace Typedown.WinUI.Controls
                 ToByte(background.B));
         }
 
-        private static string BuildInitialEditorBackgroundScript(EditorColorPayload background)
+        private static string BuildDocumentCreatedScript(EditorColorPayload background)
         {
             var color = string.Create(
                 CultureInfo.InvariantCulture,
@@ -405,14 +472,7 @@ namespace Typedown.WinUI.Controls
                     };
                     document.addEventListener('DOMContentLoaded', apply, { once: true });
                     apply();
-                })();
-                """);
-        }
 
-        private static string BuildFindShortcutScript()
-        {
-            return """
-                (() => {
                     document.addEventListener('keydown', event => {
                         if (event.defaultPrevented || event.repeat || !event.ctrlKey || event.altKey) {
                             return;
@@ -443,7 +503,7 @@ namespace Typedown.WinUI.Controls
                         }));
                     }, true);
                 })();
-                """;
+                """);
         }
 
         private static byte ToByte(double value)
