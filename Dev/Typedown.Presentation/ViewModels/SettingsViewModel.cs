@@ -158,13 +158,33 @@ namespace Typedown.Presentation.ViewModels
         public void SetSettingValue<T>(T value, [CallerMemberName] string propertyName = "")
         {
             var updatedValue = CreateSettingToken(value);
-            if (JToken.DeepEquals(store[propertyName], updatedValue))
+            var currentValue = store[propertyName];
+            if ((currentValue is null || currentValue.Type == JTokenType.Null)
+                && TryGetEffectiveSettingValue(propertyName, out var effectiveValue))
+            {
+                currentValue = CreateSettingToken(effectiveValue);
+            }
+
+            if (JToken.DeepEquals(currentValue, updatedValue))
             {
                 return;
             }
 
             store[propertyName] = updatedValue;
             SaveAllSettings();
+        }
+
+        private bool TryGetEffectiveSettingValue(string propertyName, out object? value)
+        {
+            var property = GetType().GetProperty(propertyName);
+            if (property?.GetSetMethod() is null || property.GetMethod is null)
+            {
+                value = null;
+                return false;
+            }
+
+            value = property.GetValue(this);
+            return true;
         }
 
         private static JToken CreateSettingToken<T>(T value)

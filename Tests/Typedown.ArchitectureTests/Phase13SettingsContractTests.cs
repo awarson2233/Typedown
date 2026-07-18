@@ -31,6 +31,21 @@ public class Phase13SettingsContractTests
     }
 
     [TestMethod]
+    public void PresentationSettingsViewModel_UsesDeclaredDefaultsForMissingSettingNoOps()
+    {
+        var source = File.ReadAllText(Path.Combine(RepoRoot, "Dev", "Typedown.Presentation", "ViewModels", "SettingsViewModel.cs"));
+
+        AssertHasTypeReference(source, "currentValue is null || currentValue.Type == JTokenType.Null");
+        AssertHasTypeReference(source, "&& TryGetEffectiveSettingValue(propertyName, out var effectiveValue)");
+        AssertHasTypeReference(source, "currentValue = CreateSettingToken(effectiveValue);");
+        AssertHasTypeReference(source, "value = property.GetValue(this);");
+        AssertHasTypeReference(source, "public bool Topmost { get => GetSettingValue(false);");
+        AssertHasTypeReference(source, "public bool AnimationEnable { get => GetSettingValue(true);");
+        AssertHasTypeReference(source, "public string? LastFilePath { get => GetSettingValue<string?>(null);");
+        AssertNoTypeReference(source, "currentValue = CreateSettingToken(default(T));");
+    }
+
+    [TestMethod]
     public void WinUISettingsPages_AreRoutedAndIncludedInProject()
     {
         var winUIRoot = Path.Combine(RepoRoot, "Dev", "Typedown.WinUI");
