@@ -53,8 +53,8 @@ const Editor: React.FC = () => {
     useEffect(() => {
         remote.getSettings().then(({ markdown, basePath, documentId, ...opt }: any) => {
             window.basePath = basePath
-            setOptions(opt)
             loadDocument(markdown, documentId)
+            setOptions(opt)
         })
     }, [loadDocument]);
 

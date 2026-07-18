@@ -9,10 +9,11 @@
     ],
     "exports": {
         ".": {
-            "import": "./lib/es/index.js",
+            "import": "./lib/cjs/index.js",
             "require": "./lib/cjs/index.js",
             "types": "./lib/types/index.d.ts"
         },
+        "./core.css": "./lib/core.css",
         "./*": {
             "import": "./lib/es/*",
             "require": "./lib/cjs/*",

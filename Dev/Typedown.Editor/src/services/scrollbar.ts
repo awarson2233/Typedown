@@ -1,32 +1,46 @@
 import transport from "./transport"
 
-const postScrollState = () => {
-    const viewportWidth = document.documentElement.clientWidth || window.innerWidth
-    const viewportHeight = document.documentElement.clientHeight || window.innerHeight
-    const maximumXRaw = Math.max(document.documentElement.scrollWidth, document.body.scrollWidth) - viewportWidth
-    const maximumYRaw = Math.max(document.documentElement.scrollHeight, document.body.scrollHeight) - viewportHeight
-    const epsilon = 1
-    const maximumX = maximumXRaw <= epsilon ? 0 : maximumXRaw
-    const maximumY = maximumYRaw <= epsilon ? 0 : maximumYRaw
+const getScrollOwner = () => document.querySelector<HTMLElement>('.mu-editor, .CodeMirror-scroll')
+    ?? document.scrollingElement as HTMLElement
 
-    transport.postMessageNoDiff('OnScroll', {
-        viewportWidth,
-        viewportHeight,
-        maximumX,
-        maximumY,
-        scrollX: window.scrollX,
-        scrollY: window.scrollY
+let postFrame: number | undefined
+const postScrollState = () => {
+    if (postFrame !== undefined) cancelAnimationFrame(postFrame)
+    postFrame = requestAnimationFrame(() => {
+        postFrame = undefined
+        const owner = getScrollOwner()
+        const viewportWidth = owner.clientWidth
+        const viewportHeight = owner.clientHeight
+        const epsilon = 1
+        const maximumXRaw = owner.scrollWidth - viewportWidth
+        const maximumYRaw = owner.scrollHeight - viewportHeight
+        const maximumX = maximumXRaw <= epsilon ? 0 : maximumXRaw
+        const maximumY = maximumYRaw <= epsilon ? 0 : maximumYRaw
+
+        transport.postMessageNoDiff('OnScroll', {
+            viewportWidth,
+            viewportHeight,
+            maximumX,
+            maximumY,
+            scrollX: owner.scrollLeft,
+            scrollY: owner.scrollTop
+        })
     })
 }
 
 const resizeObserver = new ResizeObserver(postScrollState)
+resizeObserver.observe(document.documentElement)
 resizeObserver.observe(document.body)
-addEventListener('scroll', postScrollState)
+const mutationObserver = new MutationObserver(postScrollState)
+mutationObserver.observe(document.body, { childList: true, characterData: true, subtree: true })
+addEventListener('scroll', postScrollState, true)
+addEventListener('load', postScrollState, true)
 addEventListener('resize', postScrollState)
 transport.addListener('RefreshScrollState', postScrollState)
 
 transport.addListener<{ scrollX: number, scrollY: number }>('OnScroll', ({ scrollX, scrollY }) => {
+    const owner = getScrollOwner()
     const equals = (a: number, b: number) => Math.abs(a - b) < 1
-    if (!equals(scrollX, window.scrollX) || !equals(scrollY, window.scrollY))
-        window.scrollTo(scrollX, scrollY)
+    if (!equals(scrollX, owner.scrollLeft) || !equals(scrollY, owner.scrollTop))
+        owner.scrollTo(scrollX, scrollY)
 })

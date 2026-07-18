@@ -67,10 +67,32 @@ function onThemeChanged(payload: any) {
         : { r: 249, g: 249, b: 249, a: 1 };
     const bg = normalizeColor(payload?.background, defaultBackground)
 
+    const foreground = theme === 'dark'
+        ? { r: 242, g: 242, b: 242, a: 1 }
+        : { r: 31, g: 31, b: 31, a: 1 }
+
     document.body.style.backgroundColor = formatRgba(bg);
     document.documentElement.style.setProperty('--actual-theme', theme)
+    document.documentElement.style.setProperty('--editor-background', formatRgba(bg))
     document.documentElement.style.setProperty('--theme-color', formatRgba(accent))
-    document.documentElement.style.setProperty('--editor-color', theme === 'dark' ? '#f2f2f2' : '#1f1f1f')
+    document.documentElement.style.setProperty('--editor-color', formatRgba(foreground))
+    document.documentElement.style.setProperty('--editor-color-80', formatRgba({ ...foreground, a: 0.8 }))
+    document.documentElement.style.setProperty('--editor-color-50', formatRgba({ ...foreground, a: 0.5 }))
+    document.documentElement.style.setProperty('--editor-color-30', formatRgba({ ...foreground, a: 0.3 }))
+    document.documentElement.style.setProperty('--editor-color-10', formatRgba({ ...foreground, a: 0.1 }))
+    document.documentElement.style.setProperty('--editor-color-04', formatRgba({ ...foreground, a: 0.04 }))
+    document.documentElement.style.setProperty('--editor-bg-color', formatRgba(bg))
+    document.documentElement.style.setProperty('--code-block-bg-color', formatRgba({ ...foreground, a: 0.04 }))
+    document.documentElement.style.setProperty('--table-border-color', formatRgba({ ...foreground, a: 0.1 }))
+    document.documentElement.style.setProperty('--input-bg-color', formatRgba({ ...foreground, a: 0.06 }))
+    document.documentElement.style.setProperty('--button-font-color', formatRgba(foreground))
+    document.documentElement.style.setProperty('--button-bg-color', formatRgba(bg))
+    document.documentElement.style.setProperty('--button-bg-color-hover', formatRgba({ ...foreground, a: 0.04 }))
+    document.documentElement.style.setProperty('--button-border', `1px solid ${formatRgba({ ...foreground, a: 0.15 })}`)
+    document.documentElement.style.setProperty('--float-bg-color', formatRgba(bg))
+    document.documentElement.style.setProperty('--float-hover-color', formatRgba({ ...foreground, a: 0.06 }))
+    document.documentElement.style.setProperty('--float-border-color', formatRgba({ ...foreground, a: 0.15 }))
+    document.documentElement.style.setProperty('--icon-color', formatRgba({ ...foreground, a: 0.7 }))
     document.documentElement.style.setProperty('--selection-color', formatRgba({ ...accent, a: accent.a * 0.3 }))
     themeColorSteps.forEach(e => document.documentElement.style.setProperty(`--theme-color-${e}`, formatRgba({ ...accent, a: accent.a * (e / 100) })))
 

@@ -18,7 +18,6 @@ import {
     TableRowColumMenu,
     wordCount
 } from '@muyajs/core';
-import '../../../vendor/muya-core/lib/core.css';
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { createApplicationMenuState } from "services/menuState";
 import transport from "services/transport";
@@ -124,6 +123,7 @@ const parseTableSize = (value: any) => {
 const MuyaEditor: React.FC<IMuyaEditor> = (props) => {
     const [editor, setEditor] = useState<Muya>()
     const [marginTop, setMarginTop] = useState(0)
+    const [documentEmpty, setDocumentEmpty] = useState(() => !props.markdown.trim())
     const mountRef = useRef<HTMLDivElement>(null)
     const markdownRef = useRef('')
     const cursorRef = useRef<any>()
@@ -172,6 +172,7 @@ const MuyaEditor: React.FC<IMuyaEditor> = (props) => {
         const muya = new Muya(mount, { markdown: props.markdown, ...optionsRef.current })
         muya.init()
         markdownRef.current = muya.getMarkdown()
+        setDocumentEmpty(!markdownRef.current.trim())
         setEditor(muya)
 
         // 💡 订阅行头 ¶ 的点击，向 C# 发送 OpenFrontMenu 消息并携带坐标
@@ -238,6 +239,7 @@ const MuyaEditor: React.FC<IMuyaEditor> = (props) => {
         }
         editor.clearHistory()
         markdownRef.current = editor.getMarkdown()
+        setDocumentEmpty(!markdownRef.current.trim())
         if (cursorRef.current) editor.setCursorByOffset(cursorRef.current)
         else editor.setCursorByOffset({ anchor: { line: 0, ch: 0 }, focus: { line: 0, ch: 0 } })
         loadingRef.current = false
@@ -271,6 +273,7 @@ const MuyaEditor: React.FC<IMuyaEditor> = (props) => {
         loadingRef.current = true
         editor.setContent(replacement.text)
         markdownRef.current = editor.getMarkdown()
+        setDocumentEmpty(!markdownRef.current.trim())
         if (replacement.cursor) editor.setCursorByOffset(replacement.cursor)
         else editor.setCursorByOffset({ anchor: { line: 0, ch: 0 }, focus: { line: 0, ch: 0 } })
         loadingRef.current = false
@@ -428,6 +431,7 @@ const MuyaEditor: React.FC<IMuyaEditor> = (props) => {
             const active = getActiveHeading()
             const cur = active ? toc.find(item => item.slug === active.slug) : undefined
             markdownRef.current = markdown
+            setDocumentEmpty(!markdown.trim())
             props.onMarkdownChange(markdown, documentIdRef.current)
             props.onCursorChange(cursor, documentIdRef.current)
             transport.postMessage('StateChange', { state: { wordCount: wordCount(markdown), toc, cur }, muya: true, documentId: documentIdRef.current })
@@ -449,7 +453,8 @@ const MuyaEditor: React.FC<IMuyaEditor> = (props) => {
         if (!editor) return
         const owner = editor.domNode
         owner.style.boxSizing = 'border-box'
-        owner.style.height = '100vh'
+        owner.style.width = '100%'
+        owner.style.height = '100%'
         owner.style.overflow = 'auto'
         owner.style.paddingTop = props.options?.typewriter ? `calc(50vh - ${136 - marginTop}px)` : `${marginTop}px`
         owner.style.paddingBottom = props.options?.typewriter ? 'calc(50vh - 54px)' : '0'
@@ -465,7 +470,7 @@ const MuyaEditor: React.FC<IMuyaEditor> = (props) => {
         return () => owner.removeEventListener('scroll', onScroll)
     }, [editor, props.scrollTopRef])
 
-    return <div className="muya-host"><div ref={mountRef} /></div>
+    return <div className={`muya-host${documentEmpty ? ' muya-document-empty' : ''}`}><div ref={mountRef} /></div>
 }
 
 export default MuyaEditor

@@ -1,4 +1,5 @@
 import React from 'react';
+import '@muyajs/core/core.css';
 import Editor from 'components/Editor';
 import ErrorBoundary from 'components/ErrorBoundary';
 import 'services/theme'
