@@ -41,6 +41,8 @@ namespace Typedown.Presentation.Utilities
 
         public bool CanExecute(object? parameter = null) => canExecuteSubject.Value(parameter);
 
+        public void RaiseCanExecuteChanged() => CanExecuteChanged?.Invoke(this, EventArgs.Empty);
+
         public bool IsExecutable { get => CanExecute(); set => SetCanExecute.OnNext(value); }
 
         public IObservable<T> OnExecute => executeSubject.AsObservable();

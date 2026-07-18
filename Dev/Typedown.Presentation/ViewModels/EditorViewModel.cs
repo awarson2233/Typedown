@@ -68,6 +68,9 @@ namespace Typedown.Presentation.ViewModels
 
         private readonly CompositeDisposable disposables = new();
         private readonly SerialDisposable tocSelectionDisposables = new();
+        private readonly IUiDispatcher uiDispatcher;
+        private readonly int uiThreadId;
+        private bool disposed;
 
         private readonly Dictionary<string, string> appliedReplacementRevisions = new(StringComparer.Ordinal);
         private readonly Queue<string> appliedReplacementRevisionOrder = new();
@@ -80,10 +83,13 @@ namespace Typedown.Presentation.ViewModels
         public EditorViewModel(IServiceProvider serviceProvider)
         {
             ServiceProvider = serviceProvider;
+            uiDispatcher = ServiceProvider.GetRequiredService<IUiDispatcher>();
+            uiThreadId = Environment.CurrentManagedThreadId;
             disposables.Add(tocSelectionDisposables);
+            UndoCommand.SetCanExecuteFunc.OnNext(_ => History.Undoable);
+            RedoCommand.SetCanExecuteFunc.OnNext(_ => History.Redoable);
             History.PropertyChanged += OnHistoryPropertyChanged;
             disposables.Add(Disposable.Create(() => History.PropertyChanged -= OnHistoryPropertyChanged));
-            UpdateHistoryCommandAvailability();
             disposables.Add(EventCenter.GetObservable<EditorEventArgs>("MarkdownChange").Subscribe(x => OnMarkdownChange(x.Args)));
             disposables.Add(EventCenter.GetObservable<EditorEventArgs>("FileLoaded").Subscribe(x => OnFileLoaded(x.Args)));
             disposables.Add(EventCenter.GetObservable<EditorEventArgs>("DocumentFlushed").Subscribe(x => OnDocumentFlushed(x.Args)));
@@ -131,18 +137,32 @@ namespace Typedown.Presentation.ViewModels
 
         public string CurrentDocumentId => documentId;
 
-        private void OnHistoryPropertyChanged(object? sender, PropertyChangedEventArgs e)
+        private async void OnHistoryPropertyChanged(object? sender, PropertyChangedEventArgs e)
         {
-            if (e.PropertyName is nameof(ContentHistory.Undoable) or nameof(ContentHistory.Redoable))
+            if (disposed || e.PropertyName is not (nameof(ContentHistory.Undoable) or nameof(ContentHistory.Redoable)))
             {
-                UpdateHistoryCommandAvailability();
+                return;
             }
+
+            if (Environment.CurrentManagedThreadId == uiThreadId)
+            {
+                RaiseHistoryCanExecuteChanged();
+                return;
+            }
+
+            await uiDispatcher.RunAsync(() =>
+            {
+                if (!disposed)
+                {
+                    RaiseHistoryCanExecuteChanged();
+                }
+            });
         }
 
-        private void UpdateHistoryCommandAvailability()
+        private void RaiseHistoryCanExecuteChanged()
         {
-            UndoCommand.IsExecutable = History.Undoable;
-            RedoCommand.IsExecutable = History.Redoable;
+            UndoCommand.RaiseCanExecuteChanged();
+            RedoCommand.RaiseCanExecuteChanged();
         }
 
         public void OnDocumentFlushed(JToken arg)
@@ -528,6 +548,7 @@ namespace Typedown.Presentation.ViewModels
 
         public void Dispose()
         {
+            disposed = true;
             disposables.Dispose();
         }
     }

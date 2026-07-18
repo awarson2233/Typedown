@@ -63,7 +63,10 @@ public abstract partial class MenuBarItemBase : Microsoft.UI.Xaml.Controls.MenuB
     protected void SetCommand(MenuFlyoutItem item, ICommand? command, object? parameter = null)
     {
         item.Command = command;
-        item.CommandParameter = parameter;
+        if (parameter is not null)
+        {
+            item.CommandParameter = parameter;
+        }
         UpdateIsEnabled(item, command, item.CommandParameter);
 
         if (command is null)
@@ -103,7 +106,10 @@ public abstract partial class MenuBarItemBase : Microsoft.UI.Xaml.Controls.MenuB
     protected void SetCommand(ToggleMenuFlyoutItem item, ICommand? command, object? parameter = null)
     {
         item.Command = command;
-        item.CommandParameter = parameter;
+        if (parameter is not null)
+        {
+            item.CommandParameter = parameter;
+        }
         UpdateIsEnabled(item, command, item.CommandParameter);
 
         if (command is null)
