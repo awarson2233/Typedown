@@ -160,21 +160,21 @@ namespace Typedown.WinUI.Controls
                 if (useDevServer)
                 {
                     status = "Editor host navigating to Local Dev Server (http://localhost:3000) with HMR enabled.";
-                    editorNavigationStarted = true;
                     webView.CoreWebView2.Navigate("http://localhost:3000");
+                    editorNavigationStarted = true;
                 }
                 else
                 {
                     status = $"Local Dev Server offline. Navigating to fallback static bundle: {editorIndex}";
-                    editorNavigationStarted = true;
                     webView.CoreWebView2.Navigate(new Uri(editorIndex).AbsoluteUri);
+                    editorNavigationStarted = true;
                 }
                 webView.CoreWebView2.OpenDevToolsWindow();
 #else
                 webView.Opacity = 0;
                 status = $"Editor host navigating to {editorIndex}";
-                editorNavigationStarted = true;
                 webView.CoreWebView2.Navigate(new Uri(editorIndex).AbsoluteUri);
+                editorNavigationStarted = true;
 #endif
             }
             catch (OperationCanceledException) when (!IsCurrentLoad(currentLoadVersion, cancellationToken))
