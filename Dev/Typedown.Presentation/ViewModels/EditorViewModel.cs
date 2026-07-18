@@ -81,6 +81,9 @@ namespace Typedown.Presentation.ViewModels
         {
             ServiceProvider = serviceProvider;
             disposables.Add(tocSelectionDisposables);
+            History.PropertyChanged += OnHistoryPropertyChanged;
+            disposables.Add(Disposable.Create(() => History.PropertyChanged -= OnHistoryPropertyChanged));
+            UpdateHistoryCommandAvailability();
             disposables.Add(EventCenter.GetObservable<EditorEventArgs>("MarkdownChange").Subscribe(x => OnMarkdownChange(x.Args)));
             disposables.Add(EventCenter.GetObservable<EditorEventArgs>("FileLoaded").Subscribe(x => OnFileLoaded(x.Args)));
             disposables.Add(EventCenter.GetObservable<EditorEventArgs>("DocumentFlushed").Subscribe(x => OnDocumentFlushed(x.Args)));
@@ -127,6 +130,20 @@ namespace Typedown.Presentation.ViewModels
             arg["documentId"] is null || arg["documentId"]?.ToString() == documentId;
 
         public string CurrentDocumentId => documentId;
+
+        private void OnHistoryPropertyChanged(object? sender, PropertyChangedEventArgs e)
+        {
+            if (e.PropertyName is nameof(ContentHistory.Undoable) or nameof(ContentHistory.Redoable))
+            {
+                UpdateHistoryCommandAvailability();
+            }
+        }
+
+        private void UpdateHistoryCommandAvailability()
+        {
+            UndoCommand.IsExecutable = History.Undoable;
+            RedoCommand.IsExecutable = History.Redoable;
+        }
 
         public void OnDocumentFlushed(JToken arg)
         {

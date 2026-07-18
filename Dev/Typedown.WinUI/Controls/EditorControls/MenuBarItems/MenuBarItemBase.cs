@@ -60,15 +60,20 @@ public abstract partial class MenuBarItemBase : Microsoft.UI.Xaml.Controls.MenuB
         ConfigureCommands(viewModel);
     }
 
-    protected static void SetCommand(MenuFlyoutItem item, ICommand? command, object? parameter = null)
+    protected void SetCommand(MenuFlyoutItem item, ICommand? command, object? parameter = null)
     {
         item.Command = command;
-        if (parameter is not null)
+        item.CommandParameter = parameter;
+        UpdateIsEnabled(item, command, item.CommandParameter);
+
+        if (command is null)
         {
-            item.CommandParameter = parameter;
+            return;
         }
 
-        item.IsEnabled = command is not null;
+        EventHandler handler = (_, _) => UpdateIsEnabled(item, command, item.CommandParameter);
+        command.CanExecuteChanged += handler;
+        shortcutRegistrations.Add(Disposable.Create(() => command.CanExecuteChanged -= handler));
     }
 
     protected void SetShortcut(MenuFlyoutItem item, ShortcutKey? shortcut)
@@ -85,22 +90,30 @@ public abstract partial class MenuBarItemBase : Microsoft.UI.Xaml.Controls.MenuB
         item.KeyboardAcceleratorTextOverride = activeShortcut.GetShortcutKeyText();
         RegisterShortcut(activeShortcut, () =>
         {
-            if (item.Command?.CanExecute(item.CommandParameter) == true)
+            if (item.Command?.CanExecute(item.CommandParameter) != true)
             {
-                item.Command.Execute(item.CommandParameter);
+                return false;
             }
+
+            item.Command.Execute(item.CommandParameter);
+            return true;
         });
     }
 
-    protected static void SetCommand(ToggleMenuFlyoutItem item, ICommand? command, object? parameter = null)
+    protected void SetCommand(ToggleMenuFlyoutItem item, ICommand? command, object? parameter = null)
     {
         item.Command = command;
-        if (parameter is not null)
+        item.CommandParameter = parameter;
+        UpdateIsEnabled(item, command, item.CommandParameter);
+
+        if (command is null)
         {
-            item.CommandParameter = parameter;
+            return;
         }
 
-        item.IsEnabled = command is not null;
+        EventHandler handler = (_, _) => UpdateIsEnabled(item, command, item.CommandParameter);
+        command.CanExecuteChanged += handler;
+        shortcutRegistrations.Add(Disposable.Create(() => command.CanExecuteChanged -= handler));
     }
 
     protected void SetShortcut(ToggleMenuFlyoutItem item, ShortcutKey? shortcut, Action? invoke = null)
@@ -120,11 +133,16 @@ public abstract partial class MenuBarItemBase : Microsoft.UI.Xaml.Controls.MenuB
             if (invoke is not null)
             {
                 invoke();
+                return true;
             }
-            else if (item.Command?.CanExecute(item.CommandParameter) == true)
+
+            if (item.Command?.CanExecute(item.CommandParameter) != true)
             {
-                item.Command.Execute(item.CommandParameter);
+                return false;
             }
+
+            item.Command.Execute(item.CommandParameter);
+            return true;
         });
     }
 
@@ -133,7 +151,17 @@ public abstract partial class MenuBarItemBase : Microsoft.UI.Xaml.Controls.MenuB
         return shortcut is not null && shortcut.Key != KeyboardKey.None;
     }
 
-    private void RegisterShortcut(ShortcutKey shortcut, Action invoke)
+    private static void UpdateIsEnabled(MenuFlyoutItem item, ICommand? command, object? parameter)
+    {
+        item.IsEnabled = command?.CanExecute(parameter) == true;
+    }
+
+    private static void UpdateIsEnabled(ToggleMenuFlyoutItem item, ICommand? command, object? parameter)
+    {
+        item.IsEnabled = command?.CanExecute(parameter) == true;
+    }
+
+    private void RegisterShortcut(ShortcutKey shortcut, Func<bool> invoke)
     {
         var accelerator = ViewModel?.ServiceProvider.GetService<IKeyboardAccelerator>();
         if (accelerator is null)
@@ -143,8 +171,10 @@ public abstract partial class MenuBarItemBase : Microsoft.UI.Xaml.Controls.MenuB
 
         shortcutRegistrations.Add(accelerator.Register(shortcut, (_, args) =>
         {
-            invoke();
-            args.Handled = true;
+            if (invoke())
+            {
+                args.Handled = true;
+            }
         }));
     }
 

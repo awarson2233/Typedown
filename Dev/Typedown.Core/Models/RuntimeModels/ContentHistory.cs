@@ -21,8 +21,21 @@ namespace Typedown.Core.Models
         int index = -1;
         private readonly Timer commitTimer = new(TimeSpan.FromSeconds(3).TotalMilliseconds);
 
-        public bool Undoable { get; set; }
-        public bool Redoable { get; set; }
+        private bool undoable;
+        private bool redoable;
+
+        public bool Undoable
+        {
+            get => undoable;
+            private set => SetProperty(ref undoable, value, nameof(Undoable));
+        }
+
+        public bool Redoable
+        {
+            get => redoable;
+            private set => SetProperty(ref redoable, value, nameof(Redoable));
+        }
+
         public bool IsPending { get => pending.Text != null && pending.Cursor != null; }
 
         public ContentHistory()
@@ -185,6 +198,17 @@ namespace Typedown.Core.Models
         {
             Redoable = index < histories.Count - 1;
             Undoable = index > 0 || (index == 0 && pending.Text != null && pending.Cursor != null);
+        }
+
+        private void SetProperty(ref bool field, bool value, string propertyName)
+        {
+            if (field == value)
+            {
+                return;
+            }
+
+            field = value;
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }
 
         public void InitHistory(string content)
