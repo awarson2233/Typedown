@@ -194,10 +194,24 @@ namespace Typedown.WinUI
             rootControl.AttachKeyboardAccelerator(uiServices.GetRequiredService<IKeyboardAccelerator>());
             rootControl.MainPageNavigationParameter = new MainPageNavigationContext(platformServices, uiServices);
             platformServices.WindowContext.ViewRoot = rootControl;
-            using (StartupTrace.Phase("Attach shell bindings"))
+            StartupTrace.ShellBindingsStart();
+            try
             {
-                AttachShellBindings(rootControl);
+                using (StartupTrace.Phase("Attach shell bindings"))
+                {
+                    AttachShellBindings(rootControl);
+                }
             }
+            catch
+            {
+                StartupTrace.ShellBindingsFailure();
+                throw;
+            }
+            finally
+            {
+                StartupTrace.ShellBindingsStop();
+            }
+
             platformServices.AppActivationService.StartListening(platformServices.UiDispatcher);
             StartupTrace.Mark("Activation service listening");
             _ = platformServices.AppActivationService.Activate(startupCommandLineArgs);
@@ -343,28 +357,24 @@ namespace Typedown.WinUI
 
             var settings = appViewModel.SettingsViewModel;
 
-            shellBindings.Add(settings.WhenPropertyChanged(nameof(SettingsViewModel.AppTheme))
+            var appThemeChanges = settings.WhenPropertyChanged(nameof(SettingsViewModel.AppTheme))
                 .Select(value => RequirePropertyValue<AppTheme>(value, nameof(SettingsViewModel.AppTheme)))
-                .StartWith(settings.AppTheme)
-                .Subscribe(theme =>
-                {
-                    ApplyAppTheme(theme);
-                    ApplyEditorBackground(settings);
-                }));
-
-            shellBindings.Add(settings.WhenPropertyChanged(nameof(SettingsViewModel.UseMicaEffect))
+                .StartWith(settings.AppTheme);
+            var micaEffectChanges = settings.WhenPropertyChanged(nameof(SettingsViewModel.UseMicaEffect))
                 .Select(value => RequirePropertyValue<bool>(value, nameof(SettingsViewModel.UseMicaEffect)))
-                .StartWith(settings.UseMicaEffect)
-                .Subscribe(enable =>
-                {
-                    ApplyMicaEffect(enable);
-                    ApplyEditorBackground(settings);
-                }));
-
-            shellBindings.Add(settings.WhenPropertyChanged(nameof(SettingsViewModel.UseEditorMicaEffect))
+                .StartWith(settings.UseMicaEffect);
+            var editorMicaEffectChanges = settings.WhenPropertyChanged(nameof(SettingsViewModel.UseEditorMicaEffect))
                 .Select(value => RequirePropertyValue<bool>(value, nameof(SettingsViewModel.UseEditorMicaEffect)))
-                .StartWith(settings.UseEditorMicaEffect)
-                .Subscribe(_ => ApplyEditorBackground(settings)));
+                .StartWith(settings.UseEditorMicaEffect);
+
+            shellBindings.Add(appThemeChanges.Subscribe(ApplyAppTheme));
+            shellBindings.Add(micaEffectChanges.Subscribe(ApplyMicaEffect));
+            shellBindings.Add(Observable.CombineLatest(
+                    appThemeChanges,
+                    micaEffectChanges,
+                    editorMicaEffectChanges,
+                    (_, _, _) => settings)
+                .Subscribe(ApplyEditorBackground));
 
             shellBindings.Add(settings.WhenPropertyChanged(nameof(SettingsViewModel.Topmost))
                 .Select(value => RequirePropertyValue<bool>(value, nameof(SettingsViewModel.Topmost)))
@@ -384,11 +394,6 @@ namespace Typedown.WinUI
                 shellBindings.Add(Disposable.Create(() => activationService.ActivationRequested -= OnActivationRequested));
             }
 
-            ApplyAppTheme(settings.AppTheme);
-            ApplyMicaEffect(settings.UseMicaEffect);
-            ApplyTopmost(settings.Topmost);
-            ApplyEditorBackground(settings);
-            rootControl.SetAnimationEnabled(settings.AnimationEnable);
             SyncActualTheme(rootControl.ActualTheme);
         }
 

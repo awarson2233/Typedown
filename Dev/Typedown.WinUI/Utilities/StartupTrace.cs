@@ -101,6 +101,66 @@ internal static class StartupTrace
         Mark("Window.Activate end");
     }
 
+    public static void PersistedLanguageReadStart()
+    {
+        if (IsEnabled)
+        {
+            StartupEventSource.Log.PersistedLanguageReadStart();
+        }
+
+        Mark("Persisted language read start");
+    }
+
+    public static void PersistedLanguageReadStop()
+    {
+        if (IsEnabled)
+        {
+            StartupEventSource.Log.PersistedLanguageReadStop();
+        }
+
+        Mark("Persisted language read end");
+    }
+
+    public static void PersistedLanguageReadFailure()
+    {
+        if (IsEnabled)
+        {
+            StartupEventSource.Log.PersistedLanguageReadFailure();
+        }
+
+        Mark("Persisted language read failure");
+    }
+
+    public static void ShellBindingsStart()
+    {
+        if (IsEnabled)
+        {
+            StartupEventSource.Log.ShellBindingsStart();
+        }
+
+        Mark("Shell bindings start");
+    }
+
+    public static void ShellBindingsStop()
+    {
+        if (IsEnabled)
+        {
+            StartupEventSource.Log.ShellBindingsStop();
+        }
+
+        Mark("Shell bindings end");
+    }
+
+    public static void ShellBindingsFailure()
+    {
+        if (IsEnabled)
+        {
+            StartupEventSource.Log.ShellBindingsFailure();
+        }
+
+        Mark("Shell bindings failure");
+    }
+
     public static void CoreWebView2EnvironmentCreateStart()
     {
         if (IsEnabled)
@@ -410,6 +470,24 @@ internal sealed class StartupEventSource : EventSource
     [Event(EventIds.AppOnLaunchedStop, Level = EventLevel.Informational, Keywords = Keywords.Startup, Opcode = EventOpcode.Stop, Task = Tasks.AppOnLaunched)]
     public void AppOnLaunchedStop() => WriteEvent(EventIds.AppOnLaunchedStop);
 
+    [Event(EventIds.PersistedLanguageReadStart, Level = EventLevel.Informational, Keywords = Keywords.Startup, Opcode = EventOpcode.Start, Task = Tasks.PersistedLanguageRead)]
+    public void PersistedLanguageReadStart() => WriteEvent(EventIds.PersistedLanguageReadStart);
+
+    [Event(EventIds.PersistedLanguageReadStop, Level = EventLevel.Informational, Keywords = Keywords.Startup, Opcode = EventOpcode.Stop, Task = Tasks.PersistedLanguageRead)]
+    public void PersistedLanguageReadStop() => WriteEvent(EventIds.PersistedLanguageReadStop);
+
+    [Event(EventIds.PersistedLanguageReadFailure, Level = EventLevel.Warning, Keywords = Keywords.Startup, Task = Tasks.PersistedLanguageRead)]
+    public void PersistedLanguageReadFailure() => WriteEvent(EventIds.PersistedLanguageReadFailure);
+
+    [Event(EventIds.ShellBindingsStart, Level = EventLevel.Informational, Keywords = Keywords.Startup, Opcode = EventOpcode.Start, Task = Tasks.ShellBindings)]
+    public void ShellBindingsStart() => WriteEvent(EventIds.ShellBindingsStart);
+
+    [Event(EventIds.ShellBindingsStop, Level = EventLevel.Informational, Keywords = Keywords.Startup, Opcode = EventOpcode.Stop, Task = Tasks.ShellBindings)]
+    public void ShellBindingsStop() => WriteEvent(EventIds.ShellBindingsStop);
+
+    [Event(EventIds.ShellBindingsFailure, Level = EventLevel.Warning, Keywords = Keywords.Startup, Task = Tasks.ShellBindings)]
+    public void ShellBindingsFailure() => WriteEvent(EventIds.ShellBindingsFailure);
+
     [Event(EventIds.CoreWebView2EnvironmentCreateStart, Level = EventLevel.Informational, Keywords = Keywords.Startup, Opcode = EventOpcode.Start, Task = Tasks.CoreWebView2EnvironmentCreate)]
     public void CoreWebView2EnvironmentCreateStart() => WriteEvent(EventIds.CoreWebView2EnvironmentCreateStart);
 
@@ -467,6 +545,12 @@ internal sealed class StartupEventSource : EventSource
         public const int BridgeContentLoaded = 18;
         public const int BridgeFileLoaded = 19;
         public const int BridgeDocumentRendered = 20;
+        public const int PersistedLanguageReadStart = 21;
+        public const int PersistedLanguageReadStop = 22;
+        public const int PersistedLanguageReadFailure = 23;
+        public const int ShellBindingsStart = 24;
+        public const int ShellBindingsStop = 25;
+        public const int ShellBindingsFailure = 26;
     }
 
     public static class Keywords
@@ -482,5 +566,7 @@ internal sealed class StartupEventSource : EventSource
         public const EventTask WindowActivate = (EventTask)4;
         public const EventTask CoreWebView2EnvironmentCreate = (EventTask)5;
         public const EventTask EnsureCoreWebView2 = (EventTask)6;
+        public const EventTask PersistedLanguageRead = (EventTask)7;
+        public const EventTask ShellBindings = (EventTask)8;
     }
 }

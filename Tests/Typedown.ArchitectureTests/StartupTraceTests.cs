@@ -21,6 +21,12 @@ public class StartupTraceTests
         StartupTrace.SQLiteInitializeStop();
         StartupTrace.WindowActivateStart();
         StartupTrace.WindowActivateStop();
+        StartupTrace.PersistedLanguageReadStart();
+        StartupTrace.PersistedLanguageReadStop();
+        StartupTrace.PersistedLanguageReadFailure();
+        StartupTrace.ShellBindingsStart();
+        StartupTrace.ShellBindingsStop();
+        StartupTrace.ShellBindingsFailure();
         StartupTrace.AppOnLaunchedStop();
         StartupTrace.CoreWebView2EnvironmentCreateStart();
         StartupTrace.CoreWebView2EnvironmentCreateStop();
@@ -45,6 +51,12 @@ public class StartupTraceTests
             (6, "SQLiteInitializeStop"),
             (7, "WindowActivateStart"),
             (8, "WindowActivateStop"),
+            (21, "PersistedLanguageReadStart"),
+            (22, "PersistedLanguageReadStop"),
+            (23, "PersistedLanguageReadFailure"),
+            (24, "ShellBindingsStart"),
+            (25, "ShellBindingsStop"),
+            (26, "ShellBindingsFailure"),
             (9, "AppOnLaunchedStop"),
             (10, "CoreWebView2EnvironmentCreateStart"),
             (11, "CoreWebView2EnvironmentCreateStop"),

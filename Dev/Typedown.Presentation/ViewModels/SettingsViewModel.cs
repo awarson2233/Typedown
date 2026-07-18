@@ -116,19 +116,16 @@ namespace Typedown.Presentation.ViewModels
         {
             try
             {
-                var settingsDirectory = Path.GetDirectoryName(settingsFile);
-                if (!string.IsNullOrEmpty(settingsDirectory))
-                    Directory.CreateDirectory(settingsDirectory);
-
                 if (!File.Exists(settingsFile))
                 {
                     store = new JObject();
-                    SaveAllSettings();
                     return;
                 }
 
                 var json = File.ReadAllText(settingsFile);
-                store = string.IsNullOrWhiteSpace(json) ? new JObject() : JToken.Parse(json);
+                store = string.IsNullOrWhiteSpace(json)
+                    ? new JObject()
+                    : JToken.Parse(json) as JObject ?? new JObject();
             }
             catch
             {
@@ -160,13 +157,26 @@ namespace Typedown.Presentation.ViewModels
 
         public void SetSettingValue<T>(T value, [CallerMemberName] string propertyName = "")
         {
+            var updatedValue = CreateSettingToken(value);
+            if (JToken.DeepEquals(store[propertyName], updatedValue))
+            {
+                return;
+            }
+
+            store[propertyName] = updatedValue;
+            SaveAllSettings();
+        }
+
+        private static JToken CreateSettingToken<T>(T value)
+        {
             if (value is null || value is string || value is long || value is int || value is short || value is sbyte || value is ulong ||
                 value is uint || value is ushort || value is byte || value is Enum || value is double || value is float || value is decimal ||
                 value is DateTime || value is byte[] || value is bool || value is Guid || value is Uri || value is TimeSpan)
-                store[propertyName] = new JValue(value);
-            else
-                store[propertyName] = JObject.FromObject(value);
-            SaveAllSettings();
+            {
+                return new JValue(value);
+            }
+
+            return JObject.FromObject(value);
         }
 
         public IReadOnlyDictionary<string, object> GetEditorSettings()

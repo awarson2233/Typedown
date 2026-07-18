@@ -92,6 +92,7 @@ internal static class WinUILocale
 
     private static string ReadPersistedLanguage()
     {
+        StartupTrace.PersistedLanguageReadStart();
         try
         {
             var settingsFile = Config.GetSettingsFilePath();
@@ -110,7 +111,12 @@ internal static class WinUILocale
         }
         catch
         {
+            StartupTrace.PersistedLanguageReadFailure();
             // Fall back to system language when settings are unavailable or invalid.
+        }
+        finally
+        {
+            StartupTrace.PersistedLanguageReadStop();
         }
 
         return DefaultLanguageKey;
