@@ -3,6 +3,7 @@ using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Specialized;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reactive;
@@ -150,13 +151,20 @@ namespace Typedown.Presentation.ViewModels
                 return;
             }
 
-            await uiDispatcher.RunAsync(() =>
+            try
             {
-                if (!disposed)
+                await uiDispatcher.RunAsync(() =>
                 {
-                    RaiseHistoryCanExecuteChanged();
-                }
-            });
+                    if (!disposed)
+                    {
+                        RaiseHistoryCanExecuteChanged();
+                    }
+                });
+            }
+            catch (UiDispatcherUnavailableException ex)
+            {
+                Trace.WriteLine(ex.Message);
+            }
         }
 
         private void RaiseHistoryCanExecuteChanged()

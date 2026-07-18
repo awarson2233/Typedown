@@ -3,6 +3,13 @@ using System.Threading.Tasks;
 
 namespace Typedown.Presentation.Interfaces
 {
+    public sealed class UiDispatcherUnavailableException : InvalidOperationException
+    {
+        public UiDispatcherUnavailableException(string message) : base(message)
+        {
+        }
+    }
+
     public interface IUiDispatcher
     {
         Task RunAsync(Action action);

@@ -39,7 +39,7 @@ namespace Typedown.WinUI.Services
             var tcs = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
             if (!dispatcherQueue.TryEnqueue(priority, () => Execute(action, tcs)))
             {
-                tcs.SetException(new InvalidOperationException("Failed to enqueue work on the WinUI dispatcher."));
+                tcs.SetException(new UiDispatcherUnavailableException("Failed to enqueue work on the WinUI dispatcher."));
             }
 
             return tcs.Task;
@@ -50,7 +50,7 @@ namespace Typedown.WinUI.Services
             var tcs = new TaskCompletionSource<T>(TaskCreationOptions.RunContinuationsAsynchronously);
             if (!dispatcherQueue.TryEnqueue(priority, () => Execute(action, tcs)))
             {
-                tcs.SetException(new InvalidOperationException("Failed to enqueue work on the WinUI dispatcher."));
+                tcs.SetException(new UiDispatcherUnavailableException("Failed to enqueue work on the WinUI dispatcher."));
             }
 
             return tcs.Task;
