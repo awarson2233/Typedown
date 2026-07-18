@@ -89,8 +89,8 @@ namespace Typedown.Presentation.ViewModels
             disposables.Add(tocSelectionDisposables);
             UndoCommand.SetCanExecuteFunc.OnNext(_ => History.Undoable);
             RedoCommand.SetCanExecuteFunc.OnNext(_ => History.Redoable);
-            History.PropertyChanged += OnHistoryPropertyChanged;
-            disposables.Add(Disposable.Create(() => History.PropertyChanged -= OnHistoryPropertyChanged));
+            History.PropertyChanged += HandleHistoryPropertyChanged;
+            disposables.Add(Disposable.Create(() => History.PropertyChanged -= HandleHistoryPropertyChanged));
             disposables.Add(EventCenter.GetObservable<EditorEventArgs>("MarkdownChange").Subscribe(x => OnMarkdownChange(x.Args)));
             disposables.Add(EventCenter.GetObservable<EditorEventArgs>("FileLoaded").Subscribe(x => OnFileLoaded(x.Args)));
             disposables.Add(EventCenter.GetObservable<EditorEventArgs>("DocumentFlushed").Subscribe(x => OnDocumentFlushed(x.Args)));
@@ -138,7 +138,7 @@ namespace Typedown.Presentation.ViewModels
 
         public string CurrentDocumentId => documentId;
 
-        private async void OnHistoryPropertyChanged(object? sender, PropertyChangedEventArgs e)
+        private async void HandleHistoryPropertyChanged(object? sender, PropertyChangedEventArgs e)
         {
             if (disposed || e.PropertyName is not (nameof(ContentHistory.Undoable) or nameof(ContentHistory.Redoable)))
             {
