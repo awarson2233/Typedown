@@ -151,9 +151,10 @@ namespace Typedown.Presentation.ViewModels
                 return;
             }
 
+            Task dispatchTask;
             try
             {
-                await uiDispatcher.RunAsync(() =>
+                dispatchTask = uiDispatcher.RunAsync(() =>
                 {
                     if (!disposed)
                     {
@@ -164,7 +165,10 @@ namespace Typedown.Presentation.ViewModels
             catch (UiDispatcherUnavailableException ex)
             {
                 Trace.WriteLine(ex.Message);
+                return;
             }
+
+            await dispatchTask;
         }
 
         private void RaiseHistoryCanExecuteChanged()
