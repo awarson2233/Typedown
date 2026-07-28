@@ -93,12 +93,6 @@ namespace Typedown.WinUI.Controls
             isLoaded = true;
             commandSink?.RegisterActiveHost(this);
 
-            if (editorIndex is null)
-            {
-                status = "Editor static bundle is missing. Run yarn build in Dev\\Typedown.Editor to generate Dev\\Typedown.WinUI\\Resources\\Statics\\index.html.";
-                return;
-            }
-
             try
             {
                 var themePayload = CreateCurrentThemePayload();
@@ -165,6 +159,13 @@ namespace Typedown.WinUI.Controls
                 }
                 else
                 {
+                    if (editorIndex is null)
+                    {
+                        status = "Local Dev Server offline and static bundle is missing. Run yarn build in Dev\\Typedown.Editor.";
+                        System.Diagnostics.Debug.WriteLine($"[WEBVIEW2 WARNING] {status}");
+                        return;
+                    }
+
                     status = $"Local Dev Server offline. Navigating to fallback static bundle: {editorIndex}";
                     webView.CoreWebView2.Navigate(new Uri(editorIndex).AbsoluteUri);
                     editorNavigationStarted = true;

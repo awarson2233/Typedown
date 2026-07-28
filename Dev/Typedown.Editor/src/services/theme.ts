@@ -76,4 +76,5 @@ function onThemeChanged(payload: any) {
     themeColorSteps.forEach(e => document.documentElement.style.setProperty(`--theme-color-${e}`, formatRgba({ ...accent, a: accent.a * (e / 100) })));
 
     window.actualTheme = theme;
+    window.dispatchEvent(new CustomEvent('actual-theme-changed', { detail: { theme, payload } }));
 }

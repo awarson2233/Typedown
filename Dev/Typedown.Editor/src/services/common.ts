@@ -5,14 +5,15 @@ import execAll from 'execall'
 export const getTOC = (markdown: string) => {
     const toc: any[] = []
     const seen = new Map<string, number>()
-    for (const line of markdown.split('\n')) {
-        const match = /^ {0,3}(#{1,6})(?:\s+(.*)|\s*)$/.exec(line)
+    const lines = markdown.split('\n')
+    for (let lineNumber = 0; lineNumber < lines.length; lineNumber++) {
+        const match = /^ {0,3}(#{1,6})(?:\s+(.*)|\s*)$/.exec(lines[lineNumber])
         if (!match) continue
         const content = (match[2] ?? '').trim()
         const base = generateGithubSlug(content) || 'heading'
         const index = seen.get(base) ?? 0
         seen.set(base, index + 1)
-        toc.push({ content, lvl: match[1].length, slug: index ? `${base}-${index}` : base })
+        toc.push({ content, lvl: match[1].length, slug: index ? `${base}-${index}` : base, line: lineNumber })
     }
     return { toc }
 }

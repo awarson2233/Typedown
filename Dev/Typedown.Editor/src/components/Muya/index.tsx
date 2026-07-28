@@ -120,18 +120,25 @@ const parseTableSize = (value: any) => {
     return { rows: Number(match?.[1] ?? 2), columns: Number(match?.[2] ?? 2) }
 }
 
+const resolveMermaidTheme = (options: any = {}) => {
+    if (options?.mermaidTheme) return options.mermaidTheme
+    const actualTheme = (window as any).actualTheme || (document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light')
+    return actualTheme === 'dark' ? 'dark' : 'default'
+}
+
 const MuyaEditor: React.FC<IMuyaEditor> = (props) => {
     const [editor, setEditor] = useState<Muya>()
     const [marginTop, setMarginTop] = useState(0)
     const [documentEmpty, setDocumentEmpty] = useState(() => !props.markdown.trim())
     const mountRef = useRef<HTMLDivElement>(null)
     const markdownRef = useRef('')
-    const cursorRef = useRef<any>()
-    const searchArgRef = useRef<any>()
+    const cursorRef = useRef<any>(props.cursor)
+    const searchArgRef = useRef<any>(props.searchArg)
     const optionsRef = useRef<any>(props.options)
     const documentIdRef = useRef(props.documentId)
     const loadingRef = useRef(false)
     const loadedDocumentIdRef = useRef<string>()
+    const activationVersionRef = useRef(0)
 
     const scrollOwner = useCallback(() => editor?.domNode, [editor])
     const relativeScroll = useCallback((delta: number) => scrollOwner()?.scrollBy(0, delta), [scrollOwner])
@@ -155,6 +162,17 @@ const MuyaEditor: React.FC<IMuyaEditor> = (props) => {
     const runSearch = useCallback((arg: any) => {
         if (arg?.value && editor) editor.search(arg.value, { ...normalizeSearchOptions(arg.opt), selection: arg.opt?.selection?.start ? arg.opt.selection : undefined })
     }, [editor])
+    const synchronizeHeadingAnchors = useCallback(() => {
+        if (!editor) return []
+        const toc = editor.getTOC().map(item => ({ ...item }))
+        const headings = Array.from(editor.domNode.querySelectorAll<HTMLElement>('h1, h2, h3, h4, h5, h6'))
+        headings.forEach((heading, index) => {
+            const slug = toc[index]?.slug
+            if (slug) heading.id = slug
+            else heading.removeAttribute('id')
+        })
+        return toc
+    }, [editor])
     const getActiveHeading = useCallback(() => {
         if (!editor) return undefined
         const y = (editor.getSelection() as any)?.cursorCoords?.y ?? 0
@@ -163,13 +181,14 @@ const MuyaEditor: React.FC<IMuyaEditor> = (props) => {
         return active ? { slug: active.id } : undefined
     }, [editor])
 
-    useEffect(() => { cursorRef.current = props.cursor }, [props.cursor])
-    useEffect(() => { searchArgRef.current = props.searchArg }, [props.searchArg])
+    cursorRef.current = props.cursor
+    searchArgRef.current = props.searchArg
 
     useEffect(() => {
         const mount = mountRef.current
         if (!mount) return
-        const muya = new Muya(mount, { markdown: props.markdown, ...optionsRef.current })
+        const effectiveMermaidTheme = resolveMermaidTheme(optionsRef.current)
+        const muya = new Muya(mount, { markdown: props.markdown, mermaidTheme: effectiveMermaidTheme, ...optionsRef.current })
         muya.init()
         markdownRef.current = muya.getMarkdown()
         setDocumentEmpty(!markdownRef.current.trim())
@@ -232,40 +251,56 @@ const MuyaEditor: React.FC<IMuyaEditor> = (props) => {
 
     useEffect(() => {
         if (!editor || loadedDocumentIdRef.current === props.documentId) return
+        const documentId = props.documentId
+        const activationVersion = ++activationVersionRef.current
+        const scrollTop = props.scrollTopRef.current
         loadingRef.current = true
-        documentIdRef.current = props.documentId
+        documentIdRef.current = documentId
         if (loadedDocumentIdRef.current !== undefined && markdownRef.current !== props.markdown) {
             editor.setContent(props.markdown)
         }
         editor.clearHistory()
         markdownRef.current = editor.getMarkdown()
         setDocumentEmpty(!markdownRef.current.trim())
-        if (cursorRef.current) editor.setCursorByOffset(cursorRef.current)
-        else editor.setCursorByOffset({ anchor: { line: 0, ch: 0 }, focus: { line: 0, ch: 0 } })
-        loadingRef.current = false
-        loadedDocumentIdRef.current = props.documentId
-        transport.postMessageNoDiff('FileLoaded', { text: markdownRef.current, documentId: props.documentId })
-        const toc = editor.getTOC().map(item => ({ ...item }))
-        const active = getActiveHeading()
-        const cur = active ? toc.find(item => item.slug === active.slug) : undefined
-        transport.postMessage('StateChange', { state: { wordCount: wordCount(markdownRef.current), toc, cur }, muya: true, documentId: props.documentId })
-        const live = plainSelection(editor.getSelection())
-        const menuState = createApplicationMenuState({
-            ...live,
-            start: { key: live.anchorPath.join('/'), block: live.anchorBlockInfo ?? {} },
-            end: { key: live.focusPath.join('/'), block: live.focusBlockInfo ?? {} }
-        })
-        transport.postMessage('SelectionChange', { selection: live, menuState, selectionText: '', documentId: props.documentId })
-        transport.postMessage('SelectionFormats', { formats: live.formats, documentId: props.documentId })
+        loadedDocumentIdRef.current = documentId
+        transport.postMessageNoDiff('FileLoaded', { text: markdownRef.current, documentId })
+        const toc = synchronizeHeadingAnchors()
         const owner = editor.domNode
-        owner.scrollTop = props.scrollTopRef.current
-        requestAnimationFrame(() => {
-            if (documentIdRef.current !== props.documentId) return
-            owner.scrollTop = props.scrollTopRef.current
-            runSearch(searchArgRef.current)
-            transport.postMessage('DocumentRendered', { documentId: props.documentId })
+        owner.scrollTop = scrollTop
+
+        let renderedFrame: number | undefined
+        const selectionFrame = requestAnimationFrame(() => {
+            if (activationVersionRef.current !== activationVersion || documentIdRef.current !== documentId) return
+            if (cursorRef.current) editor.setCursorByOffset(cursorRef.current)
+            else editor.focus()
+            loadingRef.current = false
+            owner.scrollTop = scrollTop
+
+            renderedFrame = requestAnimationFrame(() => {
+                if (activationVersionRef.current !== activationVersion || documentIdRef.current !== documentId) return
+                const active = getActiveHeading()
+                const cur = active ? toc.find(item => item.slug === active.slug) : undefined
+                transport.postMessage('StateChange', { state: { wordCount: wordCount(markdownRef.current), toc, cur }, muya: true, documentId })
+                const live = plainSelection(editor.getSelection())
+                const menuState = createApplicationMenuState({
+                    ...live,
+                    start: { key: live.anchorPath.join('/'), block: live.anchorBlockInfo ?? {} },
+                    end: { key: live.focusPath.join('/'), block: live.focusBlockInfo ?? {} }
+                })
+                transport.postMessage('SelectionChange', { selection: live, menuState, selectionText: '', documentId })
+                transport.postMessage('SelectionFormats', { formats: live.formats, documentId })
+                runSearch(searchArgRef.current)
+                transport.postMessage('DocumentRendered', { documentId })
+            })
         })
-    }, [editor, getActiveHeading, props.documentId, props.markdown, props.scrollTopRef, runSearch])
+
+        return () => {
+            cancelAnimationFrame(selectionFrame)
+            if (renderedFrame !== undefined) cancelAnimationFrame(renderedFrame)
+        }
+        // Content edits for the active document must not cancel its pending readiness frames.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [editor, getActiveHeading, props.documentId, props.scrollTopRef, runSearch, synchronizeHeadingAnchors])
 
     useEffect(() => {
         const replacement = props.replacement
@@ -278,30 +313,28 @@ const MuyaEditor: React.FC<IMuyaEditor> = (props) => {
         else editor.setCursorByOffset({ anchor: { line: 0, ch: 0 }, focus: { line: 0, ch: 0 } })
         loadingRef.current = false
         const currentCursor = editor.getCursorOffset()
-        const toc = editor.getTOC().map(item => ({ ...item }))
+        const toc = synchronizeHeadingAnchors()
         const active = getActiveHeading()
         const cur = active ? toc.find(item => item.slug === active.slug) : undefined
         const selection = plainSelection(editor.getSelection())
         const menuState = createApplicationMenuState({ ...selection, start: { key: selection.anchorPath.join('/'), block: selection.anchorBlockInfo ?? {} }, end: { key: selection.focusPath.join('/'), block: selection.focusBlockInfo ?? {} } })
-        let retryCount = 0
-        let retryTimer: number | undefined
-        const sendFinal = () => {
-            if (replacement.origin !== 'import' || retryCount >= 5) return
-            retryCount++
+        if (replacement.origin === 'import') {
             transport.postMessage('MarkdownChange', { text: markdownRef.current, documentId: replacement.documentId, revision: replacement.revision, origin: replacement.origin, phase: 'final' })
-            retryTimer = window.setTimeout(sendFinal, 750)
         }
-        sendFinal()
         transport.postMessage('CursorChange', { cursor: currentCursor, documentId: replacement.documentId })
         transport.postMessage('StateChange', { state: { wordCount: wordCount(markdownRef.current), toc, cur }, muya: true, documentId: replacement.documentId })
         transport.postMessage('SelectionChange', { selection, menuState, selectionText: '', documentId: replacement.documentId })
         transport.postMessage('SelectionFormats', { formats: selection.formats, documentId: replacement.documentId })
-        return () => { if (retryTimer !== undefined) window.clearTimeout(retryTimer) }
     // All accessed data props are listed explicitly.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [editor, getActiveHeading, props.documentId, props.replacement])
+    }, [editor, getActiveHeading, props.documentId, props.replacement, synchronizeHeadingAnchors])
 
-    useEffect(() => { editor?.setOptions(props.options, true) }, [editor, props.options])
+    useEffect(() => {
+        if (!editor || optionsRef.current === props.options) return
+        optionsRef.current = props.options
+        const effectiveMermaidTheme = resolveMermaidTheme(props.options)
+        editor.setOptions({ mermaidTheme: effectiveMermaidTheme, ...props.options }, true)
+    }, [editor, props.options])
     useEffect(() => { runSearch(props.searchArg) }, [props.searchArg, runSearch])
 
     useEffect(() => transport.addListener<{ slug: string }>('ScrollTo', ({ slug }) => scrollToElement(`#${CSS.escape(slug)}`)), [scrollToElement])
@@ -352,13 +385,28 @@ const MuyaEditor: React.FC<IMuyaEditor> = (props) => {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }), [editor, props.onSearchArgChange])
     useEffect(() => transport.addListener<Record<string, unknown>>('SettingsChanged', newOptions => {
-        editor?.setOptions(newOptions, true)
+        if (!editor) return
+        const effectiveMermaidTheme = resolveMermaidTheme(newOptions)
+        editor.setOptions({ mermaidTheme: effectiveMermaidTheme, ...newOptions }, true)
         if (newOptions.typewriter) scrollToCursor()
     }), [editor, scrollToCursor])
 
     useEffect(() => {
+        const handleThemeChange = (e: any) => {
+            if (!editor) return
+            const targetTheme = resolveMermaidTheme(optionsRef.current)
+            if (editor.options.mermaidTheme !== targetTheme) {
+                editor.setOptions({ mermaidTheme: targetTheme }, true)
+            }
+        }
+        window.addEventListener('actual-theme-changed', handleThemeChange)
+        return () => window.removeEventListener('actual-theme-changed', handleThemeChange)
+    }, [editor])
+
+    useEffect(() => {
         if (!editor) return
         const listener = (live: any) => {
+            if (loadingRef.current) return
             const selection = plainSelection(live)
             const menuInput = {
                 ...selection,
@@ -427,7 +475,7 @@ const MuyaEditor: React.FC<IMuyaEditor> = (props) => {
             if (loadingRef.current) return
             const markdown = editor.getMarkdown()
             const cursor = editor.getCursorOffset()
-            const toc = editor.getTOC().map(item => ({ ...item }))
+            const toc = synchronizeHeadingAnchors()
             const active = getActiveHeading()
             const cur = active ? toc.find(item => item.slug === active.slug) : undefined
             markdownRef.current = markdown
@@ -439,7 +487,7 @@ const MuyaEditor: React.FC<IMuyaEditor> = (props) => {
         editor.on('json-change', listener)
         return () => editor.off('json-change', listener)
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [editor, getActiveHeading, props.onCursorChange, props.onMarkdownChange])
+    }, [editor, getActiveHeading, props.onCursorChange, props.onMarkdownChange, synchronizeHeadingAnchors])
 
     useEffect(() => {
         setMarginTop(current => {
@@ -456,12 +504,12 @@ const MuyaEditor: React.FC<IMuyaEditor> = (props) => {
         owner.style.width = '100%'
         owner.style.height = '100%'
         owner.style.overflow = 'auto'
+        owner.style.overflowAnchor = 'none'
         owner.style.paddingTop = props.options?.typewriter ? `calc(50vh - ${136 - marginTop}px)` : `${marginTop}px`
         owner.style.paddingBottom = props.options?.typewriter ? 'calc(50vh - 54px)' : '0'
     }, [editor, marginTop, props.options?.typewriter])
 
     useEffect(() => { document.documentElement.style.setProperty('--editor-area-width', props.options?.editorAreaWidth ?? '750px') }, [props.options?.editorAreaWidth])
-    useEffect(() => { try { editor?.focus() } catch (err) { console.error(err) } }, [editor])
     useEffect(() => {
         const owner = editor?.domNode
         if (!owner) return

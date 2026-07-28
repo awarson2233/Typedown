@@ -52,7 +52,7 @@ const postMessageDiff = (name: string, arg: unknown) => {
 
   const oldArg = prevMap.get(name);
   const newArg = JSON.stringify(arg);
-  if (!oldArg) {
+  if (!oldArg || newArg.length > 10000) {
     postMessage({
       type: "diffmsg",
       diff: false,

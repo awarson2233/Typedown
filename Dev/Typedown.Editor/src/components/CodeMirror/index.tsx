@@ -198,6 +198,16 @@ const CodeMirrorEditor: React.FC<ICodeMirrorEditor> = (props) => {
         editor?.execCommand('selectAll')
     }), [editor]);
 
+    useEffect(() => transport.addListener<{ slug: string }>('ScrollTo', ({ slug }) => {
+        if (!editor) return
+        const target = getTOC(editor.getValue()).toc.find(item => item.slug === slug)
+        if (typeof target?.line !== 'number') return
+        const position = { line: target.line, ch: 0 }
+        editor.setCursor(position)
+        editor.scrollIntoView(position, STANDAR_Y)
+        editor.focus()
+    }), [editor]);
+
     useEffect(() => {
         searchArgRef.current = props.searchArg;
     }, [props.searchArg])
@@ -241,19 +251,12 @@ const CodeMirrorEditor: React.FC<ICodeMirrorEditor> = (props) => {
         if (anchor && head) editor.setSelection(anchor, head, { scroll: true })
         else editor.setCursor({ line: 0, ch: 0 })
         const currentCursor = { anchor: editor.getCursor('anchor'), focus: editor.getCursor('head') }
-        let retryCount = 0
-        let retryTimer: number | undefined
-        const sendFinal = () => {
-            if (replacement.origin !== 'import' || retryCount >= 5) return
-            retryCount++
+        if (replacement.origin === 'import') {
             transport.postMessage('MarkdownChange', { text: markdownRef.current, documentId: replacement.documentId, revision: replacement.revision, origin: replacement.origin, phase: 'final' })
-            retryTimer = window.setTimeout(sendFinal, 750)
         }
-        sendFinal()
         transport.postMessage('CursorChange', { cursor: currentCursor, documentId: replacement.documentId })
         handleCodeMirrorState(markdownRef.current, replacement.documentId)
         transport.postMessage('CodeMirrorSelectionChange', { cursor: { anchor: currentCursor.anchor, head: currentCursor.focus }, selectionText: editor.getSelection(), documentId: replacement.documentId })
-        return () => { if (retryTimer !== undefined) window.clearTimeout(retryTimer) }
     // All accessed data props are listed explicitly.
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [editor, handleCodeMirrorState, props.documentId, props.replacement])

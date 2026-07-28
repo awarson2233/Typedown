@@ -7,7 +7,7 @@
         "-y",
         "chrome-devtools-mcp@latest",
         "--autoConnect",
-        "--user-data-dir=%LocalAppData%\\Microsoft\\Edge\\User Data"
+        "--user-data-dir=D:\\source\\repos\\Typedown\\.claude\\webview2-cdp\\EBWebView"
       ]
     }
   }
