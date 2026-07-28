@@ -52,16 +52,25 @@
         <AppxBundlePlatforms>arm64</AppxBundlePlatforms>
     </PropertyGroup>
 
+    <PropertyGroup Condition="'$(Configuration)'=='Debug'">
+        <DefineConstants>$(DefineConstants);MODE_DEBUG</DefineConstants>
+    </PropertyGroup>
+
     <PropertyGroup Condition="'$(Configuration)'=='Debug_Local'">
+        <DefineConstants>$(DefineConstants);MODE_DEBUG_LOCAL</DefineConstants>
         <WindowsPackageType>None</WindowsPackageType>
         <AppxPackageSigningEnabled>false</AppxPackageSigningEnabled>
+    </PropertyGroup>
+
+    <PropertyGroup Condition="'$(Configuration)'=='Release'">
+        <DefineConstants>$(DefineConstants);MODE_RELEASE</DefineConstants>
     </PropertyGroup>
 
     <ItemGroup>
         <Content Include="Assets\*.png" />
         <Content Include="Assets\logo.ico" />
         <!-- Owner governance: Typedown.Editor produces this bundle; WinUI owns the staging path it consumes. -->
-        <Content Include="Resources\Statics\**\*" CopyToOutputDirectory="Always" CopyToPublishDirectory="Always" />
+        <Content Include="Resources\Statics\**\*" CopyToOutputDirectory="Always" CopyToPublishDirectory="Always" Condition="Exists('$(MSBuildProjectDirectory)\$(TypedownEditorStaticBundleStagingPath)\index.html')" />
         <!-- Owner governance: WinUI owns .resw text resources. -->
         <Content Include="Resources\Strings\**\*.resw" CopyToOutputDirectory="PreserveNewest" />
     </ItemGroup>
@@ -106,12 +115,12 @@
             DependsOnTargets="ResolveProjectReferences"
             AfterTargets="ResolveProjectReferences"
             BeforeTargets="AssignTargetPaths;GetCopyToOutputDirectoryItems;GetPackagingOutputs">
-        <Error Condition="!Exists('$(MSBuildProjectDirectory)\$(TypedownEditorStaticBundleStagingPath)\index.html')" Text="Typedown.Editor static bundle is missing. Run yarn build in Dev\Typedown.Editor before building Typedown.WinUI." />
+        <Error Condition="('$(Configuration)' == 'Release' Or '$(Configuration)' == 'Debug_Local') And !Exists('$(MSBuildProjectDirectory)\$(TypedownEditorStaticBundleStagingPath)\index.html')" Text="Typedown.Editor static bundle is missing. Run yarn build in Dev\Typedown.Editor before building Typedown.WinUI." />
         <ItemGroup>
             <!-- Remove by evaluated identity so files deleted by the frontend build are not retained as stale Content. -->
             <Content Remove="%(Content.Identity)"
                      Condition="$([System.String]::Copy('%(Content.Identity)').StartsWith('$(TypedownEditorStaticBundleStagingPath)\'))" />
-            <Content Include="$(TypedownEditorStaticBundleStagingPath)\**\*" CopyToOutputDirectory="Always" CopyToPublishDirectory="Always" />
+            <Content Include="$(TypedownEditorStaticBundleStagingPath)\**\*" CopyToOutputDirectory="Always" CopyToPublishDirectory="Always" Condition="Exists('$(MSBuildProjectDirectory)\$(TypedownEditorStaticBundleStagingPath)\index.html')" />
         </ItemGroup>
     </Target>
 
@@ -122,7 +131,7 @@
         <RemoveDir Directories="$(OutDir)$(TypedownEditorStaticBundleStagingPath)" />
     </Target>
 
-    <Target Name="AddEditorStaticBundleToPackagingOutputs" AfterTargets="GetPackagingOutputs" BeforeTargets="_ComputeAppxPackagePayload">
+    <Target Name="AddEditorStaticBundleToPackagingOutputs" AfterTargets="GetPackagingOutputs" BeforeTargets="_ComputeAppxPackagePayload" Condition="Exists('$(MSBuildProjectDirectory)\$(TypedownEditorStaticBundleStagingPath)\index.html')">
         <ItemGroup>
             <_EditorStaticBundleForPackaging Include="Resources\Statics\**\*" />
             <PackagingOutputs Include="@(_EditorStaticBundleForPackaging)">
