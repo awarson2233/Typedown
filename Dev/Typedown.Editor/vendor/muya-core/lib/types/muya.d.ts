@@ -182,8 +182,6 @@ export declare class Muya {
      * Paste the clipboard content as plain text at the current cursor.
      */
     pasteAsPlainText(): Promise<void>;
-    /** Paste caller-provided text with explicit plain-text semantics. */
-    pastePlainText(rawText: string): Promise<void>;
     /**
      * Insert an image at the current cursor from an explicit `src` (a saved file
      * path or `data:` URL), routing through the configured `imageAction` like a

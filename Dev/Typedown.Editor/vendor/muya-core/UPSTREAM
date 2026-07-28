@@ -1,4 +1,4 @@
 Upstream: https://github.com/marktext/marktext
-Commit: 43bd8b77795fb27b1a9512737c000f7362031ea0
+Commit: 416e273549cdbdd1fc5da27d9645757a6f750175
 Source: packages/muya
 Package: @muyajs/core 0.2.0

@@ -1,1 +1,0 @@
-const e=require("./chunk-Y2CYZVJY-CnmLqFtv.js"),t=require("./src-KoTOUvXq.js");var n=e.n((e,n)=>{let r;return n===`sandbox`&&(r=t.t(`#i`+e)),(n===`sandbox`?t.t(r.nodes()[0].contentDocument.body):t.t(`body`)).select(`[id="${e}"]`)},`getDiagramElement`);Object.defineProperty(exports,"t",{enumerable:!0,get:function(){return n}});
