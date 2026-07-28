@@ -126,6 +126,33 @@ const resolveMermaidTheme = (options: any = {}) => {
     return actualTheme === 'dark' ? 'dark' : 'default'
 }
 
+const selectionKeys = new Set([
+    'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown',
+    'Home', 'End', 'PageUp', 'PageDown',
+    'Backspace', 'Delete', 'Enter', 'Tab'
+])
+
+const hasNativeSelection = (owner: HTMLElement) => {
+    const selection = owner.ownerDocument.getSelection()
+    return Boolean(selection?.rangeCount && selection.anchorNode && owner.contains(selection.anchorNode))
+}
+
+const focusWithoutNativeSelection = (owner: HTMLElement) => {
+    const contentEditable = owner.getAttribute('contenteditable')
+    const tabIndex = owner.getAttribute('tabindex')
+    owner.ownerDocument.getSelection()?.removeAllRanges()
+    owner.setAttribute('contenteditable', 'false')
+    owner.tabIndex = -1
+    try {
+        owner.focus({ preventScroll: true })
+    } finally {
+        if (contentEditable === null) owner.removeAttribute('contenteditable')
+        else owner.setAttribute('contenteditable', contentEditable)
+        if (tabIndex === null) owner.removeAttribute('tabindex')
+        else owner.setAttribute('tabindex', tabIndex)
+    }
+}
+
 const MuyaEditor: React.FC<IMuyaEditor> = (props) => {
     const [editor, setEditor] = useState<Muya>()
     const [marginTop, setMarginTop] = useState(0)
@@ -189,7 +216,13 @@ const MuyaEditor: React.FC<IMuyaEditor> = (props) => {
         if (!mount) return
         const effectiveMermaidTheme = resolveMermaidTheme(optionsRef.current)
         const muya = new Muya(mount, { markdown: props.markdown, mermaidTheme: effectiveMermaidTheme, ...optionsRef.current })
-        muya.init()
+        const initialFocus = muya.editor.focus
+        muya.editor.focus = () => undefined
+        try {
+            muya.init()
+        } finally {
+            muya.editor.focus = initialFocus
+        }
         markdownRef.current = muya.getMarkdown()
         setDocumentEmpty(!markdownRef.current.trim())
         setEditor(muya)
@@ -272,7 +305,7 @@ const MuyaEditor: React.FC<IMuyaEditor> = (props) => {
         const selectionFrame = requestAnimationFrame(() => {
             if (activationVersionRef.current !== activationVersion || documentIdRef.current !== documentId) return
             if (cursorRef.current) editor.setCursorByOffset(cursorRef.current)
-            else editor.focus()
+            else focusWithoutNativeSelection(editor.domNode)
             loadingRef.current = false
             owner.scrollTop = scrollTop
 
@@ -301,6 +334,29 @@ const MuyaEditor: React.FC<IMuyaEditor> = (props) => {
         // Content edits for the active document must not cancel its pending readiness frames.
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [editor, getActiveHeading, props.documentId, props.scrollTopRef, runSearch, synchronizeHeadingAnchors])
+
+    useEffect(() => {
+        if (!editor) return
+        const owner = editor.domNode
+        const ensureSelection = () => {
+            if (!hasNativeSelection(owner)) editor.focus()
+        }
+        const onKeyDown = (event: KeyboardEvent) => {
+            if (event.defaultPrevented) return
+            const plainTextInput = event.key.length === 1 && !event.ctrlKey && !event.metaKey && !event.altKey
+            if (plainTextInput || selectionKeys.has(event.key)) ensureSelection()
+        }
+        owner.addEventListener('keydown', onKeyDown, true)
+        owner.addEventListener('beforeinput', ensureSelection, true)
+        owner.addEventListener('paste', ensureSelection, true)
+        owner.addEventListener('compositionstart', ensureSelection, true)
+        return () => {
+            owner.removeEventListener('keydown', onKeyDown, true)
+            owner.removeEventListener('beforeinput', ensureSelection, true)
+            owner.removeEventListener('paste', ensureSelection, true)
+            owner.removeEventListener('compositionstart', ensureSelection, true)
+        }
+    }, [editor])
 
     useEffect(() => {
         const replacement = props.replacement
