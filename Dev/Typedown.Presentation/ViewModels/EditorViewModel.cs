@@ -1,5 +1,3 @@
-using Microsoft.Extensions.DependencyInjection;
-using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Specialized;
 using System.ComponentModel;
@@ -10,6 +8,8 @@ using System.Reactive;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
 using System.Threading.Tasks;
+using Microsoft.Extensions.DependencyInjection;
+using Newtonsoft.Json.Linq;
 using Typedown.Core.Models;
 using Typedown.Core.Models.RuntimeModels;
 using Typedown.Core.Services;
@@ -72,6 +72,7 @@ namespace Typedown.Presentation.ViewModels
         private readonly IUiDispatcher uiDispatcher;
         private readonly int uiThreadId;
         private bool disposed;
+        private bool suppressTocNavigation;
 
         private readonly Dictionary<string, string> appliedReplacementRevisions = new(StringComparer.Ordinal);
         private readonly Queue<string> appliedReplacementRevisionOrder = new();
@@ -327,8 +328,18 @@ namespace Typedown.Presentation.ViewModels
         {
             if (!IsCurrentDocument(arg)) return;
             var slug = arg["cur"]?["slug"]?.ToString();
-            foreach (var item in ContentState.Toc)
-                item.IsSelected = item.Slug == slug;
+            suppressTocNavigation = true;
+            try
+            {
+                foreach (var item in ContentState.Toc)
+                {
+                    item.IsSelected = item.Slug == slug;
+                }
+            }
+            finally
+            {
+                suppressTocNavigation = false;
+            }
         }
 
         public void OnStateChange(JToken arg)
@@ -343,7 +354,10 @@ namespace Typedown.Presentation.ViewModels
             ContentState.Toc.ForEach(x =>
             {
                 x.IsSelected = x.Slug == ContentState.Cur?.Slug;
-                EventHandler<bool> handler = (_, b) => { if (b) JumpBySlug(x.Slug); };
+                EventHandler<bool> handler = (_, b) =>
+                {
+                    if (b && !suppressTocNavigation) JumpBySlug(x.Slug);
+                };
                 x.SelectedChanged += handler;
                 tocSelectionHandlers.Add(Disposable.Create(() => x.SelectedChanged -= handler));
             });

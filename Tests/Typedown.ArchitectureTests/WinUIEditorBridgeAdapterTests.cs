@@ -185,24 +185,39 @@ public class WinUIEditorBridgeAdapterTests
     }
 
     [TestMethod]
-    public void ActiveHeadingChange_RoutesThroughAdapterAndUpdatesEditorSelection()
+    public void ActiveHeadingChange_UpdatesSelectionWithoutFeedbackNavigation()
     {
         var eventCenter = new EventCenter();
-        var services = new ServiceCollection().AddSingleton(eventCenter).BuildServiceProvider();
+        var commandSink = new RecordingEditorCommandSink();
+        var services = new ServiceCollection()
+            .AddSingleton(eventCenter)
+            .AddSingleton<IEditorCommandSink>(commandSink)
+            .BuildServiceProvider();
         var editor = (EditorViewModel)RuntimeHelpers.GetUninitializedObject(typeof(EditorViewModel));
         SetAutoProperty(editor, nameof(EditorViewModel.ServiceProvider), services);
         SetAutoProperty(editor, nameof(EditorViewModel.History), new Typedown.Core.Models.ContentHistory());
         SetAutoProperty(editor, nameof(EditorViewModel.Toc), new Typedown.Core.Models.TocTreeItem());
-        editor.ContentState = new Typedown.Core.Models.ContentState();
+        SetField(editor, "tocSelectionDisposables", new System.Reactive.Disposables.SerialDisposable());
         SetField(editor, "documentId", "B");
-        editor.ContentState.Toc.Add(new Typedown.Core.Models.TocItem { Slug = "target" });
+        editor.OnStateChange(JObject.Parse("""
+            {"documentId":"B","state":{"toc":[{"slug":"source"},{"slug":"target"}],"cur":{"slug":"source"}}}
+            """));
         using var subscription = eventCenter.GetObservable<EditorEventArgs>("ActiveHeadingChange")
             .Subscribe(args => editor.OnActiveHeadingChange(args.Args));
         var adapter = new WinUIEditorBridgeAdapter(new WinUIEditorDocumentSession(serviceProvider: services));
 
         adapter.Receive("""{"type":"message","name":"ActiveHeadingChange","args":{"documentId":"B","cur":{"slug":"target"}}}""", _ => true);
 
-        Assert.IsTrue(editor.ContentState.Toc[0].IsSelected);
+        Assert.IsFalse(editor.ContentState.Toc[0].IsSelected);
+        Assert.IsTrue(editor.ContentState.Toc[1].IsSelected);
+        Assert.AreEqual(0, commandSink.Messages.Count);
+
+        editor.ContentState.Toc[0].IsSelected = true;
+
+        Assert.AreEqual(1, commandSink.Messages.Count);
+        Assert.AreEqual("ScrollTo", commandSink.Messages[0].Name);
+        using var scrollArgs = JsonDocument.Parse(JsonSerializer.Serialize(commandSink.Messages[0].Args));
+        Assert.AreEqual("source", scrollArgs.RootElement.GetProperty("slug").GetString());
     }
 
     [TestMethod]
