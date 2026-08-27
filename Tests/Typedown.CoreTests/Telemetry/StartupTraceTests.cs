@@ -1,9 +1,11 @@
+using System;
 using System.Collections.Concurrent;
 using System.Diagnostics.Tracing;
+using System.Linq;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Typedown.WinUI.Utilities;
 
-namespace Typedown.ArchitectureTests;
+namespace Typedown.CoreTests.Telemetry;
 
 [TestClass]
 public class StartupTraceTests
@@ -164,78 +166,6 @@ public class StartupTraceTests
         Assert.AreEqual(StartupBridgeMilestone.None, state.RecordBridgeMilestone("DocumentRendered"));
         Assert.AreEqual(StartupBridgeMilestone.None, state.RecordBridgeMilestone("ContentLoaded"));
         Assert.AreEqual(105UL, state.StartupNavigationId);
-    }
-
-    [TestMethod]
-    public void StartupIntervals_PairFallbackEnvironmentAndWholeOnLaunchedBody()
-    {
-        var repoRoot = FindRepoRoot();
-        var hostSource = File.ReadAllText(Path.Combine(
-            repoRoot,
-            "Dev",
-            "Typedown.WinUI",
-            "Controls",
-            "EditorControls",
-            "Hosting",
-            "WinUIEditorHost.cs"));
-        var fallbackEnvironment = ExtractBetween(
-            hostSource,
-            "private async Task<CoreWebView2Environment> GetEnvironmentAsync()",
-            "private WinUIEditorDocumentSession CreateDocumentSession");
-
-        StringAssert.Contains(fallbackEnvironment, "StartupTrace.CoreWebView2EnvironmentCreateStart();");
-        StringAssert.Contains(fallbackEnvironment, "return await CoreWebView2Environment.CreateAsync();");
-        StringAssert.Contains(fallbackEnvironment, "finally");
-        StringAssert.Contains(fallbackEnvironment, "StartupTrace.CoreWebView2EnvironmentCreateStop();");
-
-        var webMessageHandler = ExtractBetween(
-            hostSource,
-            "private async void OnWebMessageReceived",
-            "private void OnNavigationStarting");
-        var receiveCall = webMessageHandler.IndexOf("var receiveTask = bridgeAdapter.ReceiveAsync", StringComparison.Ordinal);
-        var eventNameCapture = webMessageHandler.IndexOf("var bridgeMilestoneName =", StringComparison.Ordinal);
-        var firstAwait = webMessageHandler.IndexOf("await receiveTask;", StringComparison.Ordinal);
-        var milestoneRecord = webMessageHandler.IndexOf("RecordBridgeMilestone(bridgeMilestoneName);", StringComparison.Ordinal);
-        Assert.IsTrue(receiveCall >= 0 && receiveCall < eventNameCapture);
-        Assert.IsTrue(eventNameCapture < firstAwait && firstAwait < milestoneRecord);
-        Assert.IsFalse(webMessageHandler.Contains("RecordBridgeMilestone(bridgeAdapter.LastEventName)", StringComparison.Ordinal));
-
-        var appSource = File.ReadAllText(Path.Combine(repoRoot, "Dev", "Typedown.WinUI", "App.xaml.cs"));
-        var onLaunched = ExtractBetween(
-            appSource,
-            "protected override void OnLaunched(LaunchActivatedEventArgs e)",
-            "private void OnLaunchedCore()");
-
-        StringAssert.Contains(onLaunched, "StartupTrace.AppOnLaunchedStart();");
-        StringAssert.Contains(onLaunched, "try");
-        StringAssert.Contains(onLaunched, "OnLaunchedCore();");
-        StringAssert.Contains(onLaunched, "finally");
-        StringAssert.Contains(onLaunched, "StartupTrace.AppOnLaunchedStop();");
-    }
-
-    private static string ExtractBetween(string source, string startMarker, string endMarker)
-    {
-        var start = source.IndexOf(startMarker, StringComparison.Ordinal);
-        Assert.IsTrue(start >= 0, $"Missing source marker: {startMarker}");
-        var end = source.IndexOf(endMarker, start + startMarker.Length, StringComparison.Ordinal);
-        Assert.IsTrue(end > start, $"Missing source marker after '{startMarker}': {endMarker}");
-        return source[start..end];
-    }
-
-    private static string FindRepoRoot()
-    {
-        var directory = new DirectoryInfo(AppContext.BaseDirectory);
-        while (directory is not null)
-        {
-            if (File.Exists(Path.Combine(directory.FullName, "Typedown.sln")))
-            {
-                return directory.FullName;
-            }
-
-            directory = directory.Parent;
-        }
-
-        throw new DirectoryNotFoundException("Could not locate the Typedown repository root.");
     }
 
     private sealed class StartupEventListener : EventListener

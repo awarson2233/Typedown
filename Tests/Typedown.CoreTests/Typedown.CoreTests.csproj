@@ -12,10 +12,11 @@
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.5.0" />
     <PackageReference Include="MSTest.TestAdapter" Version="3.0.2" />
     <PackageReference Include="MSTest.TestFramework" Version="3.0.2" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.6" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\..\Dev\Typedown.Core\Typedown.Core.csproj" />
-    <ProjectReference Include="..\..\Dev\Typedown.Presentation\Typedown.Presentation.csproj" />
+    <Compile Include="..\..\Dev\Typedown.WinUI\Utilities\StartupTrace.cs" Link="Telemetry\StartupTrace.cs" />
   </ItemGroup>
 </Project>
