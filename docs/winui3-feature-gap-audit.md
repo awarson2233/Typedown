@@ -1,4 +1,8 @@
-# Typedown.WinUI 功能接入清单
+# [SUPERSEDED] Typedown.WinUI 功能接入清单
+
+> [!WARNING]
+> **本文档已被废弃 (SUPERSEDED)**
+> 本文记录的是 2026-05-06 的早期 WinUI 功能接入审计。原生化迁移请参阅：[`docs/native-migration-target-architecture.md`](file:///d:/source/repos/Typedown/docs/native-migration-target-architecture.md)。
 
 更新日期：`2026-05-06`
 

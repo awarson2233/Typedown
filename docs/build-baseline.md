@@ -1,4 +1,8 @@
-# Typedown build baseline
+# [SUPERSEDED] Typedown build baseline
+
+> [!WARNING]
+> **本文档已被废弃 (SUPERSEDED)**
+> 最新的原生化构建基线与 ARM64 MSBuild 治理规范请参阅：[`docs/native-migration-target-architecture.md`](file:///d:/source/repos/Typedown/docs/native-migration-target-architecture.md)。
 
 This document records the current governance baseline for the WinUI3 architecture worktree.
 

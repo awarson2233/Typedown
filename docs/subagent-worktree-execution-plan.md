@@ -1,4 +1,8 @@
-# Subagent + 多 Worktree 执行计划
+# [SUPERSEDED] Subagent + 多 Worktree 执行计划
+
+> [!WARNING]
+> **本文档已被废弃 (SUPERSEDED)**
+> 最新多 Agent 协同执行方案请参阅：[`docs/artifacts/native-migration-multiagent-execution-scheme.md`](file:///d:/source/repos/Typedown/docs/artifacts/native-migration-multiagent-execution-scheme.md)。
 
 本文档定义 Phase 1 以后如何使用多个 git worktree 和 subagent 并行推进 WinUI3 迁移前架构解耦。它是执行策略，不替代 [winui3-migration-decoupling-plan.md](D:/source/repos/Typedown/docs/winui3-migration-decoupling-plan.md) 中的阶段目标。
 

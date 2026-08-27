@@ -1,4 +1,8 @@
-# WinUI3 迁移前架构解耦计划
+# [SUPERSEDED] WinUI3 迁移前架构解耦计划
+
+> [!WARNING]
+> **本文档已被废弃 (SUPERSEDED)**
+> 本文档为早期解耦计划。最新生效架构请参阅：[`docs/native-migration-target-architecture.md`](file:///d:/source/repos/Typedown/docs/native-migration-target-architecture.md)。
 
 > **给后续 agent/开发者：** 执行本计划时应使用 `superpowers:subagent-driven-development` 或 `superpowers:executing-plans`，按任务逐项推进并在每个阶段后验证。
 

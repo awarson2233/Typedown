@@ -1,4 +1,8 @@
-# Build matrix and platform risk
+# [SUPERSEDED] Build matrix and platform risk
+
+> [!WARNING]
+> **本文档已被废弃 (SUPERSEDED)**
+> 最新构建矩阵与构建锁规范请参阅：[`docs/native-migration-target-architecture.md`](file:///d:/source/repos/Typedown/docs/native-migration-target-architecture.md)。
 
 This document records current build entry points and platform risks for the active WinUI3 architecture.
 

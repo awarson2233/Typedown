@@ -1,4 +1,8 @@
-# Typedown.WinUI main editor unwired audit
+# [SUPERSEDED] Typedown.WinUI main editor unwired audit
+
+> [!WARNING]
+> **本文档已被废弃 (SUPERSEDED)**
+> 本文档记录的是早期基于 WebView2/Muya 宿主的编辑器审计。原生化架构请参阅：[`docs/native-migration-target-architecture.md`](file:///d:/source/repos/Typedown/docs/native-migration-target-architecture.md)。
 
 This audit only covers the current main editor surface: `MainContent`, `MenuBar`, `EditorContainer`, `WinUIEditorHost`, and the editor context menus / accelerator plumbing they expose.
 

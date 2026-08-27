@@ -1,4 +1,8 @@
-# WinUI3 target architecture
+# [SUPERSEDED] WinUI3 target architecture
+
+> [!WARNING]
+> **本文档已被废弃 (SUPERSEDED)**
+> 本文档记录的是 2026 年 5 月阶段的架构基线。最新的全面原生化架构设计请参阅唯一生效文档：[`docs/native-migration-target-architecture.md`](file:///d:/source/repos/Typedown/docs/native-migration-target-architecture.md)。
 
 This document records the current target architecture for the WinUI3 migration. Historical phase names are intentionally omitted unless they describe still-active boundaries.
 

@@ -1,4 +1,8 @@
-# WinUI3 roadmap after the editor-host baseline
+# [SUPERSEDED] WinUI3 roadmap after the editor-host baseline
+
+> [!WARNING]
+> **本文档已被废弃 (SUPERSEDED)**
+> 最新的原生化迁移路线图与多 Agent 波次演进请参阅唯一生效文档：[`docs/native-migration-target-architecture.md`](file:///d:/source/repos/Typedown/docs/native-migration-target-architecture.md) 与 [`docs/artifacts/native-migration-multiagent-execution-scheme.md`](file:///d:/source/repos/Typedown/docs/artifacts/native-migration-multiagent-execution-scheme.md)。
 
 This roadmap reflects the current repository shape. Older phase documents may mention retired intermediate module names; this document is the current source for the active direction.
 

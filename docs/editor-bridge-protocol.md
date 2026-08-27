@@ -1,4 +1,9 @@
-# Editor Bridge Protocol
+# [SUPERSEDED] Editor Bridge Protocol
+
+> [!WARNING]
+> **本文档已被废弃 (SUPERSEDED)**
+> 依据 `docs/native-migration-target-architecture.md`，Typedown 已确立 100% C# / WinUI 3 全面原生化路线，彻底移除 WebView2 与跨进程 JSON-RPC 消息协议。
+> 本文档仅作存量过渡与历史参考，新开发请遵循原生化架构。
 
 本文档定义 `Dev/Typedown.Editor/src/services/transport.ts` 与 Host (`Typedown`) 之间的稳定消息协议。
 

@@ -1,4 +1,8 @@
-# Typedown.WinUI Settings Unwired Audit
+# [SUPERSEDED] Typedown.WinUI Settings Unwired Audit
+
+> [!WARNING]
+> **本文档已被废弃 (SUPERSEDED)**
+> 本文档记录的是早期设置界面审计。最新原生化架构请参阅：[`docs/native-migration-target-architecture.md`](file:///d:/source/repos/Typedown/docs/native-migration-target-architecture.md)。
 
 ## Summary
 

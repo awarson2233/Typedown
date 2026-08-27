@@ -1,4 +1,8 @@
-# Typedown WinUI3 架构审查记录
+# [SUPERSEDED] Typedown WinUI3 架构审查记录
+
+> [!WARNING]
+> **本文档已被废弃 (SUPERSEDED)**
+> 本文记录的是 2026-05-07 的早期架构审查记录。最新目标架构与多 Agent 协同方案请参阅 [`docs/native-migration-target-architecture.md`](file:///d:/source/repos/Typedown/docs/native-migration-target-architecture.md)。
 
 更新日期：`2026-05-07`
 
