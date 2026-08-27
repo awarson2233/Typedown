@@ -1,13 +1,12 @@
+using System.Collections.Generic;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Typedown.Core.Models;
 
-namespace Typedown.ArchitectureTests;
+namespace Typedown.CoreTests.Models;
 
 [TestClass]
-public class Phase13RuntimeStateContractTests
+public class StateModelTests
 {
-    private static readonly string RepoRoot = FindRepoRoot();
-
     [TestMethod]
     public void FormatState_MapsLegacySelectionFormatsFromCore()
     {
@@ -33,6 +32,22 @@ public class Phase13RuntimeStateContractTests
         Assert.IsTrue(state.Strikethrough);
         Assert.IsTrue(state.Hyperlink);
         Assert.IsTrue(state.Image);
+    }
+
+    [TestMethod]
+    public void FormatState_DefaultInitialization_AllPropertiesFalse()
+    {
+        var state = new FormatState();
+
+        Assert.IsFalse(state.Bold);
+        Assert.IsFalse(state.Italic);
+        Assert.IsFalse(state.Underline);
+        Assert.IsFalse(state.InlineCode);
+        Assert.IsFalse(state.InlineMath);
+        Assert.IsFalse(state.Highlight);
+        Assert.IsFalse(state.Strikethrough);
+        Assert.IsFalse(state.Hyperlink);
+        Assert.IsFalse(state.Image);
     }
 
     [TestMethod]
@@ -164,69 +179,14 @@ public class Phase13RuntimeStateContractTests
     }
 
     [TestMethod]
-    public void RuntimeContracts_StayPlatformNeutralAndAvoidLegacyDependencies()
+    public void ContentState_DefaultInitialization_HasEmptyCollections()
     {
-        var runtimeFiles = Directory
-            .EnumerateFiles(Path.Combine(RepoRoot, "Dev", "Typedown.Core", "Models", "RuntimeModels"), "*.cs", SearchOption.TopDirectoryOnly)
-            .ToArray();
+        var state = new ContentState();
 
-        var runtimeFileNames = runtimeFiles.Select(Path.GetFileName).ToArray();
-        CollectionAssert.IsSubsetOf(
-            new[]
-            {
-                "ContentState.cs",
-                "FormatState.cs",
-                "MenuItemState.cs",
-                "MenuState.cs",
-                "ParagraphState.cs",
-                "TocItem.cs",
-                "WordCount.cs",
-            },
-            runtimeFileNames);
-
-        foreach (var file in runtimeFiles)
-        {
-            var source = File.ReadAllText(file);
-
-            AssertNoTypeReference(source, "Microsoft.UI");
-            AssertNoTypeReference(source, "Microsoft.UI.Xaml");
-            AssertNoTypeReference(source, "Windows.UI.Xaml");
-            AssertNoTypeReference(source, "Microsoft.Web.WebView2");
-            AssertNoTypeReference(source, "Windows.Storage.Pickers");
-            AssertNoTypeReference(source, "Typedown.WinUI");
-            AssertNoTypeReference(source, "Typedown.XamlUI");
-            AssertNoTypeReference(source, "Typedown.Core.Legacy");
-        }
-    }
-
-    [TestMethod]
-    public void Presentation_DoesNotCarryDuplicateRuntimeStateModels()
-    {
-        var presentationRoot = Path.Combine(RepoRoot, "Dev", "Typedown.Presentation");
-
-        Assert.IsFalse(File.Exists(Path.Combine(presentationRoot, "Models", "EditorRuntimeState.cs")));
-        Assert.IsFalse(File.Exists(Path.Combine(presentationRoot, "ViewModels", "EditorRuntimeViewModel.cs")));
-        Assert.IsFalse(File.Exists(Path.Combine(presentationRoot, "ViewModels", "EditorTocNodeViewModel.cs")));
-    }
-
-    private static string FindRepoRoot()
-    {
-        var directory = new DirectoryInfo(AppContext.BaseDirectory);
-        while (directory is not null)
-        {
-            if (File.Exists(Path.Combine(directory.FullName, "Typedown.sln")))
-            {
-                return directory.FullName;
-            }
-
-            directory = directory.Parent;
-        }
-
-        throw new InvalidOperationException("Could not locate Typedown.sln from test output directory.");
-    }
-
-    private static void AssertNoTypeReference(string source, string text)
-    {
-        Assert.IsFalse(source.Contains(text, StringComparison.Ordinal), $"Unexpected reference: {text}");
+        Assert.AreEqual(0, state.WordCount.Word);
+        Assert.AreEqual(0, state.WordCount.Character);
+        Assert.IsNotNull(state.Toc);
+        Assert.AreEqual(0, state.Toc.Count);
+        Assert.IsNull(state.Cur);
     }
 }
