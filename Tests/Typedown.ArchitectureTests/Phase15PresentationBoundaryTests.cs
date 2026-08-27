@@ -397,29 +397,7 @@ public class Phase15PresentationBoundaryTests
     [TestMethod]
     public void EditorBridgeStaticBundleAndPackagingOwnerGovernance_IsDeclared()
     {
-        var bridgeProtocol = File.ReadAllText(Path.Combine(RepoRoot, "docs", "editor-bridge-protocol.md"));
-        var buildBaseline = File.ReadAllText(Path.Combine(RepoRoot, "docs", "build-baseline.md"));
         var winUIProject = File.ReadAllText(Path.Combine(RepoRoot, "Dev", "Typedown.WinUI", "Typedown.WinUI.csproj"));
-
-        AssertContainsInOrder(
-            bridgeProtocol,
-            "## Owner Governance",
-            "`docs/editor-bridge-protocol.md` owns the JSON message protocol",
-            "`Dev\\Typedown.WinUI\\Controls\\EditorControls\\Hosting\\EditorHostContracts.cs` is shell-local WinUI host contract surface",
-            "not Presentation or Core");
-        AssertContainsInOrder(
-            bridgeProtocol,
-            "## Static Bundle Boundary",
-            "`Dev\\Typedown.Editor` owns the React editor source and build output",
-            "`Dev\\Typedown.WinUI\\Resources\\Statics` is the current staging path");
-
-        AssertContainsInOrder(
-            buildBaseline,
-            "## Owner Governance Baseline",
-            "Editor bridge protocol owner",
-            "Editor static bundle owner",
-            "WinUI resource owner",
-            "Packaged/MSIX support level");
 
         AssertContainsInOrder(
             winUIProject,

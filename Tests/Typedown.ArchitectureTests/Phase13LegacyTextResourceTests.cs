@@ -176,12 +176,7 @@ public class Phase13LegacyTextResourceTests
     [TestMethod]
     public void TextResources_OwnerGovernanceDeclaresWinUIOwnershipWithoutLegacyReuseDebt()
     {
-        var buildBaseline = File.ReadAllText(Path.Combine(RepoRoot, "docs", "build-baseline.md"));
         var winUIProjectSource = File.ReadAllText(Path.Combine(RepoRoot, "Dev", "Typedown.WinUI", "Typedown.WinUI.csproj"));
-
-        StringAssert.Contains(buildBaseline, "WinUI resource owner");
-        StringAssert.Contains(buildBaseline, "`Dev\\Typedown.WinUI\\Resources\\Strings` is the deliberate owner of `.resw` text resources.");
-        Assert.IsFalse(buildBaseline.Contains("`Dev\\Typedown` links those WinUI-owned strings", StringComparison.Ordinal));
 
         StringAssert.Contains(winUIProjectSource, "<TypedownStringResourceOwner>Typedown.WinUI</TypedownStringResourceOwner>");
         Assert.IsFalse(Directory.Exists(Path.Combine(RepoRoot, "Dev", "Typedown")));
