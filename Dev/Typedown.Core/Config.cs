@@ -1,6 +1,7 @@
 ﻿using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
 using System;
+using System.Collections.Generic;
 using System.IO;
 using Typedown.Core.Interfaces;
 
@@ -18,6 +19,17 @@ namespace Typedown.Core
         private static IAppDataPathProvider appDataPathProvider = new LegacyAppDataPathProvider();
 
         public static bool IsMicaSupported { get; } = Environment.OSVersion.Version.Build >= 22000;
+
+        // WebView2 启动参数：编辑器页面走 file:// 加载，本地图片读取依赖 allow-file-access-from-files，
+        // 滚动条样式依赖 msOverlayScrollbarWinStyle 特性开关。
+        public static IReadOnlyList<string> WebView2Args { get; } = new List<string>()
+        {
+            "--disable-web-security",
+            "--allow-file-access-from-files",
+            "--flag-switches-begin",
+            "--enable-features=msOverlayScrollbarWinStyle",
+            "--flag-switches-end"
+        };
 
         public static JsonSerializerSettings EditorJsonSerializerSettings = new()
         {

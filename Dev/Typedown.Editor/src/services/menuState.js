@@ -1,6 +1,4 @@
-const createApplicationMenuState = ({ start = {}, end = {}, affiliation = [] }) => {
-  const startBlock = start.block || {}
-  const endBlock = end.block || {}
+const createApplicationMenuState = ({ start, end, affiliation }) => {
   const state = {
     isDisabled: false,
     // Whether multiple lines are selected.
@@ -23,15 +21,15 @@ const createApplicationMenuState = ({ start = {}, end = {}, affiliation = [] }) 
 
   // Get code block information from selection.
   if (
-    (startBlock.functionType === 'cellContent' && endBlock.functionType === 'cellContent') ||
-    (start.type === 'span' && startBlock.functionType === 'codeContent') ||
-    (end.type === 'span' && endBlock.functionType === 'codeContent')
+    (start.block.functionType === 'cellContent' && end.block.functionType === 'cellContent') ||
+    (start.type === 'span' && start.block.functionType === 'codeContent') ||
+    (end.type === 'span' && end.block.functionType === 'codeContent')
   ) {
     // A code block like block is selected (code, math, ...).
     state.isCodeFences = true
 
     // A code block line is selected.
-    if (startBlock.functionType === 'codeContent' || endBlock.functionType === 'codeContent') {
+    if (start.block.functionType === 'codeContent' || end.block.functionType === 'codeContent') {
       state.isCodeContent = true
     }
   }
@@ -40,7 +38,7 @@ const createApplicationMenuState = ({ start = {}, end = {}, affiliation = [] }) 
   if (affiliation.length >= 1 && /ul|ol/.test(affiliation[0].type)) {
     const listBlock = affiliation[0]
     state.affiliation[listBlock.type] = true
-    state.isLooseListItem = Boolean(listBlock.isLooseListItem)
+    state.isLooseListItem = listBlock.children[0].isLooseListItem
     state.isTaskList = listBlock.listType === 'task'
   } else if (affiliation.length >= 3 && affiliation[1].type === 'li') {
     const listItem = affiliation[1]

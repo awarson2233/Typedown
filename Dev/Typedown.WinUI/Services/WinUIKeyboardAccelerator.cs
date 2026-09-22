@@ -1,3 +1,4 @@
+using System.Reactive;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
 using System.Reactive.Subjects;
@@ -17,6 +18,19 @@ namespace Typedown.WinUI.Services
     {
         private readonly Subject<KeyEventArgs> keyEvents = new();
         private UIElement? attachedRoot;
+
+        /// <summary>
+        /// 已注册的和弦及其引用数。WebView2 会吃掉落在网页里的键盘输入，XAML 收不到 KeyDown，
+        /// 所以编辑器宿主要把这张表下发给页面，由页面判断哪些和弦该拦截并回传给 <see cref="Emit"/>。
+        /// </summary>
+        private readonly Dictionary<(KeyboardKey Key, KeyboardModifiers Modifiers), int> registrations = new();
+
+        private readonly Subject<Unit> registrationsChanged = new();
+
+        internal IObservable<Unit> RegistrationsChanged => registrationsChanged.AsObservable();
+
+        internal IReadOnlyList<(KeyboardKey Key, KeyboardModifiers Modifiers)> RegisteredShortcuts =>
+            registrations.Keys.ToList();
 
         public void Attach(UIElement root)
         {
@@ -56,9 +70,40 @@ namespace Typedown.WinUI.Services
                 return Disposable.Empty;
             }
 
-            return keyEvents
+            var chord = (key.Key, key.Modifiers);
+            AddRegistration(chord);
+
+            var subscription = keyEvents
                 .Where(e => e.Key == key.Key && e.Modifiers == key.Modifiers)
                 .Subscribe(e => handler(this, e));
+
+            return new CompositeDisposable(subscription, Disposable.Create(() => RemoveRegistration(chord)));
+        }
+
+        private void AddRegistration((KeyboardKey, KeyboardModifiers) chord)
+        {
+            registrations[chord] = registrations.TryGetValue(chord, out var count) ? count + 1 : 1;
+            if (count == 0)
+            {
+                registrationsChanged.OnNext(Unit.Default);
+            }
+        }
+
+        private void RemoveRegistration((KeyboardKey, KeyboardModifiers) chord)
+        {
+            if (!registrations.TryGetValue(chord, out var count))
+            {
+                return;
+            }
+
+            if (count > 1)
+            {
+                registrations[chord] = count - 1;
+                return;
+            }
+
+            registrations.Remove(chord);
+            registrationsChanged.OnNext(Unit.Default);
         }
 
         public IDisposable RegisterGlobal(EventHandler<KeyEventArgs> handler)

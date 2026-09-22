@@ -1,44 +1,59 @@
 using System;
+using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
+using System.Linq;
 using System.Net.Sockets;
-using System.Text.Json;
+using System.Reactive.Disposables;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
-using Windows.Foundation;
 using Microsoft.Web.WebView2.Core;
+using Typedown.Core.Models;
+using Typedown.Core.Services;
+using Typedown.Core.Utilities;
 using Typedown.Presentation.Interfaces;
+using Typedown.Presentation.ViewModels;
+using Typedown.Services;
 using Typedown.WinUI.Services;
 using Typedown.WinUI.Utilities;
+using Windows.Foundation;
+using Windows.UI.ViewManagement;
 
 namespace Typedown.WinUI.Controls
 {
-    public sealed class WinUIEditorHost : UserControl
+    /// <summary>
+    /// WebView2 编辑器宿主。职责边界与 1.2.19 的 <c>Typedown.Controls.MarkdownEditor</c> 对齐：
+    /// 只负责 WebView2 生命周期、报文收发、主题与输入，不持有正文状态、不做文件 IO、不对消息名做白名单。
+    /// 协议解析统一由 <see cref="EditorBridge"/> 承担，文档状态由 Presentation 层的 ViewModel 独占。
+    /// </summary>
+    public sealed class WinUIEditorHost : UserControl, IDisposable
     {
         private readonly WebView2 webView;
-
-        private readonly IEditorHostSink hostSink;
         private readonly IServiceProvider? serviceProvider;
+        private readonly EditorBridge? bridge;
         private readonly WinUIEditorCommandSink? commandSink;
         private readonly WinUIWebViewEnvironmentService? webViewEnvironmentService;
         private readonly string? editorIndex;
-        private readonly IEditorDocumentSession documentSession;
-        private readonly WinUIEditorHostController hostController;
-        private readonly WinUIEditorBridgeAdapter bridgeAdapter;
-        private string status;
-        private string latestRawWebMessage;
         private readonly PendingRawMessageQueue pendingRawMessages = new();
+        private readonly CompositeDisposable disposables = new();
+        private readonly StartupNavigationTraceState startupNavigationTraceState = new();
+        private readonly UISettings uiSettings = new();
+
+        private static readonly HashSet<ulong> reportedEditorExceptions = new();
+
         private Task? coreInitializationTask;
         private CancellationTokenSource? loadCancellation;
         private bool coreInitialized;
         private bool isLoaded;
         private bool coreEventsAttached;
         private bool editorNavigationStarted;
+        private bool isContentLoaded;
+        private XamlRoot? observedXamlRoot;
+        private double observedRasterizationScale;
         private int loadVersion;
-        private readonly StartupNavigationTraceState startupNavigationTraceState = new();
 
         public event EventHandler<WinUIEditorContextMenuRequestedEventArgs>? ContextMenuRequested;
 
@@ -49,11 +64,8 @@ namespace Typedown.WinUI.Controls
                 this.serviceProvider = serviceProvider;
                 commandSink = serviceProvider?.GetService<IEditorCommandSink>() as WinUIEditorCommandSink;
                 webViewEnvironmentService = serviceProvider?.GetService<WinUIWebViewEnvironmentService>();
-                hostSink = new WinUIEditorHostSink(this);
                 editorIndex = ResolveEditorIndexPath();
-                documentSession = CreateDocumentSession(editorIndex is null ? null : ResolveBasePath(editorIndex));
-                hostController = new WinUIEditorHostController(documentSession, hostSink);
-                bridgeAdapter = new WinUIEditorBridgeAdapter(documentSession);
+
                 webView = new WebView2
                 {
                     HorizontalAlignment = HorizontalAlignment.Stretch,
@@ -61,26 +73,282 @@ namespace Typedown.WinUI.Controls
                     VerticalAlignment = VerticalAlignment.Stretch
                 };
 
-                status = "Loaded=False; FileLoaded=False; MarkdownLength=0; LastEvent=Waiting";
-                latestRawWebMessage = bridgeAdapter.LastRawMessage;
+                var remoteInvoke = serviceProvider?.GetService<RemoteInvoke>();
+                var transport = serviceProvider?.GetService<Transport>();
+                if (remoteInvoke is not null && transport is not null)
+                {
+                    bridge = new EditorBridge(remoteInvoke, transport, SendRawMessage);
+                    EnsurePresentationHandlersRegistered();
+                    RegisterHostInvokeHandlers(remoteInvoke);
+                    SubscribeHostEvents();
+                }
 
                 Content = webView;
                 Loaded += OnLoaded;
                 Unloaded += OnUnloaded;
+                SizeChanged += OnHostSizeChanged;
             }
         }
 
-        public string Status => status;
+        // ── 宿主自有的 invoke / 事件处理 ────────────────────────────────────────
 
-        public string LatestRawWebMessage => latestRawWebMessage;
-
-        public string? InitialFilePath
+        /// <summary>
+        /// ViewModel 是 Scoped 且惰性解析的，而它们的 RemoteInvoke 处理器在构造函数里注册。
+        /// 前端一上来就会 invoke GetSettings / GetStringResources / ResizeTable，
+        /// 因此必须在桥接建立前把这些 ViewModel 提前实例化，否则首个 invoke 会找不到 handler。
+        /// </summary>
+        private void EnsurePresentationHandlersRegistered()
         {
-            get => hostController.InitialFilePath;
-            set => hostController.InitialFilePath = value;
+            if (serviceProvider?.GetService<AppViewModel>() is not AppViewModel appViewModel)
+            {
+                return;
+            }
+
+            _ = appViewModel.EditorViewModel;
+            _ = appViewModel.FileViewModel;
+            _ = appViewModel.FloatViewModel;
+            _ = appViewModel.FormatViewModel;
+            _ = appViewModel.ParagraphViewModel;
+            _ = appViewModel.UIViewModel;
         }
 
-        // Host entrypoints: LoadFile(), Save(), SaveAs().
+        private void RegisterHostInvokeHandlers(RemoteInvoke remoteInvoke)
+        {
+            disposables.Add(remoteInvoke.Handle("ContentLoaded", OnContentLoaded));
+            disposables.Add(remoteInvoke.Handle("GetCurrentTheme", CreateCurrentThemePayload));
+            disposables.Add(remoteInvoke.Handle<string>("UnhandledException", OnEditorUnhandledException));
+            disposables.Add(remoteInvoke.Handle<string>("OpenNewWindow", uri => OpenUri(uri)));
+        }
+
+        private void SubscribeHostEvents()
+        {
+            if (serviceProvider?.GetService<EventCenter>() is not EventCenter eventCenter)
+            {
+                return;
+            }
+
+            disposables.Add(eventCenter.GetObservable<EditorEventArgs>("OpenURI")
+                .Subscribe(x => OpenUri(x.Args?["uri"]?.ToString())));
+            disposables.Add(eventCenter.GetObservable<EditorEventArgs>("FileLoaded")
+                .Subscribe(_ => RecordBridgeMilestone("FileLoaded")));
+
+            // 前端若以页面级 contextmenu 监听上报坐标，这里同样接得住；
+            // 原生 CoreWebView2.ContextMenuRequested 是首选路径，两者最终汇到同一个处理。
+            disposables.Add(eventCenter.GetObservable<EditorEventArgs>("OpenContextMenu")
+                .Subscribe(x => RaiseContextMenuRequested(
+                    x.Args?["x"]?.ToObject<double>() ?? 0,
+                    x.Args?["y"]?.ToObject<double>() ?? 0)));
+
+            // 焦点在 WebView2 里时 XAML 收不到 KeyDown，页面按下发的快捷键表拦下和弦后回传到这里补触发。
+            disposables.Add(eventCenter.GetObservable<EditorEventArgs>("KeyDown")
+                .Subscribe(x => OnEditorKeyDown(
+                    x.Args?["key"]?.ToObject<int>() ?? 0,
+                    x.Args?["modifiers"]?.ToObject<int>() ?? 0)));
+
+            if (serviceProvider?.GetService<IKeyboardAccelerator>() is WinUIKeyboardAccelerator accelerator)
+            {
+                disposables.Add(accelerator.RegistrationsChanged.Subscribe(_ => SendShortcutTable()));
+            }
+        }
+
+        private void OnEditorKeyDown(int key, int modifiers)
+        {
+            if (serviceProvider?.GetService<IKeyboardAccelerator>() is WinUIKeyboardAccelerator accelerator)
+            {
+                accelerator.Emit((KeyboardKey)key, (KeyboardModifiers)modifiers);
+            }
+        }
+
+        private void SendShortcutTable()
+        {
+            if (serviceProvider?.GetService<IKeyboardAccelerator>() is not WinUIKeyboardAccelerator accelerator)
+            {
+                return;
+            }
+
+            var shortcuts = accelerator.RegisteredShortcuts
+                .Select(chord => new { key = (int)chord.Key, modifiers = (int)chord.Modifiers })
+                .ToList();
+            bridge?.Send("SetShortcuts", new { shortcuts });
+        }
+
+        private void OnContentLoaded()
+        {
+            isContentLoaded = true;
+            webView.Opacity = 1;
+            RecordBridgeMilestone("ContentLoaded");
+            commandSink?.ResendLatestTheme(this);
+            SendShortcutTable();
+        }
+
+        private void OnEditorUnhandledException(string error)
+        {
+            webView.CoreWebView2?.Reload();
+            try
+            {
+                var hash = Common.SimpleHash(error);
+                if (reportedEditorExceptions.Add(hash))
+                {
+                    _ = Log.Report("WebViewUnhandledException", error);
+                }
+            }
+            catch
+            {
+                // 上报失败不应影响自愈重载。
+            }
+        }
+
+        private bool OpenUri(string? uri)
+        {
+            if (string.IsNullOrWhiteSpace(uri))
+            {
+                return false;
+            }
+
+            try
+            {
+                if (!UriHelper.IsWebUrl(uri) && UriHelper.TryGetLocalPath(uri, out var localPath))
+                {
+                    var appViewModel = serviceProvider?.GetService<AppViewModel>();
+                    var currentFolder = Path.GetDirectoryName(appViewModel?.FileViewModel.FilePath ?? string.Empty);
+                    if (!string.IsNullOrWhiteSpace(currentFolder))
+                    {
+                        var fullPath = Path.GetFullPath(Path.Combine(currentFolder, localPath));
+                        if (File.Exists(fullPath))
+                        {
+                            if (FileTypeHelper.IsMarkdownFile(fullPath) && appViewModel is not null)
+                            {
+                                appViewModel.FileViewModel.NewWindowCommand.Execute(fullPath);
+                            }
+                            else
+                            {
+                                Common.OpenUrl(fullPath);
+                            }
+
+                            return true;
+                        }
+                    }
+                }
+
+                Common.OpenUrl(uri);
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        // ── 主题 ──────────────────────────────────────────────────────────────
+
+        private EditorThemePayload CreateCurrentThemePayload()
+        {
+            var isDark = ActualTheme == ElementTheme.Dark;
+            var background = isDark
+                ? new EditorColorPayload(40, 40, 40, 1)
+                : new EditorColorPayload(249, 249, 249, 1);
+
+            return new EditorThemePayload
+            {
+                Theme = isDark ? "Dark" : "Light",
+                AccentColor = ResolveSystemAccentColor(),
+                Background = background
+            };
+        }
+
+        private EditorColorPayload ResolveSystemAccentColor()
+        {
+            try
+            {
+                var accent = uiSettings.GetColorValue(UIColorType.Accent);
+                return new EditorColorPayload(accent.R, accent.G, accent.B, 1);
+            }
+            catch
+            {
+                return new EditorColorPayload(27, 102, 107, 1);
+            }
+        }
+
+        private void ApplyNativeEditorBackground(EditorColorPayload background)
+        {
+            webView.DefaultBackgroundColor = Windows.UI.Color.FromArgb(
+                ToByte(background.A * 255),
+                ToByte(background.R),
+                ToByte(background.G),
+                ToByte(background.B));
+        }
+
+        // ── 报文收发 ──────────────────────────────────────────────────────────
+
+        /// <summary>供 <see cref="WinUIEditorCommandSink"/> 转发 ViewModel 发起的命令。</summary>
+        internal bool SendCommand(string name, object? args)
+        {
+            return bridge?.Send(name, args!) == true;
+        }
+
+        private bool SendRawMessage(string payload)
+        {
+            if (webView.CoreWebView2 is null)
+            {
+                pendingRawMessages.Enqueue(payload);
+                return true;
+            }
+
+            return TryPostRawMessage(payload);
+        }
+
+        private void FlushPendingRawMessages()
+        {
+            if (webView.CoreWebView2 is null)
+            {
+                return;
+            }
+
+            pendingRawMessages.Flush(TryPostRawMessage);
+        }
+
+        private bool TryPostRawMessage(string payload)
+        {
+            try
+            {
+                webView.CoreWebView2?.PostWebMessageAsString(payload);
+                return webView.CoreWebView2 is not null;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        private async void OnWebMessageReceived(CoreWebView2 sender, CoreWebView2WebMessageReceivedEventArgs e)
+        {
+            if (bridge is null)
+            {
+                return;
+            }
+
+            var messageLoadVersion = loadVersion;
+            var messageStr = e.TryGetWebMessageAsString();
+            await bridge.ReceiveAsync(messageStr);
+            _ = IsCurrentLoad(messageLoadVersion);
+        }
+
+        private void RecordBridgeMilestone(string? eventName)
+        {
+            var milestone = startupNavigationTraceState.RecordBridgeMilestone(eventName);
+            var navigationId = startupNavigationTraceState.StartupNavigationId;
+            switch (milestone)
+            {
+                case StartupBridgeMilestone.ContentLoaded:
+                    StartupTrace.BridgeContentLoaded(navigationId);
+                    break;
+                case StartupBridgeMilestone.FileLoaded:
+                    StartupTrace.BridgeFileLoaded(navigationId);
+                    break;
+            }
+        }
+
+        // ── WebView2 生命周期 ─────────────────────────────────────────────────
 
         private async void OnLoaded(object sender, RoutedEventArgs e)
         {
@@ -92,6 +360,7 @@ namespace Typedown.WinUI.Controls
 
             isLoaded = true;
             commandSink?.RegisterActiveHost(this);
+            ObserveXamlRoot(XamlRoot);
 
             try
             {
@@ -102,14 +371,11 @@ namespace Typedown.WinUI.Controls
                 {
                     AttachCoreWebView();
                     FlushPendingRawMessages();
-                    if (bridgeAdapter.IsContentLoaded)
+                    if (isContentLoaded)
                     {
                         webView.Opacity = 1;
                     }
 
-                    status = bridgeAdapter.StatusText;
-                    latestRawWebMessage = bridgeAdapter.LastRawMessage;
-                    TrySendPendingLoadFile();
                     return;
                 }
 
@@ -119,21 +385,12 @@ namespace Typedown.WinUI.Controls
                     return;
                 }
 
-                bridgeAdapter.ResetForNavigation();
-                hostController.ResetForNavigation();
+                isContentLoaded = false;
                 AttachCoreWebView();
-                if (!string.IsNullOrWhiteSpace(InitialFilePath))
-                {
-                    var loadResult = hostController.LoadFile(InitialFilePath);
-                    if (!loadResult.Success)
-                    {
-                        status = $"Initial file load failed: {loadResult.Message}";
-                    }
-                }
-                status = bridgeAdapter.StatusText;
-                latestRawWebMessage = bridgeAdapter.LastRawMessage;
 
-                webView.CoreWebView2.Settings.AreDefaultContextMenusEnabled = false;
+                // 右键菜单走原生路径：默认菜单必须保持启用，ContextMenuRequested 才会触发，
+                // 再由 Handled = true 抑制浏览器菜单并改用 XAML Flyout。
+                webView.CoreWebView2.Settings.AreDefaultContextMenusEnabled = true;
                 webView.CoreWebView2.Settings.AreBrowserAcceleratorKeysEnabled = false;
 #if DEBUG
                 webView.CoreWebView2.Settings.AreDevToolsEnabled = true;
@@ -153,7 +410,6 @@ namespace Typedown.WinUI.Controls
 
                 if (useDevServer)
                 {
-                    status = "Editor host navigating to Local Dev Server (http://localhost:3000) with HMR enabled.";
                     webView.CoreWebView2.Navigate("http://localhost:3000");
                     editorNavigationStarted = true;
                 }
@@ -161,19 +417,22 @@ namespace Typedown.WinUI.Controls
                 {
                     if (editorIndex is null)
                     {
-                        status = "Local Dev Server offline and static bundle is missing. Run yarn build in Dev\\Typedown.Editor.";
-                        System.Diagnostics.Debug.WriteLine($"[WEBVIEW2 WARNING] {status}");
+                        System.Diagnostics.Debug.WriteLine(
+                            "[WEBVIEW2] Local Dev Server offline and static bundle is missing. Run yarn build in Dev\\Typedown.Editor.");
                         return;
                     }
 
-                    status = $"Local Dev Server offline. Navigating to fallback static bundle: {editorIndex}";
                     webView.CoreWebView2.Navigate(new Uri(editorIndex).AbsoluteUri);
                     editorNavigationStarted = true;
                 }
                 webView.CoreWebView2.OpenDevToolsWindow();
 #else
                 webView.Opacity = 0;
-                status = $"Editor host navigating to {editorIndex}";
+                if (editorIndex is null)
+                {
+                    return;
+                }
+
                 webView.CoreWebView2.Navigate(new Uri(editorIndex).AbsoluteUri);
                 editorNavigationStarted = true;
 #endif
@@ -183,10 +442,6 @@ namespace Typedown.WinUI.Controls
             }
             catch (Exception ex)
             {
-                if (IsCurrentLoad(currentLoadVersion, cancellationToken))
-                {
-                    status = $"WebView2 initialization failed: {ex.GetType().Name}: {ex.Message}";
-                }
                 System.Diagnostics.Debug.WriteLine($"[FATAL WEBVIEW2] {ex}");
             }
         }
@@ -200,133 +455,61 @@ namespace Typedown.WinUI.Controls
             loadCancellation = null;
             pendingRawMessages.Clear();
             commandSink?.UnregisterActiveHost(this);
+            ObserveXamlRoot(null);
             DetachCoreWebView();
         }
 
-        private async void OnWebMessageReceived(CoreWebView2 sender, CoreWebView2WebMessageReceivedEventArgs e)
+        // ── 视口同步 ────────────────────────────────────────────────────────────
+
+        /// <summary>
+        /// WinUI3 的 WebView2 在 XAML 布局之后才异步把新尺寸与缩放推给内核，页面自己的 resize 可能早于最终视口触发。
+        /// 宿主尺寸或缩放一变，就请页面按当前视口重报一次滚动状态，免得宿主拿着过渡期的溢出量画出滚动条。
+        /// </summary>
+        private void RequestScrollStateRefresh()
         {
-            var messageLoadVersion = loadVersion;
-            var wasContentLoaded = bridgeAdapter.IsContentLoaded;
-            var messageStr = e.TryGetWebMessageAsString();
-
-            if (!string.IsNullOrEmpty(messageStr) && messageStr.Contains("\"name\":\"OpenContextMenu\""))
+            if (isContentLoaded)
             {
-                try
-                {
-                    using var document = JsonDocument.Parse(messageStr);
-                    var root = document.RootElement;
-                    if (root.TryGetProperty("args", out var argsElement))
-                    {
-                        var x = argsElement.GetProperty("x").GetDouble();
-                        var y = argsElement.GetProperty("y").GetDouble();
-                        ContextMenuRequested?.Invoke(this, new WinUIEditorContextMenuRequestedEventArgs(new Point(x, y)));
-                        return;
-                    }
-                }
-                catch { }
+                SendCommand("RefreshScrollState", null);
             }
+        }
 
-            var receiveTask = bridgeAdapter.ReceiveAsync(
-                messageStr,
-                payload => IsCurrentLoad(messageLoadVersion) && SendRawMessage(payload));
-            var bridgeMilestoneName = StartupTrace.IsEnabled ? bridgeAdapter.LastEventName : null;
-            await receiveTask;
-            if (!IsCurrentLoad(messageLoadVersion))
+        private void OnHostSizeChanged(object sender, SizeChangedEventArgs e)
+        {
+            RequestScrollStateRefresh();
+        }
+
+        private void ObserveXamlRoot(XamlRoot? root)
+        {
+            if (ReferenceEquals(observedXamlRoot, root))
             {
                 return;
             }
 
-            status = bridgeAdapter.StatusText;
-            latestRawWebMessage = bridgeAdapter.LastRawMessage;
-            if (bridgeMilestoneName is not null)
+            if (observedXamlRoot is not null)
             {
-                RecordBridgeMilestone(bridgeMilestoneName);
+                observedXamlRoot.Changed -= OnXamlRootChanged;
             }
 
-            if (!wasContentLoaded && bridgeAdapter.IsContentLoaded)
-            {
-                webView.Opacity = 1;
-                hostController.MarkEditorReady();
-                FlushPendingRawMessages();
-                commandSink?.ResendLatestTheme(this);
-                TrySendPendingLoadFile();
-            }
-        }
-
-        private void OnNavigationStarting(CoreWebView2 sender, CoreWebView2NavigationStartingEventArgs e)
-        {
-            startupNavigationTraceState.NavigationStarting(e.NavigationId);
-            StartupTrace.NavigationStarting(e.NavigationId, StartupTrace.IsEnabled ? e.Uri : null);
-        }
-
-        private void OnContentLoading(CoreWebView2 sender, CoreWebView2ContentLoadingEventArgs e)
-        {
-            StartupTrace.ContentLoading(e.NavigationId);
-        }
-
-        private void OnDomContentLoaded(CoreWebView2 sender, CoreWebView2DOMContentLoadedEventArgs e)
-        {
-            StartupTrace.DomContentLoaded(e.NavigationId);
-        }
-
-        private async void OnNavigationCompleted(CoreWebView2 sender, CoreWebView2NavigationCompletedEventArgs e)
-        {
-            StartupTrace.NavigationCompleted(e.NavigationId, e.IsSuccess, (int)e.WebErrorStatus);
-            if (!isLoaded)
+            observedXamlRoot = root;
+            if (root is null)
             {
                 return;
             }
 
-            if (!e.IsSuccess)
+            observedRasterizationScale = root.RasterizationScale;
+            root.Changed += OnXamlRootChanged;
+        }
+
+        private void OnXamlRootChanged(XamlRoot sender, XamlRootChangedEventArgs args)
+        {
+            // 窗口拖到另一块缩放不同的显示器时，DIP 尺寸可能不变、SizeChanged 不触发，但取整误差已经变了。
+            if (sender.RasterizationScale == observedRasterizationScale)
             {
-                webView.Opacity = 1;
-                status = $"Editor navigation failed: {e.WebErrorStatus}";
                 return;
             }
 
-            status = "Editor static bundle loaded. Bridge smoke message sent from WinUI host.";
-            var payload = JsonSerializer.Serialize(new
-            {
-                name = "WinUIHostReady",
-                args = new
-                {
-                    shell = "Typedown.WinUI",
-                    capability = "EditorHost",
-                    mode = "OpenAndEditSmoke"
-                }
-            });
-            SendRawMessage(payload);
-            TrySendPendingLoadFile();
-        }
-
-        private void RecordBridgeMilestone(string? eventName)
-        {
-            var milestone = startupNavigationTraceState.RecordBridgeMilestone(eventName);
-            var navigationId = startupNavigationTraceState.StartupNavigationId;
-            switch (milestone)
-            {
-                case StartupBridgeMilestone.ContentLoaded:
-                    StartupTrace.BridgeContentLoaded(navigationId);
-                    break;
-                case StartupBridgeMilestone.FileLoaded:
-                    StartupTrace.BridgeFileLoaded(navigationId);
-                    break;
-                case StartupBridgeMilestone.DocumentRendered:
-                    StartupTrace.BridgeDocumentRendered(navigationId);
-                    break;
-            }
-        }
-
-        private void OnProcessFailed(CoreWebView2 sender, CoreWebView2ProcessFailedEventArgs e)
-        {
-            webView.Opacity = 1;
-            status = $"WebView2 process failed: {e.ProcessFailedKind}";
-        }
-
-        private bool SendMessage(string name, object? args)
-        {
-            var payload = JsonSerializer.Serialize(new { name, args });
-            return SendRawMessage(payload, requireContentLoaded: true);
+            observedRasterizationScale = sender.RasterizationScale;
+            RequestScrollStateRefresh();
         }
 
         private bool IsCurrentLoad(int version)
@@ -401,56 +584,25 @@ namespace Typedown.WinUI.Controls
         }
 #endif
 
-        private async Task<CoreWebView2Environment> GetEnvironmentAsync()
+        /// <summary>
+        /// 环境一律由 <see cref="WinUIWebViewEnvironmentService"/> 创建——命令行开关与用户数据目录都在那里，
+        /// 这里不另开一条裸 CreateAsync 的兜底路径，否则两条路径建出来的环境配置会不一致。
+        /// </summary>
+        private Task<CoreWebView2Environment> GetEnvironmentAsync()
         {
-            if (webViewEnvironmentService is not null)
+            if (webViewEnvironmentService is null)
             {
-                return await webViewEnvironmentService.GetEnvironmentAsync();
+                throw new InvalidOperationException(
+                    $"{nameof(WinUIWebViewEnvironmentService)} is required to host the editor.");
             }
 
-            StartupTrace.CoreWebView2EnvironmentCreateStart();
-            try
-            {
-                return await CoreWebView2Environment.CreateAsync();
-            }
-            finally
-            {
-                StartupTrace.CoreWebView2EnvironmentCreateStop();
-            }
+            return webViewEnvironmentService.GetEnvironmentAsync();
         }
 
-        private WinUIEditorDocumentSession CreateDocumentSession(string? basePath = null)
-        {
-            return new WinUIEditorDocumentSession(
-                basePath: basePath,
-                themeProvider: CreateCurrentThemePayload,
-                serviceProvider: serviceProvider);
-        }
-
-        private EditorThemePayload CreateCurrentThemePayload()
-        {
-            var isDark = ActualTheme == ElementTheme.Dark;
-            var background = isDark
-                ? new EditorColorPayload(40, 40, 40, 1)
-                : new EditorColorPayload(249, 249, 249, 1);
-
-            return new EditorThemePayload
-            {
-                Theme = isDark ? "Dark" : "Light",
-                AccentColor = new EditorColorPayload(27, 102, 107, 1),
-                Background = background
-            };
-        }
-
-        private void ApplyNativeEditorBackground(EditorColorPayload background)
-        {
-            webView.DefaultBackgroundColor = Windows.UI.Color.FromArgb(
-                ToByte(background.A * 255),
-                ToByte(background.R),
-                ToByte(background.G),
-                ToByte(background.B));
-        }
-
+        /// <summary>
+        /// 只做一件事：在首帧之前把文档背景刷成与宿主一致的颜色，避免 WebView2 的白底闪烁。
+        /// 快捷键一律走 <see cref="IKeyboardAccelerator"/>，不在这里硬编码。
+        /// </summary>
         private static string BuildDocumentCreatedScript(EditorColorPayload background)
         {
             var color = string.Create(
@@ -473,36 +625,6 @@ namespace Typedown.WinUI.Controls
                     };
                     document.addEventListener('DOMContentLoaded', apply, { once: true });
                     apply();
-
-                    document.addEventListener('keydown', event => {
-                        if (event.defaultPrevented || event.repeat || !event.ctrlKey || event.altKey) {
-                            return;
-                        }
-
-                        const key = String(event.key).toLowerCase();
-                        let name = null;
-                        if (!event.shiftKey && key === 'f') {
-                            name = 'OpenFindReplace';
-                        } else if (!event.shiftKey && key === 's') {
-                            name = 'Save';
-                        } else if (event.shiftKey && key === 's') {
-                            name = 'SaveAs';
-                        } else if (!event.shiftKey && key === 'w') {
-                            name = 'Close';
-                        }
-
-                        if (name === null) {
-                            return;
-                        }
-
-                        event.preventDefault();
-                        event.stopPropagation();
-                        window.chrome.webview.postMessage(JSON.stringify({
-                            type: 'message',
-                            name,
-                            args: {}
-                        }));
-                    }, true);
                 })();
                 """);
         }
@@ -525,7 +647,7 @@ namespace Typedown.WinUI.Controls
             webView.CoreWebView2.DOMContentLoaded += OnDomContentLoaded;
             webView.CoreWebView2.NavigationCompleted += OnNavigationCompleted;
             webView.CoreWebView2.ProcessFailed += OnProcessFailed;
-            webView.CoreWebView2.ContextMenuRequested += OnContextMenuRequested;
+            webView.CoreWebView2.ContextMenuRequested += OnCoreContextMenuRequested;
             webView.PreviewKeyDown += OnPreviewKeyDown;
             coreEventsAttached = true;
         }
@@ -543,158 +665,68 @@ namespace Typedown.WinUI.Controls
             webView.CoreWebView2.DOMContentLoaded -= OnDomContentLoaded;
             webView.CoreWebView2.NavigationCompleted -= OnNavigationCompleted;
             webView.CoreWebView2.ProcessFailed -= OnProcessFailed;
-            webView.CoreWebView2.ContextMenuRequested -= OnContextMenuRequested;
+            webView.CoreWebView2.ContextMenuRequested -= OnCoreContextMenuRequested;
             webView.PreviewKeyDown -= OnPreviewKeyDown;
             coreEventsAttached = false;
         }
 
-        private void OnContextMenuRequested(CoreWebView2 sender, CoreWebView2ContextMenuRequestedEventArgs e)
+        private void OnNavigationStarting(CoreWebView2 sender, CoreWebView2NavigationStartingEventArgs e)
+        {
+            isContentLoaded = false;
+            startupNavigationTraceState.NavigationStarting(e.NavigationId);
+            StartupTrace.NavigationStarting(e.NavigationId, StartupTrace.IsEnabled ? e.Uri : null);
+        }
+
+        private void OnContentLoading(CoreWebView2 sender, CoreWebView2ContentLoadingEventArgs e)
+        {
+            StartupTrace.ContentLoading(e.NavigationId);
+        }
+
+        private void OnDomContentLoaded(CoreWebView2 sender, CoreWebView2DOMContentLoadedEventArgs e)
+        {
+            StartupTrace.DomContentLoaded(e.NavigationId);
+        }
+
+        private void OnNavigationCompleted(CoreWebView2 sender, CoreWebView2NavigationCompletedEventArgs e)
+        {
+            StartupTrace.NavigationCompleted(e.NavigationId, e.IsSuccess, (int)e.WebErrorStatus);
+            if (!isLoaded)
+            {
+                return;
+            }
+
+            if (!e.IsSuccess)
+            {
+                webView.Opacity = 1;
+                return;
+            }
+
+            FlushPendingRawMessages();
+        }
+
+        private void OnProcessFailed(CoreWebView2 sender, CoreWebView2ProcessFailedEventArgs e)
+        {
+            webView.Opacity = 1;
+        }
+
+        private void OnCoreContextMenuRequested(CoreWebView2 sender, CoreWebView2ContextMenuRequestedEventArgs e)
         {
             e.Handled = true;
-            ContextMenuRequested?.Invoke(this, new WinUIEditorContextMenuRequestedEventArgs(new Point(e.Location.X, e.Location.Y)));
+            RaiseContextMenuRequested(e.Location.X, e.Location.Y);
+        }
+
+        private void RaiseContextMenuRequested(double x, double y)
+        {
+            ContextMenuRequested?.Invoke(this, new WinUIEditorContextMenuRequestedEventArgs(new Point(x, y)));
         }
 
         private void OnPreviewKeyDown(object sender, Microsoft.UI.Xaml.Input.KeyRoutedEventArgs e)
         {
             if (serviceProvider?.GetService<IKeyboardAccelerator>() is WinUIKeyboardAccelerator accelerator)
             {
-                var args = accelerator.Emit((Typedown.Core.Models.KeyboardKey)(int)e.Key, WinUIKeyboardAccelerator.GetCurrentModifiers());
+                var args = accelerator.Emit((KeyboardKey)(int)e.Key, WinUIKeyboardAccelerator.GetCurrentModifiers());
                 e.Handled = args.Handled;
             }
-        }
-
-        private void TrySendPendingLoadFile()
-        {
-            if (!isLoaded || !bridgeAdapter.IsContentLoaded)
-            {
-                return;
-            }
-
-            _ = hostController.TrySendLoadFile();
-        }
-
-        public EditorPersistenceResult LoadFile(string filePath)
-        {
-            InitialFilePath = filePath;
-            var result = hostController.LoadFile(filePath);
-            if (!result.Success)
-            {
-                status = $"LoadFile failed: {result.Message}";
-            }
-
-            return result;
-        }
-
-        public EditorPersistenceResult Save()
-        {
-            var result = hostController.Save();
-            if (!result.Success)
-            {
-                status = $"Save failed: {result.Message}";
-            }
-
-            return result;
-        }
-
-        public EditorPersistenceResult SaveAs(string filePath, bool saveCopy = false)
-        {
-            var result = hostController.SaveAs(filePath, saveCopy);
-            if (result.Success && !saveCopy)
-            {
-                InitialFilePath = filePath;
-            }
-
-            if (!result.Success)
-            {
-                status = $"SaveAs failed: {result.Message}";
-            }
-
-            return result;
-        }
-
-        public EditorPersistenceResult ReplaceFileText(string text, string? filePath = null, string? basePath = null)
-        {
-            return hostController.ReplaceFileText(text, filePath, basePath);
-        }
-
-        internal bool SendLoadFile()
-        {
-            return hostSink.Send(EditorHostCommands.CreateLoadFile(documentSession.State));
-        }
-
-        internal bool SendThemeChanged(EditorThemePayload payload)
-        {
-            return hostSink.Send(EditorHostCommands.CreateThemeChanged(payload));
-        }
-
-        internal bool SendSearch(EditorSearchRequest request)
-        {
-            return hostSink.Send(EditorHostCommands.CreateSearch(request));
-        }
-
-        internal bool SendReplace(EditorReplaceRequest request)
-        {
-            return hostSink.Send(EditorHostCommands.CreateReplace(request));
-        }
-
-        internal bool SendSearchOpenChange(EditorSearchPanelState state)
-        {
-            return hostSink.Send(EditorHostCommands.CreateSearchOpenChange(state));
-        }
-
-        internal bool SendSettingsChanged(EditorSettingsChange change)
-        {
-            return hostSink.Send(EditorHostCommands.CreateSettingsChanged(change));
-        }
-
-        internal bool SendExport(EditorExportRequest request)
-        {
-            return hostSink.Send(EditorHostCommands.CreateExport(request));
-        }
-
-        internal bool SendCommand(string name, object? args)
-        {
-            return SendMessage(name, args);
-        }
-
-        internal bool SendRawMessage(string payload, bool requireContentLoaded = false)
-        {
-            if (webView.CoreWebView2 is null || (requireContentLoaded && !bridgeAdapter.IsContentLoaded))
-            {
-                pendingRawMessages.Enqueue(payload, requireContentLoaded);
-                return true;
-            }
-
-            return TryPostRawMessage(payload);
-        }
-
-        private void FlushPendingRawMessages()
-        {
-            if (webView.CoreWebView2 is null)
-            {
-                return;
-            }
-
-            pendingRawMessages.Flush(TryPostRawMessage, bridgeAdapter.IsContentLoaded);
-        }
-
-        private bool TryPostRawMessage(string payload)
-        {
-            try
-            {
-                webView.CoreWebView2?.PostWebMessageAsString(payload);
-                return webView.CoreWebView2 is not null;
-            }
-            catch
-            {
-                return false;
-            }
-        }
-
-        private static string ResolveBasePath(string editorIndex)
-        {
-            var directory = Path.GetDirectoryName(editorIndex);
-            return string.IsNullOrWhiteSpace(directory) ? AppContext.BaseDirectory : directory;
         }
 
         private static string? ResolveEditorIndexPath()
@@ -718,6 +750,16 @@ namespace Typedown.WinUI.Controls
             }
 
             return null;
+        }
+
+        public void Dispose()
+        {
+            ObserveXamlRoot(null);
+            DetachCoreWebView();
+            disposables.Dispose();
+            loadCancellation?.Cancel();
+            loadCancellation?.Dispose();
+            loadCancellation = null;
         }
     }
 

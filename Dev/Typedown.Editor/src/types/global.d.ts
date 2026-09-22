@@ -1,4 +1,3 @@
-declare module 'dompurify';
 
 export declare global {
     interface Window {

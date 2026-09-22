@@ -11,7 +11,8 @@
         <EnableMsixTooling>true</EnableMsixTooling>
         <WindowsPackageType>MSIX</WindowsPackageType>
         <AppxPackageSigningEnabled>true</AppxPackageSigningEnabled>
-        <PackageCertificateThumbprint>43B9C8C444BBB5C2DAC24C8925EDAFB6BF6163C5</PackageCertificateThumbprint>
+        <!-- 本机自签开发证书 CN=Typedown WinUI Dev Test，与 Package.appxmanifest 的 Publisher 对齐。 -->
+        <PackageCertificateThumbprint>25DDFE0855586565514DA11ABDC679412DEFEADD</PackageCertificateThumbprint>
         <GenerateAppInstallerFile>false</GenerateAppInstallerFile>
         <WindowsAppSdkBootstrapInitialize>true</WindowsAppSdkBootstrapInitialize>
         <WindowsAppSDKBootstrapAutoInitializeOptions_OnPackageIdentity_NoOp>true</WindowsAppSDKBootstrapAutoInitializeOptions_OnPackageIdentity_NoOp>

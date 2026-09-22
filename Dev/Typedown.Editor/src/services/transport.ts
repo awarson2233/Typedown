@@ -1,12 +1,6 @@
 import EventEmitter from "events";
 
-const postMessage = (msg: unknown) => {
-  if (window.chrome && window.chrome.webview) {
-    window.chrome.webview.postMessage(JSON.stringify(msg));
-  } else {
-    console.log("postMessage (mocked):", msg);
-  }
-};
+const postMessage = (msg: unknown) => window.chrome.webview.postMessage(JSON.stringify(msg))
 
 type Listener<T> = (arg: T) => void;
 
@@ -17,12 +11,10 @@ interface IMessage {
   args: unknown;
 }
 
-if (window.chrome && window.chrome.webview) {
-  window.chrome.webview.addEventListener<string>("message", ({ data }) => {
-    const { name, args } = JSON.parse(data) as IMessage
-    transport.emit(name, args);
-  });
-}
+window.chrome.webview.addEventListener<string>("message", ({ data }) => {
+  const { name, args } = JSON.parse(data) as IMessage
+  transport.emit(name, args);
+});
 
 const prevMap = new Map<string, string>();
 const ref = { pos: 0 };
@@ -45,14 +37,9 @@ const remoteFunction =
       });
 
 const postMessageDiff = (name: string, arg: unknown) => {
-  if (name === 'OpenContextMenu') {
-    postMessage({ type: 'message', name, args: arg });
-    return;
-  }
-
   const oldArg = prevMap.get(name);
   const newArg = JSON.stringify(arg);
-  if (!oldArg || newArg.length > 10000) {
+  if (!oldArg) {
     postMessage({
       type: "diffmsg",
       diff: false,

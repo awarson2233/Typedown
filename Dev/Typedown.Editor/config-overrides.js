@@ -3,20 +3,13 @@ var path = require("path")
 var webpack = require("webpack")
 
 const paths = require('react-scripts/config/paths')
+// 宿主工程在 WinUI3 迁移时由 Typedown 更名为 Typedown.WinUI，输出路径随之调整；
+// TYPEDOWN_EDITOR_BUILD_OUTPUT 供 MSBuild 在非默认暂存目录下构建时覆盖。
 paths.appBuild = process.env.TYPEDOWN_EDITOR_BUILD_OUTPUT
     ? path.resolve(__dirname, process.env.TYPEDOWN_EDITOR_BUILD_OUTPUT)
     : path.resolve(__dirname, '../Typedown.WinUI/Resources/Statics')
 
 module.exports = function override(config, env) {
-    const muyaCoreCjs = path.join(__dirname, './vendor/muya-core/lib/cjs/index.js')
-    const moduleScopePlugin = config.resolve.plugins.find(plugin => plugin.constructor.name === 'ModuleScopePlugin')
-
-    if (moduleScopePlugin) {
-        moduleScopePlugin.allowedFiles.add(muyaCoreCjs)
-        moduleScopePlugin.allowedPaths.push(path.dirname(muyaCoreCjs))
-        moduleScopePlugin.allowedPaths.push(path.resolve(__dirname, './vendor/muya-core'))
-    }
-
     const overrideConfig = {
         ...config,
         module: {
@@ -33,7 +26,6 @@ module.exports = function override(config, env) {
             ...config.resolve,
             alias: {
                 ...config.resolve.alias,
-                '@muyajs/core$': muyaCoreCjs,
                 snapsvg: path.join(__dirname, './src/assets/libs/snap.svg-min.js')
             },
         },
@@ -43,7 +35,7 @@ module.exports = function override(config, env) {
                 maxChunks: 1
             }),
             new webpack.ProvidePlugin({
-                process: 'process/browser.js',
+                process: 'process/browser',
             }),
         ]
     }

@@ -41,11 +41,6 @@ namespace Typedown.Presentation.ViewModels
         public string? FilePath { get; private set; }
 
         private string? startupOpenedFilePath;
-        private PendingDocument? pendingDocument;
-        private PendingDocument? activatingDocument;
-        private CancellationTokenSource? activationRetryCancellation;
-
-        private sealed record PendingDocument(string Id, string Text, ulong FileHash, string? FilePath, string BasePath, bool Saved);
 
         public string ImageBasePath => string.IsNullOrEmpty(FilePath) ? SettingsViewModel.DefaultImageBasePath : Path.GetDirectoryName(FilePath) ?? SettingsViewModel.DefaultImageBasePath;
 
@@ -192,79 +187,30 @@ namespace Typedown.Presentation.ViewModels
                 () => AutoBackup.DeleteBackup(path));
         }
 
-        private void QueueDocument(string text, ulong fileHash, string? filePath, bool saved)
+        /// <summary>
+        /// 装载一篇文档：先把状态落到 ViewModel，再把正文推给编辑器。
+        /// 只有"已保存"的内容才把 FileLoaded 置 false——此时基线哈希要等前端归一化后的
+        /// FileLoaded 回声重新计算；从备份恢复的内容本来就是脏的，不需要重新定基线。
+        /// </summary>
+        private void ApplyDocument(string text, ulong fileHash, string? filePath, bool saved, bool postMessage)
         {
-            var basePath = string.IsNullOrEmpty(filePath) ? SettingsViewModel.DefaultImageBasePath : Path.GetDirectoryName(filePath) ?? SettingsViewModel.DefaultImageBasePath;
-            var pending = new PendingDocument(Guid.NewGuid().ToString("N"), text, fileHash, filePath, basePath, saved);
-            pendingDocument = pending;
-            EditorCommandSink?.Send("LoadFile", new { text, basePath, documentId = pending.Id });
-        }
-
-        public void ActivatePendingDocument(string? id)
-        {
-            if (pendingDocument is not PendingDocument pending || pending.Id != id) return;
-            FilePath = pending.FilePath;
-            EditorViewModel.ActivateDocument(pending.Id, pending.Text, pending.FileHash, pending.Saved);
-            activatingDocument = pending;
-            SendDocumentActivation(pending);
-            ScheduleActivationRetries(pending.Id);
-        }
-
-        public void CompleteDocumentActivation(string? id)
-        {
-            if (activatingDocument?.Id == id)
-            {
-                activatingDocument = null;
-                activationRetryCancellation?.Cancel();
-                activationRetryCancellation?.Dispose();
-                activationRetryCancellation = null;
-            }
-        }
-
-        public bool RetryDocumentActivation(string? id)
-        {
-            if (activatingDocument is not PendingDocument pending || pending.Id != id) return false;
-            return SendDocumentActivation(pending);
-        }
-
-        private bool SendDocumentActivation(PendingDocument pending)
-        {
-            if (activatingDocument?.Id != pending.Id) return false;
-            var sent = EditorCommandSink.Send("ActivateDocument", new { text = pending.Text, basePath = pending.BasePath, documentId = pending.Id });
-            if (sent && pendingDocument?.Id == pending.Id)
-                pendingDocument = null;
-            return sent;
-        }
-
-        private void ScheduleActivationRetries(string id)
-        {
-            activationRetryCancellation?.Cancel();
-            activationRetryCancellation?.Dispose();
-            var cancellation = activationRetryCancellation = new CancellationTokenSource();
-            _ = RetryActivationUntilAcknowledgedAsync(id, cancellation.Token);
-        }
-
-        private async Task RetryActivationUntilAcknowledgedAsync(string id, CancellationToken cancellationToken)
-        {
-            foreach (var delay in new[] { 100, 500, 1500 })
-            {
-                await Task.Delay(delay);
-                if (cancellationToken.IsCancellationRequested || activatingDocument?.Id != id) return;
-                RetryDocumentActivation(id);
-            }
+            FilePath = filePath;
+            EditorViewModel.Markdown = text;
+            EditorViewModel.FileHash = fileHash;
+            EditorViewModel.CurrentHash = Common.SimpleHash(text);
+            EditorViewModel.Saved = saved;
+            EditorViewModel.AutoSavedSucc = true;
+            EditorViewModel.FileLoaded = !saved;
+            EditorViewModel.History.InitHistory(text);
+            if (postMessage)
+                EditorCommandSink?.Send("LoadFile", new { text, basePath = ImageBasePath });
         }
 
         private async Task NewFileFun(bool postMessage = true)
         {
             if (!await AskToSave()) return;
             var text = Common.DefaultMarkdwn;
-            var hash = Common.SimpleHash(text);
-            if (postMessage) QueueDocument(text, hash, null, true);
-            else
-            {
-                FilePath = null;
-                EditorViewModel.ActivateDocument(EditorViewModel.CurrentDocumentId, text, hash, true);
-            }
+            ApplyDocument(text, Common.SimpleHash(text), null, true, postMessage);
         }
 
         public async Task<bool> OpenFile(string? filePath = null)
@@ -319,12 +265,7 @@ namespace Typedown.Presentation.ViewModels
                 var backup = await CheckBackup(path, fileHash);
                 var markdown = backup ?? text;
                 var saved = backup is null;
-                if (postMessage) QueueDocument(markdown, fileHash, path, saved);
-                else
-                {
-                    FilePath = path;
-                    EditorViewModel.ActivateDocument(EditorViewModel.CurrentDocumentId, markdown, fileHash, saved);
-                }
+                ApplyDocument(markdown, fileHash, path, saved, postMessage);
                 return true;
             }
             catch (Exception ex)

@@ -72,13 +72,11 @@ namespace Typedown.Presentation.ViewModels
         private readonly IUiDispatcher uiDispatcher;
         private readonly int uiThreadId;
         private bool disposed;
-        private bool suppressTocNavigation;
 
-        private readonly Dictionary<string, string> appliedReplacementRevisions = new(StringComparer.Ordinal);
-        private readonly Queue<string> appliedReplacementRevisionOrder = new();
-        private const int ReplacementRevisionWindow = 32;
         private PendingImportGate? pendingImportGate;
-        private string documentId = Guid.NewGuid().ToString("N");
+
+        /// <summary>正文正由宿主回灌（撤销/重做），期间前端回声不应再压入历史栈。</summary>
+        private bool contentUpdating;
 
         public PendingImportGate PendingImportGate => pendingImportGate ??= new();
 
@@ -94,16 +92,12 @@ namespace Typedown.Presentation.ViewModels
             disposables.Add(Disposable.Create(() => History.PropertyChanged -= HandleHistoryPropertyChanged));
             disposables.Add(EventCenter.GetObservable<EditorEventArgs>("MarkdownChange").Subscribe(x => OnMarkdownChange(x.Args)));
             disposables.Add(EventCenter.GetObservable<EditorEventArgs>("FileLoaded").Subscribe(x => OnFileLoaded(x.Args)));
-            disposables.Add(EventCenter.GetObservable<EditorEventArgs>("DocumentFlushed").Subscribe(x => OnDocumentFlushed(x.Args)));
             disposables.Add(EventCenter.GetObservable<EditorEventArgs>("CursorChange").Subscribe(x => OnCursorChange(x.Args)));
             disposables.Add(EventCenter.GetObservable<EditorEventArgs>("SelectionChange").Subscribe(x => OnSelectionChange(x.Args)));
             disposables.Add(EventCenter.GetObservable<EditorEventArgs>("CodeMirrorSelectionChange").Subscribe(x => OnCodeMirrorSelectionChange(x.Args)));
             disposables.Add(EventCenter.GetObservable<EditorEventArgs>("StateChange").Subscribe(x => OnStateChange(x.Args)));
-            disposables.Add(EventCenter.GetObservable<EditorEventArgs>("ActiveHeadingChange").Subscribe(x => OnActiveHeadingChange(x.Args)));
             disposables.Add(RemoteInvoke.Handle("GetSettings", GetSettings));
             disposables.Add(RemoteInvoke.Handle<JToken>("SetClipboard", OnSetClipboard));
-            disposables.Add(RemoteInvoke.Handle("PickImage", PickImage));
-            disposables.Add(RemoteInvoke.Handle<JToken, string>("ProcessImage", ProcessImage));
             disposables.Add(Settings.WhenPropertyChanged(nameof(Settings.AutoSave)).Subscribe(_ => Settings_AutoSaveChanged(Settings.AutoSave)));
             disposables.Add(this.WhenPropertyChanged(nameof(SearchValue)).Subscribe(_ => SearchValueChanged()));
             disposables.Add(this.WhenPropertyChanged(nameof(Saved)).Subscribe(_ => SavedOrAutoSavedSuccChanged()));
@@ -129,15 +123,9 @@ namespace Typedown.Presentation.ViewModels
             {
                 ["markdown"] = Markdown,
                 ["basePath"] = FileViewModel.ImageBasePath,
-                ["documentId"] = documentId,
             };
             return settings;
         }
-
-        private bool IsCurrentDocument(JToken arg) =>
-            arg["documentId"] is null || arg["documentId"]?.ToString() == documentId;
-
-        public string CurrentDocumentId => documentId;
 
         private async void HandleHistoryPropertyChanged(object? sender, PropertyChangedEventArgs e)
         {
@@ -178,45 +166,8 @@ namespace Typedown.Presentation.ViewModels
             RedoCommand.RaiseCanExecuteChanged();
         }
 
-        public void OnDocumentFlushed(JToken arg)
-        {
-            var nextDocumentId = arg["nextDocumentId"]?.ToString();
-            if (!IsCurrentDocument(arg))
-            {
-                FileViewModel.RetryDocumentActivation(nextDocumentId);
-                return;
-            }
-            FileViewModel.ActivatePendingDocument(nextDocumentId);
-        }
-
-        public void ActivateDocument(string nextDocumentId, string markdown, ulong fileHash, bool saved)
-        {
-            documentId = nextDocumentId;
-            appliedReplacementRevisions.Clear();
-            appliedReplacementRevisionOrder.Clear();
-            PendingImportGate.Cancel();
-            Markdown = markdown;
-            FileHash = fileHash;
-            CurrentHash = Common.SimpleHash(markdown);
-            Saved = saved;
-            AutoSavedSucc = true;
-            FileLoaded = true;
-            History.InitHistory(markdown);
-            Selection = new JObject();
-            CodeMirrorSelection = new JObject();
-            MenuState = new MenuState();
-            ParagraphState = new ParagraphState(MenuState);
-            ContentState = new ContentState();
-            Toc.UpdateChildren(ContentState.Toc);
-            SelectionText = string.Empty;
-            TextSelected = false;
-            Selected = false;
-            ServiceProvider.GetRequiredService<FormatViewModel>().ResetFormatState();
-        }
-
         public void OnSelectionChange(JToken arg)
         {
-            if (!IsCurrentDocument(arg)) return;
             Selection = arg["selection"] ?? new JObject();
             MenuState = arg["menuState"]?.ToObject<MenuState>() ?? new MenuState();
             SelectionText = arg["selectionText"]?.ToString() ?? string.Empty;
@@ -226,7 +177,7 @@ namespace Typedown.Presentation.ViewModels
 
         public void OnCodeMirrorSelectionChange(JToken arg)
         {
-            if (!IsCurrentDocument(arg)) return;
+            contentUpdating = false;
             CodeMirrorSelection = arg["cursor"] ?? new JObject();
             var anchor = CodeMirrorSelection["anchor"];
             var head = CodeMirrorSelection["head"];
@@ -258,60 +209,31 @@ namespace Typedown.Presentation.ViewModels
         public async void OnMarkdownChange(string markdown)
         {
             Markdown = markdown;
-            History.ContentChange(Markdown);
+            if (!contentUpdating) History.ContentChange(Markdown);
             CurrentHash = Common.SimpleHash(Markdown);
+            // 文件刚装载时前端还在归一化正文，稍等一拍再判定保存状态，避免闪一下"未保存"。
             if (!FileLoaded) await Task.Delay(100);
             Saved = FileHash == CurrentHash;
         }
 
+        /// <summary>
+        /// 前端完成装载后的回声。此时的正文已被编辑器归一化过，
+        /// 以它为准重算基线哈希，保存状态才不会一开门就是脏的。
+        /// </summary>
         public void OnFileLoaded(JToken arg)
         {
-            if (!IsCurrentDocument(arg)) return;
-            FileViewModel.CompleteDocumentActivation(arg["documentId"]?.ToString());
+            if (FileLoaded) return;
             FileLoaded = true;
+            var newText = arg["text"]?.ToString() ?? string.Empty;
+            FileHash = Common.SimpleHash(newText);
+            History.InitHistory(newText);
+            OnMarkdownChange(newText);
             if (FloatViewModel.FindReplaceDialogOpen > 0) OnSearch();
         }
 
         public void OnMarkdownChange(JToken arg)
         {
-            if (!IsCurrentDocument(arg)) return;
-            var revision = arg["revision"]?.ToString();
-            var origin = arg["origin"]?.ToString();
-            var phase = arg["phase"]?.ToString();
-            var markdown = arg["text"]?.ToString() ?? string.Empty;
-            var revisionKey = string.IsNullOrEmpty(revision) ? null : $"{documentId}:{revision}";
-            if (revisionKey is not null && appliedReplacementRevisions.ContainsKey(revisionKey))
-            {
-                EditorCommandSink.Send("ReplacementCommitted", new { documentId, revision, origin, text = Markdown, hash = CurrentHash });
-                return;
-            }
-            if (origin == "import" && phase == "provisional" && !string.IsNullOrEmpty(revision))
-            {
-                PendingImportGate.Begin(revision);
-                return;
-            }
-            if (origin == "import" && phase == "final" && revision != PendingImportGate.Revision) return;
-            var isInitialRevision = false;
-            if (revisionKey is not null)
-            {
-                appliedReplacementRevisions[revisionKey] = markdown;
-                appliedReplacementRevisionOrder.Enqueue(revisionKey);
-                isInitialRevision = true;
-                while (appliedReplacementRevisionOrder.Count > ReplacementRevisionWindow)
-                    appliedReplacementRevisions.Remove(appliedReplacementRevisionOrder.Dequeue());
-            }
-            Markdown = markdown;
-            if ((string.IsNullOrEmpty(revision) || isInitialRevision) && origin is not "undo" and not "redo")
-            {
-                if (origin == "import" && phase == "final") History.CommitPending();
-                History.ContentChange(markdown);
-            }
-            CurrentHash = Common.SimpleHash(markdown);
-            Saved = FileHash == CurrentHash;
-            if (origin == "import" && phase == "final" && revision is not null)
-                PendingImportGate.Complete(revision);
-            if (!string.IsNullOrEmpty(revision))
-                EditorCommandSink.Send("ReplacementCommitted", new { documentId, revision, origin, text = Markdown, hash = CurrentHash });
+            OnMarkdownChange(arg["text"]?.ToString() ?? string.Empty);
         }
 
         public Task<PendingImportGate.PersistenceLease?> AcquirePersistenceLeaseAsync() =>
@@ -319,32 +241,13 @@ namespace Typedown.Presentation.ViewModels
 
         public void OnCursorChange(JToken arg)
         {
-            if (!IsCurrentDocument(arg)) return;
             if (arg["cursor"]?.ToObject<CursorState>() is CursorState cursor)
                 History.CursorChange(cursor);
         }
 
-        public void OnActiveHeadingChange(JToken arg)
-        {
-            if (!IsCurrentDocument(arg)) return;
-            var slug = arg["cur"]?["slug"]?.ToString();
-            suppressTocNavigation = true;
-            try
-            {
-                foreach (var item in ContentState.Toc)
-                {
-                    item.IsSelected = item.Slug == slug;
-                }
-            }
-            finally
-            {
-                suppressTocNavigation = false;
-            }
-        }
-
         public void OnStateChange(JToken arg)
         {
-            if (!IsCurrentDocument(arg)) return;
+            contentUpdating = false;
             var contentState = arg["state"]?.ToObject<ContentState>();
             if (contentState is null)
                 return;
@@ -356,7 +259,7 @@ namespace Typedown.Presentation.ViewModels
                 x.IsSelected = x.Slug == ContentState.Cur?.Slug;
                 EventHandler<bool> handler = (_, b) =>
                 {
-                    if (b && !suppressTocNavigation) JumpBySlug(x.Slug);
+                    if (b) JumpBySlug(x.Slug);
                 };
                 x.SelectedChanged += handler;
                 tocSelectionHandlers.Add(Disposable.Create(() => x.SelectedChanged -= handler));
@@ -390,12 +293,12 @@ namespace Typedown.Presentation.ViewModels
                 return;
             }
             OnMarkdownChange(state.Text ?? string.Empty);
+            contentUpdating = true;
             EditorCommandSink?.Send("SetMarkdown", new
             {
                 text = state.Text,
                 cursor = state.Cursor,
-                basePath = FileViewModel.ImageBasePath,
-                origin = "undo"
+                basePath = FileViewModel.ImageBasePath
             });
         }
 
@@ -407,12 +310,12 @@ namespace Typedown.Presentation.ViewModels
                 return;
             }
             OnMarkdownChange(state.Text ?? string.Empty);
+            contentUpdating = true;
             EditorCommandSink?.Send("SetMarkdown", new
             {
                 text = state.Text,
                 cursor = state.Cursor,
-                basePath = FileViewModel.ImageBasePath,
-                origin = "redo"
+                basePath = FileViewModel.ImageBasePath
             });
         }
 
@@ -481,25 +384,6 @@ namespace Typedown.Presentation.ViewModels
         public void Copy(string type)
         {
             EditorCommandSink?.Send("Copy", new { type });
-        }
-
-        public async Task<string> PickImage()
-        {
-            return await ServiceProvider.GetRequiredService<IFilePickerService>().PickOpenFileAsync(new OpenFileRequest
-            {
-                FileTypeFilter = FileTypeHelper.Image.ToList()
-            }) ?? string.Empty;
-        }
-
-        public async Task<string> ProcessImage(JToken arg)
-        {
-            var src = arg["src"]?.ToString() ?? string.Empty;
-            var imageAction = ServiceProvider.GetRequiredService<ImageAction>();
-            if (UriHelper.IsWebUrl(src))
-                return await imageAction.DoWebFileAction(src);
-            if (UriHelper.TryGetLocalPath(src, out _))
-                return (await imageAction.DoLocalFileAction(src)).Replace('\\', '/');
-            return src;
         }
 
         public void OnSetClipboard(JToken arg)

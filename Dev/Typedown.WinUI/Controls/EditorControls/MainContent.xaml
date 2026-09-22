@@ -16,7 +16,7 @@
     <UserControl.Resources>
         <TranslateTransform x:Key="LeftPaneTransform" x:Name="LeftPaneTransform" />
     </UserControl.Resources>
-    <Grid Background="{ThemeResource TypedownEditorBackgroundBrush}" x:Name="MainContentGrid">
+    <Grid Background="{ThemeResource TypedownEditorBackgroundBrush}" x:Name="MainContentGrid" SizeChanged="OnLayoutSizeChanged">
         <VisualStateManager.VisualStateGroups>
             <VisualStateGroup x:Name="SidePaneStates">
                 <VisualStateGroup.Transitions>
@@ -66,14 +66,14 @@
         </VisualStateManager.VisualStateGroups>
         <Grid.ColumnDefinitions>
             <ColumnDefinition x:Name="LeftPaneColumn" Width="300"/>
-            <ColumnDefinition Width="Auto"/>
-            <ColumnDefinition Width="*"/>
+            <ColumnDefinition x:Name="SplitterColumn" Width="Auto"/>
+            <ColumnDefinition x:Name="EditorColumn" Width="*"/>
         </Grid.ColumnDefinitions>
         <local:LeftPane
             x:Name="LeftPane"
             x:Load="{x:Bind IsLeftPaneLoad, Mode=OneWay}"
             RenderTransform="{StaticResource LeftPaneTransform}"/>
-        <local:EditorContainer Grid.Column="2" />
+        <local:EditorContainer Grid.Column="2" SizeChanged="OnLayoutSizeChanged"/>
         <Border
             x:Name="SplitterLine" Grid.Column="1" Width="1"
             x:Load="{x:Bind IsLeftPaneLoad, Mode=OneWay}"
