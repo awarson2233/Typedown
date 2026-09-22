@@ -18,12 +18,10 @@ Typedown is a lightweight Markdown editor designed specifically for the Windows 
 ## Building from source
 
 ### 1. Prerequisites
-[Visual Studio 2022](https://visualstudio.microsoft.com/vs/) with the following individual components:
-  - .NET Core 3.1 SDK
-  - Git for Windows
-
-[Node.js](https://nodejs.org/) with the following global packages:
-  - [yarn](https://yarnpkg.com/)
+- [Visual Studio 2026](https://visualstudio.microsoft.com/) with the WinUI / Windows application development workload and the ARM64 build tools
+- .NET 10 SDK
+- Git for Windows
+- [Node.js](https://nodejs.org/) with [Yarn Classic 1.x](https://classic.yarnpkg.com/) (`npm i -g yarn`)
 
 ### 2. Clone the repository
 ```ps
@@ -32,20 +30,22 @@ git clone https://github.com/byxiaozhi/Typedown
 
 This will create a local copy of the repository.
 
-### 3. Build the project
-Install the frontend dependencies once from the editor directory:
+### 3. Build the editor frontend
+Install the frontend dependencies once, then build the WebView bundle:
 
 ```ps
 cd Typedown\Dev\Typedown.Editor
 yarn
+yarn build
 ```
 ![20240319232236_rec_](https://github.com/byxiaozhi/Typedown/assets/31278216/3f038707-9311-4aad-846b-a22e8bad6857)
 
-Then use Visual Studio 2022 to open `Typedown\Typedown.sln`, right-click the `Typedown.WinUI` project, and select Set as Startup Project. Building `Typedown.WinUI` builds the referenced `Typedown.Editor` project with `yarn build`, writes the WebView bundle into `Typedown\Dev\Typedown.WinUI\Resources\Statics`, and refreshes the files copied to the output and package payload.
+`yarn build` writes the bundle into `Typedown\Dev\Typedown.WinUI\Resources\Statics`. The WinUI build does not build the frontend, so run `yarn build` again whenever the editor frontend changes.
 
-For daily local development, use `Debug_Local` and one of the supported platforms (`x64` or `ARM64`). A separate manual `yarn build` is not required before the WinUI build.
+### 4. Build and run
+Open `Typedown\Typedown.sln` in Visual Studio, right-click the `Typedown.WinUI` project, and select Set as Startup Project. For daily development use `Debug_Local` (unpackaged, unsigned) with `ARM64` or `x64`, then click Run!
 
-Then select the platform you want to build on and click Run!
+The `Debug` and `Release` configurations produce a signed MSIX package and need a local code-signing certificate; see [docs/build.md](docs/build.md).
 
 ![20240319232529_rec_](https://github.com/byxiaozhi/Typedown/assets/31278216/50ef6e56-b177-49b0-b361-83659d25a40e)
 

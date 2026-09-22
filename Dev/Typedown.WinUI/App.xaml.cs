@@ -151,7 +151,8 @@ namespace Typedown.WinUI
                         .AddSingleton<IFileExport, WinUIFileExport>()
                         .AddSingleton<IFileOperation, WinUIFileOperation>()
                         .AddScoped<IFloatViewService, WinUIFloatViewService>()
-                        // 必须按窗口隔离：keyEvents 是共享 Subject，单例会让一次 Ctrl+S 触发所有窗口的菜单项。
+                        // 语义上属于窗口：keyEvents 是共享 Subject。目前每个窗口独占一个进程和一个 uiScope，
+                        // Scoped 与单例运行时等价；将来若同一进程承载多个窗口，单例会让快捷键触发所有窗口的菜单项。
                         .AddScoped<IKeyboardAccelerator, WinUIKeyboardAccelerator>()
                         .AddScoped<IEditorCommandSink, WinUIEditorCommandSink>()
                         .AddSingleton<IPowerShellService, WinUIPowerShellService>()
