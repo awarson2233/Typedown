@@ -1,7 +1,7 @@
 using System.Linq;
 using System.Reflection;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using Typedown.Core.Services;
+using Typedown.Core;
 using Typedown.Presentation.ViewModels;
 
 namespace Typedown.ArchitectureTests.Guards;
@@ -9,7 +9,8 @@ namespace Typedown.ArchitectureTests.Guards;
 [TestClass]
 public sealed class LayerDependencyGuardTests
 {
-    private static readonly Assembly CoreAssembly = typeof(EditorBridge).Assembly;
+    // 锚在 Core 的 DI 组合入口上：它与程序集同生共死，不会因为某个功能模块被移除而连带失效。
+    private static readonly Assembly CoreAssembly = typeof(CoreServiceCollectionExtensions).Assembly;
     private static readonly Assembly PresentationAssembly = typeof(EditorViewModel).Assembly;
 
     [TestMethod]
