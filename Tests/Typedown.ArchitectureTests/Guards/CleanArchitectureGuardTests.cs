@@ -2,7 +2,7 @@ using System;
 using System.Linq;
 using System.Reflection;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using Typedown.Core.Interfaces;
+using Typedown.Core.Services;
 using Typedown.Presentation.ViewModels;
 
 namespace Typedown.ArchitectureTests.Guards;
@@ -10,7 +10,7 @@ namespace Typedown.ArchitectureTests.Guards;
 [TestClass]
 public sealed class CleanArchitectureGuardTests
 {
-    private static readonly Assembly CoreAssembly = typeof(IEditorSurface).Assembly;
+    private static readonly Assembly CoreAssembly = typeof(EditorBridge).Assembly;
     private static readonly Assembly PresentationAssembly = typeof(EditorViewModel).Assembly;
 
     private static readonly string[] ForbiddenPlatformPrefixes =
@@ -33,23 +33,6 @@ public sealed class CleanArchitectureGuardTests
     {
         AssertAssemblyHasNoForbiddenReferences(PresentationAssembly);
         AssertTypesDoNotExposePlatformTypes(PresentationAssembly);
-    }
-
-    [TestMethod]
-    public void EditorSurfaceContract_MustBePlatformNeutral()
-    {
-        var interfaceType = typeof(IEditorSurface);
-        Assert.IsTrue(interfaceType.IsInterface);
-        Assert.AreEqual("Typedown.Core.Interfaces", interfaceType.Namespace);
-
-        foreach (var method in interfaceType.GetMethods())
-        {
-            AssertTypeIsPlatformNeutral(method.ReturnType, $"Return type of {method.Name}");
-            foreach (var parameter in method.GetParameters())
-            {
-                AssertTypeIsPlatformNeutral(parameter.ParameterType, $"Parameter {parameter.Name} of {method.Name}");
-            }
-        }
     }
 
     private static void AssertAssemblyHasNoForbiddenReferences(Assembly assembly)

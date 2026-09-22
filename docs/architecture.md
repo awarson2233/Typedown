@@ -57,7 +57,7 @@ flowchart TB
 | [Typedown.Editor](../Dev/Typedown.Editor/) | 页面前端（CRA + react-app-rewired，Yarn 1），宿主从本地文件加载它的构建产物 |
 | [Tests](../Tests/) | `ArchitectureTests` 守护分层，`CoreTests` 覆盖 Core |
 
-依赖方向由 [LayerDependencyGuardTests](../Tests/Typedown.ArchitectureTests/Guards/LayerDependencyGuardTests.cs) 与 [CleanArchitectureGuardTests](../Tests/Typedown.ArchitectureTests/Guards/CleanArchitectureGuardTests.cs) 强制：Core 不引用 Presentation 与 WinUI，Presentation 只引用 Core，两者都不得出现平台 UI 类型。Core 里的 [IEditorSurface](../Dev/Typedown.Core/Interfaces/IEditorSurface.cs) 是早期为原生化预留的编辑器契约，目前没有任何实现，测试只校验它平台无关。
+依赖方向由 [LayerDependencyGuardTests](../Tests/Typedown.ArchitectureTests/Guards/LayerDependencyGuardTests.cs) 与 [CleanArchitectureGuardTests](../Tests/Typedown.ArchitectureTests/Guards/CleanArchitectureGuardTests.cs) 强制：Core 不引用 Presentation 与 WinUI，Presentation 只引用 Core，两者都不得出现平台 UI 类型。
 
 ### 2. 进程、窗口与 DI 作用域
 

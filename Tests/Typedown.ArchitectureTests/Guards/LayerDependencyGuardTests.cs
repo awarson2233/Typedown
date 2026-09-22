@@ -1,7 +1,7 @@
 using System.Linq;
 using System.Reflection;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using Typedown.Core.Interfaces;
+using Typedown.Core.Services;
 using Typedown.Presentation.ViewModels;
 
 namespace Typedown.ArchitectureTests.Guards;
@@ -9,7 +9,7 @@ namespace Typedown.ArchitectureTests.Guards;
 [TestClass]
 public sealed class LayerDependencyGuardTests
 {
-    private static readonly Assembly CoreAssembly = typeof(IEditorSurface).Assembly;
+    private static readonly Assembly CoreAssembly = typeof(EditorBridge).Assembly;
     private static readonly Assembly PresentationAssembly = typeof(EditorViewModel).Assembly;
 
     [TestMethod]
