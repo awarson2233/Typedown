@@ -249,4 +249,8 @@
     <value>WebView2 运行时未安装</value>
     <comment>环境检查对话框/WebView2 运行时未安装</comment>
   </data>
+  <data name="EngineFeatureUnsupported" xml:space="preserve">
+    <value>新引擎暂不支持此功能。</value>
+    <comment>新引擎暂不支持的功能（导出、打印）/新引擎暂不支持此功能。</comment>
+  </data>
 </root>

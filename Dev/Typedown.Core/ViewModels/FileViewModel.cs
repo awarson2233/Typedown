@@ -608,11 +608,12 @@ namespace Typedown.Core.ViewModels
                 string? basePath = null;
                 if (config.Type == ExportType.PDF || config.Type == ExportType.Image)
                     basePath = ImageBasePath;
-                var html = await EditorSession.RequestAsync(new RenderExportHtml(
+                var html = await RenderExportHtmlAsync(new RenderExportHtml(
                     ExportPurpose.Export,
                     Path.GetFileNameWithoutExtension(filePath),
                     basePath,
                     CreateExportHtmlOptions(config.LoadExportConfig())));
+                if (html is null) return;
 
                 var exportConfig = await ServiceProvider.GetRequiredService<IFileExport>().GetExportConfig(config.Id);
                 await exportConfig.LoadExportConfig().Export(ServiceProvider, html, filePath);
@@ -629,6 +630,26 @@ namespace Typedown.Core.ViewModels
             }
         }
 
+        /// <summary>
+        /// 让编辑引擎生成导出或打印用的 HTML。引擎不支持（新引擎页面还没实现 <c>export.renderHtml</c>）时提示用户并返回 <c>null</c>，
+        /// 调用方就此结束，不当作错误弹异常信息。
+        /// </summary>
+        private async Task<string?> RenderExportHtmlAsync(RenderExportHtml request)
+        {
+            try
+            {
+                return await EditorSession.RequestAsync(request);
+            }
+            catch (NotSupportedException)
+            {
+                await ShowDialog(
+                    Locale.GetString("Error"),
+                    Locale.GetDialogString("EngineFeatureUnsupported"),
+                    Locale.GetDialogString("Ok"));
+                return null;
+            }
+        }
+
         /// <summary>导出配置里页面生成 HTML 时要用到的部分。</summary>
         private static ExportHtmlOptions? CreateExportHtmlOptions(ConfigModel model) => model switch
         {
@@ -642,11 +663,12 @@ namespace Typedown.Core.ViewModels
             try
             {
                 await FlushEditorAsync();
-                var html = await EditorSession.RequestAsync(new RenderExportHtml(
+                var html = await RenderExportHtmlAsync(new RenderExportHtml(
                     ExportPurpose.Print,
                     FileName ?? "untitled",
                     ImageBasePath,
                     null));
+                if (html is null) return;
                 var fileExport = ServiceProvider.GetRequiredService<IFileExport>();
                 await fileExport.Print(Path.GetDirectoryName(FilePath ?? string.Empty) ?? string.Empty, html, FileName);
             }

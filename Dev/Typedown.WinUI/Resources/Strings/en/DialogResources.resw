@@ -249,4 +249,8 @@
     <value>WebView2 Runtime Not Installed</value>
     <comment>环境检查对话框/WebView2 运行时未安装</comment>
   </data>
+  <data name="EngineFeatureUnsupported" xml:space="preserve">
+    <value>The new editor engine does not support this feature yet.</value>
+    <comment>新引擎暂不支持的功能（导出、打印）/新引擎暂不支持此功能。</comment>
+  </data>
 </root>
