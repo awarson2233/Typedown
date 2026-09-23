@@ -1,8 +1,6 @@
-﻿using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection;
+﻿using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.Collections.ObjectModel;
-using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Threading.Tasks;
 using Typedown.Core.Enums;
@@ -41,29 +39,21 @@ namespace Typedown.Core.Services
 
         private async Task ResetDefaultConfigs()
         {
-            using var ctx = await CreateDbContextAsync();
-            ctx.ImageUploadConfigs.RemoveRange(ctx.ImageUploadConfigs);
-            await ctx.SaveChangesAsync();
+            await CreateDatabase().RemoveAllImageUploadConfigsAsync();
             await UpdateImageUploadConfigs();
         }
 
         public async Task<ImageUploadConfig> AddImageUploadConfig(string? name = null, ImageUploadMethod method = 0)
         {
-            using var ctx = await CreateDbContextAsync();
-            var model = ctx.ImageUploadConfigs;
             var res = new ImageUploadConfig() { Name = name ?? string.Empty, Method = method };
-            await model.AddAsync(res);
-            await ctx.SaveChangesAsync();
+            await CreateDatabase().AddImageUploadConfigAsync(res);
             await UpdateImageUploadConfigs();
             return res;
         }
 
         public async Task RemoveImageUploadConfig(int id)
         {
-            using var ctx = await CreateDbContextAsync();
-            var model = ctx.ImageUploadConfigs;
-            model.RemoveRange(model.Where(x => x.Id == id));
-            await ctx.SaveChangesAsync();
+            await CreateDatabase().RemoveImageUploadConfigAsync(id);
             await UpdateImageUploadConfigs();
         }
 
@@ -71,10 +61,8 @@ namespace Typedown.Core.Services
         {
             try
             {
-                using var ctx = await CreateDbContextAsync();
-                var model = ctx.ImageUploadConfigs;
-                model.Update(config);
-                await ctx.SaveChangesAsync();
+                if (!await CreateDatabase().UpdateImageUploadConfigAsync(config))
+                    return false;
                 await UpdateImageUploadConfigs();
                 return true;
             }
@@ -86,15 +74,12 @@ namespace Typedown.Core.Services
 
         public async Task<ImageUploadConfig?> GetImageUploadConfig(int id)
         {
-            using var ctx = await CreateDbContextAsync();
-            var model = ctx.ImageUploadConfigs;
-            return await model.Where(x => x.Id == id).FirstOrDefaultAsync();
+            return await CreateDatabase().GetImageUploadConfigAsync(id);
         }
 
         public async Task UpdateImageUploadConfigs()
         {
-            using var ctx = await CreateDbContextAsync();
-            var newItems = await ctx.ImageUploadConfigs.ToListAsync();
+            var newItems = await CreateDatabase().GetImageUploadConfigsAsync();
             ImageUploadConfigs.UpdateCollection(newItems, (a, b) => a.Id == b.Id);
         }
 
@@ -120,11 +105,9 @@ namespace Typedown.Core.Services
             return await config.LoadUploadConfig().Upload(serviceProvider, filePath);
         }
 
-        [UnconditionalSuppressMessage("Trimming", "IL2026", Justification = "Image-upload config persistence uses EF Core by design and is isolated to this service.")]
-        [UnconditionalSuppressMessage("AOT", "IL3050", Justification = "Image-upload config persistence uses EF Core by design and is isolated to this service.")]
-        private static Task<AppDbContext> CreateDbContextAsync()
+        private static AppDatabase CreateDatabase()
         {
-            return AppDbContext.Create();
+            return new AppDatabase();
         }
     }
 }

@@ -7,6 +7,7 @@ using Microsoft.Windows.AppLifecycle;
 using System.Diagnostics;
 using System.Linq;
 using Typedown.Core;
+using Typedown.Core.Editor;
 using Typedown.Core.Enums;
 using Typedown.Core.Interfaces;
 using Typedown.Core.Utilities;
@@ -15,7 +16,6 @@ using Typedown.WinUI.Controls;
 using Typedown.WinUI.Services;
 using Typedown.WinUI.Utilities;
 using Typedown.WinUI.Views;
-using SQLitePCL;
 using Microsoft.UI.Xaml;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
@@ -96,26 +96,6 @@ namespace Typedown.WinUI
             var startupCommandLineArgs = ResolveStartupCommandLineArgs();
             WinUILocale.Initialize();
 
-            // Set SQLite temp directory before any connection is created, so
-            // Microsoft.Data.Sqlite does not probe ApplicationData.Current (which
-            // throws APPMODEL_ERROR_NO_PACKAGE in unpackaged WinUI 3 apps).
-            var tmp = Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                "Typedown",
-                "temp");
-            Directory.CreateDirectory(tmp);
-            Environment.SetEnvironmentVariable("SQLITE_TMPDIR", tmp);
-
-            StartupTrace.SQLiteInitializeStart();
-            try
-            {
-                Batteries.Init();
-            }
-            finally
-            {
-                StartupTrace.SQLiteInitializeStop();
-            }
-
             if (window is null)
             {
                 window = new Window();
@@ -152,9 +132,9 @@ namespace Typedown.WinUI
                         // 语义上属于窗口：keyEvents 是共享 Subject。目前每个窗口独占一个进程和一个 uiScope，
                         // Scoped 与单例运行时等价；将来若同一进程承载多个窗口，单例会让快捷键触发所有窗口的菜单项。
                         .AddScoped<IKeyboardAccelerator, WinUIKeyboardAccelerator>()
-                        .AddScoped<IEditorCommandSink, WinUIEditorCommandSink>()
+                        .AddScoped<LegacyMuyaSession>()
+                        .AddScoped<IEditorSession>(sp => sp.GetRequiredService<LegacyMuyaSession>())
                         .AddSingleton<IPowerShellService, WinUIPowerShellService>()
-                        .AddScoped<IEditorSettingsNotifier, WinUIEditorSettingsNotifier>()
                         .AddSingleton<ITableDialogService, WinUITableDialogService>()
                         .AddSingleton<IWindowService, WinUIWindowService>()
                         .AddTypedownCore()
@@ -544,33 +524,12 @@ namespace Typedown.WinUI
 
         private void NotifyActiveEditorThemeChanged(ElementTheme actualTheme)
         {
-            var payload = CreateEditorThemePayload(actualTheme);
-            if (payload is null)
+            if (actualTheme != ElementTheme.Light && actualTheme != ElementTheme.Dark)
             {
                 return;
             }
 
-            uiServices?.GetService<IEditorCommandSink>()?.Send("ThemeChanged", payload);
-        }
-
-        private static EditorThemePayload? CreateEditorThemePayload(ElementTheme actualTheme)
-        {
-            if (actualTheme != ElementTheme.Light && actualTheme != ElementTheme.Dark)
-            {
-                return null;
-            }
-
-            var isDark = actualTheme == ElementTheme.Dark;
-            var background = isDark
-                ? new EditorColorPayload(40, 40, 40, 1)
-                : new EditorColorPayload(249, 249, 249, 1);
-
-            return new EditorThemePayload
-            {
-                Theme = isDark ? "Dark" : "Light",
-                AccentColor = new EditorColorPayload(27, 102, 107, 1),
-                Background = background
-            };
+            uiServices?.GetService<IEditorSession>()?.Post(new ApplyTheme(EditorThemeFactory.Create(actualTheme)));
         }
 
         internal WinUIPlatformServices PlatformServices => platformServices ?? throw new InvalidOperationException("Platform services are not initialized.");

@@ -1,5 +1,4 @@
 using Microsoft.Extensions.DependencyInjection;
-using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -8,8 +7,11 @@ using System.Linq;
 using System.Reactive;
 using System.Reactive.Disposables;
 using System.Runtime.CompilerServices;
+using System.Text.Json;
+using System.Text.Json.Nodes;
 using Typedown.Core;
 using Typedown.Core.Enums;
+using Typedown.Core.Serialization;
 using Typedown.Core.Utilities;
 using Typedown.Core.Interfaces;
 
@@ -65,7 +67,6 @@ namespace Typedown.Core.ViewModels
         public string InsertWebImageCopyPath { get => GetSettingValue("./images"); set => SetSettingValue(value); }
         public int? InsertWebImageUseUploadConfigId { get => GetSettingValue<int?>(null); set => SetSettingValue(value); }
         public IDialogService DialogService => ServiceProvider.GetRequiredService<IDialogService>();
-        public IEditorSettingsNotifier EditorSettingsNotifier => ServiceProvider.GetRequiredService<IEditorSettingsNotifier>();
         public string DefaultImageBasePath { get => GetSettingValue(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyPictures), Config.AppName)); set => SetSettingValue(value); }
         public bool AutoCopyRelativePathImage { get => GetSettingValue(true); set => SetSettingValue(value); }
         public bool PreferRelativeImagePaths { get => GetSettingValue(false); set => SetSettingValue(value); }
@@ -82,27 +83,7 @@ namespace Typedown.Core.ViewModels
 
         private readonly string settingsFile = Config.GetSettingsFilePath();
 
-        private JToken store = new JObject();
-
-        private readonly IReadOnlyDictionary<string, string> editorSettingNameMap = new Dictionary<string, string>(StringComparer.Ordinal)
-        {
-            [nameof(SourceCode)] = "sourceCode",
-            [nameof(Typewriter)] = "typewriter",
-            [nameof(FocusMode)] = "focusMode",
-            [nameof(SearchIsCaseSensitive)] = "searchIsCaseSensitive",
-            [nameof(SearchIsRegexp)] = "searchIsRegexp",
-            [nameof(SearchIsWholeWord)] = "searchIsWholeWord",
-            [nameof(FontSize)] = "fontSize",
-            [nameof(LineHeight)] = "lineHeight",
-            [nameof(AutoPairBracket)] = "autoPairBracket",
-            [nameof(AutoPairQuote)] = "autoPairQuote",
-            [nameof(TrimUnnecessaryCodeBlockEmptyLines)] = "trimUnnecessaryCodeBlockEmptyLines",
-            [nameof(PreferLooseListItem)] = "preferLooseListItem",
-            [nameof(AutoPairMarkdownSyntax)] = "autoPairMarkdownSyntax",
-            [nameof(EditorAreaWidth)] = "editorAreaWidth",
-            [nameof(TabSize)] = "tabSize",
-            [nameof(SpellcheckEnabled)] = "spellcheckEnabled"
-        };
+        private JsonObject store = new();
 
         public SettingsViewModel(IServiceProvider serviceProvider)
         {
@@ -117,18 +98,18 @@ namespace Typedown.Core.ViewModels
             {
                 if (!File.Exists(settingsFile))
                 {
-                    store = new JObject();
+                    store = new JsonObject();
                     return;
                 }
 
                 var json = File.ReadAllText(settingsFile);
                 store = string.IsNullOrWhiteSpace(json)
-                    ? new JObject()
-                    : JToken.Parse(json) as JObject ?? new JObject();
+                    ? new JsonObject()
+                    : StorageJson.ParseObject(json);
             }
             catch
             {
-                store = new JObject();
+                store = new JsonObject();
             }
         }
 
@@ -140,7 +121,7 @@ namespace Typedown.Core.ViewModels
                 if (!string.IsNullOrEmpty(settingsDirectory))
                     Directory.CreateDirectory(settingsDirectory);
 
-                File.WriteAllText(settingsFile, store.ToString());
+                File.WriteAllText(settingsFile, StorageJson.Write(store));
             }
             catch
             {
@@ -151,20 +132,31 @@ namespace Typedown.Core.ViewModels
         public T GetSettingValue<T>(T defaultValue = default!, [CallerMemberName] string propertyName = "")
         {
             var value = store[propertyName];
-            return value is null || value.Type == JTokenType.Null ? defaultValue : value.ToObject<T>()!;
+            if (value is null)
+                return defaultValue;
+
+            try
+            {
+                return StorageJson.Deserialize<T>(value)!;
+            }
+            catch (JsonException)
+            {
+                // A value that no longer matches the setting's type falls back to the default instead of failing startup.
+                return defaultValue;
+            }
         }
 
         public void SetSettingValue<T>(T value, [CallerMemberName] string propertyName = "")
         {
-            var updatedValue = CreateSettingToken(value);
+            var updatedValue = StorageJson.SerializeToNode(value);
             var currentValue = store[propertyName];
-            if ((currentValue is null || currentValue.Type == JTokenType.Null)
+            if (currentValue is null
                 && TryGetEffectiveSettingValue(propertyName, out var effectiveValue))
             {
-                currentValue = CreateSettingToken(effectiveValue);
+                currentValue = effectiveValue is T effective ? StorageJson.SerializeToNode(effective) : null;
             }
 
-            if (JToken.DeepEquals(currentValue, updatedValue))
+            if (JsonNode.DeepEquals(currentValue, updatedValue))
             {
                 return;
             }
@@ -175,7 +167,7 @@ namespace Typedown.Core.ViewModels
 
         private bool TryGetEffectiveSettingValue(string propertyName, out object? value)
         {
-            var property = GetType().GetProperty(propertyName);
+            var property = typeof(SettingsViewModel).GetProperty(propertyName);
             if (property?.GetSetMethod() is null || property.GetMethod is null)
             {
                 value = null;
@@ -186,58 +178,9 @@ namespace Typedown.Core.ViewModels
             return true;
         }
 
-        private static JToken CreateSettingToken<T>(T value)
-        {
-            if (value is null || value is string || value is long || value is int || value is short || value is sbyte || value is ulong ||
-                value is uint || value is ushort || value is byte || value is Enum || value is double || value is float || value is decimal ||
-                value is DateTime || value is byte[] || value is bool || value is Guid || value is Uri || value is TimeSpan)
-            {
-                return new JValue(value);
-            }
-
-            return JObject.FromObject(value);
-        }
-
-        public IReadOnlyDictionary<string, object> GetEditorSettings()
-        {
-            return new Dictionary<string, object>(StringComparer.Ordinal)
-            {
-                [editorSettingNameMap[nameof(SourceCode)]] = SourceCode,
-                [editorSettingNameMap[nameof(Typewriter)]] = Typewriter,
-                [editorSettingNameMap[nameof(FocusMode)]] = FocusMode,
-                [editorSettingNameMap[nameof(SearchIsCaseSensitive)]] = SearchIsCaseSensitive,
-                [editorSettingNameMap[nameof(SearchIsRegexp)]] = SearchIsRegexp,
-                [editorSettingNameMap[nameof(SearchIsWholeWord)]] = SearchIsWholeWord,
-                [editorSettingNameMap[nameof(FontSize)]] = FontSize,
-                [editorSettingNameMap[nameof(LineHeight)]] = LineHeight,
-                [editorSettingNameMap[nameof(AutoPairBracket)]] = AutoPairBracket,
-                [editorSettingNameMap[nameof(AutoPairQuote)]] = AutoPairQuote,
-                [editorSettingNameMap[nameof(TrimUnnecessaryCodeBlockEmptyLines)]] = TrimUnnecessaryCodeBlockEmptyLines,
-                [editorSettingNameMap[nameof(PreferLooseListItem)]] = PreferLooseListItem,
-                [editorSettingNameMap[nameof(AutoPairMarkdownSyntax)]] = AutoPairMarkdownSyntax,
-                [editorSettingNameMap[nameof(EditorAreaWidth)]] = EditorAreaWidth,
-                [editorSettingNameMap[nameof(TabSize)]] = TabSize,
-                [editorSettingNameMap[nameof(SpellcheckEnabled)]] = SpellcheckEnabled
-            };
-        }
-
-        private bool TryGetEditorSettingChange(string propertyName, object value, out KeyValuePair<string, object> change)
-        {
-            if (editorSettingNameMap.TryGetValue(propertyName, out var editorSettingName))
-            {
-                change = new KeyValuePair<string, object>(editorSettingName, value);
-                return true;
-            }
-
-            change = default;
-            return false;
-        }
-
         public void OnPropertyChanged(string propertyName, object before, object after)
         {
             PropertyChanged?.Invoke(this, new(propertyName));
-            if (TryGetEditorSettingChange(propertyName, after, out var change))
-                EditorSettingsNotifier?.NotifySettingsChanged(new Dictionary<string, object>(StringComparer.Ordinal) { [change.Key] = change.Value });
         }
 
         public async void ResetSetting()
@@ -252,9 +195,9 @@ namespace Typedown.Core.ViewModels
             });
             if (result != DialogButton.Primary)
                 return;
-            store = new JObject();
+            store = new JsonObject();
             SaveAllSettings();
-            foreach (var item in GetType().GetProperties().Where(x => x.GetSetMethod() != null).Select(x => x.Name))
+            foreach (var item in typeof(SettingsViewModel).GetProperties().Where(x => x.GetSetMethod() != null).Select(x => x.Name))
                 OnPropertyChanged(item);
         }
 

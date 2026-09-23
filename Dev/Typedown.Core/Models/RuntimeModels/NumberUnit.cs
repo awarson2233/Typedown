@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Text.Json.Serialization;
 
 namespace Typedown.Core.Models
 {
@@ -10,6 +11,8 @@ namespace Typedown.Core.Models
 
         public double Shift { get; }
 
+        // Stored JSON carries Name/Scale/Shift; the properties are get-only, so they are bound through this constructor.
+        [JsonConstructor]
         public NumberUnit(string name, double scale, double shift = 0)
         {
             Name = name;

@@ -7,13 +7,11 @@ namespace Typedown.Core.Utilities
     {
         public static Task Report(string type, string content)
         {
-            return Task.Run(() => Common.Post("https://typedown.ownbox.cn/report", new
-            {
-                version = Config.GetAppVersion(),
-                system = Environment.OSVersion.VersionString,
+            return Task.Run(() => RemoteService.ReportAsync(new ErrorReport(
+                Config.GetAppVersion(),
+                Environment.OSVersion.VersionString,
                 type,
-                content,
-            }));
+                content)));
         }
     }
 }

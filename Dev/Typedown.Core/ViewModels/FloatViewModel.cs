@@ -1,11 +1,9 @@
 using Microsoft.Extensions.DependencyInjection;
-using Newtonsoft.Json.Linq;
 using System;
 using System.ComponentModel;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
-using Typedown.Core.Models;
-using Typedown.Core.Services;
+using Typedown.Core.Editor;
 using Typedown.Core.Utilities;
 using Typedown.Core.Interfaces;
 
@@ -23,9 +21,7 @@ namespace Typedown.Core.ViewModels
 
         public AppViewModel ViewModel => ServiceProvider.GetRequiredService<AppViewModel>();
 
-        public EventCenter EventCenter => ServiceProvider.GetRequiredService<EventCenter>();
-
-        public IEditorCommandSink EditorCommandSink => ServiceProvider.GetRequiredService<IEditorCommandSink>();
+        public IEditorSession EditorSession => ServiceProvider.GetRequiredService<IEditorSession>();
 
         public IFloatViewService FloatViewService => ServiceProvider.GetRequiredService<IFloatViewService>();
 
@@ -34,15 +30,37 @@ namespace Typedown.Core.ViewModels
         public FloatViewModel(IServiceProvider serviceProvider)
         {
             ServiceProvider = serviceProvider;
-            disposables.Add(EventCenter.GetObservable<EditorEventArgs>("OpenFrontMenu").Subscribe(x => OnOpenFrontMenu(x.Args)));
-            disposables.Add(EventCenter.GetObservable<EditorEventArgs>("OpenFormatPicker").Subscribe(x => OnOpenFormatPicker(x.Args)));
-            disposables.Add(EventCenter.GetObservable<EditorEventArgs>("OpenFindReplace").Subscribe(_ => OnOpenFindReplace()));
-            disposables.Add(EventCenter.GetObservable<EditorEventArgs>("OpenImageSelector").Subscribe(x => OnOpenImageSelector(x.Args)));
-            disposables.Add(EventCenter.GetObservable<EditorEventArgs>("OpenTableTools").Subscribe(x => OnOpenTableTools(x.Args)));
-            disposables.Add(EventCenter.GetObservable<EditorEventArgs>("OpenImageToolbar").Subscribe(x => OnOpenImageToolbar(x.Args)));
-            disposables.Add(EventCenter.GetObservable<EditorEventArgs>("OpenToolTip").Subscribe(x => OnOpenToolTip(x.Args)));
+            disposables.Add(EditorSession.Events.Subscribe(OnEditorEvent));
             disposables.Add(this.WhenPropertyChanged(nameof(FindReplaceDialogOpen)).Subscribe(_ => OnFindReplaceDialogOpenChange(FindReplaceDialogOpen)));
             disposables.Add(SearchCommand.OnExecute.Subscribe(Search));
+        }
+
+        private void OnEditorEvent(EditorEvent editorEvent)
+        {
+            switch (editorEvent)
+            {
+                case BlockMenuRequested request:
+                    FloatViewService.OpenFrontMenu(request);
+                    break;
+                case FormatPickerRequested request:
+                    FloatViewService.OpenFormatPicker(request);
+                    break;
+                case ImageEditorRequested request:
+                    FloatViewService.OpenImageSelector(request);
+                    break;
+                case ImageToolbarRequested request:
+                    FloatViewService.OpenImageToolbar(request);
+                    break;
+                case TableToolsRequested request:
+                    FloatViewService.OpenTableTools(request);
+                    break;
+                case TooltipRequested request:
+                    FloatViewService.OpenToolTip(request);
+                    break;
+                case TooltipDismissed:
+                    FloatViewService.CloseToolTip();
+                    break;
+            }
         }
 
         public void Search(FindReplaceDialogState open)
@@ -58,43 +76,8 @@ namespace Typedown.Core.ViewModels
         {
             if (open == FindReplaceDialogState.None)
             {
-                EditorCommandSink?.Send("SearchOpenChange", new { open = (int)open });
+                EditorSession.Post(new EndSearch());
             }
-        }
-
-        public void OnOpenImageToolbar(JToken args)
-        {
-            FloatViewService.OpenImageToolbar(args);
-        }
-
-        public void OnOpenFindReplace()
-        {
-            Search(FindReplaceDialogState.Search);
-        }
-
-        public void OnOpenFrontMenu(JToken args)
-        {
-            FloatViewService.OpenFrontMenu(args);
-        }
-
-        public void OnOpenFormatPicker(JToken args)
-        {
-            FloatViewService.OpenFormatPicker(args);
-        }
-
-        public void OnOpenImageSelector(JToken args)
-        {
-            FloatViewService.OpenImageSelector(args);
-        }
-
-        public void OnOpenTableTools(JToken args)
-        {
-            FloatViewService.OpenTableTools(args);
-        }
-
-        public void OnOpenToolTip(JToken args)
-        {
-            FloatViewService.OpenToolTip(args);
         }
 
         public void Dispose()

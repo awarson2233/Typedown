@@ -1,5 +1,7 @@
 using System.Collections.Generic;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Typedown.Core.Editor;
+using Typedown.Core.Editor.Legacy;
 using Typedown.Core.Models;
 
 namespace Typedown.CoreTests.Models;
@@ -10,18 +12,18 @@ public class StateModelTests
     [TestMethod]
     public void FormatState_MapsLegacySelectionFormatsFromCore()
     {
-        var state = new FormatState(
+        var state = new FormatState(LegacyMuyaVocabulary.ToInlineMarks(
         [
-            new("strong", string.Empty),
-            new("em", string.Empty),
-            new("html_tag", "u"),
-            new("inline_code", string.Empty),
-            new("inline_math", string.Empty),
-            new("html_tag", "mark"),
-            new("del", string.Empty),
-            new("link", string.Empty),
-            new("span", "img"),
-        ]);
+            ("strong", string.Empty),
+            ("em", string.Empty),
+            ("html_tag", "u"),
+            ("inline_code", string.Empty),
+            ("inline_math", string.Empty),
+            ("html_tag", "mark"),
+            ("del", string.Empty),
+            ("link", string.Empty),
+            ("span", "img"),
+        ]));
 
         Assert.IsTrue(state.Bold);
         Assert.IsTrue(state.Italic);
@@ -53,30 +55,30 @@ public class StateModelTests
     [TestMethod]
     public void ParagraphState_PreservesTaskListListHeadingCodeAndTableSemanticsFromCore()
     {
-        var taskList = new ParagraphState(new MenuState
+        var taskList = new ParagraphState(Block(new MenuFixture
         {
             IsTaskList = true,
             Affiliation = new Dictionary<string, bool> { ["ul"] = true },
-        });
+        }));
 
         Assert.IsTrue(taskList.TaskList.IsChecked);
         Assert.IsFalse(taskList.BulletList.IsChecked);
         Assert.IsTrue(taskList.TaskList.IsEnable);
         Assert.IsTrue(taskList.ImageIsEnable);
 
-        var bulletList = new ParagraphState(new MenuState
+        var bulletList = new ParagraphState(Block(new MenuFixture
         {
             Affiliation = new Dictionary<string, bool> { ["ul"] = true },
-        });
+        }));
 
         Assert.IsTrue(bulletList.BulletList.IsChecked);
         Assert.IsFalse(bulletList.TaskList.IsChecked);
         Assert.IsTrue(bulletList.OrderList.IsEnable);
 
-        var heading = new ParagraphState(new MenuState
+        var heading = new ParagraphState(Block(new MenuFixture
         {
             Affiliation = new Dictionary<string, bool> { ["h2"] = true },
-        });
+        }));
 
         Assert.IsTrue(heading.Heading2.IsChecked);
         Assert.IsTrue(heading.Heading1.IsEnable);
@@ -89,11 +91,11 @@ public class StateModelTests
         Assert.IsTrue(heading.HyperlinkIsEnable);
         Assert.IsFalse(heading.ImageIsEnable);
 
-        var code = new ParagraphState(new MenuState
+        var code = new ParagraphState(Block(new MenuFixture
         {
             IsCodeFences = true,
             Affiliation = new Dictionary<string, bool> { ["code"] = true },
-        });
+        }));
 
         Assert.IsTrue(code.CodeFences.IsChecked);
         Assert.IsTrue(code.CodeFences.IsEnable);
@@ -102,11 +104,11 @@ public class StateModelTests
         Assert.IsFalse(code.HyperlinkIsEnable);
         Assert.IsFalse(code.ImageIsEnable);
 
-        var table = new ParagraphState(new MenuState
+        var table = new ParagraphState(Block(new MenuFixture
         {
             IsTable = true,
             Affiliation = new Dictionary<string, bool> { ["p"] = true },
-        });
+        }));
 
         Assert.IsTrue(table.Table.IsChecked);
         Assert.IsTrue(table.Table.IsEnable);
@@ -116,7 +118,7 @@ public class StateModelTests
     [TestMethod]
     public void ParagraphState_CoversBlockAndInlineEnableSemanticsFromCore()
     {
-        var blockState = new ParagraphState(new MenuState
+        var blockState = new ParagraphState(Block(new MenuFixture
         {
             IsFootnote = true,
             Affiliation = new Dictionary<string, bool>
@@ -127,7 +129,7 @@ public class StateModelTests
                 ["frontmatter"] = true,
                 ["hr"] = true,
             },
-        });
+        }));
 
         Assert.IsTrue(blockState.QuoteBlock.IsChecked);
         Assert.IsTrue(blockState.HtmlBlock.IsChecked);
@@ -139,11 +141,11 @@ public class StateModelTests
         Assert.IsTrue(blockState.HyperlinkIsEnable);
         Assert.IsTrue(blockState.ImageIsEnable);
 
-        var multiline = new ParagraphState(new MenuState
+        var multiline = new ParagraphState(Block(new MenuFixture
         {
             IsMultiline = true,
             Affiliation = new Dictionary<string, bool> { ["p"] = true },
-        });
+        }));
 
         Assert.IsFalse(multiline.Heading1.IsEnable);
         Assert.IsFalse(multiline.Table.IsEnable);
@@ -189,4 +191,27 @@ public class StateModelTests
         Assert.AreEqual(0, state.Toc.Count);
         Assert.IsNull(state.Cur);
     }
+
+    private sealed class MenuFixture
+    {
+        public bool IsDisabled { get; init; }
+        public bool IsMultiline { get; init; }
+        public bool IsTaskList { get; init; }
+        public bool IsCodeFences { get; init; }
+        public bool IsCodeContent { get; init; }
+        public bool IsTable { get; init; }
+        public bool IsFootnote { get; init; }
+        public Dictionary<string, bool> Affiliation { get; init; } = new();
+    }
+
+    /// <summary>按页面 menuState 的形状构造块上下文，经由旧协议的同一套映射。</summary>
+    private static BlockContext Block(MenuFixture menu) => LegacyMuyaVocabulary.ToBlockContext(
+        menu.Affiliation.Keys,
+        menu.IsTaskList,
+        menu.IsTable,
+        menu.IsFootnote,
+        menu.IsCodeFences,
+        menu.IsCodeContent,
+        menu.IsMultiline,
+        menu.IsDisabled);
 }

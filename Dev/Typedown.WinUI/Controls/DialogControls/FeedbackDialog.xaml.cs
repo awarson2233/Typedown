@@ -49,16 +49,12 @@ namespace Typedown.WinUI.Controls
             {
                 try
                 {
-                    var res = await Common.Post("https://typedown.ownbox.cn/feedback", new
-                    {
-                        rating = content.Ranting,
-                        feedback = content.Feedback,
-                        contact = content.Contact,
-                    });
+                    var reply = await RemoteService.SubmitFeedbackAsync(
+                        new FeedbackRequest(content.Ranting, content.Feedback, content.Contact));
 
-                    msg = res["code"]?.ToObject<int>() == 0
+                    msg = reply.Code == 0
                         ? Locale.GetDialogString("SubmittedSuccessfully")
-                        : res["msg"]?.ToString() ?? string.Empty;
+                        : reply.Msg ?? string.Empty;
                 }
                 catch (Exception ex)
                 {

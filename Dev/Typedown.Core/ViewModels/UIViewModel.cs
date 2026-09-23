@@ -1,5 +1,4 @@
 using Microsoft.Extensions.DependencyInjection;
-using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -27,8 +26,6 @@ namespace Typedown.Core.ViewModels
 
         public SettingsViewModel SettingsViewModel => ServiceProvider.GetRequiredService<SettingsViewModel>();
 
-        public RemoteInvoke RemoteInvoke => ServiceProvider.GetRequiredService<RemoteInvoke>();
-
         public string MainWindowTitle { get; private set; } = string.Empty;
 
         public AppTheme ActualTheme { get; private set; }
@@ -43,7 +40,6 @@ namespace Typedown.Core.ViewModels
         {
             ServiceProvider = serviceProvider;
             dispatcher = ServiceProvider.GetRequiredService<IUiDispatcher>();
-            disposables.Add(RemoteInvoke.Handle<JToken, object>("GetStringResources", GetStringResources));
             _ = dispatcher.RunIdleAsync(() => InitializeBinding());
         }
 
@@ -56,19 +52,6 @@ namespace Typedown.Core.ViewModels
             disposables.Add(SettingsViewModel.WhenPropertyChanged(nameof(SettingsViewModel.AppTheme)).Subscribe(_ => UpdateActualTheme()));
             UpdateTitle();
             UpdateActualTheme();
-        }
-
-        private object GetStringResources(JToken args)
-        {
-            try
-            {
-                var names = args["names"]?.ToObject<List<string>>() ?? new List<string>();
-                return names.ToDictionary(x => x, x => Locale.GetString(x));
-            }
-            catch
-            {
-                return new Dictionary<string, string>();
-            }
         }
 
         private void UpdateActualTheme()

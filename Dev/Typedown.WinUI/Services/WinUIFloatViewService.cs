@@ -1,4 +1,4 @@
-using Newtonsoft.Json.Linq;
+using Typedown.Core.Editor;
 using Typedown.Core.Interfaces;
 using Typedown.Core.Utilities;
 using Typedown.Core.ViewModels;
@@ -24,7 +24,9 @@ namespace Typedown.WinUI.Services
             this.windowContext = windowContext ?? throw new ArgumentNullException(nameof(windowContext));
         }
 
-        public void OpenFrontMenu(JToken args)
+        private IEditorSession EditorSession => serviceProvider.GetRequiredService<IEditorSession>();
+
+        public void OpenFrontMenu(BlockMenuRequested request)
         {
             var viewModel = serviceProvider.GetRequiredService<AppViewModel>();
             var flyout = new MenuFlyout
@@ -37,12 +39,12 @@ namespace Typedown.WinUI.Services
             flyout.Items.Add(CreateCommandItem("InsertParagraphBefore", viewModel.ParagraphViewModel.InsertParagraphCommand, "before"));
             flyout.Items.Add(CreateCommandItem("InsertParagraphAfter", viewModel.ParagraphViewModel.InsertParagraphCommand, "after"));
             flyout.Items.Add(CreateCommandItem("Delete", viewModel.ParagraphViewModel.DeleteParagraphCommand));
-            flyout.Closed += (_, _) => serviceProvider.GetRequiredService<IEditorCommandSink>().Send("FrontMenuClosed", null);
+            flyout.Closed += (_, _) => EditorSession.Post(new BlockMenuClosed());
 
-            ShowFlyoutAt(flyout, args, FlyoutPlacementMode.Bottom);
+            ShowFlyoutAt(flyout, request.Anchor, FlyoutPlacementMode.Bottom);
         }
 
-        public void OpenFormatPicker(JToken args)
+        public void OpenFormatPicker(FormatPickerRequested request)
         {
             var flyout = new MenuFlyout
             {
@@ -54,91 +56,73 @@ namespace Typedown.WinUI.Services
                 DataContext = serviceProvider.GetRequiredService<AppViewModel>()
             });
 
-            ShowFlyoutAt(flyout, args, FlyoutPlacementMode.Bottom);
+            ShowFlyoutAt(flyout, request.Anchor, FlyoutPlacementMode.Bottom);
         }
 
-        public void OpenImageSelector(JToken args)
+        public void OpenImageSelector(ImageEditorRequested request)
         {
             var selector = new ImageSelector(
                 serviceProvider.GetRequiredService<AppViewModel>(),
-                serviceProvider.GetRequiredService<IEditorCommandSink>(),
+                EditorSession,
                 serviceProvider.GetRequiredService<IFilePickerService>());
-            var rect = args["boundingClientRect"]?.ToObject<Rect>() ?? default;
-            var info = args["imageInfo"] ?? new JObject();
 
-            if (TryResolveEditorRectAnchor(args, out var rectAnchor))
+            if (TryResolveEditorRectAnchor(request.Anchor, out var rectAnchor))
             {
-                selector.Open(rectAnchor, default, info);
+                selector.Open(rectAnchor, default, request.Image);
                 return;
             }
 
-            selector.Open(ResolveEditorAnchor(), rect, info);
+            selector.Open(ResolveEditorAnchor(), ToRect(request.Anchor), request.Image);
         }
 
-        public void OpenImageToolbar(JToken args)
+        public void OpenImageToolbar(ImageToolbarRequested request)
         {
             var imageToolbar = new ImageToolbar(
                 serviceProvider.GetRequiredService<AppViewModel>(),
-                serviceProvider.GetRequiredService<IEditorCommandSink>(),
+                EditorSession,
                 serviceProvider.GetRequiredService<IKeyboardAccelerator>());
-            var rect = args["boundingClientRect"]?.ToObject<Rect>() ?? default;
-            var attrs = args["attrs"] ?? new JObject();
 
-            if (TryResolveEditorRectAnchor(args, out var rectAnchor))
+            if (TryResolveEditorRectAnchor(request.Anchor, out var rectAnchor))
             {
-                imageToolbar.Open(rectAnchor, default, attrs, ResolveOverlayInputPassThroughElement());
+                imageToolbar.Open(rectAnchor, default, ResolveOverlayInputPassThroughElement());
                 return;
             }
 
-            imageToolbar.Open(ResolveEditorAnchor(), rect, attrs, ResolveOverlayInputPassThroughElement());
+            imageToolbar.Open(ResolveEditorAnchor(), ToRect(request.Anchor), ResolveOverlayInputPassThroughElement());
         }
 
-        public void OpenTableTools(JToken args)
+        public void OpenTableTools(TableToolsRequested request)
         {
-            var type = args["tableInfo"]?["barType"]?.ToString();
-            var isRow = type != "bottom";
             var flyout = new MenuFlyout
             {
                 Placement = FlyoutPlacementMode.RightEdgeAlignedTop
             };
 
-            if (isRow)
+            if (request.Axis == TableAxis.Row)
             {
-                AddTableToolItem(flyout, "InsertRowAbove", "insert", "previous", "row");
-                AddTableToolItem(flyout, "InsertRowBelow", "insert", "next", "row");
-                AddTableToolItem(flyout, "RemoveRow", "remove", "current", "row");
+                AddTableToolItem(flyout, "InsertRowAbove", TableEdit.InsertRowAbove);
+                AddTableToolItem(flyout, "InsertRowBelow", TableEdit.InsertRowBelow);
+                AddTableToolItem(flyout, "RemoveRow", TableEdit.RemoveRow);
             }
             else
             {
-                AddTableToolItem(flyout, "InsertColumnLeft", "insert", "left", "column");
-                AddTableToolItem(flyout, "InsertColumnRight", "insert", "right", "column");
-                AddTableToolItem(flyout, "RemoveColumn", "remove", "current", "column");
+                AddTableToolItem(flyout, "InsertColumnLeft", TableEdit.InsertColumnLeft);
+                AddTableToolItem(flyout, "InsertColumnRight", TableEdit.InsertColumnRight);
+                AddTableToolItem(flyout, "RemoveColumn", TableEdit.RemoveColumn);
             }
 
-            ShowFlyoutAt(flyout, args, FlyoutPlacementMode.RightEdgeAlignedTop);
+            ShowFlyoutAt(flyout, request.Anchor, FlyoutPlacementMode.RightEdgeAlignedTop);
         }
 
-        public void OpenToolTip(JToken args)
+        public void OpenToolTip(TooltipRequested request)
         {
-            openedToolTip?.Hide();
-            openedToolTip = null;
-
-            if (args["open"]?.ToObject<bool>() != true)
-            {
-                return;
-            }
-
-            var tooltipName = args["tooltip"]?.ToString();
-            if (string.IsNullOrWhiteSpace(tooltipName))
-            {
-                return;
-            }
+            CloseToolTip();
 
             openedToolTip = new Flyout
             {
                 Content = new TextBlock
                 {
-                    Text = Locale.GetString(tooltipName),
+                    Text = Locale.GetString(GetTooltipResourceKey(request.Kind)),
                     TextWrapping = TextWrapping.Wrap,
                     MaxWidth = 320
                 },
@@ -147,8 +131,26 @@ namespace Typedown.WinUI.Services
                 AreOpenCloseAnimationsEnabled = false
             };
 
-            ShowFlyoutAt(openedToolTip, args, FlyoutPlacementMode.Top);
+            ShowFlyoutAt(openedToolTip, request.Anchor, FlyoutPlacementMode.Top);
         }
+
+        public void CloseToolTip()
+        {
+            openedToolTip?.Hide();
+            openedToolTip = null;
+        }
+
+        private static string GetTooltipResourceKey(TooltipKind kind) => kind switch
+        {
+            TooltipKind.CopyContent => "CopyContent",
+            TooltipKind.CtrlClickToOpenLink => "CtrlAndClickOpenLink",
+            TooltipKind.ResizeTable => "ResizeTable",
+            TooltipKind.AlignLeft => "AlignLeft",
+            TooltipKind.AlignCenter => "AlignCenter",
+            TooltipKind.AlignRight => "AlignRight",
+            TooltipKind.DeleteTable => "DeleteTable",
+            _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, null),
+        };
 
         private MenuFlyoutSubItem CreateTurnIntoSubMenu(AppViewModel viewModel)
         {
@@ -183,24 +185,23 @@ namespace Typedown.WinUI.Services
             };
         }
 
-        private void AddTableToolItem(MenuFlyout flyout, string textKey, string action, string location, string target)
+        private void AddTableToolItem(MenuFlyout flyout, string textKey, TableEdit edit)
         {
             var item = new MenuFlyoutItem
             {
                 Text = Locale.GetString(textKey)
             };
 
-            item.Click += (_, _) => serviceProvider.GetRequiredService<IEditorCommandSink>()
-                .Send("EditTable", new { action, location, target });
+            item.Click += (_, _) => EditorSession.Post(new EditTable(edit));
 
             flyout.Items.Add(item);
         }
 
-        private void ShowFlyoutAt(FlyoutBase flyout, JToken args, FlyoutPlacementMode placement)
+        private void ShowFlyoutAt(FlyoutBase flyout, EditorRect? anchorRect, FlyoutPlacementMode placement)
         {
             flyout.Placement = placement;
 
-            if (TryResolveEditorRectAnchor(args, out var rectAnchor))
+            if (TryResolveEditorRectAnchor(anchorRect, out var rectAnchor))
             {
                 flyout.ShowAt(rectAnchor, new FlyoutShowOptions
                 {
@@ -209,8 +210,9 @@ namespace Typedown.WinUI.Services
                 return;
             }
 
-            if (TryGetBoundingClientRect(args, out var rect))
+            if (anchorRect is not null)
             {
+                var rect = ToRect(anchorRect);
                 var anchor = ResolveEditorAnchor();
                 flyout.ShowAt(anchor, new FlyoutShowOptions
                 {
@@ -223,10 +225,10 @@ namespace Typedown.WinUI.Services
             flyout.ShowAt(ResolveAnchor());
         }
 
-        private bool TryResolveEditorRectAnchor(JToken args, out FrameworkElement anchor)
+        private bool TryResolveEditorRectAnchor(EditorRect? anchorRect, out FrameworkElement anchor)
         {
             anchor = null!;
-            if (!TryGetBoundingClientRect(args, out var rect))
+            if (anchorRect is null)
             {
                 return false;
             }
@@ -237,9 +239,12 @@ namespace Typedown.WinUI.Services
                 return false;
             }
 
-            anchor = container.GetFloatAnchor(rect);
+            anchor = container.GetFloatAnchor(ToRect(anchorRect));
             return true;
         }
+
+        private static Rect ToRect(EditorRect? rect) =>
+            rect is { } r ? new Rect(r.X, r.Y, r.Width, r.Height) : default;
 
         private FrameworkElement ResolveEditorAnchor()
         {
@@ -322,19 +327,6 @@ namespace Typedown.WinUI.Services
             }
 
             return null;
-        }
-
-        private static bool TryGetBoundingClientRect(JToken args, out Rect rect)
-        {
-            rect = default;
-            var token = args["boundingClientRect"];
-            if (token is null)
-            {
-                return false;
-            }
-
-            rect = token.ToObject<Rect>();
-            return true;
         }
     }
 }

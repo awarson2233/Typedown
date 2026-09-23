@@ -1,60 +1,66 @@
-﻿using System.Linq;
+using System.Linq;
+using Typedown.Core.Editor;
 
 namespace Typedown.Core.Models
 {
+    /// <summary>段落菜单各项的勾选与可用状态，由光标所在块的 <see cref="BlockContext"/> 投影而来。</summary>
     public class ParagraphState
     {
-        public MenuState MenuState { get; set; }
+        public BlockContext Block { get; }
 
-        public ParagraphState(MenuState menuState)
+        public ParagraphState() : this(BlockContext.Empty)
         {
-            MenuState = menuState;
+        }
+
+        public ParagraphState(BlockContext block)
+        {
+            Block = block;
             UpdateCheckedMenuItem();
             UpdateEnableMenuItem();
         }
 
+        private bool Is(BlockKind kind) => Block.Kinds.Contains(kind);
+
         private void UpdateCheckedMenuItem()
         {
-            var affiliation = MenuState.Affiliation;
-            TaskList.IsChecked = affiliation.ContainsKey("ul") && MenuState.IsTaskList;
-            Table.IsChecked = MenuState.IsTable;
-            CodeFences.IsChecked = MenuState.IsCodeFences && affiliation.Keys.Where(x => x.Contains("code")).Any();
-            Heading1.IsChecked = affiliation.ContainsKey("h1");
-            Heading2.IsChecked = affiliation.ContainsKey("h2");
-            Heading3.IsChecked = affiliation.ContainsKey("h3");
-            Heading4.IsChecked = affiliation.ContainsKey("h4");
-            Heading5.IsChecked = affiliation.ContainsKey("h5");
-            Heading6.IsChecked = affiliation.ContainsKey("h6");
-            Table.IsChecked = MenuState.IsTable;
-            HtmlBlock.IsChecked = affiliation.ContainsKey("html");
-            MathBlock.IsChecked = affiliation.ContainsKey("multiplemath");
-            QuoteBlock.IsChecked = affiliation.ContainsKey("blockquote");
-            OrderList.IsChecked = affiliation.ContainsKey("ol");
-            BulletList.IsChecked = affiliation.ContainsKey("ul") && !MenuState.IsTaskList;
-            Paragraph.IsChecked = affiliation.ContainsKey("p");
-            HorizontalLine.IsChecked = affiliation.ContainsKey("hr");
-            FrontMatter.IsChecked = affiliation.ContainsKey("frontmatter");
-            Footnote.IsChecked = MenuState.IsFootnote;
-            Chart.IsChecked = (MenuState.IsCodeContent || MenuState.IsCodeFences) && !CodeFences.IsChecked && !MathBlock.IsChecked && !HtmlBlock.IsChecked;
+            TaskList.IsChecked = Is(BlockKind.TaskList);
+            Table.IsChecked = Is(BlockKind.Table);
+            CodeFences.IsChecked = Is(BlockKind.CodeBlock);
+            Heading1.IsChecked = Is(BlockKind.Heading1);
+            Heading2.IsChecked = Is(BlockKind.Heading2);
+            Heading3.IsChecked = Is(BlockKind.Heading3);
+            Heading4.IsChecked = Is(BlockKind.Heading4);
+            Heading5.IsChecked = Is(BlockKind.Heading5);
+            Heading6.IsChecked = Is(BlockKind.Heading6);
+            HtmlBlock.IsChecked = Is(BlockKind.HtmlBlock);
+            MathBlock.IsChecked = Is(BlockKind.MathBlock);
+            QuoteBlock.IsChecked = Is(BlockKind.Quote);
+            OrderList.IsChecked = Is(BlockKind.OrderedList);
+            BulletList.IsChecked = Is(BlockKind.BulletList);
+            Paragraph.IsChecked = Is(BlockKind.Paragraph);
+            HorizontalLine.IsChecked = Is(BlockKind.HorizontalRule);
+            FrontMatter.IsChecked = Is(BlockKind.FrontMatter);
+            Footnote.IsChecked = Is(BlockKind.Footnote);
+            Chart.IsChecked = (Block.CodeLine || Block.CodeLike) && !CodeFences.IsChecked && !MathBlock.IsChecked && !HtmlBlock.IsChecked;
             Toc.IsChecked = false;
             LinkReference.IsChecked = false;
         }
 
         private void UpdateEnableMenuItem()
         {
-            if (MenuState.IsDisabled)
+            if (Block.BlockCommandsDisabled)
             {
                 ResetEnableMenuItem(false);
                 FormatIsEnable = true;
                 HyperlinkIsEnable = true;
                 ImageIsEnable = true;
             }
-            else if (MenuState.IsCodeContent || MenuState.IsCodeFences)
+            else if (Block.CodeLine || Block.CodeLike)
             {
                 ResetEnableMenuItem(false);
                 CodeFences.IsEnable = CodeFences.IsChecked;
             }
-            else if (MenuState.IsMultiline)
+            else if (Block.MultipleBlocks)
             {
                 ResetEnableMenuItem(true);
                 Heading1.IsEnable = false;

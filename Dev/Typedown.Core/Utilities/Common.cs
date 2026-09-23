@@ -1,5 +1,3 @@
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -103,16 +101,6 @@ namespace Typedown.Core.Utilities
 
             var body = Regex.Match(html, @"(?is)<body\b[^>]*>(.*?)</body\s*>");
             return body.Success ? body.Groups[1].Value : html;
-        }
-
-        public static async Task<JObject> Post(string url, object obj)
-        {
-            var client = new HttpClient();
-            var content = new StringContent(JsonConvert.SerializeObject(obj), Encoding.UTF8, "application/json");
-            var result = await client.PostAsync(url, content);
-            if (result.StatusCode != HttpStatusCode.OK)
-                throw new Exception(result.ReasonPhrase);
-            return JObject.Parse(await result.Content.ReadAsStringAsync());
         }
 
         public static string GetShortcutKeyText(this ShortcutKey key)

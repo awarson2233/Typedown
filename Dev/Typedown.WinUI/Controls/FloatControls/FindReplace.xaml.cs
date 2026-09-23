@@ -4,6 +4,7 @@ using Microsoft.UI.Xaml.Input;
 using Microsoft.UI;
 using System.Numerics;
 using System.ComponentModel;
+using Typedown.Core.Editor;
 using Typedown.Core.Interfaces;
 using Typedown.Core.Utilities;
 using Typedown.Core.ViewModels;
@@ -38,8 +39,6 @@ public sealed partial class FindReplace : UserControl
     public EditorViewModel? Editor => editorViewModel;
 
     public SettingsViewModel? Settings => settingsViewModel;
-
-    public IEditorCommandSink? EditorCommandSink => Editor?.EditorCommandSink;
 
     public FindReplace()
     {
@@ -428,18 +427,7 @@ public sealed partial class FindReplace : UserControl
             return;
         }
 
-        EditorCommandSink?.Send("Replace", new
-        {
-            searchValue = editor.SearchValue,
-            value = replaceTextBox.Text,
-            opt = new
-            {
-                isSingle,
-                searchIsCaseSensitive = settings.SearchIsCaseSensitive,
-                searchIsWholeWord = settings.SearchIsWholeWord,
-                searchIsRegexp = settings.SearchIsRegexp
-            }
-        });
+        editor.Session.Post(new Replace(editor.SearchValue, replaceTextBox.Text, !isSingle, editor.CurrentSearchOptions()));
     }
 
     private void OnSwitchButtonClick(object sender, RoutedEventArgs e)
