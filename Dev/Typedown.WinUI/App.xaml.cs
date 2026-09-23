@@ -15,7 +15,6 @@ using Typedown.WinUI.Controls;
 using Typedown.WinUI.Services;
 using Typedown.WinUI.Utilities;
 using Typedown.WinUI.Views;
-using SQLitePCL;
 using Microsoft.UI.Xaml;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
@@ -95,26 +94,6 @@ namespace Typedown.WinUI
         {
             var startupCommandLineArgs = ResolveStartupCommandLineArgs();
             WinUILocale.Initialize();
-
-            // Set SQLite temp directory before any connection is created, so
-            // Microsoft.Data.Sqlite does not probe ApplicationData.Current (which
-            // throws APPMODEL_ERROR_NO_PACKAGE in unpackaged WinUI 3 apps).
-            var tmp = Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                "Typedown",
-                "temp");
-            Directory.CreateDirectory(tmp);
-            Environment.SetEnvironmentVariable("SQLITE_TMPDIR", tmp);
-
-            StartupTrace.SQLiteInitializeStart();
-            try
-            {
-                Batteries.Init();
-            }
-            finally
-            {
-                StartupTrace.SQLiteInitializeStop();
-            }
 
             if (window is null)
             {

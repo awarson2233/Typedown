@@ -2,18 +2,13 @@ using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
-using System.ComponentModel.DataAnnotations;
-using System.ComponentModel.DataAnnotations.Schema;
 using Typedown.Core.Enums;
 using Typedown.Core.Models.ExportConfigModels;
 
 namespace Typedown.Core.Models
 {
-    [Table("ExportConfig")]
     public partial class ExportConfig : INotifyPropertyChanged
     {
-        [Key]
-        [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
         public int Id { get; set; }
 
         public string Name { get; set; } = string.Empty;
@@ -24,7 +19,7 @@ namespace Typedown.Core.Models
 
         public List<(string name, string extension)> FileExtensions => GetFileExtensions();
 
-        public string Config { get; private set; } = new JObject().ToString();
+        public string Config { get; internal set; } = new JObject().ToString();
 
         public ConfigModel LoadExportConfig()
         {

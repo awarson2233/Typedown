@@ -1,4 +1,3 @@
-using Microsoft.EntityFrameworkCore;
 using System.Diagnostics;
 using System.Collections.ObjectModel;
 using Typedown.Core.Enums;
@@ -37,11 +36,9 @@ namespace Typedown.WinUI.Services
         {
             await EnsureExportConfigsLoaded();
 
-            using var ctx = await CreateDbContext();
             var config = new ExportConfig() { Name = name ?? string.Empty, Type = type };
 
-            await ctx.ExportConfigs.AddAsync(config);
-            await ctx.SaveChangesAsync();
+            await CreateDatabase().AddExportConfigAsync(config);
             await UpdateExportConfigs();
 
             return config;
@@ -51,8 +48,7 @@ namespace Typedown.WinUI.Services
         {
             await EnsureExportConfigsLoaded();
 
-            using var ctx = await CreateDbContext();
-            var config = await ctx.ExportConfigs.Where(x => x.Id == id).FirstOrDefaultAsync();
+            var config = await CreateDatabase().GetExportConfigAsync(id);
             return config ?? throw new InvalidOperationException($"Export config '{id}' was not found.");
         }
 
@@ -70,9 +66,7 @@ namespace Typedown.WinUI.Services
 
         public async Task RemoveExportConfig(int id)
         {
-            using var ctx = await CreateDbContext();
-            ctx.ExportConfigs.RemoveRange(ctx.ExportConfigs.Where(x => x.Id == id));
-            await ctx.SaveChangesAsync();
+            await CreateDatabase().RemoveExportConfigAsync(id);
             await UpdateExportConfigs();
         }
 
@@ -83,9 +77,8 @@ namespace Typedown.WinUI.Services
 
             try
             {
-                using var ctx = await CreateDbContext();
-                ctx.ExportConfigs.Update(config);
-                await ctx.SaveChangesAsync();
+                if (!await CreateDatabase().UpdateExportConfigAsync(config))
+                    return false;
                 await UpdateExportConfigs();
                 return true;
             }
@@ -97,37 +90,22 @@ namespace Typedown.WinUI.Services
 
         public async Task UpdateExportConfigs()
         {
-            using var ctx = await CreateDbContext();
-            var configs = await ctx.ExportConfigs.ToListAsync();
+            var configs = await CreateDatabase().GetExportConfigsAsync();
             ExportConfigs.UpdateCollection(configs, (a, b) => a.Id == b.Id);
         }
 
         private async Task EnsureExportConfigsInitialized()
         {
-            using var ctx = await CreateDbContext();
-            var changed = false;
-
-            changed |= await EnsureDefaultExportConfig(ctx, "PDF", ExportType.PDF);
-            changed |= await EnsureDefaultExportConfig(ctx, "HTML", ExportType.HTML);
-
-            if (changed)
-                await ctx.SaveChangesAsync();
+            var database = CreateDatabase();
+            await database.EnsureExportConfigAsync("PDF", ExportType.PDF);
+            await database.EnsureExportConfigAsync("HTML", ExportType.HTML);
 
             await UpdateExportConfigs();
         }
 
-        private static async Task<bool> EnsureDefaultExportConfig(AppDbContext ctx, string name, ExportType type)
+        private AppDatabase CreateDatabase()
         {
-            if (await ctx.ExportConfigs.AnyAsync(x => x.Type == type && x.Name == name))
-                return false;
-
-            ctx.ExportConfigs.Add(new ExportConfig { Name = name, Type = type });
-            return true;
-        }
-
-        private Task<AppDbContext> CreateDbContext()
-        {
-            return AppDbContext.Create(appDataPathProvider);
+            return new AppDatabase(appDataPathProvider);
         }
 
         private static string CreateTemporaryPdfPath(string? documentName)
