@@ -7,9 +7,10 @@ import { inlineWidget } from '../widgets/inlineWidgets';
 import { hasRefresh, isComposeTransaction, revealFrozen } from './revealState';
 import { canonicalHead, whitespaceInsertPos, type SelectionOrigin } from './canonical';
 import { linkAt } from './links';
+import { normalizeFootnoteLabel } from './footnoteLabel';
 
 /**
- * 脚注编号的来源（按引用首次出现的顺序编号，由脚注语法一侧提供）。没有提供时脚注上标显示标签原文。
+ * 脚注编号的来源（按引用首次出现的顺序编号，由脚注语法一侧提供；键为 normalizeFootnoteLabel 规范化后的标签）。没有提供时脚注上标显示标签原文。
  * 接法：`footnoteNumberSource.of(footnoteNumbers)`。
  */
 export const footnoteNumberSource = Facet.define<(state: EditorState) => ReadonlyMap<string, number>, ((state: EditorState) => ReadonlyMap<string, number>) | null>({
@@ -105,7 +106,8 @@ class InlineReveal {
     const ranges = view.visibleRanges;
     if (!ranges.length) return { decorations: Decoration.none, atomic: Decoration.none };
     const numbers = state.facet(footnoteNumberSource)?.(state);
-    const options: InlineSpecOptions = numbers ? { footnoteNumber: label => numbers.get(label) } : {};
+    // 编号表的键是规范化后的标签；上标没有编号时显示标签原文（inlineSpecs 负责）
+    const options: InlineSpecOptions = numbers ? { footnoteNumber: label => numbers.get(normalizeFootnoteLabel(label)) } : {};
     const specs = buildInlineSpecs(state.doc, syntaxTree(state), { from: ranges[0].from, to: ranges[ranges.length - 1].to }, this.reveal, options);
     const decos: Range<Decoration>[] = [];
     const atomic: Range<Decoration>[] = [];

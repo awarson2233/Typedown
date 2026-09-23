@@ -1,8 +1,14 @@
 // @vitest-environment jsdom
 import { beforeAll, describe, expect, it } from 'vitest';
-import { EditorSelection } from '@codemirror/state';
-import { ensureSyntaxTree } from '@codemirror/language';
-import { createEditor, type TypedownEditor } from '../src/editor/createEditor';
+import { EditorSelection, EditorState } from '@codemirror/state';
+import { EditorView } from '@codemirror/view';
+import { Language, LanguageSupport, ensureSyntaxTree } from '@codemirror/language';
+import { commonmarkLanguage } from '@codemirror/lang-markdown';
+import type { MarkdownConfig, MarkdownParser } from '@lezer/markdown';
+import { createEditor, typoraLayer, type TypedownEditor } from '../src/editor/createEditor';
+import { markdownExtensions } from '../src/editor/syntax';
+import { footnoteNumberSource } from '../src/editor/decorations/inlinePlugin';
+import { normalizeFootnoteLabel } from '../src/editor/decorations/footnoteLabel';
 import { linkAt, bareUrlHref } from '../src/editor/decorations/links';
 import { fullTree, stateOf } from './helpers';
 
@@ -82,6 +88,47 @@ describe('块间空行与组字', () => {
     expect(line2().classList.contains('cm-td-gap')).toBe(false);
     expect(line2().classList.contains('cm-td-quote')).toBe(true);
     ed.view.destroy();
+  });
+});
+
+describe('脚注编号', () => {
+  // 脚注语法由块组件一侧提供；这里用只在测试里定义、产出同名节点的扩展，在真实视图里验证编号的注入与标签规范化
+  const TestFootnote: MarkdownConfig = {
+    defineNodes: ['FootnoteReference', 'FootnoteReferenceMark', 'FootnoteLabel'],
+    parseInline: [{
+      name: 'FootnoteReference',
+      before: 'Link',
+      parse(cx, next, pos) {
+        if (next !== 91 || cx.char(pos + 1) !== 94) return -1;
+        const m = /^\[\^([^\]]+)\]/.exec(cx.slice(pos, cx.end));
+        if (!m) return -1;
+        const end = pos + m[0].length;
+        return cx.addElement(cx.elt('FootnoteReference', pos, end, [
+          cx.elt('FootnoteReferenceMark', pos, pos + 2), cx.elt('FootnoteLabel', pos + 2, end - 1), cx.elt('FootnoteReferenceMark', end - 1, end),
+        ]));
+      },
+    }],
+  };
+  const lang = new LanguageSupport(new Language(commonmarkLanguage.data, (commonmarkLanguage.parser as MarkdownParser).configure([...markdownExtensions, TestFootnote]), [], 'markdown'));
+
+  it('规范化规则：大小写折叠、连续空白合并、去掉首尾空白', () => {
+    expect(normalizeFootnoteLabel('  Foo \t Bar ')).toBe('foo bar');
+    expect(normalizeFootnoteLabel('ẞ')).toBe(normalizeFootnoteLabel('ss'));
+  });
+  it('按规范化后的标签查编号；查不到时显示标签原文', () => {
+    const doc = '正文[^Note  A]与[^other]。';
+    const numbers = new Map([['note a', 2]]);
+    const parent = document.createElement('div');
+    document.body.appendChild(parent);
+    const view = new EditorView({
+      parent,
+      state: EditorState.create({ doc, selection: { anchor: 0 }, extensions: [lang, typoraLayer, footnoteNumberSource.of(() => numbers)] }),
+    });
+    ensureSyntaxTree(view.state, doc.length, 1e9);
+    view.dispatch({});
+    const sups = Array.from(view.contentDOM.querySelectorAll('sup.cm-td-footnote-ref')).map(s => s.textContent);
+    expect(sups).toEqual(['2', 'other']);
+    view.destroy();
   });
 });
 
