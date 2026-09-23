@@ -1,3 +1,4 @@
+using System.Text;
 using Microsoft.Web.WebView2.Core;
 using Typedown.Core.Enums;
 using Typedown.Core.Interfaces;
@@ -36,24 +37,30 @@ namespace Typedown.WinUI.Services
             var environment = await webViewEnvironmentService.GetEnvironmentAsync();
             var controllerWindow = CoreWebView2ControllerWindowReference.CreateFromWindowHandle((ulong)windowContext.WindowHandle);
             var controller = await environment.CreateCoreWebView2ControllerAsync(controllerWindow);
-            var tempPath = Path.Combine(Path.GetTempPath(), $"Typedown-{Guid.NewGuid():N}.pdf");
+            var tempName = $"Typedown-{Guid.NewGuid():N}";
+            var tempHtmlPath = Path.Combine(Path.GetTempPath(), tempName + ".html");
+            var tempPdfPath = Path.Combine(Path.GetTempPath(), tempName + ".pdf");
 
             try
             {
                 controller.Bounds = new Rect(0, 0, 1, 1);
                 var coreWebView = controller.CoreWebView2;
-                await NavigateToHtml(coreWebView, html);
-                await coreWebView.PrintToPdfAsync(tempPath, CreatePrintSettings(environment, settings));
-                return new MemoryStream(await File.ReadAllBytesAsync(tempPath));
+                // NavigateToString caps the content at 2 MB; load large documents from a temporary file instead.
+                // The BOM pins the decoding to UTF-8 even when the exported HTML carries no charset meta tag.
+                await File.WriteAllTextAsync(tempHtmlPath, html ?? string.Empty, new UTF8Encoding(encoderShouldEmitUTF8Identifier: true));
+                await NavigateAndWait(coreWebView, new Uri(tempHtmlPath).AbsoluteUri);
+                await coreWebView.PrintToPdfAsync(tempPdfPath, CreatePrintSettings(environment, settings));
+                return new MemoryStream(await File.ReadAllBytesAsync(tempPdfPath));
             }
             finally
             {
                 controller.Close();
-                TryDelete(tempPath);
+                TryDelete(tempHtmlPath);
+                TryDelete(tempPdfPath);
             }
         }
 
-        private static Task NavigateToHtml(CoreWebView2 coreWebView, string html)
+        private static Task NavigateAndWait(CoreWebView2 coreWebView, string uri)
         {
             var navigationCompleted = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
 
@@ -71,7 +78,7 @@ namespace Typedown.WinUI.Services
             }
 
             coreWebView.NavigationCompleted += OnNavigationCompleted;
-            coreWebView.NavigateToString(html ?? string.Empty);
+            coreWebView.Navigate(uri);
             return navigationCompleted.Task;
         }
 
