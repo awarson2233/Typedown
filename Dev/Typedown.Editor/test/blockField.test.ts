@@ -187,9 +187,9 @@ describe('front matter、HTML 块、[TOC]、脚注定义', () => {
     const html = '<div align="center">\n<b>粗</b>\n</div>\n\n尾';
     expect(describeDecos(create(html, html.length))).toEqual(['html@0-36:<div align="center">\n<b>粗</b>\n</div>']);
     expect(describeDecos(create(html, 3))).toEqual(['line@0-0:cm-td-html-src', 'line@21-21:cm-td-html-src', 'line@30-30:cm-td-html-src']);
-    expect(describeDecos(create('<script>\nalert(1)\n</script>\n\n尾', 30))).toEqual([]);
-    expect(describeDecos(create('<style>\np{}\n</style>\n\n尾', 30))).toEqual([]);
-    expect(describeDecos(create('<!-- 注释 -->\n\n尾', 30))).toEqual([]);
+    expect(describeDecos(create('<script>\nalert(1)\n</script>\n\n尾', 30))).toEqual(['line@0-0:cm-td-html-src', 'line@9-9:cm-td-html-src', 'line@18-18:cm-td-html-src']);
+    expect(describeDecos(create('<style>\np{}\n</style>\n\n尾', 30))).toEqual(['line@0-0:cm-td-html-src', 'line@8-8:cm-td-html-src', 'line@12-12:cm-td-html-src']);
+    expect(describeDecos(create('<!-- 注释 -->\n\n尾', 30))).toEqual(['line@0-0:cm-td-html-src']);
   });
   it('[TOC]：渲染成目录（来自行首扫描的大纲）；标题变了目录跟着变；光标在行上显示源码', () => {
     let s = create('[TOC]\n\n# 一\n\n## 二 **粗**\n', 20);

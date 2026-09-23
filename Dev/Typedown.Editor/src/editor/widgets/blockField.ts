@@ -167,6 +167,7 @@ export function scanBlocks(state: EditorState, tree: Tree, from: number, to: num
         out.push({ kind: 'frontmatter', from: bFrom, to: bTo, active: inside, fence });
         return;
       }
+      case 'CommentBlock': // 整块的 HTML 注释，按不可见的 HTML 块显示源码框
       case 'HTMLBlock': {
         const src = doc.sliceString(bFrom, bTo);
         // 注释、script、style 之类渲染出来是空白，始终按编辑态显示源码框
