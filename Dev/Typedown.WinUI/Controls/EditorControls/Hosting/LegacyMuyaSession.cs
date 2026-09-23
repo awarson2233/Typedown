@@ -46,7 +46,11 @@ namespace Typedown.WinUI.Controls
         private readonly Subject<EditorEvent> events = new();
         private readonly ContentHistory history = new();
         private readonly LegacyDiffChannel diffChannel = new();
-        private readonly EditorCommandGate<string> gate = new();
+        /// <summary>
+        /// 宿主卸载（例如打开设置页，MainPage 整体卸载）期间命令照样排队、设置照样合并，重新挂载时整体重放，
+        /// 否则在设置页里改的编辑器设置永远到不了页面。
+        /// </summary>
+        private readonly EditorCommandGate<string> gate = new(retainWhileDetached: true);
         private readonly Dictionary<long, TaskCompletionSource<string>> exportRequests = new();
         private readonly CancellationTokenSource lifetime = new();
 
