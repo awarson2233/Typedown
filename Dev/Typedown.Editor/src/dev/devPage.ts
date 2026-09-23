@@ -8,6 +8,7 @@ import { markdownSupport, type SyntaxOptions } from '../editor/syntax';
 import { codeLanguages } from '../editor/syntax/codeLanguages';
 import { parsedLength } from '../editor/state/parseProgress';
 import { blockField, blockFieldStats } from '../editor/widgets/blockField';
+import { outlineField, scanOutline } from '../editor/state/outline';
 import { applyTheme } from '../host/theme';
 import { sampleDoc } from './sampleDocs';
 
@@ -20,11 +21,22 @@ interface Probe {
   t: Record<string, number>;
   /** [输入事件时刻, 两帧 rAF 后时刻, 事务 JS 耗时] */
   keys: [number, number, number][];
+  /** Event Timing（PerformanceObserver 'event'，durationThreshold 16，duration 按 8 ms 取整）：[type, startTime, duration, processingStart, processingEnd, interactionId] */
+  events: [string, number, number, number, number, number][];
+  /** 页面收到的 keydown 的 event.timeStamp（低于阈值的交互没有 Event Timing 条目，靠它数总键数） */
+  keydowns: number[];
   longTasks: [number, number][];
   errors: string[];
 }
-const P: Probe = { t: {}, keys: [], longTasks: [], errors: [] };
+const P: Probe = { t: {}, keys: [], events: [], keydowns: [], longTasks: [], errors: [] };
 (window as unknown as { __probe: Probe }).__probe = P;
+try {
+  new PerformanceObserver(l => l.getEntries().forEach(e => {
+    const x = e as PerformanceEventTiming;
+    P.events.push([x.name, x.startTime, x.duration, x.processingStart, x.processingEnd, x.interactionId ?? 0]);
+  })).observe({ type: 'event', durationThreshold: 16, buffered: true } as PerformanceObserverInit);
+} catch { /* 不支持 Event Timing 时忽略 */ }
+addEventListener('keydown', e => P.keydowns.push(e.timeStamp), true);
 try {
   new PerformanceObserver(l => l.getEntries().forEach(e => P.longTasks.push([Math.round(e.startTime), Math.round(e.duration)])))
     .observe({ type: 'longtask', buffered: true });
@@ -125,6 +137,42 @@ function measureBlockScan(): { ms: number; blocks: number } {
   return { ms, blocks };
 }
 
+/**
+ * 块组件核对：当前视图的块装饰在已覆盖范围内，是否与「同一文本 + 同一选区、语法树解析到文末」的全量扫描逐个相同。
+ * 给 perf-probe 的 patchcheck 用（同步解析只到视口末尾后，滚动 / 跳转 / 粘贴 / 撤销时块组件是否正确）。
+ */
+function checkBlocks() {
+  const s = view.state;
+  let fresh = EditorState.create({ doc: s.doc, selection: s.selection, extensions: [markdownSupport({ frontmatter: fmOption(params.get('fm')) }), blockField] });
+  ensureSyntaxTree(fresh, fresh.doc.length, 1e9);
+  fresh = fresh.update({}).state;
+  const describe = (st: EditorState) => {
+    const out: [number, string][] = [];
+    st.field(blockField).decos.between(0, st.doc.length, (from, to, d) => {
+      const w = d.spec.widget as { src?: string; preview?: boolean; constructor: { name: string } } | undefined;
+      out.push([to, `${w?.constructor.name}@${from}-${to}:${w?.preview ? 'preview:' : ''}${w?.src ?? ''}`]);
+    });
+    return out;
+  };
+  const covered = s.field(blockField).covered;
+  const a = describe(s).filter(x => x[0] <= covered).map(x => x[1]), b = describe(fresh).filter(x => x[0] <= covered).map(x => x[1]);
+  let firstDiff = -1;
+  for (let i = 0; i < Math.max(a.length, b.length); i++) if (a[i] !== b[i]) { firstDiff = i; break; }
+  return { covered, parsed: parsedLength(s), vpFrom: view.viewport.from, vpTo: view.viewport.to, blocks: a.length, same: firstDiff < 0, diff: firstDiff < 0 ? null : [a[firstDiff] ?? null, b[firstDiff] ?? null] };
+}
+
+/** 视口里还露在外面的 `**`（光标所在行除外）：语法树没覆盖视口时，行内显形不生效，标记会露出来 */
+function visibleStars(): number {
+  const head = view.state.doc.lineAt(view.state.selection.main.head);
+  let n = 0;
+  for (const el of Array.from(view.contentDOM.querySelectorAll('.cm-line'))) {
+    const pos = view.posAtDOM(el);
+    if (pos >= head.from && pos <= head.to) continue;
+    n += ((el.textContent ?? '').match(/\*\*/g) ?? []).length;
+  }
+  return n;
+}
+
 function countBlocks(): number {
   let n = 0;
   view.state.field(blockField, false)?.decos.between(0, view.state.doc.length, () => { n++; });
@@ -147,5 +195,10 @@ function countBlocks(): number {
   },
   measureFullParse,
   measureBlockScan,
+  checkBlocks,
+  visibleStars,
+  outlineStats: () => { const o = view.state.field(outlineField); return { headings: o.headings.length, items: o.items.length, revision: o.revision }; },
+  /** 行首扫描器全量扫一遍全文的耗时（载入时 outlineField.create 的开销） */
+  measureOutlineScan: () => { const t0 = performance.now(); const o = scanOutline(view.state.doc); return { ms: performance.now() - t0, headings: o.headings.length }; },
   domNodes: () => document.getElementsByTagName('*').length,
 };
