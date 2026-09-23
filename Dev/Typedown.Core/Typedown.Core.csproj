@@ -9,21 +9,10 @@
 		<Platforms>x64;ARM64</Platforms>
 		<PlatformTarget>AnyCPU</PlatformTarget>
 	</PropertyGroup>
-	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-	  <IsTrimmable>True</IsTrimmable>
-	  <IsAotCompatible>True</IsAotCompatible>
-	</PropertyGroup>
-	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">
-	  <IsTrimmable>True</IsTrimmable>
-	  <IsAotCompatible>True</IsAotCompatible>
-	</PropertyGroup>
-	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-	  <IsTrimmable>True</IsTrimmable>
-	  <IsAotCompatible>True</IsAotCompatible>
-	</PropertyGroup>
-	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">
-	  <IsTrimmable>True</IsTrimmable>
-	  <IsAotCompatible>True</IsAotCompatible>
+	<PropertyGroup>
+		<!-- Every configuration, including Debug_Local, surfaces the trim/AOT analyzer warnings. -->
+		<IsTrimmable>true</IsTrimmable>
+		<IsAotCompatible>true</IsAotCompatible>
 	</PropertyGroup>
 
 	<ItemGroup>

@@ -26,6 +26,11 @@
         <RootNamespace>Typedown.WinUI</RootNamespace>
         <Configurations>Debug;Release;Debug_Local</Configurations>
 
+        <!-- Trim / AOT analysis in every configuration. PublishAot and warnings-as-errors come later. -->
+        <EnableTrimAnalyzer>true</EnableTrimAnalyzer>
+        <EnableAotAnalyzer>true</EnableAotAnalyzer>
+        <CsWinRTAotWarningLevel>1</CsWinRTAotWarningLevel>
+
         <!-- App Options -->
         <UseRidGraph>true</UseRidGraph>
         <ApplicationIcon>Assets\\logo.ico</ApplicationIcon>
