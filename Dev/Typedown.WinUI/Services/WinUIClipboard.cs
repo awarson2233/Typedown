@@ -49,6 +49,25 @@ namespace Typedown.WinUI.Services
             Clipboard.SetContent(dataPackage);
         }
 
+        public void SetContent(string? plainText, string? html)
+        {
+            var dataPackage = new DataPackage();
+            if (plainText is not null)
+            {
+                dataPackage.SetText(plainText);
+            }
+
+            if (!string.IsNullOrEmpty(html))
+            {
+                // 剪贴板的 HTML 格式要求带 CF_HTML 头（Version/StartHTML/…），页面给的是裸 HTML 片段。
+                dataPackage.SetHtmlFormat(html.StartsWith("Version:", StringComparison.Ordinal)
+                    ? html
+                    : HtmlFormatHelper.CreateHtmlFormat(html));
+            }
+
+            Clipboard.SetContent(dataPackage);
+        }
+
         public void SetText(string text, TextDataFormat format)
         {
             var dataPackage = new DataPackage();

@@ -276,16 +276,7 @@ namespace Typedown.Core.ViewModels
 
         public Task WriteClipboardAsync(ClipboardContent content, CancellationToken cancellationToken)
         {
-            if (content.Html is not null)
-            {
-                Clipboard.SetText(content.Html, TextDataFormat.Html);
-            }
-
-            if (content.PlainText is not null)
-            {
-                Clipboard.SetText(content.PlainText, TextDataFormat.UnicodeText);
-            }
-
+            Clipboard.SetContent(content.PlainText, content.Html);
             return Task.CompletedTask;
         }
 

@@ -46,6 +46,7 @@ namespace Typedown.WinUI.Controls
         private readonly Subject<EditorEvent> events = new();
         private readonly ContentHistory history = new();
         private readonly LegacyDiffChannel diffChannel = new();
+        private readonly LegacyClipboardCoalescer clipboard = new();
         /// <summary>
         /// 宿主卸载（例如打开设置页，MainPage 整体卸载）期间命令照样排队、设置照样合并，重新挂载时整体重放，
         /// 否则在设置页里改的编辑器设置永远到不了页面。
@@ -189,6 +190,11 @@ namespace Typedown.WinUI.Controls
 
             try
             {
+                if (envelope.Name != "SetClipboard")
+                {
+                    await FlushClipboardAsync();
+                }
+
                 switch (envelope.Type)
                 {
                     case "invoke":
@@ -367,12 +373,19 @@ namespace Typedown.WinUI.Controls
         private Task WriteClipboardAsync(JsonElement args)
         {
             var (type, data) = LegacyMuyaProtocol.ReadClipboardWrite(args);
-            return type switch
+            return WriteClipboardAsync(clipboard.Accept(type, data));
+        }
+
+        /// <summary>页面发来 SetClipboard 以外的任何报文，都说明积压的 HTML 等不到配对的纯文本了。</summary>
+        private Task FlushClipboardAsync() =>
+            clipboard.HasPending ? WriteClipboardAsync(clipboard.Flush()) : Task.CompletedTask;
+
+        private async Task WriteClipboardAsync(IReadOnlyList<ClipboardContent> contents)
+        {
+            foreach (var content in contents)
             {
-                "text/plain" => Callbacks.WriteClipboardAsync(new ClipboardContent(data, null), lifetime.Token),
-                "text/html" => Callbacks.WriteClipboardAsync(new ClipboardContent(null, data), lifetime.Token),
-                _ => Task.CompletedTask,
-            };
+                await Callbacks.WriteClipboardAsync(content, lifetime.Token);
+            }
         }
 
         private void OnPageUnhandledException(string error)
