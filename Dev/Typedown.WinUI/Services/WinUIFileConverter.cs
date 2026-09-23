@@ -10,11 +10,13 @@ namespace Typedown.WinUI.Services
     {
         private readonly IUiDispatcher dispatcher;
         private readonly IWindowContext windowContext;
+        private readonly WinUIWebViewEnvironmentService webViewEnvironmentService;
 
-        public WinUIFileConverter(IUiDispatcher dispatcher, IWindowContext windowContext)
+        public WinUIFileConverter(IUiDispatcher dispatcher, IWindowContext windowContext, WinUIWebViewEnvironmentService webViewEnvironmentService)
         {
             this.dispatcher = dispatcher ?? throw new ArgumentNullException(nameof(dispatcher));
             this.windowContext = windowContext ?? throw new ArgumentNullException(nameof(windowContext));
+            this.webViewEnvironmentService = webViewEnvironmentService ?? throw new ArgumentNullException(nameof(webViewEnvironmentService));
         }
 
         public Task<MemoryStream> HtmlToPdf(string html, PdfPrintSettings? settings = null)
@@ -29,7 +31,9 @@ namespace Typedown.WinUI.Services
                 throw new InvalidOperationException("A WinUI window handle is required to create the WebView2 print controller.");
             }
 
-            var environment = await CoreWebView2Environment.CreateAsync();
+            // Reuse the editor's environment: same browser process, command-line switches (local file
+            // access) and user data folder, instead of spinning up a default environment per export.
+            var environment = await webViewEnvironmentService.GetEnvironmentAsync();
             var controllerWindow = CoreWebView2ControllerWindowReference.CreateFromWindowHandle((ulong)windowContext.WindowHandle);
             var controller = await environment.CreateCoreWebView2ControllerAsync(controllerWindow);
             var tempPath = Path.Combine(Path.GetTempPath(), $"Typedown-{Guid.NewGuid():N}.pdf");
