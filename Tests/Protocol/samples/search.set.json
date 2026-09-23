@@ -1,0 +1,1 @@
+{"k":"cmd","t":"search.set","p":{"query":"foo","options":{"caseSensitive":true,"wholeWord":false,"regex":false}}}

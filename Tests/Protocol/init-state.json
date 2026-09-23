@@ -1,0 +1,31 @@
+{
+  "protocol": 1,
+  "settings": {
+    "sourceCode": false,
+    "typewriter": false,
+    "focusMode": false,
+    "searchIsCaseSensitive": false,
+    "searchIsRegexp": false,
+    "searchIsWholeWord": false,
+    "fontSize": 16,
+    "lineHeight": 1.6,
+    "autoPairBracket": true,
+    "autoPairQuote": true,
+    "trimUnnecessaryCodeBlockEmptyLines": true,
+    "preferLooseListItem": true,
+    "autoPairMarkdownSyntax": true,
+    "editorAreaWidth": "860px",
+    "tabSize": 4,
+    "spellcheckEnabled": false
+  },
+  "theme": {
+    "isDark": false,
+    "accent": { "r": 0, "g": 120, "b": 215, "a": 1 },
+    "background": { "r": 255, "g": 255, "b": 255, "a": 1 }
+  },
+  "keymap": [
+    { "key": 83, "modifiers": 1 },
+    { "key": 70, "modifiers": 1 }
+  ],
+  "locale": "zh-CN"
+}

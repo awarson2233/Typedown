@@ -11,7 +11,7 @@ namespace Typedown.ArchitectureTests.Guards;
 
 /// <summary>
 /// 编辑会话契约的形状守卫：会话接口只有六个成员、命令 / 事件 / 请求全部强类型，
-/// ViewModel 与整个 Core 不再碰 Newtonsoft。
+/// 契约不认识线上的类型名与 JSON 标注，ViewModel 只认契约、不碰线协议层，整个 Core 不再碰 Newtonsoft。
 /// </summary>
 [TestClass]
 public sealed class EditorContractGuardTests
@@ -85,6 +85,41 @@ public sealed class EditorContractGuardTests
             }
         }
     }
+
+    [TestMethod]
+    public void EditorContract_DoesNotKnowItsWireNames()
+    {
+        var contractTypes = CoreAssembly.GetTypes().Where(t => t.Namespace == "Typedown.Core.Editor").ToList();
+        Assert.IsTrue(contractTypes.Count > 0);
+
+        foreach (var type in contractTypes)
+        {
+            Assert.IsFalse(
+                type.GetCustomAttributes(inherit: false).Any(a => a.GetType().Namespace == "System.Text.Json.Serialization"),
+                $"{type.Name} carries JSON attributes; wire names and shapes belong to Typedown.Core.Editor.Wire.");
+            foreach (var property in type.GetProperties(BindingFlags.Public | BindingFlags.Instance))
+            {
+                foreach (var used in Flatten(property.PropertyType))
+                {
+                    Assert.IsFalse(IsWire(used), $"{type.Name}.{property.Name} uses wire type {used.Name}.");
+                }
+            }
+        }
+    }
+
+    [TestMethod]
+    public void ViewModels_MustNotUseWireTypes()
+    {
+        foreach (var type in CoreAssembly.GetTypes().Where(t => t.Namespace == "Typedown.Core.ViewModels"))
+        {
+            foreach (var (used, context) in UsedTypes(type))
+            {
+                Assert.IsFalse(IsWire(used), $"{type.FullName} uses wire type {used.FullName} ({context}); ViewModels only know the session contract.");
+            }
+        }
+    }
+
+    private static bool IsWire(Type type) => type.Namespace == "Typedown.Core.Editor.Wire";
 
     private static bool IsEditorRequest(Type type)
     {

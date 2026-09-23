@@ -1,0 +1,1 @@
+{"k":"cmd","t":"search.replace","p":{"query":"foo","replacement":"bar","all":true,"options":{"caseSensitive":true,"wholeWord":false,"regex":false}}}

@@ -22,5 +22,7 @@
 
   <ItemGroup>
     <None Include="Persistence\Fixtures\**" CopyToOutputDirectory="PreserveNewest" />
+    <!-- 线协议样例两端共用，放在 Tests/Protocol 下，页面侧的 Vitest 读同一批文件。 -->
+    <None Include="..\Protocol\**\*.json" LinkBase="Protocol" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>
