@@ -29,11 +29,11 @@ module.exports = function override(config, env) {
                 snapsvg: path.join(__dirname, './src/assets/libs/snap.svg-min.js')
             },
         },
+        // 不再用 LimitChunkCountPlugin({ maxChunks: 1 }) 把 import() 并回主包：图表引擎、prism 语言、
+        // 源码模式的 CodeMirror 各自成块，按需加载。publicPath 是 CRA 按 homepage "." 给的 "./"，
+        // 分块相对 index.html 解析，file:// 与开发服务器下都能加载。
         plugins: [
             ...config.plugins,
-            new webpack.optimize.LimitChunkCountPlugin({
-                maxChunks: 1
-            }),
             new webpack.ProvidePlugin({
                 process: 'process/browser',
             }),

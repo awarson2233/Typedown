@@ -1,6 +1,5 @@
-import katex from 'katex'
 import prism, { loadedLanguages, transformAliasToOrigin } from '../../../prism/'
-import 'katex/dist/contrib/mhchem.min.js'
+import { getKatex } from '../../../renderers/katex'
 import { CLASS_OR_ID, DEVICE_MEMORY, PREVIEW_DOMPURIFY_CONFIG, HAS_TEXT_BLOCK_REG } from '../../../config'
 import { tokenizer } from '../../'
 import { snakeToCamel, sanitize, escapeHTML, getLongUniqueId, getImageInfo } from '../../../utils'
@@ -161,9 +160,12 @@ export default function renderLeafBlock (parent, block, activeBlocks, matches, u
           selector += `.${CLASS_OR_ID.AG_EMPTY}`
         } else if (loadMathMap.has(key)) {
           children = loadMathMap.get(key)
+        } else if (!getKatex()) {
+          children = ''
+          Object.assign(data.attrs, { 'data-math-pending': this.addPendingMath(code, true, key) })
         } else {
           try {
-            const html = katex.renderToString(code, {
+            const html = getKatex().renderToString(code, {
               displayMode: true
             })
 

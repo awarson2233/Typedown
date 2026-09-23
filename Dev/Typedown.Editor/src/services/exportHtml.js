@@ -1,8 +1,7 @@
 import marked from '../components/Muya/lib/parser/marked'
 import Prism from 'prismjs'
-import katex from 'katex'
-import 'katex/dist/contrib/mhchem.min.js'
 import loadRenderer from '../components/Muya/lib/renderers'
+import { loadKatex } from '../components/Muya/lib/renderers/katex'
 import githubMarkdownCss from '!!raw-loader!github-markdown-css/github-markdown.css'
 import exportStyle from '!!raw-loader!../assets/styles/exportStyle.css'
 import highlightCss from '!!raw-loader!prismjs/themes/prism.css'
@@ -115,7 +114,7 @@ class ExportHtml {
     this.mathRendererCalled = true
 
     try {
-      return katex.renderToString(math, {
+      return this.katex.renderToString(math, {
         displayMode
       })
     } catch (err) {
@@ -128,6 +127,8 @@ class ExportHtml {
   // render pure html by marked
   async renderHtml(toc) {
     this.mathRendererCalled = false
+    // marked 同步调用 mathRenderer，katex 要在转换前就绪。
+    this.katex = await loadKatex()
     let html = marked(this.markdown, {
       superSubScript: this.options?.superSubScript ?? false,
       footnote: this.options?.footnote ?? false,
