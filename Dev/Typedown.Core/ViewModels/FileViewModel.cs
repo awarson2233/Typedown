@@ -65,6 +65,8 @@ namespace Typedown.Core.ViewModels
 
         public AutoBackup AutoBackup => ServiceProvider.GetRequiredService<AutoBackup>();
 
+        public StartupDocumentPrefetch StartupDocumentPrefetch => ServiceProvider.GetRequiredService<StartupDocumentPrefetch>();
+
         public IAtomicFileWriter FileWriter => ServiceProvider.GetRequiredService<IAtomicFileWriter>();
 
         public IDialogService DialogService => ServiceProvider.GetRequiredService<IDialogService>();
@@ -251,7 +253,8 @@ namespace Typedown.Core.ViewModels
             return true;
         }
 
-        private async Task<bool> LoadFile(string path, bool skipSavedCheck = false)
+        /// <param name="snapshot">启动时预读好的磁盘快照；为 null 时当场读盘。</param>
+        private async Task<bool> LoadFile(string path, bool skipSavedCheck = false, StartupFileSnapshot? snapshot = null)
         {
             try
             {
@@ -260,7 +263,7 @@ namespace Typedown.Core.ViewModels
                     _ = UiDispatcher.RunIdleAsync(() => PInvoke.SetForegroundWindow(window));
                     return false;
                 }
-                if (!File.Exists(path))
+                if (!(snapshot?.Exists ?? File.Exists(path)))
                 {
                     _ = RunAfterInitialEditorFileLoadedAsync(() => AccessHistory.RemoveFileHistory(path));
                     throw new FileNotFoundException("File does not exist.");
@@ -269,14 +272,14 @@ namespace Typedown.Core.ViewModels
                 {
                     return false;
                 }
-                var file = await TextFileCodec.ReadAsync(path);
+                var file = snapshot?.GetFile() ?? await TextFileCodec.ReadAsync(path);
                 var text = file.Text;
                 EditorViewModel.FirstStart = false;
                 var fileHash = Common.SimpleHash(text);
                 SettingsViewModel.LastFilePath = path;
                 var loadedPath = path;
                 _ = RunAfterInitialEditorFileLoadedAsync(() => AccessHistory.RecordFileHistory(loadedPath));
-                var backup = await CheckBackup(path, fileHash);
+                var backup = await CheckBackup(path, fileHash, snapshot);
                 var markdown = backup ?? text;
                 var saved = backup is null;
                 ApplyDocument(markdown, fileHash, path, saved, file.Format);
@@ -316,9 +319,9 @@ namespace Typedown.Core.ViewModels
             }
         }
 
-        private async Task<string?> CheckBackup(string path, ulong fileHash)
+        private async Task<string?> CheckBackup(string path, ulong fileHash, StartupFileSnapshot? snapshot)
         {
-            string? text = await AutoBackup.GetBackup(path);
+            string? text = snapshot is null ? await AutoBackup.GetBackup(path) : snapshot.Backup;
             if (text == null) return null;
             text = TextFileCodec.NormalizeLineEndings(text);
             if (Common.SimpleHash(text) == fileHash) return null;
@@ -519,47 +522,50 @@ namespace Typedown.Core.ViewModels
             }
         }
 
+        /// <summary>
+        /// 解析并装载启动文档。文件 IO 多半已由宿主在 <c>OnLaunched</c> 经 <see cref="StartupDocumentPrefetch"/> 提前做完，
+        /// 这里只取快照；读错误、恢复备份的对话框与状态变更仍在这里按原顺序进行。
+        /// </summary>
         public async Task LoadStartUpMarkdown()
         {
             startupOpenedFilePath = null;
 
-            var path = CommandLine.GetOpenFilePath(AppViewModel.CommandLineArgs);
-            if (!string.IsNullOrEmpty(path))
+            var target = StartupDocumentTarget.Resolve(AppViewModel.CommandLineArgs, SettingsViewModel.FileStartupAction, SettingsViewModel.LastFilePath);
+            switch (target?.Origin)
             {
-                if (await LoadFile(path, true))
-                {
-                    startupOpenedFilePath = FilePath;
-                    var openedFileFolder = Path.GetDirectoryName(FilePath);
-                    if (!string.IsNullOrWhiteSpace(openedFileFolder))
+                case StartupDocumentOrigin.CommandLine:
+                    if (await LoadFile(target.Path, true, await StartupDocumentPrefetch.TakeAsync(target)))
                     {
-                        await LoadFolder(openedFileFolder);
+                        startupOpenedFilePath = FilePath;
+                        var openedFileFolder = Path.GetDirectoryName(FilePath);
+                        if (!string.IsNullOrWhiteSpace(openedFileFolder))
+                        {
+                            await LoadFolder(openedFileFolder);
+                        }
                     }
-                }
-                else
-                {
-                    await NewFileFun();
-                }
-            }
-            else
-            {
-                switch (SettingsViewModel.FileStartupAction)
-                {
-                    case FileStartupAction.OpenLast:
-                        var lastFile = SettingsViewModel.LastFilePath;
-                        if (!string.IsNullOrWhiteSpace(lastFile) && !TryGetOpenedWindow(lastFile, out _) && File.Exists(lastFile))
-                        {
-                            await LoadFile(lastFile, true);
-                        }
-                        else
-                        {
-                            await NewFileFun();
-                            _ = LoadLastFileFromHistoryAfterInitialRenderAsync();
-                        }
-                        break;
-                    default:
+                    else
+                    {
                         await NewFileFun();
-                        break;
-                }
+                    }
+                    break;
+                case StartupDocumentOrigin.LastFile:
+                    var snapshot = await StartupDocumentPrefetch.TakeAsync(target);
+                    if (!TryGetOpenedWindow(target.Path, out _) && snapshot.Exists)
+                    {
+                        await LoadFile(target.Path, true, snapshot);
+                    }
+                    else
+                    {
+                        await NewFileFun();
+                        _ = LoadLastFileFromHistoryAfterInitialRenderAsync();
+                    }
+                    break;
+                default:
+                    await NewFileFun();
+                    // 「打开上次文件」但没记下路径：先给空文档，首屏后再从访问历史里找。
+                    if (SettingsViewModel.FileStartupAction == FileStartupAction.OpenLast)
+                        _ = LoadLastFileFromHistoryAfterInitialRenderAsync();
+                    break;
             }
         }
 

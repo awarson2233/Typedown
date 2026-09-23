@@ -52,7 +52,7 @@ flowchart TB
 | 工程 | 职责 |
 |---|---|
 | [Typedown.Core](../Dev/Typedown.Core/) | 模型、配置、持久化、编辑会话契约（[Editor](../Dev/Typedown.Core/Editor/)）、旧页面协议的无状态编解码（[Editor/Legacy](../Dev/Typedown.Core/Editor/Legacy/)）与新引擎线协议的编解码和正文镜像（[Editor/Wire](../Dev/Typedown.Core/Editor/Wire/)，见 [editor-protocol.md](editor-protocol.md)）、ViewModel 与平台抽象接口（`IFloatViewService`、`IKeyboardAccelerator` 等）；AnyCPU、`IsAotCompatible`，全部 JSON 走 System.Text.Json 源生成，不引用 Newtonsoft、WinUI / Windows SDK 投影，不含任何 UI 类型 |
-| [Typedown.WinUI](../Dev/Typedown.WinUI/) | 入口、窗口、XAML 控件与页面，实现 Core 的平台接口 |
+| [Typedown.WinUI](../Dev/Typedown.WinUI/) | 入口、窗口、XAML 控件与页面，实现 Core 的平台接口；`Release` 以 Native AOT 发布，裁剪与 AOT 诊断在所有配置下都是错误（见 [build.md](build.md) 第 5 节） |
 | [Typedown.Editor](../Dev/Typedown.Editor/) | 页面前端（CRA + react-app-rewired，Yarn 1），宿主从本地文件加载它的构建产物 |
 | [Tests](../Tests/) | `ArchitectureTests` 守护分层，`CoreTests` 覆盖 Core |
 
@@ -79,7 +79,7 @@ sequenceDiagram
     H->>P: Navigate(index.html)
     P->>S: invoke GetCurrentTheme / GetStringResources
     P->>S: invoke GetSettings
-    S->>VM: PrepareStartupAsync（首启时载入启动文件）
+    S->>VM: PrepareStartupAsync（首启时取预读好的启动文件）
     VM-->>S: EditorSettings
     S-->>P: 全量设置 + 正文镜像 + basePath
     P->>S: invoke ContentLoaded
@@ -88,7 +88,7 @@ sequenceDiagram
     S-->>H: StateChanged(Ready)：显示 WebView
 ```
 
-初始正文由页面在 `GetSettings` 里主动拉取；应答在途时 `LoadDocument` 只更新正文镜像、不另发 `LoadFile`，因此不存在初始文档竞态。就绪门 [EditorCommandGate](../Dev/Typedown.Core/Editor/EditorCommandGate.cs) 在「已挂载且页面已 ContentLoaded」时才放行：门关期间普通命令按序排队（上限 128，满了丢最旧），主题、快捷键表、视口刷新只留最新一份，设置增量合并成一份；重新导航时排队的命令作废，页面经启动握手拿回全量状态。宿主卸载期间（例如打开设置页）门也照样保留，回到编辑器时重放，所以设置页里改的编辑器设置不会丢。invoke 应答不经过门。页面未捕获的异常经 invoke `UnhandledException` 上报，会话重载页面自愈，同一异常只上报一次。渲染进程退出（`RenderProcessExited`）时宿主重载页面，[EditorCrashRecovery](../Dev/Typedown.Core/Editor/EditorCrashRecovery.cs) 决定是否重载与是否恢复光标：一分钟内崩溃超过 3 次停止自动重载，距上次崩溃不足 15 秒不恢复光标；恢复光标时会话在启动应答之前先发一条 `SetMarkdown`。主题由 [EditorThemeFactory](../Dev/Typedown.WinUI/Controls/EditorControls/Hosting/EditorThemeFactory.cs) 按 `ElementTheme` 统一生成（明暗、系统强调色、实色背景），`GetCurrentTheme` 应答与 `ThemeChanged` 同源，编辑区不透 Mica。
+初始正文由页面在 `GetSettings` 里主动拉取；应答在途时 `LoadDocument` 只更新正文镜像、不另发 `LoadFile`，因此不存在初始文档竞态。启动文件的读盘不等页面：`App.OnLaunched` 解析出启动文件（命令行，或设置了「打开上次文件」时的上次文件）后，[StartupDocumentPrefetch](../Dev/Typedown.Core/Services/StartupDocumentPrefetch.cs) 立即在线程池上读正文与备份，与 WebView2 环境预热、XAML 构建并行；`PrepareStartupAsync` 只取这份快照，文件不存在、读错误（原异常在 UI 线程重新抛出）与恢复备份的对话框仍在这一步按原顺序处理。就绪门 [EditorCommandGate](../Dev/Typedown.Core/Editor/EditorCommandGate.cs) 在「已挂载且页面已 ContentLoaded」时才放行：门关期间普通命令按序排队（上限 128，满了丢最旧），主题、快捷键表、视口刷新只留最新一份，设置增量合并成一份；重新导航时排队的命令作废，页面经启动握手拿回全量状态。宿主卸载期间（例如打开设置页）门也照样保留，回到编辑器时重放，所以设置页里改的编辑器设置不会丢。invoke 应答不经过门。页面未捕获的异常经 invoke `UnhandledException` 上报，会话重载页面自愈，同一异常只上报一次。渲染进程退出（`RenderProcessExited`）时宿主重载页面，[EditorCrashRecovery](../Dev/Typedown.Core/Editor/EditorCrashRecovery.cs) 决定是否重载与是否恢复光标：一分钟内崩溃超过 3 次停止自动重载，距上次崩溃不足 15 秒不恢复光标；恢复光标时会话在启动应答之前先发一条 `SetMarkdown`。主题由 [EditorThemeFactory](../Dev/Typedown.WinUI/Controls/EditorControls/Hosting/EditorThemeFactory.cs) 按 `ElementTheme` 统一生成（明暗、系统强调色、实色背景），`GetCurrentTheme` 应答与 `ThemeChanged` 同源，编辑区不透 Mica。
 
 ### 4. 桥接协议
 

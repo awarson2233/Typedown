@@ -88,8 +88,10 @@ namespace Typedown.Core.ViewModels
             UndoCommand.SetCanExecuteFunc.OnNext(_ => CanUndo);
             RedoCommand.SetCanExecuteFunc.OnNext(_ => CanRedo);
             disposables.Add(Session.Events.Subscribe(OnEditorEvent));
-            Settings.PropertyChanged += HandleSettingsPropertyChanged;
-            disposables.Add(Disposable.Create(() => Settings.PropertyChanged -= HandleSettingsPropertyChanged));
+            // 退订时不能再经 ServiceProvider 取设置：作用域释放期间它已被标记为已释放，会抛 ObjectDisposedException。
+            var settings = Settings;
+            settings.PropertyChanged += HandleSettingsPropertyChanged;
+            disposables.Add(Disposable.Create(() => settings.PropertyChanged -= HandleSettingsPropertyChanged));
             disposables.Add(Settings.WhenPropertyChanged(nameof(Settings.AutoSave)).Subscribe(_ => Settings_AutoSaveChanged(Settings.AutoSave)));
             disposables.Add(this.WhenPropertyChanged(nameof(SearchValue)).Subscribe(_ => SearchValueChanged()));
             disposables.Add(this.WhenPropertyChanged(nameof(Saved)).Subscribe(_ => SavedOrAutoSavedSuccChanged()));

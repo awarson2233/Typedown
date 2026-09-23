@@ -11,6 +11,7 @@ namespace Typedown.Core
         {
             services.AddScoped<IAtomicFileWriter, AtomicFileWriter>();
             services.AddScoped<AutoBackup>();
+            services.AddScoped<StartupDocumentPrefetch>();
             services.AddSingleton<AccessHistory>();
 
             services.AddScoped<AppViewModel>();

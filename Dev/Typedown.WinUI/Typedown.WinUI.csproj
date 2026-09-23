@@ -26,9 +26,13 @@
         <RootNamespace>Typedown.WinUI</RootNamespace>
         <Configurations>Debug;Release;Debug_Local</Configurations>
 
-        <!-- Trim / AOT analysis in every configuration. PublishAot and warnings-as-errors come later. -->
+        <!-- Trim / AOT analysis in every configuration; IL2xxx / IL3xxx are errors (analyzer: TrimAnalysis.globalconfig, publish: ILLink / ILC). -->
         <EnableTrimAnalyzer>true</EnableTrimAnalyzer>
         <EnableAotAnalyzer>true</EnableAotAnalyzer>
+        <ILLinkTreatWarningsAsErrors>true</ILLinkTreatWarningsAsErrors>
+        <IlcTreatWarningsAsErrors>true</IlcTreatWarningsAsErrors>
+        <!-- XAML 编译器在裁剪发布时对反射绑定报 WMC1510，同样按错误处理。 -->
+        <MSBuildWarningsAsErrors>$(MSBuildWarningsAsErrors);WMC1510</MSBuildWarningsAsErrors>
         <CsWinRTAotWarningLevel>1</CsWinRTAotWarningLevel>
         <!-- CsWinRT emits the AOT-safe vtables for generic WinRT collections only with unsafe code enabled (CsWinRT1030). -->
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
@@ -72,6 +76,8 @@
 
     <PropertyGroup Condition="'$(Configuration)'=='Release'">
         <DefineConstants>$(DefineConstants);MODE_RELEASE</DefineConstants>
+        <PublishAot>true</PublishAot>
+        <SelfContained>true</SelfContained>
     </PropertyGroup>
 
     <ItemGroup>
@@ -96,6 +102,7 @@
         <PackageReference Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.26100.7705" />
 
         <Manifest Include="$(ApplicationManifest)" />
+        <GlobalAnalyzerConfigFiles Include="..\TrimAnalysis.globalconfig" />
     </ItemGroup>
 
     <!--

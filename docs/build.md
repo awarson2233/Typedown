@@ -55,7 +55,21 @@ $cert.Thumbprint   # 写回 csproj 的 PackageCertificateThumbprint
 
 Subject 必须与 manifest 的 Publisher 保持一致。证书可导出为 pfx 备份。
 
-### 5. 测试
+### 5. Native AOT 发布
+
+`Release` 打开 `PublishAot`（自包含），`Debug_Local` 与 `Debug` 仍是 JIT。裁剪与 AOT 的诊断在所有配置下都是错误：分析器阶段的 IL2xxx / IL3xxx 由 [TrimAnalysis.globalconfig](../Dev/TrimAnalysis.globalconfig) 按类别升为错误（Core 与 WinUI 共用），发布阶段 ILLink 与 ILC 的警告由 `ILLinkTreatWarningsAsErrors` / `IlcTreatWarningsAsErrors` 升为错误，XAML 编译器在裁剪发布时对反射绑定报的 `WMC1510` 也升为错误。所以日常 `Debug_Local` 构建就能挡住新引入的反射用法，不必等到发布。
+
+ILC 链接要用 vswhere 找 MSVC 链接器，PATH 里必须有 `C:\Program Files (x86)\Microsoft Visual Studio\Installer`。免打包的 AOT 产物可以这样发布并直接运行：
+
+```powershell
+$env:PATH = 'C:\Program Files (x86)\Microsoft Visual Studio\Installer;' + $env:PATH
+& $msbuild Dev\Typedown.WinUI\Typedown.WinUI.csproj /restore /t:Publish /p:Configuration=Release /p:Platform=ARM64 `
+    /p:RuntimeIdentifier=win-arm64 /p:WindowsPackageType=None /p:AppxPackageSigningEnabled=false /p:PublishDir=<输出目录>\
+```
+
+AOT 下 `EventSource` 默认被裁掉，`Typedown-Startup` 启动埋点不会发出任何事件；要用 `dotnet-trace` 采集启动链时，发布命令加 `/p:EventSourceSupport=true`。
+
+### 6. 测试
 
 测试项目有两个，`dotnet test` 一次只能指定一个项目：
 
@@ -66,7 +80,7 @@ dotnet test Tests\Typedown.CoreTests\Typedown.CoreTests.csproj
 
 `ArchitectureTests` 校验分层依赖与安装包清单的文件关联，`CoreTests` 覆盖 Core 的服务与模型。
 
-### 6. 已知问题
+### 7. 已知问题
 
 - 生成整个解决方案时，`Tools/TranslationTool` 报 `NETSDK1127`（缺少 Microsoft.NETCore.App 目标包），不影响宿主；直接构建 `Typedown.WinUI.csproj` 即可避开。
 - `AboutPage.xaml` 与 `SettingsPage.xaml` 各有一条 `WMC1506` 绑定警告，属既有问题。

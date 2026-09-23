@@ -14,6 +14,9 @@
 		<IsTrimmable>true</IsTrimmable>
 		<IsAotCompatible>true</IsAotCompatible>
 	</PropertyGroup>
+	<ItemGroup>
+		<GlobalAnalyzerConfigFiles Include="..\TrimAnalysis.globalconfig" />
+	</ItemGroup>
 
 	<ItemGroup>
 		<PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="9.0.8" />

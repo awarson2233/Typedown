@@ -63,8 +63,8 @@ namespace Typedown.WinUI.Pages.SidePanePages
 
             using (StartupTrace.Phase("FolderPage.OnLoaded"))
             {
-                disposables.Add(FileViewModel.WhenPropertyChanged(nameof(FileViewModel.WorkFolder)).Select(value => value as string).StartWith(FileViewModel.WorkFolder).Subscribe(ReloadWorkFolderTree));
-                disposables.Add(FileViewModel.WhenPropertyChanged(nameof(FileViewModel.FilePath)).Select(value => value as string).StartWith(FileViewModel.FilePath).Subscribe(_ => UpdateSelectedItem(WorkFolderExplorerItem)));
+                disposables.Add(FileViewModel.WhenPropertyChanged(nameof(FileViewModel.WorkFolder), x => x.WorkFolder).StartWith(FileViewModel.WorkFolder).Subscribe(ReloadWorkFolderTree));
+                disposables.Add(FileViewModel.WhenPropertyChanged(nameof(FileViewModel.FilePath), x => x.FilePath).StartWith(FileViewModel.FilePath).Subscribe(_ => UpdateSelectedItem(WorkFolderExplorerItem)));
             }
         }
 
