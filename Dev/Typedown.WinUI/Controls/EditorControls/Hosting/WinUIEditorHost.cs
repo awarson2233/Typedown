@@ -553,9 +553,30 @@ namespace Typedown.WinUI.Controls
             }
         }
 
+        /// <summary>
+        /// 渲染进程崩溃后页面只剩一块空白，此前宿主不做任何恢复。现在交给编辑会话决定是否重载：
+        /// 重载后页面经启动握手拿回正文镜像，光标由会话在握手前补发。
+        /// 其余失败（浏览器进程退出、渲染进程无响应、GPU 进程等）不在这里自动重载。
+        /// </summary>
         private void OnProcessFailed(CoreWebView2 sender, CoreWebView2ProcessFailedEventArgs e)
         {
             webView.Opacity = 1;
+            if (e.ProcessFailedKind != CoreWebView2ProcessFailedKind.RenderProcessExited || session is null)
+            {
+                return;
+            }
+
+            if (session.OnRenderProcessFailed())
+            {
+                try
+                {
+                    sender.Reload();
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[WEBVIEW2] Reload after render process exit failed: {ex}");
+                }
+            }
         }
 
         private void OnCoreContextMenuRequested(CoreWebView2 sender, CoreWebView2ContextMenuRequestedEventArgs e)

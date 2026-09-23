@@ -47,6 +47,10 @@ namespace Typedown.WinUI.Controls
         private readonly ContentHistory history = new();
         private readonly LegacyDiffChannel diffChannel = new();
         private readonly LegacyClipboardCoalescer clipboard = new();
+        private readonly EditorCrashRecovery crashRecovery = new();
+        private CursorState? lastCursor;
+        private CursorState? restoreCursor;
+        private bool faulted;
         /// <summary>
         /// 宿主卸载（例如打开设置页，MainPage 整体卸载）期间命令照样排队、设置照样合并，重新挂载时整体重放，
         /// 否则在设置页里改的编辑器设置永远到不了页面。
@@ -181,6 +185,22 @@ namespace Typedown.WinUI.Controls
             UpdateState();
         }
 
+        /// <summary>
+        /// 页面渲染进程崩溃。返回 <c>true</c> 表示宿主应当重载页面；重载后页面在启动握手里拿回正文镜像，
+        /// 会话在应答之前先下发一次 SetMarkdown 把光标放回崩溃前的位置。
+        /// </summary>
+        internal bool OnRenderProcessFailed()
+        {
+            var decision = crashRecovery.OnCrash();
+            faulted = true;
+            restoreCursor = decision.RestoreCursor ? lastCursor : null;
+            gate.MarkNotReady();
+            diffChannel.Reset();
+            CancelExportRequests();
+            UpdateState();
+            return decision.Reload;
+        }
+
         internal async Task ReceiveAsync(string? message)
         {
             if (disposed || !LegacyMuyaProtocol.TryParseEnvelope(message, out var envelope))
@@ -240,6 +260,7 @@ namespace Typedown.WinUI.Controls
                     Emit(new DocumentLoaded(loaded.Text));
                     break;
                 case LegacyCursorChanged cursor:
+                    lastCursor = cursor.Cursor;
                     history.CursorChange(cursor.Cursor);
                     break;
                 case LegacyStateChanged stateChanged:
@@ -334,6 +355,7 @@ namespace Typedown.WinUI.Controls
 
         private void OnContentLoaded()
         {
+            faulted = false;
             Replay(gate.MarkReady());
             UpdateState();
         }
@@ -350,6 +372,15 @@ namespace Typedown.WinUI.Controls
 
                 // 应答里是全量设置，门里积压的设置增量作废。
                 gate.ClearPendingSettings();
+
+                if (restoreCursor is { } cursor)
+                {
+                    // 崩溃恢复：页面在收到应答之前先收到这条 SetMarkdown，编辑器挂载时就带上了原来的光标。
+                    // 它与应答一样不经过就绪门；回声不入撤销栈。
+                    restoreCursor = null;
+                    contentUpdating = true;
+                    SendReply(LegacyMuyaProtocol.EncodeSetMarkdown(document.Text, cursor, basePath));
+                }
                 return LegacyMuyaProtocol.EncodeStartupReply(id, settings, document.Text, basePath);
             }
             finally
@@ -528,6 +559,7 @@ namespace Typedown.WinUI.Controls
         {
             var next = gate.IsOpen
                 ? EditorSessionState.Ready
+                : faulted ? EditorSessionState.Faulted
                 : gate.IsAttached ? EditorSessionState.Loading : EditorSessionState.Detached;
             if (state.Value != next)
             {
