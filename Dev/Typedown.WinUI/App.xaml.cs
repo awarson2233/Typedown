@@ -545,28 +545,12 @@ namespace Typedown.WinUI
 
         private void NotifyActiveEditorThemeChanged(ElementTheme actualTheme)
         {
-            var theme = CreateEditorTheme(actualTheme);
-            if (theme is null)
+            if (actualTheme != ElementTheme.Light && actualTheme != ElementTheme.Dark)
             {
                 return;
             }
 
-            uiServices?.GetService<IEditorSession>()?.Post(new ApplyTheme(theme));
-        }
-
-        private static EditorTheme? CreateEditorTheme(ElementTheme actualTheme)
-        {
-            if (actualTheme != ElementTheme.Light && actualTheme != ElementTheme.Dark)
-            {
-                return null;
-            }
-
-            var isDark = actualTheme == ElementTheme.Dark;
-            var background = isDark
-                ? new EditorColor(40, 40, 40, 1)
-                : new EditorColor(249, 249, 249, 1);
-
-            return new EditorTheme(isDark, new EditorColor(27, 102, 107, 1), background);
+            uiServices?.GetService<IEditorSession>()?.Post(new ApplyTheme(EditorThemeFactory.Create(actualTheme)));
         }
 
         internal WinUIPlatformServices PlatformServices => platformServices ?? throw new InvalidOperationException("Platform services are not initialized.");

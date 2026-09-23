@@ -18,7 +18,6 @@ using Typedown.Core.ViewModels;
 using Typedown.WinUI.Services;
 using Typedown.WinUI.Utilities;
 using Windows.Foundation;
-using Windows.UI.ViewManagement;
 
 namespace Typedown.WinUI.Controls
 {
@@ -36,7 +35,6 @@ namespace Typedown.WinUI.Controls
         private readonly string? editorIndex;
         private readonly CompositeDisposable disposables = new();
         private readonly StartupNavigationTraceState startupNavigationTraceState = new();
-        private readonly UISettings uiSettings = new();
 
         private Task? coreInitializationTask;
         private CancellationTokenSource? loadCancellation;
@@ -159,28 +157,7 @@ namespace Typedown.WinUI.Controls
 
         // ── 主题 ──────────────────────────────────────────────────────────────
 
-        private EditorTheme CreateCurrentTheme()
-        {
-            var isDark = ActualTheme == ElementTheme.Dark;
-            var background = isDark
-                ? new EditorColor(40, 40, 40, 1)
-                : new EditorColor(249, 249, 249, 1);
-
-            return new EditorTheme(isDark, ResolveSystemAccentColor(), background);
-        }
-
-        private EditorColor ResolveSystemAccentColor()
-        {
-            try
-            {
-                var accent = uiSettings.GetColorValue(UIColorType.Accent);
-                return new EditorColor(accent.R, accent.G, accent.B, 1);
-            }
-            catch
-            {
-                return new EditorColor(27, 102, 107, 1);
-            }
-        }
+        private EditorTheme CreateCurrentTheme() => EditorThemeFactory.Create(ActualTheme);
 
         private void ApplyNativeEditorBackground(EditorColor background)
         {
