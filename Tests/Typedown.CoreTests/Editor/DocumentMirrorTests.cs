@@ -64,6 +64,23 @@ public sealed class DocumentMirrorTests
     }
 
     [TestMethod]
+    public void Reconcile_ResyncsOnlyWhenThePageIsAhead()
+    {
+        var mirror = new DocumentMirror();
+        var load = mirror.Load("abc", "");
+        Assert.AreEqual(DocumentMirrorOutcome.Stale, mirror.Reconcile(load.Version), "already aligned");
+        Assert.AreEqual(DocumentMirrorOutcome.Stale, mirror.Reconcile(load.Version - 1), "answer from before the load");
+        Assert.IsFalse(mirror.IsResyncing);
+
+        Assert.AreEqual(DocumentMirrorOutcome.ResyncRequired, mirror.Reconcile(load.Version + 2), "increments were lost");
+        Assert.IsTrue(mirror.IsResyncing);
+        Assert.AreEqual(DocumentMirrorOutcome.Buffered, mirror.Reconcile(load.Version + 3));
+
+        Assert.AreEqual(DocumentMirrorOutcome.Applied, mirror.CompleteResync(new DocText(load.Version + 3, "abcde")));
+        Assert.AreEqual(new EditorDocument("abcde", load.Version + 3), mirror.Document);
+    }
+
+    [TestMethod]
     public void Apply_RequestsResyncForOverlappingOrUnorderedChanges()
     {
         var mirror = new DocumentMirror();

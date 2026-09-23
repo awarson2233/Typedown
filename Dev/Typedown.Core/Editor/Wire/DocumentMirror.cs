@@ -117,6 +117,33 @@ namespace Typedown.Core.Editor.Wire
             return DocumentMirrorOutcome.Applied;
         }
 
+        /// <summary>
+        /// 页面报告了它的当前版本号（<c>doc.flush</c> 的应答）。比镜像新说明有增量没到宿主（例如宿主卸载期间页面发出的），
+        /// 进入重同步并返回 <see cref="DocumentMirrorOutcome.ResyncRequired"/>；已在重同步中返回
+        /// <see cref="DocumentMirrorOutcome.Buffered"/>；镜像已对齐或版本早于最近一次装载时返回 <see cref="DocumentMirrorOutcome.Stale"/>，什么都不用做。
+        /// </summary>
+        public DocumentMirrorOutcome Reconcile(long pageVersion)
+        {
+            if (pageVersion < LoadedVersion)
+            {
+                return DocumentMirrorOutcome.Stale;
+            }
+
+            Observe(pageVersion);
+            if (IsResyncing)
+            {
+                return DocumentMirrorOutcome.Buffered;
+            }
+
+            if (pageVersion <= Document.Version)
+            {
+                return DocumentMirrorOutcome.Stale;
+            }
+
+            IsResyncing = true;
+            return DocumentMirrorOutcome.ResyncRequired;
+        }
+
         /// <summary>重同步请求失败（超时、页面重载）：丢掉暂存，下一条对不上的增量会再次触发重同步。</summary>
         public void AbandonResync()
         {
