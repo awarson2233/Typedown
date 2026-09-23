@@ -3,6 +3,7 @@
  * securityLevel strict、按明暗主题初始化、先 parse 预检、出错时占位。mermaid 的 render 不可重入，这里串行排队。
  */
 import { escapeHtml } from './katex';
+import { UiText, uiText } from '../shared/strings';
 
 type Mermaid = typeof import('mermaid')['default'];
 
@@ -40,9 +41,11 @@ export function renderMermaid(el: HTMLElement, src: string): Promise<void> {
       const { svg } = await m.render(`td-mermaid-${++seq}`, src);
       html = svg;
     } catch (err) {
-      html = `<div class="cm-td-render-error">&lt; Invalid Mermaid Codes &gt; ${escapeHtml(String((err as Error)?.message ?? err)).slice(0, 300)}</div>`;
-      // mermaid 出错时会在 body 上留下临时节点
+      const detail = escapeHtml(String((err as Error)?.message ?? err)).slice(0, 300).replace(/"/g, '&quot;');
+      html = `<div class="cm-td-render-error" title="${detail}">${escapeHtml(uiText(UiText.InvalidMermaid))}</div>`;
+      // mermaid 出错时会在 body 上留下临时节点（render 的 id 前面加 d）
       document.getElementById(`dtd-mermaid-${seq}`)?.remove();
+      document.getElementById(`td-mermaid-${seq}`)?.remove();
     }
     if (cache.size > 500) cache.clear();
     cache.set(key, html);

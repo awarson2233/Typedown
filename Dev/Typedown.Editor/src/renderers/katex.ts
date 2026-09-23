@@ -46,5 +46,30 @@ export async function renderMath(el: HTMLElement, src: string, displayMode: bool
   }
 }
 
-export const escapeHtml = (s: string) => s.replace(/[&<>]/g, c => (c === '&' ? '&amp;' : c === '<' ? '&lt;' : '&gt;'));
+/**
+ * 公式块的同步渲染：出错与空公式用 Muya 的占位（`div.ag-math-error` / `div.ag-empty` 的写法，文字取 shared/strings）；
+ * 返回 false 表示 KaTeX 尚未加载。
+ */
+export function renderBlockMathSync(el: HTMLElement, src: string, text: { empty: string; invalid: string }): boolean {
+  if (!src.trim()) {
+    el.innerHTML = `<div class="cm-td-render-empty">${escapeHtml(text.empty)}</div>`;
+    return true;
+  }
+  if (!katex) return false;
+  const key = 'B' + src;
+  let html = cache.get(key);
+  if (html === undefined) {
+    try {
+      html = katex.renderToString(src, { displayMode: true, throwOnError: true, strict: 'ignore' });
+    } catch (err) {
+      html = `<div class="cm-td-render-error" title="${escapeAttr(String((err as Error).message ?? err))}">${escapeHtml(text.invalid)}</div>`;
+    }
+    if (cache.size > 2000) cache.clear();
+    cache.set(key, html);
+  }
+  el.innerHTML = html;
+  return true;
+}
+
+export const escapeHtml =(s: string) => s.replace(/[&<>]/g, c => (c === '&' ? '&amp;' : c === '<' ? '&lt;' : '&gt;'));
 const escapeAttr = (s: string) => escapeHtml(s).replace(/"/g, '&quot;');

@@ -9,6 +9,9 @@ import { revealState } from './decorations/revealState';
 import { blockField } from './widgets/blockField';
 import { outlineField } from './state/outline';
 import { codeHighlightStyle } from './highlight';
+import { blockComponents } from './blocks';
+import { footnoteField } from './state/footnotes';
+import { documentLocation, type DocumentLocation } from './state/documentLocation';
 
 export interface EditorOptions {
   doc: string;
@@ -27,7 +30,7 @@ export interface EditorOptions {
 }
 
 /** 显形层（行内显形 + 块组件）。单独导出，单测与源码模式切换共用。 */
-export const typoraLayer: Extension = [revealState, inlineRevealExtension, blockField];
+export const typoraLayer: Extension = [revealState, inlineRevealExtension, blockField, blockComponents];
 
 /** 与视图无关、测试可直接用的基础扩展（语法 + 历史）。 */
 export function coreExtensions(): Extension[] {
@@ -37,7 +40,7 @@ export function coreExtensions(): Extension[] {
 export interface TypedownEditor {
   view: EditorView;
   /** 以当前配置（源码模式、制表符宽度、拼写检查）建一个新状态，doc.load 用 */
-  createState(doc: string, selection?: { anchor: number; head?: number }): EditorState;
+  createState(doc: string, selection?: { anchor: number; head?: number }, location?: DocumentLocation): EditorState;
   setSourceMode(on: boolean): void;
   readonly sourceMode: boolean;
   setTabSize(size: number): void;
@@ -60,6 +63,8 @@ export function createEditor(opts: EditorOptions): TypedownEditor {
     EditorView.lineWrapping,
     // 大纲与标题 id：行首扫描器按改动增量维护，不依赖语法树（源码模式也要）
     outlineField,
+    // 脚注编号：同样只扫源文本，行内引用的上标与脚注定义区共用
+    footnoteField,
     mode.of(sourceMode ? [] : typoraLayer),
     // 全局 syntaxHighlighting 的 highlightTree 从文首逐个兄弟节点走到视口（markdown 的 Document 很扁平），
     // 1 MB 文档中部每键约 5 ms；不做嵌套代码解析时正文里只有 markdown 标记可高亮，显形装饰已覆盖，所以只在嵌套模式下开
@@ -73,7 +78,7 @@ export function createEditor(opts: EditorOptions): TypedownEditor {
   const v = new EditorView({ state: EditorState.create({ doc: opts.doc, extensions: extensions() }), parent: opts.parent });
   return {
     view: v,
-    createState: (doc, selection) => EditorState.create({ doc, selection, extensions: extensions() }),
+    createState: (doc, selection, location) => EditorState.create({ doc, selection, extensions: [extensions(), location ? documentLocation.of(location) : []] }),
     setSourceMode(on) {
       if (on === sourceMode) return;
       sourceMode = on;

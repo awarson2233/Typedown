@@ -14,6 +14,7 @@ import { FaultReporter } from './host/fault';
 import { Keymap, installShortcutBridge } from './host/keyboard';
 import { SettingsApplier, applyTheme } from './host/theme';
 import { ViewportReporter } from './host/viewport';
+import { setUiLocale } from './shared/strings';
 
 /**
  * 页面装配：初始态 → CM6 → 信道与各上报器 → lifecycle.ready（docs/editor-protocol.md 第 3 节）。
@@ -80,6 +81,7 @@ export function startEditorApp(opts: AppOptions): EditorApp {
   fault.install(win, () => !started);
 
   const frames = new FrameQueue(opts.raf);
+  setUiLocale(init.locale);
   applyTheme(init.theme);
 
   let editor: TypedownEditor;
@@ -95,7 +97,7 @@ export function startEditorApp(opts: AppOptions): EditorApp {
     post: m => channel.post(m),
     schedule: f => frames.schedule(Slot.Doc, f),
     scheduleRender: f => frames.schedule(Slot.Other, f),
-    createState: p => editor.createState(p.text, clampSelection(p)),
+    createState: p => editor.createState(p.text, clampSelection(p), { basePath: typeof p.basePath === 'string' ? p.basePath : '' }),
     firstViewportReady,
   });
   const s = init.settings;

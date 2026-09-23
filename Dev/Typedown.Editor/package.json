@@ -17,6 +17,7 @@
     "last 2 edge versions"
   ],
   "dependencies": {
+    "@codemirror/autocomplete": "^6.20.3",
     "@codemirror/commands": "^6.11.1",
     "@codemirror/lang-css": "^6.3.1",
     "@codemirror/lang-html": "^6.4.12",
@@ -30,6 +31,7 @@
     "@lezer/common": "^1.5.2",
     "@lezer/highlight": "^1.2.3",
     "@lezer/markdown": "^1.7.2",
+    "dompurify": "^3.4.12",
     "katex": "^0.16.47",
     "mermaid": "^12.0.0"
   },
