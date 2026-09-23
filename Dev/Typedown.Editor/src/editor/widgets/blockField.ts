@@ -169,8 +169,8 @@ export function scanBlocks(state: EditorState, tree: Tree, from: number, to: num
       }
       case 'HTMLBlock': {
         const src = doc.sliceString(bFrom, bTo);
-        if (isInvisibleHtml(src)) return; // 注释、script、style 之类只显示源码
-        out.push({ kind: 'html', from: bFrom, to: bTo, src, editing: inside });
+        // 注释、script、style 之类渲染出来是空白，始终按编辑态显示源码框
+        out.push({ kind: 'html', from: bFrom, to: bTo, src, editing: inside || isInvisibleHtml(src) });
         return;
       }
       case 'TableOfContents':

@@ -181,7 +181,8 @@ div.cm-td-fence.cm-td-fence-math.cm-td-fence-foot.cm-td-fence-active::before { t
 }
 
 /* HTML 块：渲染态（figure[data-role="HTML"] .ag-html-preview），编辑态源码（pre.ag-active.ag-html-block） */
-.cm-td-block.cm-td-html-preview { text-align: initial; overflow: visible; }
+/* .cm-content 是 pre-wrap，预览里 HTML 源码的换行与缩进不能照原样排出来 */
+.cm-td-block.cm-td-html-preview { text-align: initial; overflow: visible; white-space: normal; }
 .cm-td-html-preview img { max-width: 100%; }
 .cm-editor .cm-content .cm-line.cm-td-html-src {
   font-family: var(--td-code-font);
