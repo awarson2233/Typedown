@@ -1,0 +1,16 @@
+{
+  "InlineMark": ["strong", "emphasis", "underline", "strikethrough", "highlight", "inlineCode", "inlineMath", "link", "image"],
+  "BlockKind": ["paragraph", "heading1", "heading2", "heading3", "heading4", "heading5", "heading6", "codeBlock", "mathBlock", "htmlBlock", "quote", "orderedList", "bulletList", "taskList", "table", "footnote", "horizontalRule", "frontMatter", "vegaLiteChart", "flowChart", "sequenceDiagram", "plantUmlDiagram", "mermaidDiagram"],
+  "ParagraphPosition": ["before", "after"],
+  "CopyFormat": ["rich", "plainText", "markdown", "html"],
+  "PasteFormat": ["rich", "plainText"],
+  "TableAxis": ["row", "column"],
+  "TableEdit": ["insertRowAbove", "insertRowBelow", "removeRow", "insertColumnLeft", "insertColumnRight", "removeColumn"],
+  "ImageTarget": ["edited", "selected"],
+  "ImageToolbarAction": ["edit", "inline", "alignLeft", "alignCenter", "alignRight", "delete"],
+  "SearchDirection": ["next", "previous"],
+  "ExportPurpose": ["export", "print"],
+  "TooltipKind": ["copyContent", "ctrlClickToOpenLink", "resizeTable", "alignLeft", "alignCenter", "alignRight", "deleteTable"],
+  "ImageSourceKind": ["filePath", "dataUrl", "webUrl"],
+  "EditorWireError": ["unknownType", "invalidPayload", "notReady", "canceled", "failed"]
+}

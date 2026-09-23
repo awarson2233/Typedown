@@ -110,11 +110,11 @@ namespace Typedown.Core.ViewModels
         {
             switch (editorEvent)
             {
-                case DocumentChanged changed:
-                    OnMarkdownChange(changed.Text);
+                case DocumentChanged:
+                    OnMarkdownChange(Session.Document.Text);
                     break;
-                case DocumentLoaded loaded:
-                    OnDocumentLoaded(loaded.Text);
+                case DocumentLoaded:
+                    OnDocumentLoaded(Session.Document.Text);
                     break;
                 case HistoryChanged history:
                     CanUndo = history.CanUndo;
@@ -278,6 +278,19 @@ namespace Typedown.Core.ViewModels
         {
             Clipboard.SetContent(content.PlainText, content.Html);
             return Task.CompletedTask;
+        }
+
+        public async Task<string?> ResolveImageAsync(ImageSource source, CancellationToken cancellationToken)
+        {
+            var imageAction = ServiceProvider.GetRequiredService<ImageAction>();
+            var src = source.Kind switch
+            {
+                ImageSourceKind.FilePath => await imageAction.DoLocalFileAction(source.Value),
+                ImageSourceKind.WebUrl => await imageAction.DoWebFileAction(source.Value),
+                ImageSourceKind.DataUrl => await imageAction.DoDataUrlAction(source.Value),
+                _ => string.Empty,
+            };
+            return string.IsNullOrWhiteSpace(src) ? null : src.Replace('\\', '/');
         }
 
         // ── 设置 → 引擎 ──────────────────────────────────────────────────

@@ -75,6 +75,7 @@ namespace Typedown.WinUI.Controls
         private JsonElement muyaSelection;
         private JsonElement codeMirrorSelection;
         private string? imageStyle;
+        private RichSelection? lastRichSelection;
 
         public LegacyMuyaSession(IServiceProvider services, IUiDispatcher uiDispatcher)
         {
@@ -114,7 +115,7 @@ namespace Typedown.WinUI.Controls
                     history.InitHistory(document.Text);
                     return;
                 case LoadDocument load:
-                    document = new EditorDocument(load.Text);
+                    UpdateDocument(load.Text);
                     basePath = load.BasePath;
                     history.InitHistory(load.Text);
                     if (startupRequests > 0)
@@ -150,6 +151,12 @@ namespace Typedown.WinUI.Controls
                 case RenderExportHtml export:
                     var html = await RenderExportHtmlAsync(export, cancellationToken);
                     return (TResult)(object)html;
+                case FlushDocument:
+                    // 旧页面每次变化都立即上报 MarkdownChange，镜像本来就是最新的。
+                    return (TResult)(object)document.Version;
+                case ContextAt:
+                    // 旧页面不能按坐标取上下文；右键时光标已落到点击处，最后一次选区的上下文就是它。
+                    return (TResult)(object?)lastRichSelection!;
                 default:
                     throw new NotSupportedException($"Editor request {request.GetType().Name} is not supported by the legacy Muya session.");
             }
@@ -247,17 +254,17 @@ namespace Typedown.WinUI.Controls
             switch (LegacyMuyaProtocol.DecodeMessage(name, args))
             {
                 case LegacyTextChanged changed:
-                    document = new EditorDocument(changed.Text);
+                    UpdateDocument(changed.Text);
                     if (!contentUpdating)
                     {
                         history.ContentChange(changed.Text);
                     }
 
-                    Emit(new DocumentChanged(changed.Text));
+                    Emit(new DocumentChanged(document.Version));
                     break;
                 case LegacyFileLoaded loaded:
-                    document = new EditorDocument(loaded.Text);
-                    Emit(new DocumentLoaded(loaded.Text));
+                    UpdateDocument(loaded.Text);
+                    Emit(new DocumentLoaded(document.Version));
                     break;
                 case LegacyCursorChanged cursor:
                     lastCursor = cursor.Cursor;
@@ -282,6 +289,7 @@ namespace Typedown.WinUI.Controls
                         muyaSelection = selection.PageSelection;
                     }
 
+                    lastRichSelection = selection.Event.Rich;
                     Emit(selection.Event);
                     break;
                 case LegacyImageToolbarOpened imageToolbar:
@@ -293,6 +301,9 @@ namespace Typedown.WinUI.Controls
                     break;
             }
         }
+
+        /// <summary>换一份正文镜像：旧页面每次都报全文，版本号逐次加一即可，不需要算差异。</summary>
+        private void UpdateDocument(string text) => document = new EditorDocument(text, document.Version + 1);
 
         // ── 页面 invoke ─────────────────────────────────────────────────
 
@@ -445,9 +456,8 @@ namespace Typedown.WinUI.Controls
                 return;
             }
 
-            var text = step.Text ?? string.Empty;
-            document = new EditorDocument(text);
-            Emit(new DocumentChanged(text));
+            UpdateDocument(step.Text ?? string.Empty);
+            Emit(new DocumentChanged(document.Version));
             contentUpdating = true;
             basePath = TryGetCallbacks()?.BasePath ?? basePath;
             SubmitMessage(LegacyMuyaProtocol.EncodeSetMarkdown(step.Text, step.Cursor, basePath));

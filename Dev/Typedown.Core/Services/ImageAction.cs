@@ -114,6 +114,33 @@ namespace Typedown.Core.Services
             }
         }
 
+        /// <summary>页面粘贴的剪贴板位图（<c>data:image/...;base64,...</c>），按剪贴板图片的设置落盘或上传。</summary>
+        public async Task<string> DoDataUrlAction(string dataUrl)
+        {
+            try
+            {
+                var comma = dataUrl.IndexOf(',');
+                if (!dataUrl.StartsWith("data:", StringComparison.OrdinalIgnoreCase)
+                    || comma < 0
+                    || !dataUrl.AsSpan(0, comma).EndsWith(";base64", StringComparison.OrdinalIgnoreCase))
+                    throw new FormatException("The pasted image is not a base64 data URL.");
+                var bytes = Convert.FromBase64String(dataUrl[(comma + 1)..]);
+                var result = Settings.InsertClipboardImageAction switch
+                {
+                    InsertImageAction.Upload => await Upload(InsertImageSource.Clipboard, bytes),
+                    _ => await SaveImage(InsertImageSource.Clipboard, bytes),
+                };
+                if (UriHelper.IsAbsolutePath(result))
+                    return new Uri(result).AbsoluteUri;
+                return result;
+            }
+            catch (Exception ex)
+            {
+                await ShowErrorDialog(ex.Message);
+                return string.Empty;
+            }
+        }
+
         public string CopyImage(InsertImageSource source, string sourceFile, string? destFolder = null)
         {
             var fileName = Path.GetFileName(sourceFile);

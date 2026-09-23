@@ -23,5 +23,10 @@ namespace Typedown.Core.Editor
 
         /// <summary>把引擎生成的复制内容写入系统剪贴板。</summary>
         Task WriteClipboardAsync(ClipboardContent content, CancellationToken cancellationToken);
+
+        /// <summary>
+        /// 粘贴或拖入的图片按设置复制到本地目录或上传，返回写进正文的地址；返回 <c>null</c> 表示放弃插入。
+        /// </summary>
+        Task<string?> ResolveImageAsync(ImageSource source, CancellationToken cancellationToken);
     }
 }

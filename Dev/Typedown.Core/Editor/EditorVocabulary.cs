@@ -225,4 +225,30 @@ namespace Typedown.Core.Editor
 
     /// <summary>导出 HTML 时引擎需要的附加内容。</summary>
     public sealed record ExportHtmlOptions(string? ExtraHead, string? ExtraBody, string? Header, string? Footer);
+
+    /// <summary>待落盘或上传的图片从哪里来。</summary>
+    public enum ImageSourceKind
+    {
+        /// <summary>拖入的本地文件，<see cref="ImageSource.Value"/> 是文件路径。</summary>
+        FilePath,
+
+        /// <summary>剪贴板位图，<see cref="ImageSource.Value"/> 是 <c>data:</c> URL。</summary>
+        DataUrl,
+
+        /// <summary>粘贴的网络图片，<see cref="ImageSource.Value"/> 是 http(s) 地址。</summary>
+        WebUrl,
+    }
+
+    public sealed record ImageSource(ImageSourceKind Kind, string Value);
+
+    /// <summary>
+    /// 引擎页面启动时同步读取的初始态：全量设置、主题、快捷键表与界面语言代码，
+    /// 由会话在导航前注入，页面启动不需要往返。
+    /// </summary>
+    public sealed record EditorInitState(
+        int Protocol,
+        EditorSettings Settings,
+        EditorTheme Theme,
+        IReadOnlyList<KeyChord> Keymap,
+        string Locale);
 }

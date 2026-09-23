@@ -13,11 +13,17 @@ namespace Typedown.Core.Editor
 
     // ── doc ──────────────────────────────────────────────────────────────
 
-    /// <summary>正文变了（用户编辑、撤销、重做）；<see cref="IEditorSession.Document"/> 已同步更新。</summary>
-    public sealed record DocumentChanged(string Text) : EditorEvent;
+    /// <summary>
+    /// 正文变了（用户编辑、撤销、重做）。事件不带正文：<see cref="IEditorSession.Document"/> 已同步到
+    /// <paramref name="Version"/>，需要正文时读它。
+    /// </summary>
+    public sealed record DocumentChanged(long Version) : EditorEvent;
 
-    /// <summary>引擎装载完一篇文档，<paramref name="Text"/> 是它装载后的正文（可能被引擎归一化过）。</summary>
-    public sealed record DocumentLoaded(string Text) : EditorEvent;
+    /// <summary>
+    /// 引擎装载并画完一篇文档。装载后的正文（可能被引擎归一化过）在 <see cref="IEditorSession.Document"/> 里，
+    /// 版本为 <paramref name="Version"/>。
+    /// </summary>
+    public sealed record DocumentLoaded(long Version) : EditorEvent;
 
     // ── history ──────────────────────────────────────────────────────────
 
@@ -38,6 +44,11 @@ namespace Typedown.Core.Editor
     public sealed record OutlineChanged(IReadOnlyList<OutlineItem> Items, OutlineItem? Current) : EditorEvent;
 
     public sealed record StatsChanged(int Characters, int Words) : EditorEvent;
+
+    // ── search ───────────────────────────────────────────────────────────
+
+    /// <summary>查找结果：共 <paramref name="Count"/> 处，当前是第 <paramref name="Current"/> 处（从 1 起，无匹配时为 0）。</summary>
+    public sealed record SearchResultChanged(int Count, int Current) : EditorEvent;
 
     // ── view ─────────────────────────────────────────────────────────────
 
