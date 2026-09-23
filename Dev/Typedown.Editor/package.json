@@ -30,6 +30,7 @@
     "@lezer/common": "^1.5.2",
     "@lezer/highlight": "^1.2.3",
     "@lezer/markdown": "^1.7.2",
+    "dompurify": "^3.4.15",
     "katex": "^0.16.47",
     "mermaid": "^12.0.0"
   },

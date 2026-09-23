@@ -3,7 +3,7 @@ import type { EditorView, ViewUpdate } from '@codemirror/view';
 import { redoDepth, undoDepth } from '@codemirror/commands';
 import { syntaxTree } from '@codemirror/language';
 import { headingIds, headingIndexAt, headingPlainText, outlineField, type Outline } from '../editor/state/outline';
-import { blockContextAt, inlineMarksAt } from '../editor/state/selectionInfo';
+import { blockContextAt, imageAt, inlineMarksAt } from '../editor/state/selectionInfo';
 import { countStats, type Stats } from '../editor/state/stats';
 import { Slot, type FrameQueue } from './frame';
 import type { EventMap, EventType, OutlineItem, SelectionChangedPayload } from './protocol';
@@ -131,7 +131,7 @@ export function selectionPayload(s: EditorState, sourceMode: boolean): Selection
   return {
     hasText: !r.empty,
     text,
-    rich: sourceMode ? null : { block: blockContextAt(s, r.from, r.to), selectedImage: null },
+    rich: sourceMode ? null : { block: blockContextAt(s, r.from, r.to), selectedImage: imageAt(s, r.from, r.to) },
     anchor: r.anchor,
     head: r.head,
   };

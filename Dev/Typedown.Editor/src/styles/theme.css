@@ -1,0 +1,75 @@
+/*
+ * 主题变量：原样搬自旧编辑器的 public/theme/editor/{light,dark}.theme.css，变量名与取值一个不改（块组件样式直接引用这些名字）。
+ * 旧页面按主题切换整份样式表；这里改成根元素的 data-theme 选择（host/theme.ts 的 applyTheme 写入）。
+ * 强调色 --themeColor 与它的透明度梯度 --themeColor10…90 由宿主主题下发（applyTheme），这里只给没有宿主时的缺省值。
+ */
+
+/* light.theme.css */
+:root {
+  color: black;
+  --highlightColor: rgba(104, 134, 170, .4);
+  --selectionColor: rgba(0, 0, 0, .1);
+  --editorColor: rgb(0, 0, 0);
+  --editorColor80: rgba(0, 0, 0, .8);
+  --editorColor60: rgba(0, 0, 0, .6);
+  --editorColor50: rgba(0, 0, 0, .5);
+  --editorColor40: rgba(0, 0, 0, .4);
+  --editorColor30: rgba(0, 0, 0, .3);
+  --editorColor10: rgba(0, 0, 0, .1);
+  --editorColor04: rgba(0, 0, 0, .04);
+  --editorBgColor: #f7f7f7;
+  --deleteColor: #ff6969;
+  --iconColor: rgba(150, 150, 150, .8);
+  --codeBgColor: #FFFFFFB3;
+  --codeBlockBgColor: #FFFFFFB3;
+  --footnoteBgColor: rgba(0, 0, 0, .03);
+  --inputBgColor: rgba(0, 0, 0, .06);
+  --focusColor: var(--themeColor);
+  --tableBorderColor: #e5e5e5;
+  --itemBgColor: #f8f8f8;
+  --floatBgColor: #f8f8f8;
+  --floatHoverColor: #00000009;
+  --floatBorderColor: #00000012;
+  --maskColor: rgba(232, 232, 232, .8);
+  --editorAreaWidth: 750px;
+  --floatShadow: 0 8px 12px 0 rgba(0, 0, 0, .12);
+  color-scheme: light;
+}
+
+/* dark.theme.css */
+:root[data-theme="dark"] {
+  color: white;
+  --highlightColor: rgba(102, 177, 255, .6);
+  --selectionColor: rgba(102, 177, 255, .3);
+  --editorColor: rgb(255, 255, 255);
+  --editorColor80: rgba(255, 255, 255, .8);
+  --editorColor60: rgba(255, 255, 255, .6);
+  --editorColor50: rgba(255, 255, 255, .5);
+  --editorColor40: rgba(255, 255, 255, .4);
+  --editorColor30: rgba(255, 255, 255, .3);
+  --editorColor10: rgba(255, 255, 255, .1);
+  --editorColor04: rgba(255, 255, 255, .04);
+  --editorBgColor: #282828;
+  --deleteColor: #409eff;
+  --iconColor: rgba(255, 255, 255, .56);
+  --codeBgColor: #FFFFFF0D;
+  --codeBlockBgColor: #FFFFFF0D;
+  --footnoteBgColor: rgba(66, 67, 68, .3);
+  --inputBgColor: #2f3336;
+  --focusColor: var(--themeColor);
+  --tableBorderColor: #363839;
+  --itemBgColor: #2d2d2d;
+  --floatBgColor: #2d2d2d;
+  --floatHoverColor: #FFFFFF0F;
+  --floatBorderColor: #00000030;
+  --floatShadow: rgba(0, 0, 0, 0.2);
+  --maskColor: rgba(0, 0, 0, .7);
+  --editorAreaWidth: 750px;
+  --floatShadow: 0 8px 12px 0 rgba(0, 0, 0, .2);
+  color-scheme: dark;
+}
+
+/* 没有宿主主题时（普通浏览器、dev 页未下发强调色）的强调色缺省值；宿主下发后由根元素的内联样式覆盖 */
+:root {
+  --themeColor: rgb(0, 120, 212);
+}

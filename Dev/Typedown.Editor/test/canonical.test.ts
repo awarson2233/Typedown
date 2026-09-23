@@ -5,7 +5,7 @@ import { fullTree, stateOf } from './helpers';
 const prefix = (doc: string, lineNo: number) => {
   const s = stateOf(doc);
   const line = s.doc.line(lineNo);
-  return hiddenPrefixEnd(fullTree(s), line) - line.from;
+  return hiddenPrefixEnd(fullTree(s), s.doc, line) - line.from;
 };
 
 describe('行首隐藏前缀', () => {
@@ -47,6 +47,26 @@ describe('选区规范化 canonicalHead', () => {
   it('普通位置不变', () => {
     expect(canonicalHead(s.doc, t, 0, 1)).toBe(1);
     expect(canonicalHead(s.doc, t, 16, 15)).toBe(15);
+  });
+});
+
+describe('链接从右侧移入', () => {
+  const d = '看[文字](https://e.com)吧';
+  // 偏移：看0 [1 文2 字3 ]4 (5 … )19 吧20；链接 [1, 20)
+  const s = stateOf(d);
+  const t = fullTree(s);
+  it('方向键从右侧落到链接末尾 → 链接文字末尾', () => {
+    expect(canonicalHead(s.doc, t, 21, 20)).toBe(4);
+  });
+  it('从左侧、链接内部、单击、非空选区都不改', () => {
+    expect(canonicalHead(s.doc, t, 19, 20)).toBe(20);
+    expect(canonicalHead(s.doc, t, 21, 20, 'pointer')).toBe(20);
+    expect(canonicalHead(s.doc, t, 21, 20, 'keyboard', false)).toBe(20);
+    expect(canonicalHead(s.doc, t, 1, 0)).toBe(0);
+  });
+  it('自动链接没有文字部分，不改', () => {
+    const a = stateOf('<https://e.com>吧');
+    expect(canonicalHead(a.doc, fullTree(a), 16, 15)).toBe(15);
   });
 });
 

@@ -1,0 +1,261 @@
+/*
+ * 正文排版：取值照抄旧编辑器（Muya themes/default.css 与 Typedown 定制的 assets/styles/index.css），
+ * 只把选择器从 Muya 的 `.ag-*` / 真实 `<h1>`、`<ul>`、`<blockquote>` 结构改写到 CM6 的行装饰类与 widget 类上。
+ *
+ * 纵向间距的换算：Muya 里块与块之间是外边距（段落、列表、引用 .5em，标题 1rem，相邻外边距折叠取大者）；
+ * CM6 里块之间是源码的空行。空行压成 .5em 高（cm-td-gap），标题行上下各补 1rem − .5em 的内边距，
+ * 于是段落–段落 .5em、段落–标题 1rem，与旧编辑器相同。块组件要复刻 Muya 的外边距 M 时，上下各补 M − .5em。
+ *
+ * CM6 的基础主题以 adoptedStyleSheets 注入、排在文档样式表之后，同权重时它赢；改 `.cm-line` 的规则因此写成 `.cm-content .cm-line.x`。
+ */
+
+/* 字体（Muya themes/default.css；字体文件随旧编辑器一起搬来，许可证见 fonts/ 目录） */
+@font-face {
+  font-family: 'Open Sans';
+  font-style: normal;
+  font-weight: 300;
+  src: local('Open Sans Light'), local('OpenSans-Light'),
+       url('./fonts/open-sans-v27-latin-ext_latin-300.woff') format('woff');
+}
+@font-face {
+  font-family: 'Open Sans';
+  font-style: italic;
+  font-weight: 300;
+  src: local('Open Sans Light Italic'), local('OpenSans-LightItalic'),
+       url('./fonts/open-sans-v27-latin-ext_latin-300italic.woff') format('woff');
+}
+@font-face {
+  font-family: 'Open Sans';
+  font-style: normal;
+  font-weight: 400;
+  src: local('Open Sans Regular'), local('OpenSans-Regular'),
+       url('./fonts/open-sans-v27-latin-ext_latin-regular.woff') format('woff');
+}
+@font-face {
+  font-family: 'Open Sans';
+  font-style: italic;
+  font-weight: 400;
+  src: local('Open Sans Italic'), local('OpenSans-Italic'),
+       url('./fonts/open-sans-v27-latin-ext_latin-italic.woff') format('woff');
+}
+@font-face {
+  font-family: 'Open Sans';
+  font-style: normal;
+  font-weight: 600;
+  src: local('Open Sans SemiBold'), local('OpenSans-SemiBold'),
+       url('./fonts/open-sans-v27-latin-ext_latin-600.woff') format('woff');
+}
+@font-face {
+  font-family: 'Open Sans';
+  font-style: italic;
+  font-weight: 600;
+  src: local('Open Sans SemiBold Italic'), local('OpenSans-SemiBoldItalic'),
+       url('./fonts/open-sans-v27-latin-ext_latin-600italic.woff') format('woff');
+}
+@font-face {
+  font-family: 'Open Sans';
+  font-style: normal;
+  font-weight: 700;
+  src: local('Open Sans Bold'), local('OpenSans-Bold'),
+       url('./fonts/open-sans-v27-latin-ext_latin-700.woff') format('woff');
+}
+@font-face {
+  font-family: 'Open Sans';
+  font-style: italic;
+  font-weight: 700;
+  src: local('Open Sans Bold Italic'), local('OpenSans-BoldItalic'),
+       url('./fonts/open-sans-v27-latin-ext_latin-700italic.woff') format('woff');
+}
+@font-face {
+  font-family: "DejaVu Sans Mono";
+  src: local('DejaVu Sans Mono'), url('./fonts/DejaVuSansMono.ttf');
+}
+@font-face {
+  font-family: "DejaVu Sans Mono";
+  font-weight: bold;
+  src: url('./fonts/DejaVuSansMono-Bold.ttf');
+}
+@font-face {
+  font-family: "DejaVu Sans Mono";
+  font-style: oblique;
+  font-weight: bold;
+  src: url('./fonts/DejaVuSansMono-BoldOblique.ttf');
+}
+@font-face {
+  font-family: "DejaVu Sans Mono";
+  font-style: italic;
+  font-weight: bold;
+  src: url('./fonts/DejaVuSansMono-BoldOblique.ttf');
+}
+@font-face {
+  font-family: "DejaVu Sans Mono";
+  font-style: italic;
+  src: url('./fonts/DejaVuSansMono-Oblique.ttf');
+}
+@font-face {
+  font-family: "DejaVu Sans Mono";
+  font-style: oblique;
+  src: url('./fonts/DejaVuSansMono-Oblique.ttf');
+}
+
+:root {
+  /* 等宽字体栈（Muya：`code`、代码块、源码模式共用） */
+  --td-mono-font: "DejaVu Sans Mono", "Source Code Pro", "Droid Sans Mono", Consolas, monospace;
+  /* 每层引用、每层列表项的左内边距；引用竖线画在该层的 15px 处 */
+  --td-indent-step: 30px;
+  --td-quote-bar-left: 15px;
+  --td-quote-bar: linear-gradient(var(--themeColor), var(--themeColor));
+  /* 块间空行的高度（= Muya 段落的 .5em 外边距）与标题行上下补的内边距（1rem 外边距减去空行） */
+  --td-gap: calc(var(--td-font-size, 16px) * .5);
+  --td-heading-gap: max(0px, calc(1rem - var(--td-gap)));
+}
+
+html, body {
+  font-family: "Open Sans", "Clear Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.6;
+}
+html { -webkit-font-smoothing: antialiased; }
+/* 背景色来自宿主主题（host/theme.ts 写 --td-bg）；旧页面同样由宿主把 html 与 body 刷成主题背景 */
+html, body { margin: 0; background: var(--td-bg, Canvas); }
+body { min-width: 400px; }
+/* 宿主里 XAML 滚动条是唯一的滚动条：CM6 以窗口为滚动容器，原生滚动条隐藏（host/viewport.ts） */
+html.td-host { scrollbar-width: none; }
+html.td-host::-webkit-scrollbar { display: none; }
+
+/* 版心：Muya #ag-editor-id（宽度由宿主设置写 --editorAreaWidth，host/theme.ts） */
+#root {
+  max-width: var(--editorAreaWidth);
+  min-width: 400px;
+  margin: 0 auto;
+  padding: 20px 50px 0 50px;
+  box-sizing: border-box;
+  cursor: text;
+}
+
+/* 字号、行高由宿主设置写入（host/theme.ts 的 SettingsApplier；旧页面写在编辑器外层 div 的内联样式上） */
+.cm-editor { font-size: var(--td-font-size, 16px); line-height: var(--td-line-height, 1.6); background: transparent; color: inherit; }
+.cm-editor.cm-focused { outline: none; }
+/* CM6 基础主题给滚动容器设了等宽字体与 1.4 的行高，正文要继承上面的字体与行高 */
+#root .cm-editor .cm-scroller { font-family: inherit; line-height: inherit; }
+/* 顶部 .5em 对应首个段落的上外边距；底部留白让最后几行能滚到窗口中部 */
+.cm-editor .cm-content { padding: var(--td-gap) 0 40vh; caret-color: var(--editorColor); }
+.cm-editor .cm-content .cm-line { padding: 0; }
+.cm-content ::selection { background: var(--selectionColor); color: var(--editorColor); }
+
+/* 块间空行：定高而不只是压行高，行首隐藏前缀留下的 widget 缓冲元素（1em 高）不会把它撑开 */
+.cm-content .cm-line.cm-td-gap { line-height: var(--td-gap); height: var(--td-gap); }
+
+/* 引用与列表：按容器层数缩进，竖线由行装饰的内联样式给出位置（inlineSpecs 的 linePrefix） */
+.cm-content .cm-line.cm-td-nest { padding-left: calc(var(--td-indent, 0) * var(--td-indent-step)); }
+.cm-content .cm-line.cm-td-quote {
+  padding-right: 30px;
+  color: var(--editorColor50);
+  background-size: 2px 100%;
+  background-repeat: no-repeat;
+}
+/* 已勾选任务项的内容（Muya：input.ag-checkbox-checked ~ *） */
+.cm-content .cm-line.cm-td-task-done { color: var(--editorColor50); }
+
+/* 标题（字号按行无条件施加，不随 # 的显形变化） */
+.cm-content .cm-line.cm-td-h {
+  font-weight: bold;
+  line-height: 1.4;
+  color: var(--editorColor80);
+  padding-top: var(--td-heading-gap);
+  padding-bottom: var(--td-heading-gap);
+}
+/* 前面隔一个空行就是标题：两个标题的外边距在旧编辑器里折叠成一个，不再补上内边距 */
+.cm-content .cm-line.cm-td-h.cm-td-h-follow { padding-top: 0; }
+.cm-td-h1 { font-size: 1.875em; }
+.cm-td-h2 { font-size: 1.5em; }
+.cm-td-h3 { font-size: 1.375em; }
+.cm-td-h4 { font-size: 1.25em; }
+.cm-td-h5 { font-size: 1.125em; }
+.cm-td-h6 { font-size: 1em; }
+.cm-td-h .cm-td-code-inline { font-size: inherit; }
+.cm-td-setext-underline { font-size: .8em; color: var(--editorColor30); }
+
+/* 分隔线（Muya：p[data-role="hr"] 的虚线；显形时源码叠在虚线上） */
+.cm-content .cm-line.cm-td-hr { position: relative; }
+.cm-td-hr::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  border-top: 2px dashed var(--editorColor10);
+  pointer-events: none;
+}
+
+/* 列表符号：宽度为 0 的行内块里放一个空列表项，浏览器在内容左侧画出与真实列表相同的符号 */
+.cm-td-marker {
+  display: inline-block;
+  width: 0;
+  position: relative;
+  left: calc(var(--td-marker-shift, 0) * -1 * var(--td-indent-step));
+  user-select: none;
+}
+.cm-td-marker-list { display: block; margin: 0; padding: 0; }
+.cm-td-marker-list > li { display: list-item; list-style-position: outside; }
+
+/* 任务框（Muya：li.ag-task-list-item > input[type=checkbox]） */
+/* 行内（不是行内块）：复选框绝对定位但不给 top，落在行内的静态位置（基线对齐），与旧编辑器 li 里的复选框相同 */
+.cm-td-marker.cm-td-marker-task { display: inline; width: auto; }
+.cm-td-task {
+  -webkit-appearance: none;
+  appearance: none;
+  position: absolute;
+  left: -23px;
+  width: 12px;
+  height: 12px;
+  /* 只改上外边距；左右下沿用浏览器对复选框的默认外边距（与旧编辑器一样） */
+  margin-top: .2em;
+  transform-origin: center;
+  transition: all .2s ease;
+  cursor: pointer;
+}
+.cm-td-task::before {
+  content: '';
+  width: 18px;
+  height: 18px;
+  display: inline-block;
+  border: 2px solid var(--editorColor50);
+  border-radius: 50%;
+  position: absolute;
+  top: -3px;
+  left: -2px;
+  box-sizing: border-box;
+  transition: all .2s ease;
+}
+.cm-td-task:hover::before {
+  background-color: var(--floatBgColor);
+  filter: brightness(1.2);
+}
+.cm-td-task::after {
+  content: '';
+  transform: rotate(-45deg) scale(0);
+  width: 8px;
+  height: 4px;
+  border: 2px solid var(--editorBgColor);
+  border-top: none;
+  border-right: none;
+  position: absolute;
+  display: inline-block;
+  top: 1px;
+  left: 4px;
+  transform-origin: bottom;
+  transition: all .2s ease;
+}
+.cm-td-task:checked::after { transform: rotate(-45deg) scale(1); }
+.cm-td-task:checked::before,
+.cm-td-task:checked:hover::before {
+  background: var(--themeColor);
+  border-color: var(--themeColor);
+  box-shadow: 0 3px 12px 0 var(--selectionColor);
+}
+
+@media print {
+  html { font-size: 13px; }
+}

@@ -1,0 +1,97 @@
+/*
+ * 行内元素：取值照抄旧编辑器（Muya themes/default.css、assets/styles/index.css），选择器改写到行内显形的 mark 类与 widget 类上。
+ * 显形时的标记（`**`、`[`、`](url)` 等）对应 Muya 的 .ag-gray。
+ */
+
+.cm-td-syntax { color: var(--editorColor30); text-decoration: none; }
+
+.cm-td-em { font-style: italic; }
+.cm-td-strong { font-weight: bold; }
+.cm-td-del { text-decoration: line-through; }
+/* Muya 把 ==高亮== 渲染成 <mark>，用的是浏览器默认的 mark 配色 */
+.cm-td-highlight { background-color: Mark; color: MarkText; }
+
+/* 行内代码（Muya：span code）；反引号在底色之外 */
+.cm-td-code-inline,
+.cm-content code.cm-td-html-inline {
+  font-family: var(--td-mono-font);
+  background-color: var(--codeBlockBgColor);
+  border-radius: 3px;
+  padding: .2em .4em;
+  font-size: 85%;
+  margin: 0;
+  color: var(--editorColor);
+}
+
+/* 链接（Muya 渲染成 <a>：强调色加浏览器默认的下划线；显形时括号里的地址是 .ag-link-in-bracket） */
+.cm-td-link { color: var(--themeColor); text-decoration: underline; }
+.cm-td-url { color: var(--editorColor50); text-decoration: none; word-break: break-all; }
+
+/* 图片显形态的源码（Muya：span.ag-image-marked-text）；图片 widget 本身的样式在 blocks.css */
+.cm-td-image-alt,
+.cm-td-image-src { color: var(--editorColor50); text-decoration: none; word-break: break-all; }
+
+/* emoji（Muya：span.ag-emoji-marked-text） */
+.cm-td-emoji-name { color: var(--themeColor); text-decoration: none; }
+
+/* 脚注引用（Muya：sup.ag-inline-footnote-identifier，编号在里面的 <a> 里，颜色取 editorColor） */
+.cm-td-footnote-ref,
+.cm-td-footnote-ref-src {
+  background: var(--codeBlockBgColor);
+  padding: 0 .4em;
+  border-radius: 3px;
+  font-size: .7em;
+  color: var(--editorColor80);
+  vertical-align: super;
+}
+.cm-td-footnote-ref { color: var(--editorColor); }
+
+/* 行内公式：源码（Muya：span.ag-math）、渲染结果、显形时的浮出预览（.ag-math-render） */
+.cm-td-math-inline-src { font-family: monospace; color: var(--editorColor); }
+.cm-td-math-inline { color: var(--editorColor); }
+.cm-td-math-inline .katex { vertical-align: middle; white-space: nowrap; }
+.cm-td-math-inline.cm-td-pending { color: var(--editorColor50); font-family: monospace; }
+.cm-td-math-inline .cm-td-render-error {
+  color: var(--deleteColor);
+  font-size: 14px;
+  font-style: italic;
+  font-family: monospace;
+  white-space: nowrap;
+}
+.cm-td-math-preview {
+  display: inline-block;
+  position: relative;
+  width: 0;
+  height: 1lh;
+  vertical-align: top;
+}
+.cm-td-math-preview > .cm-td-math-inline {
+  display: inline-block;
+  position: absolute;
+  top: 100%;
+  left: 0;
+  padding: .3em .5em;
+  border-radius: 8px;
+  white-space: nowrap;
+  user-select: none;
+  z-index: 100;
+  background: var(--floatBgColor);
+  box-shadow: var(--floatShadow);
+  border: var(--floatBorderColor) 1px solid;
+}
+
+/* 行内 HTML：标签源码（Muya：span.ag-html-tag）与渲染出的元素 */
+.cm-td-html-tag { color: var(--editorColor50); font-weight: 200; font-family: monospace; }
+.cm-content a.cm-td-html-inline { color: var(--themeColor); }
+.cm-content kbd {
+  color: var(--editorColor);
+  background: var(--floatBgColor);
+  border: 1px solid var(--floatBorderColor);
+  background-clip: padding-box;
+  border-radius: 4px;
+  display: inline-block;
+  font-size: .8em;
+  padding: 0px 5px;
+  box-shadow: inset 0 -1px 0 var(--floatBorderColor);
+}
+.cm-content img { max-width: 100%; }

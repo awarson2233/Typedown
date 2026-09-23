@@ -51,7 +51,7 @@ const repoDocs = (() => {
 
 const corpus = [
   ...allExamples.map(e => ({ name: label(e), text: e.markdown })),
-  ...['small', 'rich'].map(n => ({ name: `sample ${n}`, text: sampleDoc(n) })),
+  ...['small', 'rich', 'showcase'].map(n => ({ name: `sample ${n}`, text: sampleDoc(n) })),
   { name: 'ime', text: IME_DOC },
   ...repoDocs,
 ];
