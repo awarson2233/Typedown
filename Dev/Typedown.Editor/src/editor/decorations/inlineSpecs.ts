@@ -18,7 +18,9 @@ export type InlineWidgetSpec =
   | { type: 'bullet'; depth: number }
   | { type: 'ordered'; text: string }
   | { type: 'task'; checked: boolean }
-  | { type: 'inline-math'; src: string };
+  | { type: 'inline-math'; src: string }
+  // W2 的最小接线（让图片先显示出来）：合并时以 W1 的实现为准
+  | { type: 'image'; src: string; alt: string; title: string | null };
 
 export type InlineSpec =
   | { kind: 'mark'; from: number; to: number; cls: string }
@@ -228,10 +230,26 @@ export function buildInlineSpecs(doc: Text, tree: Tree, range: Range, reveal: re
           for (const m of marks) { if (shown) mark(m.from, m.to, SYNTAX); else hide(m.from, m.to); }
           return false;
         }
-        case 'Image':
-          // 图片 widget 属于 C2；C1 只把整段源码作为图片源码样式显示
-          mark(ref.from, ref.to, 'cm-td-image-src');
+        case 'Image': {
+          // W2 的最小接线：合并时以 W1 的实现为准（显形规则归 W1，W2 只提供 widgets/imageWidget.ts 的 ImageWidget）。
+          // 光标不在时整段换成图片；光标在 [from, to] 内时源码变灰显示，图片接在源码后面。引用式图片 ![alt][ref] 仍按源码显示。
+          const node = ref.node;
+          const marks = children(node, 'LinkMark');
+          const url = node.getChild('URL');
+          if (marks.length < 3 || node.getChild('LinkLabel') || crossesLine(ref.from, ref.to)) { mark(ref.from, ref.to, 'cm-td-image-src'); return false; }
+          const titleNode = node.getChild('LinkTitle');
+          const widget: InlineWidgetSpec = {
+            type: 'image',
+            src: url ? doc.sliceString(url.from, url.to) : '',
+            alt: doc.sliceString(marks[0].to, marks[1].from),
+            title: titleNode ? doc.sliceString(titleNode.from + 1, titleNode.to - 1) : null,
+          };
+          if (revealedBy(reveal, ref.from, ref.to)) {
+            mark(ref.from, ref.to, `${SYNTAX} cm-td-image-src`);
+            out.push({ kind: 'widget', from: ref.to, to: ref.to, widget });
+          } else out.push({ kind: 'widget', from: ref.from, to: ref.to, widget });
           return false;
+        }
         case 'InlineMath': {
           const marks = children(ref.node, 'InlineMathMark');
           if (marks.length < 2) return false;

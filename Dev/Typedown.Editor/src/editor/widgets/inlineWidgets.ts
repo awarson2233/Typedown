@@ -1,6 +1,7 @@
 import { WidgetType, type EditorView } from '@codemirror/view';
 import { loadKatex, renderMathSync } from '../../renderers/katex';
 import type { InlineWidgetSpec } from '../decorations/inlineSpecs';
+import { ImageWidget } from './imageWidget';
 
 const BULLETS = ['•', '◦', '▪'];
 
@@ -75,5 +76,7 @@ export function inlineWidget(spec: InlineWidgetSpec): WidgetType {
     case 'ordered': return new OrderedWidget(spec.text);
     case 'task': return new TaskWidget(spec.checked);
     case 'inline-math': return new InlineMathWidget(spec.src);
+    // W2 的最小接线：合并时以 W1 的实现为准
+    case 'image': return new ImageWidget({ src: spec.src, alt: spec.alt, title: spec.title });
   }
 }
