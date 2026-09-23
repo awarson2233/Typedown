@@ -9,21 +9,21 @@
     xmlns:viewmodels="using:Typedown.Core.ViewModels"
     mc:Ignorable="d">
     <MenuFlyoutItem.Template>
-        <ControlTemplate TargetType="MenuFlyoutItem">
+        <ControlTemplate TargetType="local:ContextFormatItem">
             <StackPanel Orientation="Horizontal" Spacing="4" Padding="4,2,4,2" d:DataContext="{d:DesignInstance Type=viewmodels:AppViewModel}">
-                <Button Style="{StaticResource EllipsisIconButtonStyle}" Command="{Binding FormatViewModel.SetFormatCommand}" CommandParameter="strong">
+                <Button Style="{StaticResource EllipsisIconButtonStyle}" Command="{TemplateBinding FormatCommand}" CommandParameter="strong">
                     <FontIcon FontSize="16" Glyph="&#xE8DD;"/>
                 </Button>
-                <Button Style="{StaticResource EllipsisIconButtonStyle}" Command="{Binding FormatViewModel.SetFormatCommand}" CommandParameter="em">
+                <Button Style="{StaticResource EllipsisIconButtonStyle}" Command="{TemplateBinding FormatCommand}" CommandParameter="em">
                     <FontIcon FontSize="16" Glyph="&#xE8DB;"/>
                 </Button>
-                <Button Style="{StaticResource EllipsisIconButtonStyle}" Command="{Binding FormatViewModel.SetFormatCommand}" CommandParameter="u">
+                <Button Style="{StaticResource EllipsisIconButtonStyle}" Command="{TemplateBinding FormatCommand}" CommandParameter="u">
                     <FontIcon FontSize="16" Glyph="&#xE8DC;"/>
                 </Button>
-                <Button Style="{StaticResource EllipsisIconButtonStyle}" Command="{Binding FormatViewModel.SetFormatCommand}" CommandParameter="del">
+                <Button Style="{StaticResource EllipsisIconButtonStyle}" Command="{TemplateBinding FormatCommand}" CommandParameter="del">
                     <FontIcon FontSize="16" Glyph="&#xEDE0;"/>
                 </Button>
-                <Button Style="{StaticResource EllipsisIconButtonStyle}" Command="{Binding FormatViewModel.SetFormatCommand}" CommandParameter="clear">
+                <Button Style="{StaticResource EllipsisIconButtonStyle}" Command="{TemplateBinding FormatCommand}" CommandParameter="clear">
                     <FontIcon FontSize="16" Glyph="&#xe75c;"/>
                 </Button>
             </StackPanel>
