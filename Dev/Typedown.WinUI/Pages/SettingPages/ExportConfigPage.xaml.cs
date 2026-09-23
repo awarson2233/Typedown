@@ -105,6 +105,18 @@ namespace Typedown.WinUI.Pages.SettingPages
             };
         }
 
+        private object GetSelectedExportType(ExportType type) => type;
+
+        // The combo box only lists the available types, so a stored type outside that list makes the
+        // selector revert SelectedItem to null; ignore non-ExportType values instead of unboxing them.
+        private void SetExportType(object? value)
+        {
+            if (value is ExportType type && ExportConfig is { } config)
+            {
+                config.Type = type;
+            }
+        }
+
         public async Task DeleteConfigAsync()
         {
             if (ExportConfig != null)

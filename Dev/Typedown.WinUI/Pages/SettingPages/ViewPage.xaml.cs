@@ -25,6 +25,7 @@ namespace Typedown.WinUI.Pages.SettingPages
                 ViewModel = parameter.AppViewModel;
                 SettingsViewModel = parameter.SettingsViewModel;
                 DataContext = ViewModel;
+                Bindings.Update();
             }
         }
     }

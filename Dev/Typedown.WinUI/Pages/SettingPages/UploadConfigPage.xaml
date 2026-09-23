@@ -31,11 +31,10 @@
             <ComboBox
                 MinWidth="200"
                 ItemsSource="{x:Bind enums:Enumerable.AvailableImageUploadMethods}"
-                DataContext="{x:Bind}"
-                SelectedItem="{Binding ImageUploadConfig.Method, Mode=TwoWay}">
+                SelectedItem="{x:Bind GetSelectedImageUploadMethod(ImageUploadConfig.Method), Mode=TwoWay, BindBack=SetImageUploadMethod}">
                 <ComboBox.ItemTemplate>
-                    <DataTemplate>
-                        <controls:EnumNameBlock Value="{Binding}"/>
+                    <DataTemplate x:DataType="enums:ImageUploadMethod">
+                        <controls:EnumNameBlock Value="{x:Bind}"/>
                     </DataTemplate>
                 </ComboBox.ItemTemplate>
             </ComboBox>

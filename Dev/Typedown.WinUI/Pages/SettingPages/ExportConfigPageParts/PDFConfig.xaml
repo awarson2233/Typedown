@@ -20,8 +20,8 @@
         <toolkit:SettingsCard Header="{u:LocaleString Key=Export.PDFConfigModel.Orientation.Text}" IsActionIconVisible="False">
             <ComboBox MinWidth="200" ItemsSource="{x:Bind enums:Enumerable.PrintOrientations}" SelectedItem="{x:Bind PDFConfigModel.Orientation, Mode=TwoWay}">
                 <ComboBox.ItemTemplate>
-                    <DataTemplate>
-                        <controls:EnumNameBlock Value="{Binding}"/>
+                    <DataTemplate x:DataType="enums:PrintOrientation">
+                        <controls:EnumNameBlock Value="{x:Bind}"/>
                     </DataTemplate>
                 </ComboBox.ItemTemplate>
             </ComboBox>

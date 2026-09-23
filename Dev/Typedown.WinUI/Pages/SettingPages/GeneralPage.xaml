@@ -25,19 +25,19 @@
             </toolkit:SettingsExpander.HeaderIcon>
             <toolkit:SettingsExpander.Items>
                 <toolkit:SettingsCard Header="{u:LocaleString Key=File}" IsActionIconVisible="False">
-                    <ComboBox MinWidth="200" ItemsSource="{x:Bind enums:Enumerable.FileStartupActions}" SelectedItem="{Binding SettingsViewModel.FileStartupAction, Mode=TwoWay}">
+                    <ComboBox MinWidth="200" ItemsSource="{x:Bind enums:Enumerable.FileStartupActions}" SelectedItem="{x:Bind Settings.FileStartupAction, Mode=TwoWay}">
                         <ComboBox.ItemTemplate>
-                            <DataTemplate>
-                                <controls:EnumNameBlock Value="{Binding}"/>
+                            <DataTemplate x:DataType="enums:FileStartupAction">
+                                <controls:EnumNameBlock Value="{x:Bind}"/>
                             </DataTemplate>
                         </ComboBox.ItemTemplate>
                     </ComboBox>
                 </toolkit:SettingsCard>
                 <toolkit:SettingsCard Header="{u:LocaleString Key=Folder}" IsActionIconVisible="False">
-                    <ComboBox MinWidth="200" ItemsSource="{x:Bind enums:Enumerable.FolderStartupActions}" SelectedItem="{Binding SettingsViewModel.FolderStartupAction, Mode=TwoWay}">
+                    <ComboBox MinWidth="200" ItemsSource="{x:Bind enums:Enumerable.FolderStartupActions}" SelectedItem="{x:Bind Settings.FolderStartupAction, Mode=TwoWay}">
                         <ComboBox.ItemTemplate>
-                            <DataTemplate>
-                                <controls:EnumNameBlock Value="{Binding}"/>
+                            <DataTemplate x:DataType="enums:FolderStartupAction">
+                                <controls:EnumNameBlock Value="{x:Bind}"/>
                             </DataTemplate>
                         </ComboBox.ItemTemplate>
                     </ComboBox>
