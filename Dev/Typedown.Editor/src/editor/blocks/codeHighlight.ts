@@ -16,7 +16,7 @@ import { findCodeLanguage, infoLanguageName } from './codeLanguage';
 export const MAX_BLOCK = 20000;
 
 /** @lezer/highlight 标签 → prism 的 token 类名 */
-export const prismHighlighter = tagHighlighter([
+const PRISM_SPECS = [
   { tag: [t.keyword, t.modifier, t.operatorKeyword, t.controlKeyword, t.definitionKeyword, t.moduleKeyword], class: 'token keyword' },
   { tag: [t.string, t.special(t.string), t.character, t.docString], class: 'token string' },
   { tag: t.regexp, class: 'token regex' },
@@ -44,7 +44,30 @@ export const prismHighlighter = tagHighlighter([
   { tag: t.heading, class: 'token important' },
   { tag: t.strong, class: 'token bold' },
   { tag: t.emphasis, class: 'token italic' },
+];
+export const prismHighlighter = tagHighlighter(PRISM_SPECS);
+
+/**
+ * YAML 按 prism 的 yaml 语法给类名（front matter 的颜色要与旧编辑器一致）：键是 `key atrule`，
+ * 未加引号的标量 lezer 只标成 content，这里再按 prism 的正则分出日期、布尔、null、数字，其余不着色。
+ */
+const YAML_PLAIN = 'yaml-plain';
+const yamlHighlighter = tagHighlighter([
+  ...PRISM_SPECS,
+  { tag: t.definition(t.propertyName), class: 'token key atrule' },
+  { tag: t.content, class: YAML_PLAIN },
 ]);
+const YAML_SCALARS: readonly [RegExp, string][] = [
+  [/^\d{4}-\d\d?-\d\d?(?:(?:[Tt]|[ \t]+)\d\d?:\d{2}:\d{2}(?:\.\d*)?[ \t]*(?:Z|[-+]\d\d?(?::\d{2})?)?)?$|^\d\d?:\d{2}(?::\d{2}(?:\.\d*)?)?$/, 'token datetime number'],
+  [/^(?:false|true)$/i, 'token boolean important'],
+  [/^(?:null|~)$/i, 'token null important'],
+  [/^[+-]?(?:0x[\da-f]+|0o[0-7]+|(?:\d[\d_]*(?:\.\d*)?|\.\d+)(?:e[+-]?\d+)?|\.inf|\.nan)$/i, 'token number'],
+];
+function yamlScalarClass(text: string): string | null {
+  const s = text.trim();
+  for (const [re, cls] of YAML_SCALARS) if (re.test(s)) return cls;
+  return null;
+}
 
 /** 一个代码块内容的 token：相对内容起点的 [from, to, 类名] */
 export type CodeToken = readonly [number, number, string];
@@ -64,7 +87,16 @@ export function highlightCode(info: string, text: string, onLoaded?: () => void)
   if (!tokens) {
     const out: CodeToken[] = [];
     const tree = desc.support.language.parser.parse(text);
-    highlightTree(tree, prismHighlighter, (from, to, cls) => { if (cls) out.push([from, to, cls]); });
+    if (desc.name === 'YAML') {
+      highlightTree(tree, yamlHighlighter, (from, to, cls) => {
+        if (cls === YAML_PLAIN) {
+          const c = yamlScalarClass(text.slice(from, to));
+          if (c) out.push([from, to, c]);
+        } else if (cls) out.push([from, to, cls]);
+      });
+    } else {
+      highlightTree(tree, prismHighlighter, (from, to, cls) => { if (cls) out.push([from, to, cls]); });
+    }
     tokens = out;
     if (tokenCache.size > 400) tokenCache.clear();
     tokenCache.set(key, tokens);
@@ -90,13 +122,15 @@ function build(view: EditorView, onLoaded: () => void): DecorationSet {
   const seen = new Set<number>();
   for (const { from, to } of view.visibleRanges) {
     iterateTopBlocks(tree, from, to, n => {
-      if (n.name !== 'FencedCode' || seen.has(n.from)) return;
+      // front matter 按 YAML 高亮（Muya 把它渲染成 pre.language-yaml，prism 着色）
+      const fm = n.name === 'Frontmatter';
+      if ((n.name !== 'FencedCode' && !fm) || seen.has(n.from)) return;
       seen.add(n.from);
-      const info = n.node.getChild('CodeInfo');
-      const lang = info ? infoLanguageName(doc.sliceString(info.from, info.to)) : '';
+      const info = fm ? null : n.node.getChild('CodeInfo');
+      const lang = fm ? 'yaml' : info ? infoLanguageName(doc.sliceString(info.from, info.to)) : '';
       if (!lang || /^mermaid$/i.test(lang)) return;
-      const first = doc.lineAt(n.from), last = doc.lineAt(n.to);
-      const closed = n.node.getChildren('CodeMark').length >= 2 && last.number > first.number;
+      const first = doc.lineAt(n.from), last = doc.lineAt(n.to > n.from && doc.lineAt(n.to).from === n.to ? n.to - 1 : n.to);
+      const closed = fm ? last.number > first.number : n.node.getChildren('CodeMark').length >= 2 && last.number > first.number;
       const bodyLast = closed ? last.number - 1 : last.number;
       if (bodyLast <= first.number) return;
       const bodyFrom = doc.line(first.number + 1).from, bodyTo = doc.line(bodyLast).to;

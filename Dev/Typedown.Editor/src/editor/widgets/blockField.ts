@@ -227,8 +227,10 @@ function codeDecorations(state: EditorState, out: Range<Decoration>[], kind: Fen
 
 function bodyDecorations(state: EditorState, out: Range<Decoration>[], kind: FenceKind, lang: string, activeCls: string, f: FenceGeometry) {
   if (f.bodyFrom !== null) {
-    const id = kind === 'code' ? codeLanguageId(lang) : null;
-    const cls = `cm-td-fence-line cm-td-fence-body cm-td-fence-${kind}${activeCls}${id ? ` language-${id}` : ''}`;
+    const id = kind === 'code' ? codeLanguageId(lang) : kind === 'frontmatter' ? 'yaml' : null;
+    // 没写语言的代码块另有字体与行高（Muya 的 pre 没有 language- 类，prism 主题的规则不生效）
+    const plain = kind === 'code' && !lang.trim() ? ' cm-td-fence-plain' : '';
+    const cls = `cm-td-fence-line cm-td-fence-body cm-td-fence-${kind}${activeCls}${id ? ` language-${id}` : ''}${plain}`;
     eachLine(state, f.bodyFrom, f.bodyTo!, at => out.push(lineDeco(cls).range(at)));
   }
   const active = activeCls !== '';

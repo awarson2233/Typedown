@@ -179,7 +179,7 @@ describe('front matter、HTML 块、[TOC]、脚注定义', () => {
   it('front matter：两条围栏收起，内容行成框', () => {
     expect(describeDecos(create('---\na: 1\n---\n\n正文', 15))).toEqual([
       'fence-head-frontmatter@0-3',
-      'line@4-4:cm-td-fence-line cm-td-fence-body cm-td-fence-frontmatter',
+      'line@4-4:cm-td-fence-line cm-td-fence-body cm-td-fence-frontmatter language-yaml',
       'fence-foot-frontmatter@9-12',
     ]);
   });

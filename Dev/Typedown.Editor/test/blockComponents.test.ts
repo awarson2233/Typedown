@@ -196,6 +196,19 @@ describe('代码块语言', () => {
     expect(cls('// c')).toBe('token comment');
     expect(highlightCode('没有的语言', 'x')).toEqual([]);
   });
+  it('YAML 按 prism 的 yaml 语法给类名', async () => {
+    await findCodeLanguage('yaml')!.load();
+    const text = 'title: 标题\ndraft: true\nn: 1.5\nd: 2024-01-02\nx: null\ns: "q"';
+    const tokens = highlightCode('yaml', text)!;
+    const cls = (w: string) => tokens.find(([f, t]) => text.slice(f, t) === w)?.[2];
+    expect(cls('title')).toBe('token key atrule');
+    expect(cls('标题')).toBeUndefined();
+    expect(cls('true')).toBe('token boolean important');
+    expect(cls('1.5')).toBe('token number');
+    expect(cls('2024-01-02')).toBe('token datetime number');
+    expect(cls('null')).toBe('token null important');
+    expect(cls('"q"')).toBe('token string');
+  });
 });
 
 describe('图片 widget', () => {

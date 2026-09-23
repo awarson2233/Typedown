@@ -66,15 +66,20 @@ export class DiagramWidget extends WidgetType {
 
   private render(view: EditorView, wrap: DiagramDom, body: HTMLElement) {
     wrap.tdSrc = this.src;
-    const done = () => {
+    // 渲染完成：撤掉占位用的最小高度（缓存高度可能来自别的字号、宽度，同步渲染也不能留着它），再量真实高度
+    const settled = () => {
       if (this.preview) return;
       wrap.style.minHeight = '';
       measureInto(this.key, wrap);
+    };
+    const done = () => {
+      if (this.preview) return;
+      settled();
       view.requestMeasure();
     };
     if (this.kind === 'math') {
       const text = { empty: uiText(UiText.EmptyMath), invalid: uiText(UiText.InvalidMath) };
-      if (renderBlockMathSync(body, this.src, text)) { if (!this.preview) measureInto(this.key, wrap); }
+      if (renderBlockMathSync(body, this.src, text)) settled();
       else {
         if (!body.childNodes.length) body.textContent = '…';
         loadKatex().then(() => { if (wrap.tdSrc === this.src) { renderBlockMathSync(body, this.src, text); done(); } }, () => undefined);
@@ -86,7 +91,7 @@ export class DiagramWidget extends WidgetType {
       return;
     }
     const hit = mermaidCached(this.src);
-    if (hit !== undefined) { body.innerHTML = hit; if (!this.preview) measureInto(this.key, wrap); return; }
+    if (hit !== undefined) { body.innerHTML = hit; settled(); return; }
     if (!body.childNodes.length) body.textContent = '…';
     const target = document.createElement('div');
     renderMermaid(target, this.src).then(() => {
