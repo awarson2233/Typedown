@@ -9,16 +9,19 @@ namespace Typedown.Core.Editor
     /// </summary>
     public interface IEditorHostCallbacks
     {
-        /// <summary>引擎启动或重载时索取初始状态；首次调用会装载启动文档。</summary>
-        Task<EditorStartup> PrepareStartupAsync(CancellationToken cancellationToken);
+        /// <summary>相对图片路径的基准目录；随打开、另存为、重命名变化，会话整篇回灌正文时读取。</summary>
+        string BasePath { get; }
+
+        /// <summary>
+        /// 引擎启动或重载时索取初始状态，返回全量编辑器设置；首次调用会装载启动文档。
+        /// 正文取 <see cref="IEditorSession.Document"/>，基准目录取 <see cref="BasePath"/>。
+        /// </summary>
+        Task<EditorSettings> PrepareStartupAsync(CancellationToken cancellationToken);
 
         /// <summary>让用户选择表格尺寸；取消时返回 <c>null</c>。</summary>
         Task<TableSize?> PickTableSizeAsync(CancellationToken cancellationToken);
 
-        /// <summary>把引擎生成的复制内容一次性写入系统剪贴板。</summary>
+        /// <summary>把引擎生成的复制内容写入系统剪贴板。</summary>
         Task WriteClipboardAsync(ClipboardContent content, CancellationToken cancellationToken);
     }
-
-    /// <summary>引擎启动时需要的宿主状态；正文取 <see cref="IEditorSession.Document"/>。</summary>
-    public sealed record EditorStartup(EditorSettings Settings, string BasePath);
 }
