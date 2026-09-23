@@ -5,7 +5,7 @@
  *   https://typedown.image/<盘符>/<逐段 encodeURIComponent 的路径段>
  * 例如 C:\Users\me\图 1.png → https://typedown.image/C/Users/me/%E5%9B%BE%201.png。
  * 相对路径在页面内按文档目录（doc.load 的 basePath）解析成绝对路径，`.`、`..` 在这里消解，
- * 所以宿主收到的路径段里不会有 `.`、`..`，出现即拒绝（WinUIEditorHost 的 LocalImageRequest）。
+ * 所以宿主收到的路径段里不会有 `.`、`..`，出现即拒绝（Typedown.Core 的 Editor/Wire/LocalImageRequest.cs）。
  * 网络图片（http/https）、data:、blob: 原样使用；UNC 路径（\\server\share）与其他协议不加载。
  */
 

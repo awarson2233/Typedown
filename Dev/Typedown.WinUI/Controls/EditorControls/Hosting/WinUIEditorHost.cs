@@ -502,6 +502,9 @@ namespace Typedown.WinUI.Controls
                     CoreWebView2HostResourceAccessKind.Allow);
             }
 
+            // 本地图片走专用主机，只拦图片上下文的请求（<img>、CSS 背景），fetch / XHR 读不到本地文件。
+            webView.CoreWebView2.AddWebResourceRequestedFilter(LocalImageRequest.FilterPattern, CoreWebView2WebResourceContext.Image);
+
             coreInitialized = true;
         }
 
@@ -566,6 +569,7 @@ namespace Typedown.WinUI.Controls
             webView.CoreWebView2.NavigationCompleted += OnNavigationCompleted;
             webView.CoreWebView2.ProcessFailed += OnProcessFailed;
             webView.CoreWebView2.ContextMenuRequested += OnCoreContextMenuRequested;
+            webView.CoreWebView2.WebResourceRequested += OnWebResourceRequested;
             webView.PreviewKeyDown += OnPreviewKeyDown;
             coreEventsAttached = true;
         }
@@ -584,8 +588,90 @@ namespace Typedown.WinUI.Controls
             webView.CoreWebView2.NavigationCompleted -= OnNavigationCompleted;
             webView.CoreWebView2.ProcessFailed -= OnProcessFailed;
             webView.CoreWebView2.ContextMenuRequested -= OnCoreContextMenuRequested;
+            webView.CoreWebView2.WebResourceRequested -= OnWebResourceRequested;
             webView.PreviewKeyDown -= OnPreviewKeyDown;
             coreEventsAttached = false;
+        }
+
+        // ── 本地图片 ──────────────────────────────────────────────────────────
+
+        /// <summary>
+        /// 页面把本地图片写成 <c>https://typedown.image/&lt;盘符&gt;/&lt;路径段&gt;</c>（docs/editor-protocol.md 第 3 节），
+        /// 路径校验在 <see cref="LocalImageRequest"/>；这里读文件并回应。读文件放到线程池，CoreWebView2 的调用回到 UI 线程。
+        /// </summary>
+        private async void OnWebResourceRequested(CoreWebView2 sender, CoreWebView2WebResourceRequestedEventArgs e)
+        {
+            var request = LocalImageRequest.Parse(e.Request.Method, e.Request.Uri);
+            if (request.Kind == LocalImageRequestKind.NotLocalImage)
+            {
+                return;
+            }
+
+            var deferral = e.GetDeferral();
+            try
+            {
+                if (request.Kind != LocalImageRequestKind.Accepted || request.Path is not { } path || request.ContentType is not { } contentType)
+                {
+                    e.Response = request.Kind == LocalImageRequestKind.MethodNotAllowed
+                        ? sender.Environment.CreateWebResourceResponse(null, 405, "Method Not Allowed", LocalImageHeaders(null))
+                        : sender.Environment.CreateWebResourceResponse(null, 403, "Forbidden", LocalImageHeaders(null));
+                    return;
+                }
+
+                var head = string.Equals(e.Request.Method, "HEAD", StringComparison.OrdinalIgnoreCase);
+                var (status, bytes) = await Task.Run(() => ReadLocalImage(path, head));
+                if (status != 200)
+                {
+                    e.Response = sender.Environment.CreateWebResourceResponse(null, status, status == 404 ? "Not Found" : "Forbidden", LocalImageHeaders(null));
+                    return;
+                }
+
+                var stream = new Windows.Storage.Streams.InMemoryRandomAccessStream();
+                if (bytes.Length > 0)
+                {
+                    await stream.WriteAsync(System.Runtime.InteropServices.WindowsRuntime.WindowsRuntimeBufferExtensions.AsBuffer(bytes));
+                    stream.Seek(0);
+                }
+
+                e.Response = sender.Environment.CreateWebResourceResponse(stream, 200, "OK", LocalImageHeaders(contentType));
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Trace.WriteLine($"[editor] 本地图片请求失败：{ex}");
+            }
+            finally
+            {
+                deferral.Complete();
+            }
+        }
+
+        private static (int Status, byte[] Bytes) ReadLocalImage(string path, bool headOnly)
+        {
+            try
+            {
+                var info = new FileInfo(path);
+                if (!info.Exists)
+                {
+                    return (404, []);
+                }
+
+                if (info.Length > LocalImageRequest.MaxBytes)
+                {
+                    return (403, []);
+                }
+
+                return (200, headOnly ? [] : File.ReadAllBytes(path));
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                return (404, []);
+            }
+        }
+
+        private static string LocalImageHeaders(string? contentType)
+        {
+            var headers = "Cache-Control: no-cache\r\nX-Content-Type-Options: nosniff\r\nContent-Security-Policy: default-src 'none'; style-src 'unsafe-inline'";
+            return contentType is null ? headers : $"Content-Type: {contentType}\r\n{headers}";
         }
 
         private void OnNavigationStarting(CoreWebView2 sender, CoreWebView2NavigationStartingEventArgs e)
