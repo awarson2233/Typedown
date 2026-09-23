@@ -1,3 +1,6 @@
+import '../styles/theme.css';
+import '../styles/typography.css';
+import '../styles/inline.css';
 import '../styles/editor.css';
 import './dev.css';
 import { EditorState } from '@codemirror/state';

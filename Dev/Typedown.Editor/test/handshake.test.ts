@@ -60,7 +60,9 @@ describe('假宿主驱动的完整握手', () => {
     // 初始态：同步应用主题与设置，挂载完就报 ready
     expect(host.received[0]).toEqual({ k: 'evt', t: 'lifecycle.ready', p: { protocol: 1, engine: expect.stringContaining('typedown-editor-next/') } });
     expect(root.dataset.theme).toBe('dark');
-    expect(root.style.getPropertyValue('--td-accent')).toBe('rgba(1, 2, 3, 1)');
+    expect(root.style.getPropertyValue('--themeColor')).toBe('rgba(1, 2, 3, 1)');
+    expect(root.style.getPropertyValue('--themeColor50')).toBe('rgba(1, 2, 3, 0.5)');
+    expect(root.style.getPropertyValue('--editorAreaWidth')).toBe('900px');
     expect(root.style.getPropertyValue('--td-bg')).toBe('rgba(10, 20, 30, 0.5)');
     expect(root.style.getPropertyValue('--td-font-size')).toBe('18px');
     expect(root.style.getPropertyValue('--td-line-height')).toBe('1.6');

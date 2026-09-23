@@ -2,13 +2,16 @@ import type { EditorColor, EditorSettings, EditorTheme } from '../bridge/protoco
 
 /**
  * 宿主下发的主题与设置落到页面上（初始态、view.theme、view.settings）。
- * 视觉部分只写根元素的 data-theme 与 CSS 变量（styles/editor.css 读取）；编辑器行为部分（源码模式、制表符、拼写检查）交给 EditorControls。
+ * 视觉部分只写根元素的 data-theme 与 CSS 变量（styles/theme.css、typography.css 读取）；编辑器行为部分（源码模式、制表符、拼写检查）交给 EditorControls。
+ * 强调色与版心宽度沿用旧编辑器的变量名：--themeColor 及其透明度梯度 --themeColor10…90（旧页面 services/theme.ts）、--editorAreaWidth。
  */
 
 /** 明暗主题 */
 export type Theme = 'light' | 'dark';
 
-const css = (c: EditorColor) => `rgba(${c.r}, ${c.g}, ${c.b}, ${c.a})`;
+const css = (c: EditorColor, alpha = 1) => `rgba(${c.r}, ${c.g}, ${c.b}, ${c.a * alpha})`;
+/** 旧编辑器给强调色生成的透明度梯度 */
+const ACCENT_ALPHAS = [10, 20, 30, 40, 50, 60, 70, 80, 90];
 const isColor = (c: unknown): c is EditorColor =>
   !!c && ['r', 'g', 'b', 'a'].every(k => typeof (c as Record<string, unknown>)[k] === 'number');
 
@@ -16,8 +19,14 @@ export function applyTheme(theme: Theme | EditorTheme, root: HTMLElement = docum
   if (typeof theme === 'string') { root.dataset.theme = theme; return; }
   root.dataset.theme = theme.isDark ? 'dark' : 'light';
   // 强调色与背景缺失或畸形时保留样式表里的默认值（rgba(undefined, …) 会被浏览器整条丢弃）
-  if (isColor(theme.accent)) root.style.setProperty('--td-accent', css(theme.accent));
-  else root.style.removeProperty('--td-accent');
+  const accent = theme.accent;
+  if (isColor(accent)) {
+    root.style.setProperty('--themeColor', css(accent));
+    for (const a of ACCENT_ALPHAS) root.style.setProperty(`--themeColor${a}`, css(accent, a / 100));
+  } else {
+    root.style.removeProperty('--themeColor');
+    for (const a of ACCENT_ALPHAS) root.style.removeProperty(`--themeColor${a}`);
+  }
   if (isColor(theme.background)) root.style.setProperty('--td-bg', css(theme.background));
   else root.style.removeProperty('--td-bg');
 }
@@ -54,8 +63,8 @@ export class SettingsApplier {
           break;
         case 'editorAreaWidth':
           // 任意 CSS 长度（设置页是自由文本，默认 1200px）；不合法的值退回样式表默认
-          if (typeof value === 'string' && value.trim() && (typeof CSS === 'undefined' || CSS.supports('max-width', value.trim()))) s.setProperty('--td-area-width', value.trim());
-          else s.removeProperty('--td-area-width');
+          if (typeof value === 'string' && value.trim() && (typeof CSS === 'undefined' || CSS.supports('max-width', value.trim()))) s.setProperty('--editorAreaWidth', value.trim());
+          else s.removeProperty('--editorAreaWidth');
           layout = true;
           break;
         case 'tabSize':

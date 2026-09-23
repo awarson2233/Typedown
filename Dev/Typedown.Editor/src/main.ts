@@ -1,3 +1,6 @@
+import './styles/theme.css';
+import './styles/typography.css';
+import './styles/inline.css';
 import './styles/editor.css';
 import { startEditorApp } from './app';
 import { FakeHost, webviewTransport } from './bridge/channel';
