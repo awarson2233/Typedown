@@ -1,7 +1,7 @@
 [
   {
     "match": "^style\\.\\w+ mermaid ",
-    "reason": "mermaid 版本不同（Muya 带的 8.x，新引擎 12.x 且用 neo 样式），图里文字的字体、字号、行高本来就不同。图外框已对齐，图本身的尺寸差按 inner 自动扣除"
+    "reason": "mermaid 版本不同（Muya 带的 8.x，新引擎 12.x 且用 neo 样式），图里文字的字体、字号、行高本来就不同；新引擎所有图按 viewBox 1:1 绘制、只在宽于编辑区时等比缩小（blocks 语料里的小图与宽图），Muya 按 mermaid 8 的 useMaxWidth 排。图外框已对齐，图本身的尺寸差按 inner 自动扣除"
   },
   {
     "docs": ["blocks"],
