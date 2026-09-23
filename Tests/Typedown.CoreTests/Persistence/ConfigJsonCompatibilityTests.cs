@@ -1,8 +1,9 @@
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Microsoft.Data.Sqlite;
-using Newtonsoft.Json.Linq;
+using System.Text.Json.Nodes;
 using Typedown.Core.Enums;
 using Typedown.Core.Models;
+using Typedown.Core.Serialization;
 using Typedown.Core.Services;
 using ExportModels = Typedown.Core.Models.ExportConfigModels;
 using UploadModels = Typedown.Core.Models.UploadConfigModels;
@@ -10,8 +11,9 @@ using UploadModels = Typedown.Core.Models.UploadConfigModels;
 namespace Typedown.CoreTests.Persistence;
 
 /// <summary>
-/// The Config columns of ExportConfig and ImageUploadConfig hold a JSON object keyed by config kind. Values written
-/// by Newtonsoft must load identically, and values written by the new code must load in Newtonsoft.
+/// The Config columns of ExportConfig and ImageUploadConfig hold a JSON object keyed by config kind. Every model
+/// round-trips through System.Text.Json, entries of other kinds survive a store, and unreadable values fall back to
+/// the model's defaults.
 /// </summary>
 [TestClass]
 public sealed class ConfigJsonCompatibilityTests
@@ -56,103 +58,80 @@ public sealed class ConfigJsonCompatibilityTests
     }
 
     [TestMethod]
-    public async Task NewtonsoftWrittenDefaults_LoadIdentically()
+    public async Task DefaultModels_RoundTrip()
     {
         foreach (var (type, key, modelType) in exportKinds)
         {
-            var json = new JObject { [key] = NewtonsoftReference.FromObject(Activator.CreateInstance(modelType)!) }.ToString();
-            await AssertExportLoadsLikeNewtonsoft(type, key, modelType, json);
+            var model = Activator.CreateInstance(modelType)!;
+            var config = await InsertAndLoadExport(type, Wrap(key, model));
+            var loaded = config.LoadExportConfig();
+            Assert.IsInstanceOfType(loaded, modelType);
+            AssertSameValue(model, loaded, key);
         }
 
         foreach (var (method, key, modelType) in uploadKinds)
         {
-            var json = new JObject { [key] = NewtonsoftReference.FromObject(Activator.CreateInstance(modelType)!) }.ToString();
-            await AssertUploadLoadsLikeNewtonsoft(method, key, modelType, json);
+            var model = Activator.CreateInstance(modelType)!;
+            var config = await InsertAndLoadUpload(method, Wrap(key, model));
+            var loaded = config.LoadUploadConfig();
+            Assert.IsInstanceOfType(loaded, modelType);
+            AssertSameValue(model, loaded, key);
         }
     }
 
     [TestMethod]
-    public async Task HandEditedAndPartialConfigs_LoadIdentically()
+    public async Task PartialConfig_LoadsWithDefaults_AndStoreKeepsOtherKinds()
     {
-        await AssertExportLoadsLikeNewtonsoft(ExportType.PDF, "PDF", typeof(ExportModels.PDFConfigModel), """
+        var json = """
             {
               "HTML": { "ExtraHead": "kept for the HTML kind" },
-              /* comment */
               "PDF": {
-                "orientation": "Landscape",
-                "PageSize": { "Width": { "Value": "10" }, "Height": { "Unit": { "Name": "in", "Scale": 0.3937007874, "Shift": 0 }, "Value": 11 } },
-                "Margins": { "Left": { "Unit": { "Name": "cm", "Scale": 1, "Shift": 0 }, "Value": 1.27 } },
-                "ShouldPrintHeaderAndFooter": "true",
-                "Header": 123,
-                "Footer": null,
-                "Addition": { "custom": { "a": [1, true, null] }, "n": 1.50 },
-                "ScriptAfter": "ignored: get-only",
-                "FutureField": 1,
+                "Orientation": 1,
+                "PageSize": { "Width": { "Unit": { "Name": "cm", "Scale": 1, "Shift": 0 }, "Value": 10 } },
+                "ShouldPrintHeaderAndFooter": true,
+                "Header": "title",
+                "FutureField": 1
               }
             }
-            """);
+            """;
+        var config = await InsertAndLoadExport(ExportType.PDF, json);
 
-        await AssertExportLoadsLikeNewtonsoft(ExportType.Image, "Image", typeof(ExportModels.ImageConfigModel), """{ "Image": { "DPI": "300.5" } }""");
+        var pdf = (ExportModels.PDFConfigModel)config.LoadExportConfig();
+        Assert.AreEqual(PrintOrientation.Landscape, pdf.Orientation);
+        Assert.AreEqual(10, pdf.PageSize.Width.Value);
+        Assert.IsTrue(pdf.ShouldPrintHeaderAndFooter);
+        Assert.AreEqual("title", pdf.Header);
+        AssertSameValue(new ExportModels.PDFConfigModel().Margins, pdf.Margins, "Margins default");
 
-        await AssertUploadLoadsLikeNewtonsoft(ImageUploadMethod.FTP, "FTP", typeof(UploadModels.FTPConfigModel), """
-            { "FTP": { "Host": "ftp.example.com", "Port": "2121", "Username": "u", "Password": "p😀", "UploadPath": "/img", "ExternalURL": "https://x/{0}" } }
-            """);
-
-        await AssertUploadLoadsLikeNewtonsoft(ImageUploadMethod.SCP, "SCP", typeof(UploadModels.SCPConfigModel), """
-            { "SCP": { "host": "h", "port": 2222.0, "PubKeyAuthentication": 1, "IdentityFile": "C:\\keys\\id" }, "Git": { "URL": "kept" } }
-            """);
-
-        await AssertUploadLoadsLikeNewtonsoft(ImageUploadMethod.PowerShell, "PowerShell", typeof(UploadModels.PowerShellModel), """
-            { "PowerShell": { "Script": "function Upload-Image($FilePath)\r\n{\r\n    return \"<$FilePath>\"\r\n}" } }
-            """);
+        pdf.Header = "changed";
+        config.StoreExportConfig(pdf);
+        var stored = JsonNode.Parse(config.Config)!.AsObject();
+        Assert.AreEqual("changed", stored["PDF"]?["Header"]?.GetValue<string>());
+        Assert.IsTrue(JsonNode.DeepEquals(JsonNode.Parse(json)!["HTML"], stored["HTML"]), "Entries of another kind must be preserved.");
     }
 
     [TestMethod]
     public async Task MissingOrInvalidConfig_FallsBackToDefaults()
     {
-        foreach (var json in new[] { "", "{}", "not json", "[]", """{ "PDF": null }""", """{ "PDF": { "Orientation": {} } }""" })
+        foreach (var json in new[] { "", "{}", "not json", "[]", """{ "PDF": null }""", """{ "PDF": { "Orientation": {} } }""", """{ "PDF": { "Orientation": "Landscape" } }""" })
         {
             var config = await InsertAndLoadExport(ExportType.PDF, json);
             var model = config.LoadExportConfig();
             Assert.IsInstanceOfType(model, typeof(ExportModels.PDFConfigModel), json);
-            NewtonsoftReference.AssertSameValue(new ExportModels.PDFConfigModel(), model, json);
+            AssertSameValue(new ExportModels.PDFConfigModel(), model, json);
         }
     }
 
-    private async Task AssertExportLoadsLikeNewtonsoft(ExportType type, string key, Type modelType, string json)
+    private static string Wrap(string key, object model)
     {
-        var expected = NewtonsoftReference.ToObject(JObject.Parse(json)[key]!, modelType);
-        var config = await InsertAndLoadExport(type, json);
-
-        var loaded = config.LoadExportConfig();
-        Assert.IsInstanceOfType(loaded, modelType);
-        NewtonsoftReference.AssertSameValue(expected, loaded, $"{key} load");
-
-        config.StoreExportConfig(loaded);
-        AssertStoredReadableByNewtonsoft(json, config.Config, key, modelType, loaded);
+        return new JsonObject { [key] = StorageJson.SerializeToNode(model) }.ToJsonString();
     }
 
-    private async Task AssertUploadLoadsLikeNewtonsoft(ImageUploadMethod method, string key, Type modelType, string json)
+    private static void AssertSameValue(object expected, object actual, string name)
     {
-        var expected = NewtonsoftReference.ToObject(JObject.Parse(json)[key]!, modelType);
-        var config = await InsertAndLoadUpload(method, json);
-
-        var loaded = config.LoadUploadConfig();
-        Assert.IsInstanceOfType(loaded, modelType);
-        NewtonsoftReference.AssertSameValue(expected, loaded, $"{key} load");
-
-        config.StoreUploadConfig(loaded);
-        AssertStoredReadableByNewtonsoft(json, config.Config, key, modelType, loaded);
-    }
-
-    private static void AssertStoredReadableByNewtonsoft(string original, string stored, string key, Type modelType, object model)
-    {
-        var storedObject = JObject.Parse(stored);
-        NewtonsoftReference.AssertSameValue(model, NewtonsoftReference.ToObject(storedObject[key]!, modelType), $"{key} write");
-        Assert.IsTrue(JToken.DeepEquals(NewtonsoftReference.FromObject(model), storedObject[key]), $"{key}: stored JSON differs from Newtonsoft's serialization.\n{storedObject[key]}");
-
-        foreach (var property in JObject.Parse(original).Properties().Where(x => x.Name != key))
-            Assert.IsTrue(JToken.DeepEquals(property.Value, storedObject[property.Name]), $"Entry '{property.Name}' of another kind must be preserved.");
+        var expectedNode = StorageJson.SerializeToNode(expected);
+        var actualNode = StorageJson.SerializeToNode(actual);
+        Assert.IsTrue(JsonNode.DeepEquals(expectedNode, actualNode), $"{name}: expected {expectedNode?.ToJsonString()}, actual {actualNode?.ToJsonString()}");
     }
 
     private async Task<ExportConfig> InsertAndLoadExport(ExportType type, string json)

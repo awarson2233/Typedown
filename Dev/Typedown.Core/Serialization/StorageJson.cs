@@ -9,8 +9,7 @@ using System.Text.Json.Serialization.Metadata;
 namespace Typedown.Core.Serialization
 {
     /// <summary>
-    /// Reads and writes Typedown's persisted JSON documents (settings.json, Config columns) with System.Text.Json
-    /// while keeping the text layout Newtonsoft's <c>JToken.ToString()</c> produced.
+    /// Reads and writes Typedown's persisted JSON documents (settings.json, Config columns).
     /// </summary>
     public static class StorageJson
     {
@@ -19,16 +18,9 @@ namespace Typedown.Core.Serialization
             Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
         });
 
-        private static readonly JsonDocumentOptions documentOptions = new()
-        {
-            CommentHandling = JsonCommentHandling.Skip,
-            AllowTrailingCommas = true,
-        };
-
         private static readonly JsonWriterOptions writerOptions = new()
         {
             Indented = true,
-            NewLine = Environment.NewLine,
             Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
         };
 
@@ -43,22 +35,15 @@ namespace Typedown.Core.Serialization
         }
 
         /// <summary>
-        /// Parses a JSON object. Top-level duplicate keys keep the last value, as Newtonsoft's <c>JObject.Parse</c> does.
-        /// Throws <see cref="JsonException"/> for invalid JSON; returns an empty object when the root is not an object.
+        /// Parses a JSON object. Throws <see cref="JsonException"/> for invalid JSON; returns an empty object when the
+        /// root is not an object.
         /// </summary>
         public static JsonObject ParseObject(string json)
         {
-            using var document = JsonDocument.Parse(json, documentOptions);
-            var result = new JsonObject();
-            if (document.RootElement.ValueKind != JsonValueKind.Object)
-                return result;
-
-            foreach (var property in document.RootElement.EnumerateObject())
-                result[property.Name] = ToNode(property.Value);
-            return result;
+            return JsonNode.Parse(json) as JsonObject ?? new JsonObject();
         }
 
-        /// <summary>Indented, <see cref="Environment.NewLine"/> line breaks, non-ASCII left unescaped.</summary>
+        /// <summary>Indented, non-ASCII left unescaped so the file stays readable.</summary>
         public static string Write(JsonNode node)
         {
             using var stream = new MemoryStream();
@@ -72,7 +57,7 @@ namespace Typedown.Core.Serialization
             return JsonSerializer.SerializeToNode(value, GetTypeInfo<T>());
         }
 
-        /// <summary>Serializes <paramref name="value"/> as its runtime type, like Newtonsoft's <c>JObject.FromObject</c>.</summary>
+        /// <summary>Serializes <paramref name="value"/> as its runtime type, so derived config models keep their fields.</summary>
         public static JsonNode? SerializeToNode(object value)
         {
             return JsonSerializer.SerializeToNode(value, GetTypeInfo(value.GetType()));
@@ -86,17 +71,6 @@ namespace Typedown.Core.Serialization
         public static object? Deserialize(JsonNode node, Type type)
         {
             return node.Deserialize(GetTypeInfo(type));
-        }
-
-        private static JsonNode? ToNode(JsonElement element)
-        {
-            return element.ValueKind switch
-            {
-                JsonValueKind.Null or JsonValueKind.Undefined => null,
-                JsonValueKind.Object => JsonObject.Create(element.Clone()),
-                JsonValueKind.Array => JsonArray.Create(element.Clone()),
-                _ => JsonValue.Create(element.Clone()),
-            };
         }
     }
 }

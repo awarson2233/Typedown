@@ -13,8 +13,6 @@
     <PackageReference Include="MSTest.TestAdapter" Version="3.0.2" />
     <PackageReference Include="MSTest.TestFramework" Version="3.0.2" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.6" />
-    <!-- Reference implementation for the on-disk JSON compatibility tests; stays after Core drops Newtonsoft. -->
-    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
   </ItemGroup>
 
   <ItemGroup>

@@ -7,6 +7,7 @@ using System.Linq;
 using System.Reactive;
 using System.Reactive.Disposables;
 using System.Runtime.CompilerServices;
+using System.Text.Json;
 using System.Text.Json.Nodes;
 using Typedown.Core;
 using Typedown.Core.Enums;
@@ -152,7 +153,18 @@ namespace Typedown.Core.ViewModels
         public T GetSettingValue<T>(T defaultValue = default!, [CallerMemberName] string propertyName = "")
         {
             var value = store[propertyName];
-            return value is null ? defaultValue : StorageJson.Deserialize<T>(value)!;
+            if (value is null)
+                return defaultValue;
+
+            try
+            {
+                return StorageJson.Deserialize<T>(value)!;
+            }
+            catch (JsonException)
+            {
+                // A value that no longer matches the setting's type falls back to the default instead of failing startup.
+                return defaultValue;
+            }
         }
 
         public void SetSettingValue<T>(T value, [CallerMemberName] string propertyName = "")
