@@ -2,7 +2,7 @@ using System.Collections.Specialized;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
-using Newtonsoft.Json.Linq;
+using Typedown.Core.Editor;
 using Typedown.Core.Models;
 using Typedown.Core.Models.RuntimeModels;
 using Typedown.Core.Utilities;
@@ -24,15 +24,13 @@ public sealed partial class ImageItem : MenuItemCollection
 
     private IFilePickerService? FilePickerService => viewModel?.ServiceProvider.GetService<IFilePickerService>();
 
-    private IEditorCommandSink? EditorCommandSink => viewModel?.ServiceProvider.GetService<IEditorCommandSink>();
+    private ImageInfo? SelectedImage { get; set; }
 
-    private JToken? SelectedImage { get; set; }
+    private string ImageSrc => SelectedImage?.Src ?? string.Empty;
 
-    private string ImageSrc => SelectedImage?["token"]?["src"]?.ToString() ?? string.Empty;
+    private string ImageAlt => SelectedImage?.Alt ?? string.Empty;
 
-    private string ImageAlt => SelectedImage?["token"]?["alt"]?.ToString() ?? string.Empty;
-
-    private string ImageTitle => SelectedImage?["token"]?["title"]?.ToString() ?? string.Empty;
+    private string ImageTitle => SelectedImage?.Title ?? string.Empty;
 
     public ImageItem()
     {
@@ -187,7 +185,7 @@ public sealed partial class ImageItem : MenuItemCollection
 
     private void RefreshSelectedImage()
     {
-        SelectedImage = viewModel?.EditorViewModel.Selection?["selectedImage"];
+        SelectedImage = viewModel?.EditorViewModel.SelectedImage;
         UpdateMenuItemState();
     }
 
@@ -234,13 +232,7 @@ public sealed partial class ImageItem : MenuItemCollection
 
     private void ReplaceImage(HtmlImgTag htmlImgTag)
     {
-        EditorCommandSink?.Send("ReplaceImage", new
-        {
-            src = htmlImgTag.Src,
-            alt = htmlImgTag.Alt,
-            title = htmlImgTag.Title,
-            isReplaceSelected = true
-        });
+        viewModel?.EditorViewModel.Session.Post(new ReplaceImage(ImageTarget.Selected, htmlImgTag.Src, htmlImgTag.Alt, htmlImgTag.Title));
     }
 
     private async Task<string?> PickImageSavePath(byte[] bytes)

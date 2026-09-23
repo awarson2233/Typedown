@@ -139,7 +139,31 @@ namespace Typedown.Core.Editor
     /// <summary>一次写入剪贴板的内容；两种格式可以只有其一。</summary>
     public sealed record ClipboardContent(string? PlainText, string? Html);
 
-    public sealed record OutlineItem(string Id, int Level, string Text);
+    /// <summary>引擎为标题分配的标识，宿主只原样带回（跳转到标题），不解析其内容。</summary>
+    public readonly record struct HeadingId(string Value);
+
+    public sealed record OutlineItem(HeadingId Id, int Level, string Text);
+
+    /// <summary>引擎请求宿主显示的悬停提示。</summary>
+    public enum TooltipKind
+    {
+        /// <summary>代码块右上角的复制按钮。</summary>
+        CopyContent,
+
+        /// <summary>链接：Ctrl + 单击打开。</summary>
+        CtrlClickToOpenLink,
+
+        /// <summary>表格工具条：调整表格尺寸。</summary>
+        ResizeTable,
+
+        AlignLeft,
+
+        AlignCenter,
+
+        AlignRight,
+
+        DeleteTable,
+    }
 
     /// <summary>光标所在块的语义描述，菜单的勾选与可用状态由它投影。</summary>
     public sealed record BlockContext(

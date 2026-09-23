@@ -3,6 +3,7 @@ using System.Buffers;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Text.Json.Serialization.Metadata;
 using Typedown.Core.Models;
@@ -11,35 +12,30 @@ namespace Typedown.Core.Editor.Legacy
 {
     /// <summary>
     /// 旧 Muya 页面协议的无状态编解码：类型化命令 ⇄ 字符串消息名 + JSON 载荷。
-    /// 序列化全部走 <see cref="LegacyMuyaJsonContext"/> 源生成元数据，线上字节与此前的 Newtonsoft 输出一致。
+    /// 序列化全部走 <see cref="LegacyMuyaJsonContext"/> 源生成元数据；页面用 <c>JSON.parse</c> 读取，
+    /// 所以只约定字段名（camelCase，字典键同样 camelCase）与值的类型，不约定字节形态。
     /// </summary>
     public static class LegacyMuyaProtocol
     {
-        private static readonly JsonSerializerOptions serializerOptions = CreateSerializerOptions();
+        private static readonly JsonSerializerOptions serializerOptions = new()
+        {
+            // 正文里的中文与 HTML 原样输出；报文只经 postMessage 交给 JSON.parse，不嵌入 HTML。
+            Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+            DictionaryKeyPolicy = JsonNamingPolicy.CamelCase,
+            PropertyNameCaseInsensitive = true,
+            MaxDepth = 256,
+        };
 
         private static readonly LegacyMuyaJsonContext json = new(serializerOptions);
 
         private static readonly JsonWriterOptions writerOptions = new()
         {
-            Encoder = NewtonsoftCompatibleJavaScriptEncoder.Instance,
+            Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
             MaxDepth = 256,
         };
 
         private static readonly JsonDocumentOptions documentOptions = new() { MaxDepth = 256 };
-
-        private static JsonSerializerOptions CreateSerializerOptions()
-        {
-            var options = new JsonSerializerOptions
-            {
-                Encoder = NewtonsoftCompatibleJavaScriptEncoder.Instance,
-                PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-                DictionaryKeyPolicy = JsonNamingPolicy.CamelCase,
-                PropertyNameCaseInsensitive = true,
-                MaxDepth = 256,
-            };
-            options.Converters.Add(new NewtonsoftCompatibleDoubleConverter());
-            return options;
-        }
 
         // ── 宿主 → 页面：命令 ──────────────────────────────────────────────
 
@@ -101,7 +97,7 @@ namespace Typedown.Core.Editor.Legacy
                     new ReplaceArgs(c.Query, c.Replacement, new ReplaceOptionArgs(!c.All, c.Options.CaseSensitive, c.Options.WholeWord, c.Options.Regex)),
                     json.ReplaceArgs),
                 EndSearch => Message("SearchOpenChange", new SearchOpenChangeArgs(0), json.SearchOpenChangeArgs),
-                RevealHeading c => Message("ScrollTo", new ScrollToArgs(c.Id), json.ScrollToArgs),
+                RevealHeading c => Message("ScrollTo", new ScrollToArgs(c.Id.Value), json.ScrollToArgs),
                 ApplySettings c => Message("SettingsChanged", ToSettingsChangedArgs(c.Changes), json.SettingsChangedArgs),
                 ApplyTheme c => Message("ThemeChanged", ToThemeArgs(c.Theme), json.ThemeArgs),
                 SetKeymap c => Message(
@@ -341,7 +337,7 @@ namespace Typedown.Core.Editor.Legacy
         }
 
         private static OutlineItem ToOutlineItem(TocItemPayload item) =>
-            new(ToLegacyString(item.Slug) ?? string.Empty, item.Lvl, item.Content ?? string.Empty);
+            new(new HeadingId(ToLegacyString(item.Slug) ?? string.Empty), item.Lvl, item.Content ?? string.Empty);
 
         private static LegacyInbound DecodeSelectionChange(JsonElement args)
         {
@@ -462,13 +458,18 @@ namespace Typedown.Core.Editor.Legacy
             return new LegacyTypedEvent(new TableToolsRequested(payload?.Anchor, axis));
         }
 
-        private static LegacyInbound DecodeToolTip(JsonElement args)
+        private static LegacyInbound? DecodeToolTip(JsonElement args)
         {
             var payload = ReadFloat(args);
-            var key = payload?.Payload.Open == true && !string.IsNullOrWhiteSpace(payload.Payload.Tooltip)
-                ? payload.Payload.Tooltip
+            if (payload?.Payload.Open != true)
+            {
+                return new LegacyTypedEvent(new TooltipDismissed());
+            }
+
+            // 页面报的是资源键；认不出的提示整条丢弃。
+            return LegacyMuyaVocabulary.TryParseTooltip(payload.Payload.Tooltip, out var kind)
+                ? new LegacyTypedEvent(new TooltipRequested(kind, payload.Anchor))
                 : null;
-            return new LegacyTypedEvent(new TooltipRequested(key, key is null ? null : payload?.Anchor));
         }
 
         private static FloatRead? ReadFloat(JsonElement args)

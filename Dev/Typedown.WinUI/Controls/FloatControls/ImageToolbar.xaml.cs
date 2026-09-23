@@ -1,4 +1,3 @@
-using Newtonsoft.Json.Linq;
 using System;
 using System.Linq;
 using System.Reactive.Disposables;
@@ -6,6 +5,7 @@ using System.Reactive.Linq;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Controls.Primitives;
+using Typedown.Core.Editor;
 using Typedown.Core.Interfaces;
 using Typedown.Core.Models;
 using Typedown.Core.ViewModels;
@@ -17,25 +17,22 @@ namespace Typedown.WinUI.Controls
     {
         public AppViewModel ViewModel { get; }
 
-        public IEditorCommandSink EditorCommandSink { get; }
+        public IEditorSession EditorSession { get; }
 
         public IKeyboardAccelerator KeyboardAccelerator { get; }
 
         private CompositeDisposable? disposables;
 
-        private JToken attrs = new JObject();
-
-        public ImageToolbar(AppViewModel viewModel, IEditorCommandSink editorCommandSink, IKeyboardAccelerator keyboardAccelerator)
+        public ImageToolbar(AppViewModel viewModel, IEditorSession editorSession, IKeyboardAccelerator keyboardAccelerator)
         {
             ViewModel = viewModel ?? throw new ArgumentNullException(nameof(viewModel));
-            EditorCommandSink = editorCommandSink ?? throw new ArgumentNullException(nameof(editorCommandSink));
+            EditorSession = editorSession ?? throw new ArgumentNullException(nameof(editorSession));
             KeyboardAccelerator = keyboardAccelerator ?? throw new ArgumentNullException(nameof(keyboardAccelerator));
             InitializeComponent();
         }
 
-        public void Open(FrameworkElement anchor, Rect rect, JToken attrs, UIElement? overlayInputPassThroughElement)
+        public void Open(FrameworkElement anchor, Rect rect, UIElement? overlayInputPassThroughElement)
         {
-            this.attrs = attrs;
             AreOpenCloseAnimationsEnabled = ViewModel.SettingsViewModel.AnimationEnable;
             OverlayInputPassThroughElement = overlayInputPassThroughElement;
             if (rect == default)
@@ -53,49 +50,48 @@ namespace Typedown.WinUI.Controls
 
         private void EditClick(object sender, RoutedEventArgs e)
         {
-            PostEditImageMessage(new { type = "edit" });
+            PostEditImageMessage(new ApplyImageToolbarAction(ImageToolbarAction.Edit));
         }
 
         private void InlineClick(object sender, RoutedEventArgs e)
         {
-            PostEditImageMessage(new { type = "inline" });
+            PostEditImageMessage(new ApplyImageToolbarAction(ImageToolbarAction.Inline));
         }
 
         private void LeftClick(object sender, RoutedEventArgs e)
         {
-            PostEditImageMessage(new { type = "left" });
+            PostEditImageMessage(new ApplyImageToolbarAction(ImageToolbarAction.AlignLeft));
         }
 
         private void CenterClick(object sender, RoutedEventArgs e)
         {
-            PostEditImageMessage(new { type = "center" });
+            PostEditImageMessage(new ApplyImageToolbarAction(ImageToolbarAction.AlignCenter));
         }
 
         private void RightClick(object sender, RoutedEventArgs e)
         {
-            PostEditImageMessage(new { type = "right" });
+            PostEditImageMessage(new ApplyImageToolbarAction(ImageToolbarAction.AlignRight));
         }
 
         private void DeleteClick(object sender, RoutedEventArgs e)
         {
-            PostEditImageMessage(new { type = "delete" });
+            PostEditImageMessage(new ApplyImageToolbarAction(ImageToolbarAction.Delete));
         }
 
         private void ZoomClick(object sender, RoutedEventArgs e)
         {
-            if (sender is not MenuFlyoutItem { Tag: string zoom })
+            // 菜单项的 Tag 是缩放百分比，如 "25%"。
+            if (sender is not MenuFlyoutItem { Tag: string zoom } || !int.TryParse(zoom.TrimEnd('%'), out var percent))
             {
                 return;
             }
 
-            var style = (attrs["style"]?.ToString() ?? "").Split(';').Where(x => !x.StartsWith("zoom:") && !string.IsNullOrWhiteSpace(x)).ToList();
-            style.Add($"zoom:{zoom}");
-            PostEditImageMessage(new { type = "updateImage", attrName = "style", attrValue = $"{string.Join(';', style)};" });
+            PostEditImageMessage(new SetImageZoom(percent));
         }
 
-        private void PostEditImageMessage(object args)
+        private void PostEditImageMessage(EditorCommand command)
         {
-            EditorCommandSink.Send("ImageEditToolbarClick", args);
+            EditorSession.Post(command);
             Hide();
         }
 

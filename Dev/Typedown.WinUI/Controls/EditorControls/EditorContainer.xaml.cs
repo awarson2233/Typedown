@@ -2,10 +2,10 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
-using Newtonsoft.Json.Linq;
 using System.ComponentModel;
 using System.Reactive.Linq;
 using System.Windows.Input;
+using Typedown.Core.Editor;
 using Typedown.Core.Models;
 using Typedown.Core.Utilities;
 using Typedown.Core.Interfaces;
@@ -135,9 +135,9 @@ public sealed partial class EditorContainer : UserControl
             settingsViewModel = viewModel.SettingsViewModel;
 
             floatViewModel.PropertyChanged += OnFloatViewModelPropertyChanged;
-            scrollSubscription = editorViewModel.EventCenter
-                .GetObservable<EditorEventArgs>("OnScroll")
-                .Subscribe(OnEditorScrollStateChanged);
+            scrollSubscription = editorViewModel.Session.Events
+                .OfType<ViewportChanged>()
+                .Subscribe(OnEditorViewportChanged);
             if (findReplaceDialog is not null)
             {
                 findReplaceDialog.DataContext = viewModel;
@@ -244,11 +244,11 @@ public sealed partial class EditorContainer : UserControl
 
         menuFormatItem.DataContext = viewModel;
         menuImageItem.DataContext = viewModel;
-        var hasImageMenu = IsLoadImageMenu(Format?.FormatState.Image ?? false, Editor?.Selection);
+        var hasImageMenu = IsLoadImageMenu(Format?.FormatState.Image ?? false, Editor?.SelectedImage);
         menuImageItem.Visibility = hasImageMenu ? Visibility.Visible : Visibility.Collapsed;
         menuImageItemSeparator.Visibility = hasImageMenu ? Visibility.Visible : Visibility.Collapsed;
 
-        SetCommand(UndoItem, editor?.UndoCommand, editor?.History.Undoable == true);
+        SetCommand(UndoItem, editor?.UndoCommand, editor?.CanUndo == true);
         SetCommand(CutItem, editor?.CutCommand, hasSelection);
         SetCommand(CopyItem, editor?.CopyCommand, hasSelection);
         SetCommand(PasteItem, editor?.PasteCommand, editor is not null);
@@ -406,17 +406,13 @@ public sealed partial class EditorContainer : UserControl
         }
         else if (FileTypeHelper.IsImageFile(path))
         {
-            viewModel.ServiceProvider.GetService<IEditorCommandSink>()?.Send("InsertImage", new { src = path });
+            viewModel.EditorViewModel.Session.Post(new InsertImage(path));
         }
     }
 
     private void OnScroll(object sender, Microsoft.UI.Xaml.Controls.Primitives.ScrollEventArgs e)
     {
-        viewModel?.ServiceProvider.GetService<IEditorCommandSink>()?.Send("OnScroll", new
-        {
-            scrollX = HorizontalScrollBar.Value,
-            scrollY = VerticalScrollBar.Value
-        });
+        viewModel?.EditorViewModel.Session.Post(new ScrollTo(HorizontalScrollBar.Value, VerticalScrollBar.Value));
     }
 
     private void OnPointerPointerMoved(object sender, PointerRoutedEventArgs e)
@@ -446,14 +442,17 @@ public sealed partial class EditorContainer : UserControl
         e.Handled = true;
     }
 
-    private void OnEditorScrollStateChanged(EditorEventArgs args)
+    private void OnEditorViewportChanged(ViewportChanged viewport)
     {
-        if (args.Args is null || args.Args.Type == JTokenType.Null)
+        ScrollState = new ScrollState
         {
-            return;
-        }
-
-        ScrollState = args.Args.ToObject<ScrollState>() ?? new ScrollState();
+            ViewportWidth = viewport.ViewportWidth,
+            ViewportHeight = viewport.ViewportHeight,
+            MaximumX = viewport.MaximumX,
+            MaximumY = viewport.MaximumY,
+            ScrollX = viewport.ScrollX,
+            ScrollY = viewport.ScrollY,
+        };
     }
 
     private static void OnScrollStateChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
@@ -479,9 +478,9 @@ public sealed partial class EditorContainer : UserControl
         container.VerticalScrollBar.Visibility = scrollState.MaximumY <= 0 ? Visibility.Collapsed : Visibility.Visible;
     }
 
-    public static bool IsLoadImageMenu(bool isImageFormat, JToken? selection)
+    public static bool IsLoadImageMenu(bool isImageFormat, ImageInfo? selectedImage)
     {
-        return isImageFormat && (selection?["selectedImage"]?.HasValues ?? false);
+        return isImageFormat && selectedImage is not null;
     }
 
     private void OnEditorContextMenuRequested(object? sender, WinUIEditorContextMenuRequestedEventArgs e)

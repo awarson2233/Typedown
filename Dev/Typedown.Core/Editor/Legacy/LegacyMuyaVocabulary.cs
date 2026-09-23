@@ -50,6 +50,29 @@ namespace Typedown.Core.Editor.Legacy
             [BlockKind.MermaidDiagram] = "mermaid",
         };
 
+        /// <summary>页面 <c>data-tooltip</c> 属性里的资源键。</summary>
+        private static readonly IReadOnlyDictionary<string, TooltipKind> tooltipNames = new Dictionary<string, TooltipKind>
+        {
+            ["CopyContent"] = TooltipKind.CopyContent,
+            ["CtrlAndClickOpenLink"] = TooltipKind.CtrlClickToOpenLink,
+            ["ResizeTable"] = TooltipKind.ResizeTable,
+            ["AlignLeft"] = TooltipKind.AlignLeft,
+            ["AlignCenter"] = TooltipKind.AlignCenter,
+            ["AlignRight"] = TooltipKind.AlignRight,
+            ["DeleteTable"] = TooltipKind.DeleteTable,
+        };
+
+        public static bool TryParseTooltip(string? name, out TooltipKind kind)
+        {
+            if (name is not null && tooltipNames.TryGetValue(name, out kind))
+            {
+                return true;
+            }
+
+            kind = default;
+            return false;
+        }
+
         public static string GetFormatName(InlineMark mark) => formatNames[mark];
 
         public static bool TryParseFormatName(string? name, out InlineMark mark)

@@ -1,22 +1,20 @@
 using System;
-using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Net.Sockets;
 using System.Reactive.Disposables;
+using System.Reactive.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.Web.WebView2.Core;
-using Typedown.Core.Models;
-using Typedown.Core.Services;
-using Typedown.Core.Utilities;
+using Typedown.Core.Editor;
 using Typedown.Core.Interfaces;
+using Typedown.Core.Models;
 using Typedown.Core.ViewModels;
-using Typedown.Services;
 using Typedown.WinUI.Services;
 using Typedown.WinUI.Utilities;
 using Windows.Foundation;
@@ -25,24 +23,20 @@ using Windows.UI.ViewManagement;
 namespace Typedown.WinUI.Controls
 {
     /// <summary>
-    /// WebView2 编辑器宿主。职责边界与 1.2.19 的 <c>Typedown.Controls.MarkdownEditor</c> 对齐：
-    /// 只负责 WebView2 生命周期、报文收发、主题与输入，不持有正文状态、不做文件 IO、不对消息名做白名单。
-    /// 协议解析统一由 <see cref="EditorBridge"/> 承担，文档状态由 Core 的 ViewModel 独占。
+    /// WebView2 编辑器宿主。只负责 WebView2 生命周期、报文的物理收发、主题背景与键盘输入，
+    /// 不持有正文状态、不解析协议：报文一律交给 <see cref="LegacyMuyaSession"/>，文档状态由编辑会话与 Core 的 ViewModel 持有。
     /// </summary>
-    public sealed class WinUIEditorHost : UserControl, IDisposable
+    public sealed class WinUIEditorHost : UserControl, ILegacyMuyaChannel, IDisposable
     {
         private readonly WebView2 webView;
         private readonly IServiceProvider? serviceProvider;
-        private readonly EditorBridge? bridge;
-        private readonly WinUIEditorCommandSink? commandSink;
+        private readonly LegacyMuyaSession? session;
+        private readonly WinUIKeyboardAccelerator? accelerator;
         private readonly WinUIWebViewEnvironmentService? webViewEnvironmentService;
         private readonly string? editorIndex;
-        private readonly PendingRawMessageQueue pendingRawMessages = new();
         private readonly CompositeDisposable disposables = new();
         private readonly StartupNavigationTraceState startupNavigationTraceState = new();
         private readonly UISettings uiSettings = new();
-
-        private static readonly HashSet<ulong> reportedEditorExceptions = new();
 
         private Task? coreInitializationTask;
         private CancellationTokenSource? loadCancellation;
@@ -50,7 +44,6 @@ namespace Typedown.WinUI.Controls
         private bool isLoaded;
         private bool coreEventsAttached;
         private bool editorNavigationStarted;
-        private bool isContentLoaded;
         private XamlRoot? observedXamlRoot;
         private double observedRasterizationScale;
         private int loadVersion;
@@ -62,7 +55,8 @@ namespace Typedown.WinUI.Controls
             using (StartupTrace.Phase("WinUIEditorHost ctor"))
             {
                 this.serviceProvider = serviceProvider;
-                commandSink = serviceProvider?.GetService<IEditorCommandSink>() as WinUIEditorCommandSink;
+                session = serviceProvider?.GetService<LegacyMuyaSession>();
+                accelerator = serviceProvider?.GetService<IKeyboardAccelerator>() as WinUIKeyboardAccelerator;
                 webViewEnvironmentService = serviceProvider?.GetService<WinUIWebViewEnvironmentService>();
                 editorIndex = ResolveEditorIndexPath();
 
@@ -73,14 +67,10 @@ namespace Typedown.WinUI.Controls
                     VerticalAlignment = VerticalAlignment.Stretch
                 };
 
-                var remoteInvoke = serviceProvider?.GetService<RemoteInvoke>();
-                var transport = serviceProvider?.GetService<Transport>();
-                if (remoteInvoke is not null && transport is not null)
+                if (session is not null)
                 {
-                    bridge = new EditorBridge(remoteInvoke, transport, SendRawMessage);
-                    EnsurePresentationHandlersRegistered();
-                    RegisterHostInvokeHandlers(remoteInvoke);
-                    SubscribeHostEvents();
+                    EnsureViewModelsSubscribed();
+                    SubscribeSession(session);
                 }
 
                 Content = webView;
@@ -90,14 +80,13 @@ namespace Typedown.WinUI.Controls
             }
         }
 
-        // ── 宿主自有的 invoke / 事件处理 ────────────────────────────────────────
+        // ── 编辑会话 ──────────────────────────────────────────────────────────
 
         /// <summary>
-        /// ViewModel 是 Scoped 且惰性解析的，而它们的 RemoteInvoke 处理器在构造函数里注册。
-        /// 前端一上来就会 invoke GetSettings / GetStringResources / ResizeTable，
-        /// 因此必须在桥接建立前把这些 ViewModel 提前实例化，否则首个 invoke 会找不到 handler。
+        /// ViewModel 是 Scoped 且惰性解析的，而它们在构造函数里订阅编辑会话的事件。
+        /// 页面一上来就会报选区、字数与目录，所以要在页面加载前把这些 ViewModel 提前实例化。
         /// </summary>
-        private void EnsurePresentationHandlersRegistered()
+        private void EnsureViewModelsSubscribed()
         {
             if (serviceProvider?.GetService<AppViewModel>() is not AppViewModel appViewModel)
             {
@@ -112,206 +101,50 @@ namespace Typedown.WinUI.Controls
             _ = appViewModel.UIViewModel;
         }
 
-        private void RegisterHostInvokeHandlers(RemoteInvoke remoteInvoke)
+        private void SubscribeSession(LegacyMuyaSession editorSession)
         {
-            disposables.Add(remoteInvoke.Handle("ContentLoaded", OnContentLoaded));
-            disposables.Add(remoteInvoke.Handle("GetCurrentTheme", CreateCurrentThemePayload));
-            disposables.Add(remoteInvoke.Handle<string>("UnhandledException", OnEditorUnhandledException));
-            disposables.Add(remoteInvoke.Handle<string>("OpenNewWindow", uri => OpenUri(uri)));
-        }
-
-        private void SubscribeHostEvents()
-        {
-            if (serviceProvider?.GetService<EventCenter>() is not EventCenter eventCenter)
-            {
-                return;
-            }
-
-            disposables.Add(eventCenter.GetObservable<EditorEventArgs>("OpenURI")
-                .Subscribe(x => OpenUri(x.Args?["uri"]?.ToString())));
-            disposables.Add(eventCenter.GetObservable<EditorEventArgs>("FileLoaded")
+            disposables.Add(editorSession.StateChanged
+                .Where(state => state == EditorSessionState.Ready)
+                .Subscribe(_ => OnEditorReady()));
+            disposables.Add(editorSession.Events.OfType<DocumentLoaded>()
                 .Subscribe(_ => RecordBridgeMilestone("FileLoaded")));
 
-            // 前端若以页面级 contextmenu 监听上报坐标，这里同样接得住；
-            // 原生 CoreWebView2.ContextMenuRequested 是首选路径，两者最终汇到同一个处理。
-            disposables.Add(eventCenter.GetObservable<EditorEventArgs>("OpenContextMenu")
-                .Subscribe(x => RaiseContextMenuRequested(
-                    x.Args?["x"]?.ToObject<double>() ?? 0,
-                    x.Args?["y"]?.ToObject<double>() ?? 0)));
-
             // 焦点在 WebView2 里时 XAML 收不到 KeyDown，页面按下发的快捷键表拦下和弦后回传到这里补触发。
-            disposables.Add(eventCenter.GetObservable<EditorEventArgs>("KeyDown")
-                .Subscribe(x => OnEditorKeyDown(
-                    x.Args?["key"]?.ToObject<int>() ?? 0,
-                    x.Args?["modifiers"]?.ToObject<int>() ?? 0)));
+            disposables.Add(editorSession.Events.OfType<ShortcutPressed>()
+                .Subscribe(x => accelerator?.Emit(x.Key, x.Modifiers)));
 
-            if (serviceProvider?.GetService<IKeyboardAccelerator>() is WinUIKeyboardAccelerator accelerator)
+            if (accelerator is not null)
             {
-                disposables.Add(accelerator.RegistrationsChanged.Subscribe(_ => SendShortcutTable()));
+                disposables.Add(accelerator.RegistrationsChanged.Subscribe(_ => PostKeymap()));
+                PostKeymap();
             }
         }
 
-        private void OnEditorKeyDown(int key, int modifiers)
+        private void PostKeymap()
         {
-            if (serviceProvider?.GetService<IKeyboardAccelerator>() is WinUIKeyboardAccelerator accelerator)
-            {
-                accelerator.Emit((KeyboardKey)key, (KeyboardModifiers)modifiers);
-            }
-        }
-
-        private void SendShortcutTable()
-        {
-            if (serviceProvider?.GetService<IKeyboardAccelerator>() is not WinUIKeyboardAccelerator accelerator)
+            if (accelerator is null)
             {
                 return;
             }
 
-            var shortcuts = accelerator.RegisteredShortcuts
-                .Select(chord => new { key = (int)chord.Key, modifiers = (int)chord.Modifiers })
-                .ToList();
-            bridge?.Send("SetShortcuts", new { shortcuts });
+            session?.Post(new SetKeymap(accelerator.RegisteredShortcuts
+                .Select(chord => new KeyChord(chord.Key, chord.Modifiers))
+                .ToList()));
         }
 
-        private void OnContentLoaded()
+        private void OnEditorReady()
         {
-            isContentLoaded = true;
             webView.Opacity = 1;
             RecordBridgeMilestone("ContentLoaded");
-            commandSink?.ResendLatestTheme(this);
-            SendShortcutTable();
         }
 
-        private void OnEditorUnhandledException(string error)
-        {
-            webView.CoreWebView2?.Reload();
-            try
-            {
-                var hash = Common.SimpleHash(error);
-                if (reportedEditorExceptions.Add(hash))
-                {
-                    _ = Log.Report("WebViewUnhandledException", error);
-                }
-            }
-            catch
-            {
-                // 上报失败不应影响自愈重载。
-            }
-        }
+        // ── ILegacyMuyaChannel ────────────────────────────────────────────────
 
-        private bool OpenUri(string? uri)
-        {
-            if (string.IsNullOrWhiteSpace(uri))
-            {
-                return false;
-            }
-
-            try
-            {
-                if (!UriHelper.IsWebUrl(uri) && UriHelper.TryGetLocalPath(uri, out var localPath))
-                {
-                    var appViewModel = serviceProvider?.GetService<AppViewModel>();
-                    var currentFolder = Path.GetDirectoryName(appViewModel?.FileViewModel.FilePath ?? string.Empty);
-                    if (!string.IsNullOrWhiteSpace(currentFolder))
-                    {
-                        var fullPath = Path.GetFullPath(Path.Combine(currentFolder, localPath));
-                        if (File.Exists(fullPath))
-                        {
-                            if (FileTypeHelper.IsMarkdownFile(fullPath) && appViewModel is not null)
-                            {
-                                appViewModel.FileViewModel.NewWindowCommand.Execute(fullPath);
-                            }
-                            else
-                            {
-                                Common.OpenUrl(fullPath);
-                            }
-
-                            return true;
-                        }
-                    }
-                }
-
-                Common.OpenUrl(uri);
-                return true;
-            }
-            catch
-            {
-                return false;
-            }
-        }
-
-        // ── 主题 ──────────────────────────────────────────────────────────────
-
-        private EditorThemePayload CreateCurrentThemePayload()
-        {
-            var isDark = ActualTheme == ElementTheme.Dark;
-            var background = isDark
-                ? new EditorColorPayload(40, 40, 40, 1)
-                : new EditorColorPayload(249, 249, 249, 1);
-
-            return new EditorThemePayload
-            {
-                Theme = isDark ? "Dark" : "Light",
-                AccentColor = ResolveSystemAccentColor(),
-                Background = background
-            };
-        }
-
-        private EditorColorPayload ResolveSystemAccentColor()
+        bool ILegacyMuyaChannel.TryPost(string message)
         {
             try
             {
-                var accent = uiSettings.GetColorValue(UIColorType.Accent);
-                return new EditorColorPayload(accent.R, accent.G, accent.B, 1);
-            }
-            catch
-            {
-                return new EditorColorPayload(27, 102, 107, 1);
-            }
-        }
-
-        private void ApplyNativeEditorBackground(EditorColorPayload background)
-        {
-            webView.DefaultBackgroundColor = Windows.UI.Color.FromArgb(
-                ToByte(background.A * 255),
-                ToByte(background.R),
-                ToByte(background.G),
-                ToByte(background.B));
-        }
-
-        // ── 报文收发 ──────────────────────────────────────────────────────────
-
-        /// <summary>供 <see cref="WinUIEditorCommandSink"/> 转发 ViewModel 发起的命令。</summary>
-        internal bool SendCommand(string name, object? args)
-        {
-            return bridge?.Send(name, args!) == true;
-        }
-
-        private bool SendRawMessage(string payload)
-        {
-            if (webView.CoreWebView2 is null)
-            {
-                pendingRawMessages.Enqueue(payload);
-                return true;
-            }
-
-            return TryPostRawMessage(payload);
-        }
-
-        private void FlushPendingRawMessages()
-        {
-            if (webView.CoreWebView2 is null)
-            {
-                return;
-            }
-
-            pendingRawMessages.Flush(TryPostRawMessage);
-        }
-
-        private bool TryPostRawMessage(string payload)
-        {
-            try
-            {
-                webView.CoreWebView2?.PostWebMessageAsString(payload);
+                webView.CoreWebView2?.PostWebMessageAsString(message);
                 return webView.CoreWebView2 is not null;
             }
             catch
@@ -320,17 +153,64 @@ namespace Typedown.WinUI.Controls
             }
         }
 
+        void ILegacyMuyaChannel.Reload() => webView.CoreWebView2?.Reload();
+
+        EditorTheme ILegacyMuyaChannel.GetCurrentTheme() => CreateCurrentTheme();
+
+        // ── 主题 ──────────────────────────────────────────────────────────────
+
+        private EditorTheme CreateCurrentTheme()
+        {
+            var isDark = ActualTheme == ElementTheme.Dark;
+            var background = isDark
+                ? new EditorColor(40, 40, 40, 1)
+                : new EditorColor(249, 249, 249, 1);
+
+            return new EditorTheme(isDark, ResolveSystemAccentColor(), background);
+        }
+
+        private EditorColor ResolveSystemAccentColor()
+        {
+            try
+            {
+                var accent = uiSettings.GetColorValue(UIColorType.Accent);
+                return new EditorColor(accent.R, accent.G, accent.B, 1);
+            }
+            catch
+            {
+                return new EditorColor(27, 102, 107, 1);
+            }
+        }
+
+        private void ApplyNativeEditorBackground(EditorColor background)
+        {
+            webView.DefaultBackgroundColor = Windows.UI.Color.FromArgb(
+                ToByte(background.A * 255),
+                ToByte(background.R),
+                ToByte(background.G),
+                ToByte(background.B));
+        }
+
+        // ── 报文接收 ──────────────────────────────────────────────────────────
+
         private async void OnWebMessageReceived(CoreWebView2 sender, CoreWebView2WebMessageReceivedEventArgs e)
         {
-            if (bridge is null)
+            if (session is null)
             {
                 return;
             }
 
-            var messageLoadVersion = loadVersion;
-            var messageStr = e.TryGetWebMessageAsString();
-            await bridge.ReceiveAsync(messageStr);
-            _ = IsCurrentLoad(messageLoadVersion);
+            string? message;
+            try
+            {
+                message = e.TryGetWebMessageAsString();
+            }
+            catch
+            {
+                return;
+            }
+
+            await session.ReceiveAsync(message);
         }
 
         private void RecordBridgeMilestone(string? eventName)
@@ -359,19 +239,18 @@ namespace Typedown.WinUI.Controls
             var currentLoadVersion = ++loadVersion;
 
             isLoaded = true;
-            commandSink?.RegisterActiveHost(this);
             ObserveXamlRoot(XamlRoot);
 
             try
             {
-                var themePayload = CreateCurrentThemePayload();
-                ApplyNativeEditorBackground(themePayload.Background);
+                var theme = CreateCurrentTheme();
+                ApplyNativeEditorBackground(theme.Background);
 
                 if (coreInitialized && editorNavigationStarted)
                 {
                     AttachCoreWebView();
-                    FlushPendingRawMessages();
-                    if (isContentLoaded)
+                    session?.Attach(this);
+                    if (session?.State == EditorSessionState.Ready)
                     {
                         webView.Opacity = 1;
                     }
@@ -379,14 +258,14 @@ namespace Typedown.WinUI.Controls
                     return;
                 }
 
-                await EnsureCoreInitializedAsync(themePayload.Background, cancellationToken);
+                await EnsureCoreInitializedAsync(theme.Background, cancellationToken);
                 if (!IsCurrentLoad(currentLoadVersion, cancellationToken))
                 {
                     return;
                 }
 
-                isContentLoaded = false;
                 AttachCoreWebView();
+                session?.Attach(this);
 
                 // 右键菜单走原生路径：默认菜单必须保持启用，ContextMenuRequested 才会触发，
                 // 再由 Handled = true 抑制浏览器菜单并改用 XAML Flyout。
@@ -453,8 +332,7 @@ namespace Typedown.WinUI.Controls
             loadCancellation?.Cancel();
             loadCancellation?.Dispose();
             loadCancellation = null;
-            pendingRawMessages.Clear();
-            commandSink?.UnregisterActiveHost(this);
+            session?.Detach(this);
             ObserveXamlRoot(null);
             DetachCoreWebView();
         }
@@ -467,10 +345,7 @@ namespace Typedown.WinUI.Controls
         /// </summary>
         private void RequestScrollStateRefresh()
         {
-            if (isContentLoaded)
-            {
-                SendCommand("RefreshScrollState", null);
-            }
+            session?.Post(new RefreshViewport());
         }
 
         private void OnHostSizeChanged(object sender, SizeChangedEventArgs e)
@@ -522,7 +397,7 @@ namespace Typedown.WinUI.Controls
             return IsCurrentLoad(version) && !cancellationToken.IsCancellationRequested;
         }
 
-        private async Task EnsureCoreInitializedAsync(EditorColorPayload background, CancellationToken cancellationToken)
+        private async Task EnsureCoreInitializedAsync(EditorColor background, CancellationToken cancellationToken)
         {
             var initializationTask = coreInitializationTask ??= InitializeCoreAsync(background);
             try
@@ -540,7 +415,7 @@ namespace Typedown.WinUI.Controls
             }
         }
 
-        private async Task InitializeCoreAsync(EditorColorPayload background)
+        private async Task InitializeCoreAsync(EditorColor background)
         {
             var environment = await GetEnvironmentAsync();
             StartupTrace.EnsureCoreWebView2Start();
@@ -603,7 +478,7 @@ namespace Typedown.WinUI.Controls
         /// 只做一件事：在首帧之前把文档背景刷成与宿主一致的颜色，避免 WebView2 的白底闪烁。
         /// 快捷键一律走 <see cref="IKeyboardAccelerator"/>，不在这里硬编码。
         /// </summary>
-        private static string BuildDocumentCreatedScript(EditorColorPayload background)
+        private static string BuildDocumentCreatedScript(EditorColor background)
         {
             var color = string.Create(
                 CultureInfo.InvariantCulture,
@@ -672,7 +547,7 @@ namespace Typedown.WinUI.Controls
 
         private void OnNavigationStarting(CoreWebView2 sender, CoreWebView2NavigationStartingEventArgs e)
         {
-            isContentLoaded = false;
+            session?.OnNavigationStarting();
             startupNavigationTraceState.NavigationStarting(e.NavigationId);
             StartupTrace.NavigationStarting(e.NavigationId, StartupTrace.IsEnabled ? e.Uri : null);
         }
@@ -698,10 +573,7 @@ namespace Typedown.WinUI.Controls
             if (!e.IsSuccess)
             {
                 webView.Opacity = 1;
-                return;
             }
-
-            FlushPendingRawMessages();
         }
 
         private void OnProcessFailed(CoreWebView2 sender, CoreWebView2ProcessFailedEventArgs e)
@@ -712,17 +584,12 @@ namespace Typedown.WinUI.Controls
         private void OnCoreContextMenuRequested(CoreWebView2 sender, CoreWebView2ContextMenuRequestedEventArgs e)
         {
             e.Handled = true;
-            RaiseContextMenuRequested(e.Location.X, e.Location.Y);
-        }
-
-        private void RaiseContextMenuRequested(double x, double y)
-        {
-            ContextMenuRequested?.Invoke(this, new WinUIEditorContextMenuRequestedEventArgs(new Point(x, y)));
+            ContextMenuRequested?.Invoke(this, new WinUIEditorContextMenuRequestedEventArgs(new Point(e.Location.X, e.Location.Y)));
         }
 
         private void OnPreviewKeyDown(object sender, Microsoft.UI.Xaml.Input.KeyRoutedEventArgs e)
         {
-            if (serviceProvider?.GetService<IKeyboardAccelerator>() is WinUIKeyboardAccelerator accelerator)
+            if (accelerator is not null)
             {
                 var args = accelerator.Emit((KeyboardKey)(int)e.Key, WinUIKeyboardAccelerator.GetCurrentModifiers());
                 e.Handled = args.Handled;
@@ -756,6 +623,7 @@ namespace Typedown.WinUI.Controls
         {
             ObserveXamlRoot(null);
             DetachCoreWebView();
+            session?.Detach(this);
             disposables.Dispose();
             loadCancellation?.Cancel();
             loadCancellation?.Dispose();

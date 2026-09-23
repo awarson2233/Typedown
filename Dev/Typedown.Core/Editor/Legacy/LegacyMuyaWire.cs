@@ -5,8 +5,8 @@ using Typedown.Core.Models;
 
 namespace Typedown.Core.Editor.Legacy
 {
-    // 旧 Muya 页面的线上载荷。字段名与顺序即线上格式：序列化按声明顺序、camelCase 输出，
-    // 与此前 Newtonsoft 匿名对象的输出逐字节一致（见 CoreTests 的旧线格式对照测试）。
+    // 旧 Muya 页面的线上载荷。字段名即线上格式（camelCase），页面按字段名读取，
+    // 与此前的载荷语义一致（见 CoreTests 的旧线格式对照测试）。
 
     // ── 宿主 → 页面 ─────────────────────────────────────────────────────
 

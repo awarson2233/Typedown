@@ -8,7 +8,6 @@
 		<GenerateAssemblyInfo>false</GenerateAssemblyInfo>
 		<Platforms>x64;ARM64</Platforms>
 		<PlatformTarget>AnyCPU</PlatformTarget>
-		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 	</PropertyGroup>
 	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
 	  <IsTrimmable>True</IsTrimmable>

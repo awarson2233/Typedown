@@ -1,6 +1,4 @@
-﻿using Newtonsoft.Json;
-using Newtonsoft.Json.Serialization;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using Typedown.Core.Interfaces;
@@ -29,15 +27,6 @@ namespace Typedown.Core
             "--flag-switches-begin",
             "--enable-features=msOverlayScrollbarWinStyle",
             "--flag-switches-end"
-        };
-
-        public static JsonSerializerSettings EditorJsonSerializerSettings = new()
-        {
-            ContractResolver = new DefaultContractResolver()
-            {
-                NamingStrategy = new CamelCaseNamingStrategy(true, true)
-            },
-            MaxDepth = 256
         };
 
         public static string GetLocalFolderPath()

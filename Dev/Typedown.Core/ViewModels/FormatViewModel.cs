@@ -1,13 +1,12 @@
 using Microsoft.Extensions.DependencyInjection;
-using Newtonsoft.Json.Linq;
 using System;
-using System.Collections.Generic;
 using System.ComponentModel;
 using System.Reactive.Disposables;
+using System.Reactive.Linq;
+using Typedown.Core.Editor;
+using Typedown.Core.Editor.Legacy;
 using Typedown.Core.Models;
-using Typedown.Core.Services;
 using Typedown.Core.Utilities;
-using Typedown.Core.Interfaces;
 
 namespace Typedown.Core.ViewModels
 {
@@ -19,11 +18,9 @@ namespace Typedown.Core.ViewModels
 
         public EditorViewModel EditorViewModel => ServiceProvider.GetRequiredService<EditorViewModel>();
 
-        public EventCenter EventCenter => ServiceProvider.GetRequiredService<EventCenter>();
+        public IEditorSession EditorSession => ServiceProvider.GetRequiredService<IEditorSession>();
 
         public FormatState FormatState { get; private set; } = new();
-
-        public IEditorCommandSink EditorCommandSink => ServiceProvider.GetRequiredService<IEditorCommandSink>();
 
         public Command<string> SetFormatCommand { get; } = new();
 
@@ -32,13 +29,13 @@ namespace Typedown.Core.ViewModels
         public FormatViewModel(IServiceProvider serviceProvider)
         {
             ServiceProvider = serviceProvider;
-            disposables.Add(EventCenter.GetObservable<EditorEventArgs>("SelectionFormats").Subscribe(x => OnSelectionFormats(x.Args)));
+            disposables.Add(EditorSession.Events.OfType<MarksChanged>().Subscribe(ApplyMarks));
             disposables.Add(SetFormatCommand.OnExecute.Subscribe(x => SetFormatFun(x)));
         }
 
-        public void OnSelectionFormats(JToken arg)
+        private void ApplyMarks(MarksChanged marks)
         {
-            FormatState = new(arg["formats"]?.ToObject<List<FormatState.SelectionFormat>>());
+            FormatState = new(marks.Marks);
             EditorViewModel.UpdateMuyaSelected();
         }
 
@@ -47,9 +44,17 @@ namespace Typedown.Core.ViewModels
             FormatState = new FormatState();
         }
 
+        /// <summary>菜单项以格式名作命令参数（strong、em、u、clear…）。</summary>
         private void SetFormatFun(string type)
         {
-            EditorCommandSink?.Send("Format", type);
+            if (type == LegacyMuyaVocabulary.ClearFormatName)
+            {
+                EditorSession.Post(new ClearInlineMarks());
+            }
+            else if (LegacyMuyaVocabulary.TryParseFormatName(type, out var mark))
+            {
+                EditorSession.Post(new ToggleInlineMark(mark));
+            }
         }
 
         public void Dispose()

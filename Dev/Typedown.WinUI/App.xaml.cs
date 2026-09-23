@@ -7,6 +7,7 @@ using Microsoft.Windows.AppLifecycle;
 using System.Diagnostics;
 using System.Linq;
 using Typedown.Core;
+using Typedown.Core.Editor;
 using Typedown.Core.Enums;
 using Typedown.Core.Interfaces;
 using Typedown.Core.Utilities;
@@ -152,9 +153,9 @@ namespace Typedown.WinUI
                         // 语义上属于窗口：keyEvents 是共享 Subject。目前每个窗口独占一个进程和一个 uiScope，
                         // Scoped 与单例运行时等价；将来若同一进程承载多个窗口，单例会让快捷键触发所有窗口的菜单项。
                         .AddScoped<IKeyboardAccelerator, WinUIKeyboardAccelerator>()
-                        .AddScoped<IEditorCommandSink, WinUIEditorCommandSink>()
+                        .AddScoped<LegacyMuyaSession>()
+                        .AddScoped<IEditorSession>(sp => sp.GetRequiredService<LegacyMuyaSession>())
                         .AddSingleton<IPowerShellService, WinUIPowerShellService>()
-                        .AddScoped<IEditorSettingsNotifier, WinUIEditorSettingsNotifier>()
                         .AddSingleton<ITableDialogService, WinUITableDialogService>()
                         .AddSingleton<IWindowService, WinUIWindowService>()
                         .AddTypedownCore()
@@ -544,16 +545,16 @@ namespace Typedown.WinUI
 
         private void NotifyActiveEditorThemeChanged(ElementTheme actualTheme)
         {
-            var payload = CreateEditorThemePayload(actualTheme);
-            if (payload is null)
+            var theme = CreateEditorTheme(actualTheme);
+            if (theme is null)
             {
                 return;
             }
 
-            uiServices?.GetService<IEditorCommandSink>()?.Send("ThemeChanged", payload);
+            uiServices?.GetService<IEditorSession>()?.Post(new ApplyTheme(theme));
         }
 
-        private static EditorThemePayload? CreateEditorThemePayload(ElementTheme actualTheme)
+        private static EditorTheme? CreateEditorTheme(ElementTheme actualTheme)
         {
             if (actualTheme != ElementTheme.Light && actualTheme != ElementTheme.Dark)
             {
@@ -562,15 +563,10 @@ namespace Typedown.WinUI
 
             var isDark = actualTheme == ElementTheme.Dark;
             var background = isDark
-                ? new EditorColorPayload(40, 40, 40, 1)
-                : new EditorColorPayload(249, 249, 249, 1);
+                ? new EditorColor(40, 40, 40, 1)
+                : new EditorColor(249, 249, 249, 1);
 
-            return new EditorThemePayload
-            {
-                Theme = isDark ? "Dark" : "Light",
-                AccentColor = new EditorColorPayload(27, 102, 107, 1),
-                Background = background
-            };
+            return new EditorTheme(isDark, new EditorColor(27, 102, 107, 1), background);
         }
 
         internal WinUIPlatformServices PlatformServices => platformServices ?? throw new InvalidOperationException("Platform services are not initialized.");

@@ -68,6 +68,8 @@ namespace Typedown.Core.Editor
 
     public sealed record TableToolsRequested(EditorRect? Anchor, TableAxis Axis) : EditorEvent;
 
-    /// <summary><paramref name="ResourceKey"/> 为 <c>null</c> 表示关闭提示。</summary>
-    public sealed record TooltipRequested(string? ResourceKey, EditorRect? Anchor) : EditorEvent;
+    public sealed record TooltipRequested(TooltipKind Kind, EditorRect? Anchor) : EditorEvent;
+
+    /// <summary>关闭当前的悬停提示。</summary>
+    public sealed record TooltipDismissed : EditorEvent;
 }

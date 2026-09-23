@@ -1,4 +1,3 @@
-using Newtonsoft.Json.Linq;
 using System;
 using System.Linq;
 using System.Net;
@@ -7,6 +6,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Controls.Primitives;
+using Typedown.Core.Editor;
 using Typedown.Core.Utilities;
 using Typedown.Core.Interfaces;
 using Typedown.Core.Services;
@@ -19,7 +19,7 @@ namespace Typedown.WinUI.Controls
     {
         public AppViewModel ViewModel { get; }
 
-        private IEditorCommandSink EditorCommandSink { get; }
+        private IEditorSession EditorSession { get; }
 
         private IFilePickerService FilePickerService { get; }
 
@@ -35,10 +35,10 @@ namespace Typedown.WinUI.Controls
 
         private bool isSaving;
 
-        public ImageSelector(AppViewModel viewModel, IEditorCommandSink editorCommandSink, IFilePickerService filePickerService)
+        public ImageSelector(AppViewModel viewModel, IEditorSession editorSession, IFilePickerService filePickerService)
         {
             ViewModel = viewModel ?? throw new ArgumentNullException(nameof(viewModel));
-            EditorCommandSink = editorCommandSink ?? throw new ArgumentNullException(nameof(editorCommandSink));
+            EditorSession = editorSession ?? throw new ArgumentNullException(nameof(editorSession));
             FilePickerService = filePickerService ?? throw new ArgumentNullException(nameof(filePickerService));
             flyout.AreOpenCloseAnimationsEnabled = ViewModel.SettingsViewModel.AnimationEnable;
             flyout.Closing += OnFlyoutClosing;
@@ -46,13 +46,13 @@ namespace Typedown.WinUI.Controls
             ApplyLocalizedText();
         }
 
-        public void Open(FrameworkElement anchor, Rect rect, JToken imageInfo)
+        public void Open(FrameworkElement anchor, Rect rect, ImageInfo imageInfo)
         {
             this.anchor = anchor ?? throw new ArgumentNullException(nameof(anchor));
             this.rect = rect;
-            TextBoxSrc.Text = WebUtility.UrlDecode(imageInfo?["src"]?.ToString() ?? "");
-            TextBoxAlt.Text = imageInfo?["alt"]?.ToString() ?? "";
-            TextBoxTitle.Text = imageInfo?["title"]?.ToString() ?? "";
+            TextBoxSrc.Text = WebUtility.UrlDecode(imageInfo.Src);
+            TextBoxAlt.Text = imageInfo.Alt;
+            TextBoxTitle.Text = imageInfo.Title;
             flyout.Content = this;
             ShowFlyout();
             currentSrc = TextBoxSrc.Text;
@@ -113,7 +113,7 @@ namespace Typedown.WinUI.Controls
                 {
                     // TODO
                 }
-                EditorCommandSink.Send("ReplaceImage", new { src, alt, title });
+                EditorSession.Post(new ReplaceImage(ImageTarget.Edited, src, alt, title));
             }
         }
 

@@ -97,7 +97,7 @@ namespace Typedown.Core.Editor
 
     // ── outline ──────────────────────────────────────────────────────────
 
-    public sealed record RevealHeading(string Id) : EditorCommand;
+    public sealed record RevealHeading(HeadingId Id) : EditorCommand;
 
     // ── view ─────────────────────────────────────────────────────────────
 

@@ -1,19 +1,22 @@
-using Newtonsoft.Json.Linq;
+using Typedown.Core.Editor;
 
 namespace Typedown.Core.Interfaces
 {
+    /// <summary>宿主画的编辑器浮层（段落菜单、格式条、图片编辑、图片工具条、表格工具、提示）。</summary>
     public interface IFloatViewService
     {
-        void OpenImageToolbar(JToken args);
+        void OpenImageToolbar(ImageToolbarRequested request);
 
-        void OpenFrontMenu(JToken args);
+        void OpenFrontMenu(BlockMenuRequested request);
 
-        void OpenFormatPicker(JToken args) => OpenFrontMenu(args);
+        void OpenFormatPicker(FormatPickerRequested request);
 
-        void OpenImageSelector(JToken args);
+        void OpenImageSelector(ImageEditorRequested request);
 
-        void OpenTableTools(JToken args);
+        void OpenTableTools(TableToolsRequested request);
 
-        void OpenToolTip(JToken args);
+        void OpenToolTip(TooltipRequested request);
+
+        void CloseToolTip();
     }
 }

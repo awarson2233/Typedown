@@ -1,27 +1,26 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.Linq;
+using Typedown.Core.Editor;
 
 namespace Typedown.Core.Models
 {
+    /// <summary>选区覆盖的行内标记，供格式菜单勾选。</summary>
     public class FormatState
     {
-        public record SelectionFormat(string Type, string Tag);
-
-        public FormatState(List<SelectionFormat>? selectionFormats = null)
+        public FormatState(IEnumerable<InlineMark>? marks = null)
         {
-            if (selectionFormats == null)
+            if (marks == null)
                 return;
-            var types = selectionFormats.Select(x => x.Type).ToHashSet();
-            var tags = selectionFormats.Select(x => x.Tag).ToHashSet();
-            Bold = types.Contains("strong");
-            Italic = types.Contains("em");
-            Underline = types.Contains("html_tag") && tags.Contains("u");
-            InlineCode = types.Contains("inline_code");
-            InlineMath = types.Contains("inline_math");
-            Highlight = types.Contains("html_tag") && tags.Contains("mark");
-            Strikethrough = types.Contains("del");
-            Hyperlink = types.Contains("link");
-            Image = types.Contains("image") || tags.Contains("img");
+            var set = marks.ToHashSet();
+            Bold = set.Contains(InlineMark.Strong);
+            Italic = set.Contains(InlineMark.Emphasis);
+            Underline = set.Contains(InlineMark.Underline);
+            InlineCode = set.Contains(InlineMark.InlineCode);
+            InlineMath = set.Contains(InlineMark.InlineMath);
+            Highlight = set.Contains(InlineMark.Highlight);
+            Strikethrough = set.Contains(InlineMark.Strikethrough);
+            Hyperlink = set.Contains(InlineMark.Link);
+            Image = set.Contains(InlineMark.Image);
         }
 
         public bool Bold { get; }

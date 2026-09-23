@@ -3,8 +3,8 @@ using System;
 using System.ComponentModel;
 using System.Reactive;
 using System.Reactive.Disposables;
-using System.Threading.Tasks;
-using Typedown.Core.Services;
+using Typedown.Core.Editor;
+using Typedown.Core.Editor.Legacy;
 using Typedown.Core.Utilities;
 using Typedown.Core.Interfaces;
 
@@ -14,13 +14,9 @@ namespace Typedown.Core.ViewModels
     {
         public IServiceProvider ServiceProvider { get; }
 
-        public EventCenter EventCenter => ServiceProvider.GetRequiredService<EventCenter>();
-
         public AppViewModel ViewModel => ServiceProvider.GetRequiredService<AppViewModel>();
 
-        public RemoteInvoke RemoteInvoke => ServiceProvider.GetRequiredService<RemoteInvoke>();
-
-        public IEditorCommandSink EditorCommandSink => ServiceProvider.GetRequiredService<IEditorCommandSink>();
+        public IEditorSession EditorSession => ServiceProvider.GetRequiredService<IEditorSession>();
 
         public ITableDialogService TableDialogService => ServiceProvider.GetRequiredService<ITableDialogService>();
 
@@ -39,7 +35,6 @@ namespace Typedown.Core.ViewModels
         public ParagraphViewModel(IServiceProvider serviceProvider)
         {
             ServiceProvider = serviceProvider;
-            disposables.Add(RemoteInvoke.Handle("ResizeTable", ResizeTable));
             disposables.Add(UpdateParagraphCommand.OnExecute.Subscribe(x => UpdateParagraph(x)));
             disposables.Add(InsertParagraphCommand.OnExecute.Subscribe(x => InsertParagraph(x)));
             disposables.Add(DeleteParagraphCommand.OnExecute.Subscribe(_ => DeleteParagraph()));
@@ -47,25 +42,29 @@ namespace Typedown.Core.ViewModels
             disposables.Add(InsertTableCommand.OnExecute.Subscribe(_ => InsertTable()));
         }
 
-        private void UpdateParagraph(string type) => EditorCommandSink?.Send("UpdateParagraph", type);
+        /// <summary>菜单项以段落类型名作命令参数（paragraph、heading 1、pre、ul-task、upgrade heading…）。</summary>
+        private void UpdateParagraph(string type)
+        {
+            if (type == LegacyMuyaVocabulary.PromoteHeadingName)
+                EditorSession.Post(new PromoteHeading());
+            else if (type == LegacyMuyaVocabulary.DemoteHeadingName)
+                EditorSession.Post(new DemoteHeading());
+            else if (LegacyMuyaVocabulary.TryParseParagraphName(type, out var kind))
+                EditorSession.Post(new SetBlockKind(kind));
+        }
 
-        private void InsertParagraph(string type) => EditorCommandSink?.Send("InsertParagraph", type);
+        private void InsertParagraph(string type) =>
+            EditorSession.Post(new InsertParagraph(type == "before" ? ParagraphPosition.Before : ParagraphPosition.After));
 
-        private void DeleteParagraph() => EditorCommandSink?.Send("DeleteParagraph", null);
+        private void DeleteParagraph() => EditorSession.Post(new DeleteParagraph());
 
-        private void Duplicate() => EditorCommandSink?.Send("Duplicate", null);
+        private void Duplicate() => EditorSession.Post(new DuplicateParagraph());
 
         private async void InsertTable()
         {
             var result = await TableDialogService.OpenInsertTableDialogAsync();
             if (result != null)
-                EditorCommandSink?.Send("InsertTable", new { rows = result.Rows, columns = result.Columns });
-        }
-
-        public async Task<object?> ResizeTable()
-        {
-            var result = await TableDialogService.OpenResizeTableDialogAsync();
-            return result != null ? new { rows = result.Rows, columns = result.Columns } : null;
+                EditorSession.Post(new InsertTable(result.Rows, result.Columns));
         }
 
         public void Dispose()

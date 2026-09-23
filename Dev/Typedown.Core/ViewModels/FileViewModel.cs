@@ -1,5 +1,4 @@
 using Microsoft.Extensions.DependencyInjection;
-using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -11,8 +10,10 @@ using System.Reactive.Linq;
 using System.Timers;
 using System.Threading;
 using System.Threading.Tasks;
+using Typedown.Core.Editor;
 using Typedown.Core.Enums;
 using Typedown.Core.Models;
+using Typedown.Core.Models.ExportConfigModels;
 using Typedown.Core.Services;
 using Typedown.Core.Utilities;
 using Typedown.Core.Interfaces;
@@ -29,9 +30,7 @@ namespace Typedown.Core.ViewModels
 
         public EditorViewModel EditorViewModel => ServiceProvider.GetRequiredService<EditorViewModel>();
 
-        public EventCenter EventCenter => ServiceProvider.GetRequiredService<EventCenter>();
-
-        public RemoteInvoke RemoteInvoke => ServiceProvider.GetRequiredService<RemoteInvoke>();
+        public IEditorSession EditorSession => ServiceProvider.GetRequiredService<IEditorSession>();
 
         public AccessHistory AccessHistory => ServiceProvider.GetRequiredService<AccessHistory>();
 
@@ -65,8 +64,6 @@ namespace Typedown.Core.ViewModels
 
         public IAtomicFileWriter FileWriter => ServiceProvider.GetRequiredService<IAtomicFileWriter>();
 
-        public IEditorCommandSink EditorCommandSink => ServiceProvider.GetRequiredService<IEditorCommandSink>();
-
         public IDialogService DialogService => ServiceProvider.GetRequiredService<IDialogService>();
 
         public IFilePickerService FilePickerService => ServiceProvider.GetRequiredService<IFilePickerService>();
@@ -91,12 +88,7 @@ namespace Typedown.Core.ViewModels
             disposables.Add(ExportCommand.OnExecute.Subscribe(Export));
             disposables.Add(PrintCommand.OnExecute.Subscribe(_ => Print()));
             disposables.Add(ImportCommand.OnExecute.Subscribe(_ => Import()));
-            disposables.Add(RemoteInvoke.Handle<JToken, bool>("ExportCallback", ExportCallback));
-            disposables.Add(RemoteInvoke.Handle<JToken, bool>("PrintHTML", PrintHTML));
-            disposables.Add(EventCenter.GetObservable<EditorEventArgs>("Save").Subscribe(_ => SaveCommand.Execute(Unit.Default)));
-            disposables.Add(EventCenter.GetObservable<EditorEventArgs>("SaveAs").Subscribe(_ => SaveAsCommand.Execute(Unit.Default)));
-            disposables.Add(EventCenter.GetObservable<EditorEventArgs>("Close").Subscribe(_ => ExitCommand.Execute(Unit.Default)));
-            disposables.Add(EventCenter.GetObservable<EditorEventArgs>("FileLoaded").Take(1).Subscribe(_ => MarkInitialEditorFileLoaded()));
+            disposables.Add(EditorSession.Events.OfType<DocumentLoaded>().Take(1).Subscribe(_ => MarkInitialEditorFileLoaded()));
             saveFileTimer.Interval = TimeSpan.FromSeconds(5).TotalMilliseconds;
             saveFileTimer.Elapsed += SaveFileTimerTick;
             disposables.Add(Disposable.Create(() => saveFileTimer.Elapsed -= SaveFileTimerTick));
@@ -187,29 +179,27 @@ namespace Typedown.Core.ViewModels
         }
 
         /// <summary>
-        /// 装载一篇文档：先把状态落到 ViewModel，再把正文推给编辑器。
-        /// 只有"已保存"的内容才把 FileLoaded 置 false——此时基线哈希要等前端归一化后的
-        /// FileLoaded 回声重新计算；从备份恢复的内容本来就是脏的，不需要重新定基线。
+        /// 装载一篇文档：先把状态落到 ViewModel，再把正文交给编辑会话。
+        /// 编辑引擎正在启动握手时，会话把正文放进握手应答，不再另发装载命令。
+        /// 只有"已保存"的内容才把 FileLoaded 置 false——此时基线哈希要等引擎归一化后的
+        /// 装载回声重新计算；从备份恢复的内容本来就是脏的，不需要重新定基线。
         /// </summary>
-        private void ApplyDocument(string text, ulong fileHash, string? filePath, bool saved, bool postMessage)
+        private void ApplyDocument(string text, ulong fileHash, string? filePath, bool saved)
         {
             FilePath = filePath;
-            EditorViewModel.Markdown = text;
             EditorViewModel.FileHash = fileHash;
             EditorViewModel.CurrentHash = Common.SimpleHash(text);
             EditorViewModel.Saved = saved;
             EditorViewModel.AutoSavedSucc = true;
             EditorViewModel.FileLoaded = !saved;
-            EditorViewModel.History.InitHistory(text);
-            if (postMessage)
-                EditorCommandSink?.Send("LoadFile", new { text, basePath = ImageBasePath });
+            EditorViewModel.LoadDocument(text, ImageBasePath);
         }
 
-        private async Task NewFileFun(bool postMessage = true)
+        private async Task NewFileFun()
         {
             if (!await AskToSave()) return;
             var text = Common.DefaultMarkdwn;
-            ApplyDocument(text, Common.SimpleHash(text), null, true, postMessage);
+            ApplyDocument(text, Common.SimpleHash(text), null, true);
         }
 
         public async Task<bool> OpenFile(string? filePath = null)
@@ -237,7 +227,7 @@ namespace Typedown.Core.ViewModels
             return true;
         }
 
-        private async Task<bool> LoadFile(string path, bool skipSavedCheck = false, bool postMessage = true)
+        private async Task<bool> LoadFile(string path, bool skipSavedCheck = false)
         {
             try
             {
@@ -264,7 +254,7 @@ namespace Typedown.Core.ViewModels
                 var backup = await CheckBackup(path, fileHash);
                 var markdown = backup ?? text;
                 var saved = backup is null;
-                ApplyDocument(markdown, fileHash, path, saved, postMessage);
+                ApplyDocument(markdown, fileHash, path, saved);
                 return true;
             }
             catch (Exception ex)
@@ -421,51 +411,6 @@ namespace Typedown.Core.ViewModels
             }
         }
 
-        private async Task<bool> PrintHTML(JToken args)
-        {
-            try
-            {
-                var html = RequireString(args, "html");
-
-                var fileExport = ServiceProvider.GetRequiredService<IFileExport>();
-                await fileExport.Print(Path.GetDirectoryName(FilePath ?? string.Empty) ?? string.Empty, html, FileName);
-                return true;
-            }
-            catch (Exception ex)
-            {
-                await ShowDialog(
-                    Locale.GetString("Error"),
-                    ex.Message,
-                    Locale.GetString("Ok"));
-                return false;
-            }
-        }
-
-        private async Task<bool> ExportCallback(JToken args)
-        {
-            try
-            {
-                var html = RequireString(args, "html");
-                var context = args["context"] ?? throw new InvalidOperationException("Editor export callback payload is missing context.");
-                var filePath = RequireString(context, "filePath");
-                var configId = RequireValue<int>(context, "configId");
-
-                var config = await ServiceProvider.GetRequiredService<IFileExport>().GetExportConfig(configId);
-                await config.LoadExportConfig().Export(ServiceProvider, html, filePath);
-                if (SettingsViewModel.OpenFolderAfterExport)
-                    Common.OpenFileLocation(filePath);
-                return true;
-            }
-            catch (Exception ex)
-            {
-                await ShowDialog(
-                    Locale.GetString("Error"),
-                    ex.Message,
-                    Locale.GetString("Ok"));
-                return false;
-            }
-        }
-
         private bool askToSaveOpened;
         private bool saveAsOpened;
 
@@ -523,7 +468,7 @@ namespace Typedown.Core.ViewModels
             var path = CommandLine.GetOpenFilePath(AppViewModel.CommandLineArgs);
             if (!string.IsNullOrEmpty(path))
             {
-                if (await LoadFile(path, true, false))
+                if (await LoadFile(path, true))
                 {
                     startupOpenedFilePath = FilePath;
                     var openedFileFolder = Path.GetDirectoryName(FilePath);
@@ -534,7 +479,7 @@ namespace Typedown.Core.ViewModels
                 }
                 else
                 {
-                    await NewFileFun(false);
+                    await NewFileFun();
                 }
             }
             else
@@ -545,16 +490,16 @@ namespace Typedown.Core.ViewModels
                         var lastFile = SettingsViewModel.LastFilePath;
                         if (!string.IsNullOrWhiteSpace(lastFile) && !TryGetOpenedWindow(lastFile, out _) && File.Exists(lastFile))
                         {
-                            await LoadFile(lastFile, true, false);
+                            await LoadFile(lastFile, true);
                         }
                         else
                         {
-                            await NewFileFun(false);
+                            await NewFileFun();
                             _ = LoadLastFileFromHistoryAfterInitialRenderAsync();
                         }
                         break;
                     default:
-                        await NewFileFun(false);
+                        await NewFileFun();
                         break;
                 }
             }
@@ -599,27 +544,60 @@ namespace Typedown.Core.ViewModels
                     .ToList()
             });
             if (filePath == null) return;
-            string? basePath = null;
-            if (config.Type == ExportType.PDF || config.Type == ExportType.Image)
-                basePath = ImageBasePath;
-            EditorCommandSink?.Send("Export", new
+            try
             {
-                type = "export",
-                title = Path.GetFileNameWithoutExtension(filePath),
-                context = new { configId = config.Id, filePath },
-                basePath,
-                options = config.LoadExportConfig()
-            });
+                string? basePath = null;
+                if (config.Type == ExportType.PDF || config.Type == ExportType.Image)
+                    basePath = ImageBasePath;
+                var html = await EditorSession.RequestAsync(new RenderExportHtml(
+                    ExportPurpose.Export,
+                    Path.GetFileNameWithoutExtension(filePath),
+                    basePath,
+                    CreateExportHtmlOptions(config.LoadExportConfig())));
+
+                var exportConfig = await ServiceProvider.GetRequiredService<IFileExport>().GetExportConfig(config.Id);
+                await exportConfig.LoadExportConfig().Export(ServiceProvider, html, filePath);
+                if (SettingsViewModel.OpenFolderAfterExport)
+                    Common.OpenFileLocation(filePath);
+            }
+            catch (OperationCanceledException)
+            {
+                // 编辑引擎在生成期间重载，请求随之作废。
+            }
+            catch (Exception ex)
+            {
+                await ShowDialog(Locale.GetString("Error"), ex.Message, Locale.GetString("Ok"));
+            }
         }
 
-        private void Print()
+        /// <summary>导出配置里页面生成 HTML 时要用到的部分。</summary>
+        private static ExportHtmlOptions? CreateExportHtmlOptions(ConfigModel model) => model switch
         {
-            EditorCommandSink?.Send("Export", new
+            HTMLConfigModel html => new ExportHtmlOptions(html.ExtraHead, html.ExtraBody, null, null),
+            PDFConfigModel pdf => new ExportHtmlOptions(pdf.ExtraHead, null, pdf.Header, pdf.Footer),
+            _ => null,
+        };
+
+        private async void Print()
+        {
+            try
             {
-                type = "print",
-                basePath = ImageBasePath,
-                title = FileName ?? "untitled"
-            });
+                var html = await EditorSession.RequestAsync(new RenderExportHtml(
+                    ExportPurpose.Print,
+                    FileName ?? "untitled",
+                    ImageBasePath,
+                    null));
+                var fileExport = ServiceProvider.GetRequiredService<IFileExport>();
+                await fileExport.Print(Path.GetDirectoryName(FilePath ?? string.Empty) ?? string.Empty, html, FileName);
+            }
+            catch (OperationCanceledException)
+            {
+                // 编辑引擎在生成期间重载，请求随之作废。
+            }
+            catch (Exception ex)
+            {
+                await ShowDialog(Locale.GetString("Error"), ex.Message, Locale.GetString("Ok"));
+            }
         }
 
         private async void Import()
@@ -633,7 +611,7 @@ namespace Typedown.Core.ViewModels
                 if (filePath != null)
                 {
                     var text = await File.ReadAllTextAsync(filePath);
-                    EditorCommandSink?.Send("ImportFile", new { type = Path.GetExtension(filePath).Substring(1), text });
+                    EditorSession.Post(new ImportHtml(text));
                 }
             }
             catch (Exception ex)
@@ -786,22 +764,6 @@ namespace Typedown.Core.ViewModels
                 CloseButtonText = closeButtonText,
                 DefaultButton = DialogDefaultButton.Close
             });
-        }
-
-        private static string RequireString(JToken token, string propertyName)
-        {
-            var valueToken = token[propertyName];
-            return valueToken is JValue { Type: JTokenType.String, Value: string value } && !string.IsNullOrWhiteSpace(value)
-                ? value
-                : throw new InvalidOperationException($"Editor callback payload is missing valid string '{propertyName}'.");
-        }
-
-        private static T RequireValue<T>(JToken token, string propertyName)
-        {
-            var valueToken = token[propertyName];
-            return valueToken is not null && valueToken.Type != JTokenType.Null
-                ? valueToken.ToObject<T>()!
-                : throw new InvalidOperationException($"Editor callback payload is missing '{propertyName}'.");
         }
     }
 }
