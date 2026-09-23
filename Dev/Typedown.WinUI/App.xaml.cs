@@ -10,6 +10,7 @@ using Typedown.Core;
 using Typedown.Core.Editor;
 using Typedown.Core.Enums;
 using Typedown.Core.Interfaces;
+using Typedown.Core.Services;
 using Typedown.Core.Utilities;
 using Typedown.Core.ViewModels;
 using Typedown.WinUI.Controls;
@@ -154,6 +155,7 @@ namespace Typedown.WinUI
             }
 
             uiServices.GetRequiredService<AppViewModel>().CommandLineArgs = startupCommandLineArgs;
+            StartStartupDocumentPrefetch(uiServices, startupCommandLineArgs);
 
             platformServices.WindowContext.Title = "Typedown";
             ConfigureNativeTitleBar(window);
@@ -203,6 +205,20 @@ namespace Typedown.WinUI
             finally
             {
                 StartupTrace.WindowActivateStop();
+            }
+        }
+
+        /// <summary>
+        /// 启动文档在这里就开始读（线程池），与 WebView2 环境预热、XAML 构建并行；
+        /// 页面握手时 <see cref="EditorViewModel.PrepareStartupAsync"/> 直接取读好的快照。
+        /// </summary>
+        private static void StartStartupDocumentPrefetch(IServiceProvider services, string[] commandLineArgs)
+        {
+            using (StartupTrace.Phase("Start startup document prefetch"))
+            {
+                var settings = services.GetRequiredService<SettingsViewModel>();
+                var target = StartupDocumentTarget.Resolve(commandLineArgs, settings.FileStartupAction, settings.LastFilePath);
+                services.GetRequiredService<StartupDocumentPrefetch>().Start(target);
             }
         }
 
