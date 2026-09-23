@@ -55,10 +55,13 @@ stateDiagram-v2
     [*] --> Detached
     Detached --> Loading: 宿主挂载，注入初始态并导航
     Loading --> Ready: 收到 ready，发出 doc.load
+    Loading --> Faulted: ready 的协议版本不一致
     Ready --> Faulted: fault(fatal) 或渲染进程退出
-    Faulted --> Loading: 按正文镜像重载
-    Faulted --> Detached: 一分钟内崩溃超过 3 次
+    Ready --> Loading: 非会话发起的导航
+    Faulted --> Ready: 按正文镜像重载后收到 ready
+    Faulted --> Faulted: 一分钟内崩溃超过 3 次，不再自动重载
     Ready --> Detached: 宿主卸载
+    Detached --> Ready: 页面仍活着时重新挂载
     Loading --> Detached: 宿主卸载
 ```
 
@@ -118,12 +121,15 @@ sequenceDiagram
     S-->>H: 显示 WebView
 ```
 
-- **初始态。** 会话调 `AddScriptToExecuteOnDocumentCreated` 注入一行 `window.__typedownInit = {...}`，内容是 `EditorInitState(Protocol, Settings, Theme, Keymap, Locale)`：全量 `EditorSettings`、`EditorTheme`、快捷键和弦表、界面语言代码。页面自带的少量界面文字（补全列表的空状态等）按 `locale` 取自己的资源，不再有 `GetStringResources`。每次导航前，会话先移除上一次注入的脚本再注入最新值，所以页面重载拿到的总是当下状态。
+- **会话的分层。** 协议逻辑在 Core 的 [EditorWireSession](/Dev/Typedown.Core/Editor/Wire/EditorWireSession.cs)，不含 WebView2 代码，单测用假通道驱动（[EditorWireSessionTests](/Tests/Typedown.CoreTests/Editor/EditorWireSessionTests.cs)）；WinUI 的 [WebViewEditorSession](/Dev/Typedown.WinUI/Controls/EditorControls/Hosting/WebViewEditorSession.cs) 继承它，只接上 DI 与致命错误上报；[WinUIEditorHost](/Dev/Typedown.WinUI/Controls/EditorControls/Hosting/WinUIEditorHost.cs) 实现 `IEditorWireChannel`（投递报文、注入初始态并导航、给出当前主题），把收到的报文字符串原样交给会话。计时器回调经 `IUiDispatcher` 切回 UI 线程，会话的其余入口都在 UI 线程上。
+- **页面加载。** 宿主把主机名 `typedown.editor` 映射到输出目录的 `Resources/Statics`（`SetVirtualHostNameToFolderMapping`），导航到 `https://typedown.editor/index.html`；Debug 构建先探测 `http://localhost:3000` 的 Vite 开发服务器。WebView2 启动参数不再带 `--disable-web-security` 与 `--allow-file-access-from-files`；同一用户数据目录下的 WebView2 必须用同一组参数，所以新引擎构建的用户数据目录是 `WebView2Next`，与旧 Muya 构建分开，两者可以同时运行。编辑器页面以外的导航（页面里的链接、拖进来的文件）一律由宿主取消，链接经 `view.openLink` 交给宿主打开。
+- **初始态。** 会话调 `IEditorHostCallbacks.PrepareStartupAsync` 取全量设置（首次调用时装载启动文档），生成一行 `window.__typedownInit = {...}`，内容是 `EditorInitState(Protocol, Settings, Theme, Keymap, Locale)`：全量 `EditorSettings`、`EditorTheme`、快捷键和弦表、界面语言代码（`CurrentUICulture.Name`）。页面自带的少量界面文字（补全列表的空状态等）按 `locale` 取自己的资源，不再有 `GetStringResources`。每次导航前宿主先 `RemoveScriptToExecuteOnDocumentCreated` 移除上一次注入的脚本，再 `AddScriptToExecuteOnDocumentCreated` 注入最新值，所以页面重载拿到的总是当下状态。
 - **ready。** 页面同步读完初始态、以空文档挂好 CM6 后立即发出（模块脚本执行期间），载荷 `{protocol, engine}`。`ready` 之前页面收到的命令排队，收到的请求回 `notReady`。`protocol` 与宿主不一致时，会话记日志并进入 `Faulted`，不重试；`engine` 是版本描述，只进日志。
-- **doc.load 与就绪门。** 会话收到 `ready` 后先发 `doc.load`，紧接着打开 [EditorCommandGate](/Dev/Typedown.Core/Editor/EditorCommandGate.cs) 并重放排队命令。WebView2 的消息通道保序，排队命令一定排在 `doc.load` 之后到达。门的规则沿用 P0：门关时普通命令按序排队（上限 128，满了丢最旧）；主题、快捷键表、视口刷新只留最新一份；设置增量合并成一份；宿主卸载期间保留，重新挂载后重放。初始态已经含有注入时刻的设置、主题与快捷键表，重放的只是注入之后的变化。
+- **doc.load 与就绪门。** 会话收到 `ready` 后先发 `doc.load`（正文取镜像，基准目录取 `IEditorHostCallbacks.BasePath`），紧接着打开 [EditorCommandGate](/Dev/Typedown.Core/Editor/EditorCommandGate.cs) 并重放排队命令。WebView2 的消息通道保序，排队命令一定排在 `doc.load` 之后到达。门的规则沿用 P0：门关时普通命令按序排队（上限 128，满了丢最旧）；主题、快捷键表、视口刷新只留最新一份；设置增量合并成一份；宿主卸载期间保留，重新挂载后重放。初始态已经含有注入时刻的设置、主题与快捷键表：注入时积压的设置增量作废，重放时与页面手里相同的主题、快捷键表跳过，重放的只是注入之后的变化。`ready` 之前 `LoadDocument` 只更新镜像；宿主卸载而页面仍活着时（打开设置页），`LoadDocument` 在重新挂载时先于重放补发。
+- **请求也在门后。** 宿主→页面的请求在门关时登记但不发出，门开时按 id 顺序排在 `doc.load` 与重放之后发出，超时从登记时起算；宿主卸载或页面重载时，挂起与未发出的请求一律以 `OperationCanceledException` 结束（卸载后宿主不再收页面的报文，等下去只会超时）。`FlushDocument` 例外，见第 4 节。
 - **rendered。** 页面首屏画完（首个视口的装饰与块组件就绪）发 `doc.rendered {version}`，会话据此发契约事件 `DocumentLoaded(Version)`，宿主此时才让 WebView 可见，不再出现空编辑区的一帧。「首屏画完」的判定：从装载后第 2 帧起每帧检查语法树与块组件是否都已覆盖首个视口，满足即发，最多等 30 帧（约 0.5 s）兜底；KaTeX、mermaid 的异步渲染不在等待之列。每次 `doc.load` 都对应恰好一次 `doc.rendered`，版本号就是这次装载的版本；版本号不等于最近一次 `doc.load` 的，说明是过期的回声，丢弃。
-- **fault。** 页面把 `window.onerror`、`unhandledrejection` 与 CM6 的 `EditorView.exceptionSink` 都接到 `lifecycle.fault {message, stack, fatal}`。`ready` 之前的错误与处理 `doc.load` 时抛出的异常是 `fatal:true`，其余都是 `fatal:false`。`fatal:false` 只记日志；`fatal:true` 表示编辑器状态不可信，会话进入 `Faulted` 并重载页面。同一 `message + stack` 在一次页面生命周期内只上报一次。
-- **重载恢复。** 渲染进程退出与致命 fault 走同一条路径，由 [EditorCrashRecovery](/Dev/Typedown.Core/Editor/EditorCrashRecovery.cs) 决定：一分钟内超过 3 次不再自动重载；距上次崩溃不少于 15 秒时，`doc.load` 带上崩溃前最后一次 `selection.changed` 的选区与最后一次 `view.viewport` 的滚动位置。正文取镜像，镜像最多落后页面一帧（第 4 节）。重载时挂起的宿主→页面请求一律以 `OperationCanceledException` 结束。
+- **fault。** 页面把 `window.onerror`、`unhandledrejection` 与 CM6 的 `EditorView.exceptionSink` 都接到 `lifecycle.fault {message, stack, fatal}`。`ready` 之前的错误与处理 `doc.load` 时抛出的异常是 `fatal:true`，其余都是 `fatal:false`。`fatal:false` 只记日志；`fatal:true` 表示编辑器状态不可信，会话进入 `Faulted` 并重载页面，`WebViewEditorSession` 另按 `message + stack` 去重后远程上报一次（与旧会话上报页面未捕获异常相同）。同一 `message + stack` 在一次页面生命周期内只上报一次。
+- **重载恢复。** 渲染进程退出与致命 fault 走同一条路径，由 [EditorCrashRecovery](/Dev/Typedown.Core/Editor/EditorCrashRecovery.cs) 决定：一分钟内超过 3 次不再自动重载，会话停在 `Faulted`；距上次崩溃不少于 15 秒时，`doc.load` 带上崩溃前最后一次 `selection.changed` 的选区与最后一次 `view.viewport` 的滚动位置。重载由会话发起：重新取设置、生成初始态，宿主移除旧脚本、注入新脚本并重新导航，页面的 `ready` 到来后照常发 `doc.load`。正文取镜像，镜像最多落后页面一帧（第 4 节）。重载时挂起的宿主→页面请求一律以 `OperationCanceledException` 结束，页面回问宿主的请求跨代后不再应答（新页面的请求 id 从 1 重新计数）。页面报过的「变化才发」状态在新页面上从初始值起算，所以会话在重载时补发一次 `HistoryChanged(false, false)` 与空的 `MarksChanged`（仅当宿主此前看到的不是初始值）。宿主之外的导航（例如页面被外部重新加载）同样作废旧页面，只是新页面拿到的是上一次注入的初始态。
 
 ### 4. 正文同步
 
@@ -151,7 +157,8 @@ flowchart TD
     R --> E
 ```
 
-- **镜像的实现。** 上图由 Core 的 [DocumentMirror](/Dev/Typedown.Core/Editor/Wire/DocumentMirror.cs) 实现：`Load` 分配装载版本号并返回 `doc.load` 载荷，`Apply(DocChanged)` 与 `CompleteResync(DocText)` 返回 `Applied`（发 `DocumentChanged`）、`Stale`（丢弃）、`Buffered`（重同步中，已暂存）或 `ResyncRequired`（发 `doc.getText`），`IsCurrentLoad` 判断 `doc.rendered` 是否过期。重同步请求失败（超时、页面重载）时会话调 `AbandonResync`，下一条对不上的增量会再次触发重同步。
+- **镜像的实现。** 上图由 Core 的 [DocumentMirror](/Dev/Typedown.Core/Editor/Wire/DocumentMirror.cs) 实现：`Load` 分配装载版本号并返回 `doc.load` 载荷，`Apply(DocChanged)` 与 `CompleteResync(DocText)` 返回 `Applied`（发 `DocumentChanged`）、`Stale`（丢弃）、`Buffered`（重同步中，已暂存）或 `ResyncRequired`（发 `doc.getText`），`IsCurrentLoad` 判断 `doc.rendered` 是否过期，`Reconcile(version)` 在页面报告的版本比镜像新时进入重同步。重同步请求失败（超时、页面重载）时会话调 `AbandonResync`，下一条对不上的增量会再次触发重同步。
+- **宿主卸载期间的增量。** 宿主卸载时（打开设置页）不再订阅页面的报文，卸载前最后一帧发出的 `doc.changed` 可能丢失。页面仍活着时重新挂载，会话在重放之后发一次 `doc.flush`：应答的版本号比镜像新就经 `Reconcile` 整体重同步，不必等到下一次编辑才发现失步。
 - **过期与失步。** 宿主发 `doc.load` 后，页面在它之前已发出的 `doc.changed` 仍可能在途，宿主还没见过它们的版本号。装载版本号取宿主见过的最大版本号加 2^20，在途的旧增量不可能追上它，于是 `baseVersion` 小于最近一次装载版本的报文一律按过期丢弃，不需要 `docId`；2^53 以内够装载 2^33 次。`baseVersion` 大于镜像版本、`version ≠ baseVersion + 1`、区间逆序重叠或越界，只会在丢报文或实现有错时出现，按失步处理。重同步期间到达的 `doc.changed` 暂存，拿到 `getText` 应答后只应用版本号更新的那些；暂存里再次跳号就再发一次 `getText`；早于最近一次装载的 `getText` 应答丢弃。
 - **谁读镜像。** 契约的 `DocumentChanged` 与 `DocumentLoaded` 只带版本号，ViewModel 需要正文时读 `Session.Document.Text`。自动保存与备份直接读镜像（最多落后一帧）；手动保存、另存为、导出、关闭窗口前先 `await RequestAsync(new FlushDocument())`，再取镜像快照写盘，保存点是这份快照的版本号（flush 之后它就是 flush 返回的版本；重同步未完成时快照更旧，以快照为准才不会把没写进文件的改动记成已保存）。写盘完成后只有镜像仍是这份快照时才标记已保存：版本号相同即可，旧页面对同一正文的回声也会推进版本，所以版本不同时再比一次正文。`doc.flush` 超时 1 秒时，会话记日志、按当前镜像继续保存，不阻塞用户。会话不在 `Ready` 时 `FlushDocument` 不进就绪门，直接应答当前镜像版本：页面上没有未上报的改动，而启动握手里的 `PrepareStartupAsync` 会经新建文档的 `AskToSave` 发出它，排队等 `ready` 会死锁；重同步进行中时则等 `doc.getText` 的应答落进镜像再应答。`FileViewModel` 对取消、不支持与失败同样按当前镜像继续。
 - **换行与编码。** 页面只见 `\n`。宿主读文件时由 [TextFileCodec](/Dev/Typedown.Core/Services/TextFileCodec.cs) 按 BOM 认编码（UTF-8、UTF-16 LE/BE、UTF-32 LE/BE；没有 BOM 即 UTF-8），记下 BOM 与原换行符（`\r\n` / `\n` / `\r`，混合时取占多数者，并列时依次偏向 `\r\n`、`\n`），`doc.load` 前统一成 `\n`，保存时还原；新建文档是 UTF-8 无 BOM、`\n`，另存为沿用当前文件的格式。这与引擎的「打开不改写正文」一起构成字节保真：打开后不编辑直接保存，文件字节不变；混合换行的文件会统一成多数者。GBK 等无 BOM 的非 UTF-8 编码不识别，按 UTF-8 解码（非法字节成为替换字符），与此前行为相同。
@@ -243,7 +250,7 @@ flowchart TD
 | `search.result` | 每次 `search.set` / `search.step` / `search.replace` 后一条；正文变化使计数改变时也发一条 | 查找栏显示「第 n / 共 m 处」 |
 | `view.settings`、`view.keymap`、`view.theme` | 宿主侧就绪门合并成一份最新值 | 设置页里连续调整只下发最终值 |
 
-页面在同一帧里要发多条事件时，顺序固定为 `doc.changed` → `history.changed` → `selection.changed` → `selection.marks` → 其他。宿主处理 `selection.changed` 时镜像已经是同一帧的正文，偏移不会错位。`view.shortcut` 不进帧队列，命中即发：页面此时已经吞掉这个按键，宿主必须执行对应命令（Ctrl+Z 就是 `history.undo`）。
+页面在同一帧里要发多条事件时，顺序固定为 `doc.changed` → `history.changed` → `selection.changed` → `selection.marks` → 其他。宿主处理 `selection.changed` 时镜像已经是同一帧的正文，偏移不会错位。`view.shortcut` 不进帧队列，命中即发：页面此时已经吞掉这个按键，宿主必须执行对应命令（Ctrl+Z 就是 `history.undo`）。所以 `view.keymap` 只下发页面能执行对应命令的和弦：页面实现 `clipboard.*`、`selection.selectAll`、`selection.delete` 之前，宿主从快捷键表里剔除剪切、复制、粘贴、粘贴为纯文本、全选与删除的和弦（按用户当前的设置取），这些按键交给浏览器与 CM6 原生处理。
 
 「变化才发」的比较起点是宿主的初始值：`canUndo`、`canRedo` 为 false，行内标记为空；此外每次装载后页面必发一次 `selection.changed`、`outline.changed` 与 `view.viewport`，`stats.changed` 在装载后 300 ms 首发，所以宿主不需要在装载时自行清零这些状态。
 
@@ -266,7 +273,7 @@ sequenceDiagram
 ```
 
 - **坐标系。** `anchor` 是 `EditorRect {x, y, width, height}`，相对 WebView 视口左上角（即 `getBoundingClientRect` 的值），单位 CSS px。页面取锚点时，行内位置用 CM6 的 `coordsAtPos`，块组件用元素的 `getBoundingClientRect`。宿主换算为 `DIP = CSS px × ZoomFactor`，不再把 CSS px 直接当 DIP；`RasterizationScale` 由 WebView2 自己处理，不参与换算。
-- **右键菜单。** 宿主保留 `CoreWebView2.ContextMenuRequested`：取 deferral，把事件坐标换回 CSS px，`RequestAsync(new ContextAt(x, y))` 得到点击处的 `RichSelection`，据此决定菜单项再弹出 `MenuFlyout`。页面不能对 contextmenu 调 `preventDefault`，否则这个事件不会触发。
+- **右键菜单。** 宿主保留 `CoreWebView2.ContextMenuRequested`：同步置 `Handled = true` 抑制浏览器菜单（所以不需要 deferral），把事件坐标换回 CSS px（宿主从不改缩放，两者相同），`RequestAsync(new ContextAt(x, y))` 得到点击处的 `RichSelection`，据此决定菜单项再弹出 `MenuFlyout`。页面还不支持 `selection.contextAt`（应答 `unknownType`）或请求失败、超时时，上下文按未知处理，菜单退回按最后一次选区决定菜单项。页面不能对 contextmenu 调 `preventDefault`，否则这个事件不会触发。
 - **锚点跟随滚动。** 浮层打开后页面滚动时，宿主按 `view.viewport` 的滚动差平移锚点，页面不重发 `float.*`。
 - **提示。** `float.tooltip` 只报 `TooltipKind`，文字由宿主本地化；鼠标离开发 `float.tooltipDismissed`。
 
