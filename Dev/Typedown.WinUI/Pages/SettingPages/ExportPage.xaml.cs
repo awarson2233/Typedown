@@ -108,9 +108,7 @@ namespace Typedown.WinUI.Pages.SettingPages
         public static string GetConfigItemDescription(ExportType method)
         {
             var list = new List<string>();
-            var field = method.GetType().GetField(method.ToString());
-            var attribute = field?.GetCustomAttribute(typeof(LocaleAttribute)) as LocaleAttribute;
-            list.Add(attribute?.Text ?? method.ToString());
+            list.Add(EnumLocale.GetText(method) ?? method.ToString());
             return string.Join(", ", list);
         }
 

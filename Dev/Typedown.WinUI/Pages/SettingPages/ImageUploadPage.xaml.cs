@@ -110,9 +110,7 @@ namespace Typedown.WinUI.Pages.SettingPages
         public static string GetConfigItemDescription(ImageUploadMethod method, bool isEnable)
         {
             var list = new List<string>();
-            var field = method.GetType().GetField(method.ToString());
-            var attribute = field?.GetCustomAttribute(typeof(LocaleAttribute)) as LocaleAttribute;
-            list.Add(attribute?.Text ?? method.ToString());
+            list.Add(EnumLocale.GetText(method) ?? method.ToString());
             list.Add(isEnable ? Locale.GetString("On") : Locale.GetString("Off"));
             return string.Join(", ", list);
         }
