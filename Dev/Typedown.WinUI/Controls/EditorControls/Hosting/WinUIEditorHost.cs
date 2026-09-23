@@ -25,7 +25,7 @@ namespace Typedown.WinUI.Controls
     /// WebView2 编辑器宿主。只负责 WebView2 生命周期、报文的物理收发、主题背景与键盘输入，
     /// 不持有正文状态、不解析协议：报文一律交给 <see cref="LegacyMuyaSession"/>，文档状态由编辑会话与 Core 的 ViewModel 持有。
     /// </summary>
-    public sealed class WinUIEditorHost : UserControl, ILegacyMuyaChannel, IDisposable
+    public sealed partial class WinUIEditorHost : UserControl, ILegacyMuyaChannel, IDisposable
     {
         private readonly WebView2 webView;
         private readonly IServiceProvider? serviceProvider;
