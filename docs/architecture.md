@@ -51,7 +51,7 @@ flowchart TB
 
 | 工程 | 职责 |
 |---|---|
-| [Typedown.Core](../Dev/Typedown.Core/) | 模型、配置、持久化、编辑会话契约（[Editor](../Dev/Typedown.Core/Editor/)）与旧页面协议的无状态编解码（[Editor/Legacy](../Dev/Typedown.Core/Editor/Legacy/)）、ViewModel 与平台抽象接口（`IFloatViewService`、`IKeyboardAccelerator` 等）；AnyCPU、`IsAotCompatible`，全部 JSON 走 System.Text.Json 源生成，不引用 Newtonsoft、WinUI / Windows SDK 投影，不含任何 UI 类型 |
+| [Typedown.Core](../Dev/Typedown.Core/) | 模型、配置、持久化、编辑会话契约（[Editor](../Dev/Typedown.Core/Editor/)）、旧页面协议的无状态编解码（[Editor/Legacy](../Dev/Typedown.Core/Editor/Legacy/)）与新引擎线协议的编解码和正文镜像（[Editor/Wire](../Dev/Typedown.Core/Editor/Wire/)，见 [editor-protocol.md](editor-protocol.md)）、ViewModel 与平台抽象接口（`IFloatViewService`、`IKeyboardAccelerator` 等）；AnyCPU、`IsAotCompatible`，全部 JSON 走 System.Text.Json 源生成，不引用 Newtonsoft、WinUI / Windows SDK 投影，不含任何 UI 类型 |
 | [Typedown.WinUI](../Dev/Typedown.WinUI/) | 入口、窗口、XAML 控件与页面，实现 Core 的平台接口 |
 | [Typedown.Editor](../Dev/Typedown.Editor/) | 页面前端（CRA + react-app-rewired，Yarn 1），宿主从本地文件加载它的构建产物 |
 | [Tests](../Tests/) | `ArchitectureTests` 守护分层，`CoreTests` 覆盖 Core |
@@ -116,7 +116,7 @@ sequenceDiagram
 
 | 页面消息 | 契约事件 | 订阅者 |
 |---|---|---|
-| `MarkdownChange` / `FileLoaded` | `DocumentChanged` / `DocumentLoaded`（先更新正文镜像与撤销历史） | EditorViewModel（`DocumentLoaded` 另有 FileViewModel 与宿主订阅） |
+| `MarkdownChange` / `FileLoaded` | `DocumentChanged` / `DocumentLoaded`，只带版本号（先更新正文镜像与撤销历史，镜像版本加一；订阅者读 `Session.Document.Text`） | EditorViewModel（`DocumentLoaded` 另有 FileViewModel 与宿主订阅） |
 | `CursorChange` | 无，只喂撤销历史与崩溃恢复 | 会话自身 |
 | `StateChange` | `StatsChanged` + `OutlineChanged`（标题 id 包成 `HeadingId`） | EditorViewModel |
 | `SelectionChange` / `CodeMirrorSelectionChange` | `SelectionChanged`（Muya 另带块上下文与选中图片） | EditorViewModel |
@@ -130,6 +130,7 @@ sequenceDiagram
 | 契约命令 | 页面消息 | 投递者 |
 |---|---|---|
 | `LoadDocument` / `ImportHtml`，请求 `RenderExportHtml` | `LoadFile` / `ImportFile` / `Export` | FileViewModel |
+| 请求 `FlushDocument` / `ContextAt` | 无页面消息：会话直接应答镜像版本（页面每次变化都已上报）/ 最后一次 `SelectionChanged` 的 `Rich` | FileViewModel / 右键菜单（新引擎接入后） |
 | `Undo` / `Redo` / `ClearUndoHistory` | 会话侧撤销历史，再以 `SetMarkdown` 回灌 | EditorViewModel |
 | `Copy` / `Cut` / `Paste` / `SelectAll` / `DeleteSelection` / `Search` / `FindMatch` / `RevealHeading` / `InsertImage` | `Copy` / `Cut` / `Paste` / `SelectAll` / `DeleteSelection` / `Search` / `Find` / `ScrollTo` / `InsertImage` | EditorViewModel |
 | `ToggleInlineMark` / `ClearInlineMarks` | `Format` | FormatViewModel |
@@ -201,7 +202,7 @@ sequenceDiagram
 
 ### 9. 文档状态与撤销
 
-[FileViewModel](../Dev/Typedown.Core/ViewModels/FileViewModel.cs) 打开、新建文档时同步调用 `ApplyDocument` 写入路径、正文与哈希，并投递 `LoadDocument(text, basePath)`：会话据此重置正文镜像与撤销历史基线，再发 `LoadFile`（启动握手在途时不发，见第 3 节）。`EditorViewModel.Saved` 由 `FileHash` 与当前正文哈希比较得出。自动保存的计时器在线程池上触发，回调先切回 UI 线程再读正文与文件状态。
+[FileViewModel](../Dev/Typedown.Core/ViewModels/FileViewModel.cs) 打开、新建文档时同步调用 `ApplyDocument` 写入路径、正文与哈希，并投递 `LoadDocument(text, basePath)`：会话据此重置正文镜像与撤销历史基线，再发 `LoadFile`（启动握手在途时不发，见第 3 节）。读文件经 [TextFileCodec](../Dev/Typedown.Core/Services/TextFileCodec.cs)：按 BOM 认编码，记下编码、BOM 与原换行符（混合时取多数者），交给编辑器的正文统一成 `\n`，保存与另存为时按记下的格式还原，所以打开后不编辑直接保存，文件字节不变；新建文档是 UTF-8 无 BOM、`\n`。`EditorViewModel.Saved` 由 `FileHash` 与当前正文哈希比较得出。手动保存、另存为、导出、打印与 `AskToSave`（关闭窗口、打开别的文件之前）先 `await RequestAsync(new FlushDocument())` 再取正文镜像的快照写盘，写盘后镜像仍是这份快照（版本相同或正文相同）才标记已保存；自动保存与备份直接读镜像。自动保存的计时器在线程池上触发，回调先切回 UI 线程再读正文与文件状态。
 
 撤销历史由会话里的 [ContentHistory](../Dev/Typedown.Core/Models/RuntimeModels/ContentHistory.cs) 维护，页面没有自己的撤销栈。它是整篇快照：正文变化先落在待提交快照里，3 秒无新变化、光标换行或发起撤销时提交成一步，最多 100 步；`Undoable` / `Redoable` 变化以 `HistoryChanged` 事件在 UI 线程发出。撤销/重做时，会话取出历史正文、更新正文镜像并发 `DocumentChanged`，置 `contentUpdating` 后以 `SetMarkdown {text, cursor, basePath}` 推给页面；页面若回显 `MarkdownChange`，因 `contentUpdating` 不会再次入栈，下一次 `StateChange` 或 `CodeMirrorSelectionChange` 到来时复位。
 

@@ -1,6 +1,6 @@
 # 编辑器桥接协议 v1
 
-基于集成分支 `work/p0-host-prep` 的 `ed4fb6f3`（编辑会话契约定型）；新引擎页面与宿主侧 `WebViewEditorSession` 都按本文实现，现有 Muya 页面仍走 [architecture.md](architecture.md) 第 4–5 节的旧协议。
+基于集成分支 `work/p0-host-prep`，契约已按第 10 节调整，Core 侧的编解码与正文镜像已就位；新引擎页面与宿主侧 `WebViewEditorSession` 都按本文实现，现有 Muya 页面仍走 [architecture.md](architecture.md) 第 4–5 节的旧协议。
 
 ## 概念
 
@@ -74,7 +74,9 @@ stateDiagram-v2
 | 正文同步 | `doc.load`、`doc.changed`、`doc.flush`、`doc.getText` | 维护 `DocumentMirror`，对外只发不带正文的 `DocumentChanged(Version)`（第 4 节） |
 | 回问宿主 | `table.pickSize`、`clipboard.write`、`image.resolve` | 调 [IEditorHostCallbacks](/Dev/Typedown.Core/Editor/IEditorHostCallbacks.cs) 的对应方法，把结果作为应答 |
 
-类型名与 record 的对应集中在 Core 的一张表 `EditorWireTypes`（`Type ↔ string` 双向字典，外加每个类型的 `JsonTypeInfo`），不用 `[JsonPolymorphic]` 标注契约 record：契约不该知道自己在线上叫什么，旧协议适配器也用不到这些名字。页面侧的 `bridge/protocol.ts`（在 `work/editor-next` 分支的 Dev/Typedown.Editor 下）是同一张表的 TypeScript 版本，每个类型名一个 interface，按 `t` 组成可辨识联合。
+类型名与 record 的对应集中在 Core 的一张表 [EditorWireTypes](/Dev/Typedown.Core/Editor/Wire/EditorWireTypes.cs)（`Type ↔ string` 双射，外加每个类型的 `JsonTypeInfo`、种类、方向与请求的应答类型），不用 `[JsonPolymorphic]` 标注契约 record：契约不该知道自己在线上叫什么，旧协议适配器也用不到这些名字。表里的载荷多数就是契约 record（`doc.rendered` 的载荷 `{version}` 也直接是 `DocumentLoaded`）；三个契约类型因为线上形状不同而由会话转换，登记在 `EditorWireTypes.SessionTranslated`：`LoadDocument` 经 `DocumentMirror.Load` 补上版本号成为 `DocLoad`，`DocumentChanged` 由 `DocChanged` 增量推出，`SelectionChanged` 取自多带偏移的 `SelectionReport`。线上独有的 record（正文同步、生命周期、回问宿主的请求及各请求的应答）在 [EditorWireMessages.cs](/Dev/Typedown.Core/Editor/Wire/EditorWireMessages.cs)。页面侧的 `bridge/protocol.ts`（在 `work/editor-next` 分支的 Dev/Typedown.Editor 下）是同一张表的 TypeScript 版本，每个类型名一个 interface，按 `t` 组成可辨识联合。
+
+编解码在 [EditorWireCodec](/Dev/Typedown.Core/Editor/Wire/EditorWireCodec.cs)，无状态、不含 WebView2 代码。会话把收到的报文字符串交给 `Decode`，得到按动作分类的结果：`WireEvent`（契约事件，直接外发）、`WireSignal`（生命周期、`DocChanged`、`SelectionReport`，会话自己处理）、`WireHostRequest`（调回调后用 `Encode…Reply` 应答）、`WireResponse` / `WireFailure`（交给挂起请求的 `EditorWireCall<T>.ReadReply`）、`WireRejected`（记日志；带 id 的请求回 `EncodeFailure`）。发送方向用 `EncodeCommand`、`EncodeDocLoad`、`EncodeRequest`（返回带报文与读应答方法的 `EditorWireCall<T>`）、`EncodeGetText` 与 `EncodeInitScript`。
 
 ### 2. 信封与 JSON 约定
 
@@ -85,7 +87,7 @@ stateDiagram-v2
 | `req` | `{"k":"req","id":17,"t":"doc.flush","p":{}}` | 双向 |
 | `res` | `{"k":"res","id":17,"ok":true,"p":{"version":43}}` 或 `{"k":"res","id":17,"ok":false,"err":{"code":"canceled","message":"…"}}` | 双向，回应对方的 `req` |
 
-- **载荷永远是对象。** 无字段的 record（`Undo`、`SelectAll` 等）发 `{}`，字段多了少了都不影响解析：未知字段忽略，缺失字段取类型默认值；必填字段缺失按 `invalidPayload` 处理。
+- **载荷永远是对象。** 无字段的 record（`Undo`、`SelectAll` 等）发 `{}`，缺了 `p` 也按 `{}` 读。唯一的例外是结果可空的请求（`selection.contextAt`、`table.pickSize`、`image.resolve`），它们的成功应答可以是 `"p":null`。未知字段忽略；record 构造参数非空且没有默认值的就是必填字段（`int`、`bool`、枚举、非空字符串与对象），缺失或为 `null` 按 `invalidPayload` 处理；可空字段（表里写作 `x?`）缺失时取 `null`，宿主写出时省略值为 `null` 的字段。
 - **信封外层手写。** 宿主用 `Utf8JsonWriter` 写 `k`、`t`、`id`，载荷用 `EditorWireJsonContext` 的 `JsonTypeInfo` 写入 `p`；读取时先用 `Utf8JsonReader` 取出 `k`、`t`、`id`，再按类型名表反序列化 `p`。这样不依赖 STJ 多态，也不要求 `t` 出现在第一个字段。
 - **命名。** 字段名 camelCase；枚举值写成 camelCase 字符串（`"strong"`、`"heading2"`、`"insertRowAbove"`），用 `JsonStringEnumConverter` 配 camelCase 命名策略。唯一的例外是 `KeyboardKey` 与 `KeyboardModifiers`：它们是 Win32 虚拟键码与标志位，页面按 `KeyboardEvent.keyCode` 与修饰键位直接比较，写成整数。
 - **标识。** `HeadingId` 这类 `readonly record struct` 包装在线上展开成它的字符串值（`"id":"h-3f2a"`），由自定义转换器处理，页面只把它当不透明字符串。
@@ -129,7 +131,7 @@ sequenceDiagram
 
 | 报文 | 方向 | 载荷 | 说明 |
 |---|---|---|---|
-| `doc.load` | cmd | `{version, text, basePath, selection?, scrollTop?}` | 整篇替换正文并清空撤销历史。`version` 由宿主分配，严格大于此前出现过的任何版本号；`selection` 是 `{anchor, head}` |
+| `doc.load` | cmd | `{version, text, basePath, selection?, scrollTop?}` | 整篇替换正文并清空撤销历史。`version` 由宿主分配，等于宿主此前见过的最大版本号加 2^20；`selection` 是 `{anchor, head}` |
 | `doc.changed` | evt | `{baseVersion, version, changes:[{from, to, insert}]}` | `version = baseVersion + 1`；`changes` 按 `from` 升序、互不重叠，偏移都相对于 `baseVersion` 的正文 |
 | `doc.rendered` | evt | `{version}` | 见第 3 节 |
 | `doc.flush` | req | `{}` → `{version}` | 页面先同步发出挂起的 `doc.changed`，再应答当前版本号 |
@@ -141,7 +143,7 @@ sequenceDiagram
 flowchart TD
     A["收到 doc.changed"] --> B{"baseVersion 与镜像版本"}
     B -->|"相等"| C{"区间都在正文范围内"}
-    C -->|"是"| D["逆序应用 changes，镜像版本 = version"]
+    C -->|"是"| D["按 from 升序拼出新正文，镜像版本 = version"]
     D --> E["发 DocumentChanged(version)"]
     C -->|"否"| R
     B -->|"小于镜像版本"| X["过期报文，丢弃"]
@@ -149,9 +151,10 @@ flowchart TD
     R --> E
 ```
 
-- **过期与失步。** 宿主发 `doc.load` 后，页面在它之前已发出的 `doc.changed` 仍可能在途，它们的 `baseVersion` 小于新装载的版本号，直接丢弃；这就是装载版本号必须严格递增的原因，也因此不需要 `docId`。`baseVersion` 大于镜像版本只会在丢报文或实现有错时出现，按失步处理。重同步期间到达的 `doc.changed` 暂存，拿到 `getText` 应答后只应用版本号更大的那些。
-- **谁读镜像。** 契约的 `DocumentChanged` 与 `DocumentLoaded` 只带版本号，ViewModel 需要正文时读 `Session.Document.Text`。自动保存与备份直接读镜像（最多落后一帧）；手动保存、另存为、导出、关闭窗口前先 `await RequestAsync(new FlushDocument())`，再读镜像写盘，并以 flush 返回的版本号记为保存点。`doc.flush` 超时 1 秒时，会话记日志、按当前镜像继续保存，不阻塞用户。
-- **换行与编码。** 页面只见 `\n`。宿主读文件时记下编码、BOM 与原换行符（`\r\n` / `\n` / 混合时取占多数者），`doc.load` 前统一成 `\n`，保存时还原。这与引擎的「打开不改写正文」一起构成字节保真：打开后不编辑直接保存，文件字节不变。
+- **镜像的实现。** 上图由 Core 的 [DocumentMirror](/Dev/Typedown.Core/Editor/Wire/DocumentMirror.cs) 实现：`Load` 分配装载版本号并返回 `doc.load` 载荷，`Apply(DocChanged)` 与 `CompleteResync(DocText)` 返回 `Applied`（发 `DocumentChanged`）、`Stale`（丢弃）、`Buffered`（重同步中，已暂存）或 `ResyncRequired`（发 `doc.getText`），`IsCurrentLoad` 判断 `doc.rendered` 是否过期。重同步请求失败（超时、页面重载）时会话调 `AbandonResync`，下一条对不上的增量会再次触发重同步。
+- **过期与失步。** 宿主发 `doc.load` 后，页面在它之前已发出的 `doc.changed` 仍可能在途，宿主还没见过它们的版本号。装载版本号取宿主见过的最大版本号加 2^20，在途的旧增量不可能追上它，于是 `baseVersion` 小于最近一次装载版本的报文一律按过期丢弃，不需要 `docId`；2^53 以内够装载 2^33 次。`baseVersion` 大于镜像版本、`version ≠ baseVersion + 1`、区间逆序重叠或越界，只会在丢报文或实现有错时出现，按失步处理。重同步期间到达的 `doc.changed` 暂存，拿到 `getText` 应答后只应用版本号更新的那些；暂存里再次跳号就再发一次 `getText`；早于最近一次装载的 `getText` 应答丢弃。
+- **谁读镜像。** 契约的 `DocumentChanged` 与 `DocumentLoaded` 只带版本号，ViewModel 需要正文时读 `Session.Document.Text`。自动保存与备份直接读镜像（最多落后一帧）；手动保存、另存为、导出、关闭窗口前先 `await RequestAsync(new FlushDocument())`，再取镜像快照写盘，保存点是这份快照的版本号（flush 之后它就是 flush 返回的版本；重同步未完成时快照更旧，以快照为准才不会把没写进文件的改动记成已保存）。写盘完成后只有镜像仍是这份快照时才标记已保存：版本号相同即可，旧页面对同一正文的回声也会推进版本，所以版本不同时再比一次正文。`doc.flush` 超时 1 秒时，会话记日志、按当前镜像继续保存，不阻塞用户。会话不在 `Ready` 时 `FlushDocument` 不进就绪门，直接应答当前镜像版本：页面上没有未上报的改动，而启动握手里的 `PrepareStartupAsync` 会经新建文档的 `AskToSave` 发出它，排队等 `ready` 会死锁；重同步进行中时则等 `doc.getText` 的应答落进镜像再应答。`FileViewModel` 对取消、不支持与失败同样按当前镜像继续。
+- **换行与编码。** 页面只见 `\n`。宿主读文件时由 [TextFileCodec](/Dev/Typedown.Core/Services/TextFileCodec.cs) 按 BOM 认编码（UTF-8、UTF-16 LE/BE、UTF-32 LE/BE；没有 BOM 即 UTF-8），记下 BOM 与原换行符（`\r\n` / `\n` / `\r`，混合时取占多数者，并列时依次偏向 `\r\n`、`\n`），`doc.load` 前统一成 `\n`，保存时还原；新建文档是 UTF-8 无 BOM、`\n`，另存为沿用当前文件的格式。这与引擎的「打开不改写正文」一起构成字节保真：打开后不编辑直接保存，文件字节不变；混合换行的文件会统一成多数者。GBK 等无 BOM 的非 UTF-8 编码不识别，按 UTF-8 解码（非法字节成为替换字符），与此前行为相同。
 - **撤销在页面。** 新引擎用 CM6 自己的 `history`，页面以 `history.changed` 报告可撤销状态；宿主不再持有 `ContentHistory` 快照，`Undo` / `Redo` / `ClearUndoHistory` 只是转发给页面的命令。
 - **镜像的代价。** 镜像多占一份正文内存（1 MB 文档约 2 MB UTF-16），每批增量的应用是 O(改动 + 块移动)；比旧协议每键全文加字符串差分便宜得多。
 
@@ -301,19 +304,19 @@ sequenceDiagram
 - **超时。** 宿主→页面的请求默认 5 秒超时，`doc.flush` 1 秒（超时后的行为见第 4 节），`export.renderHtml` 60 秒。页面→宿主的请求不设超时：它们可能在等用户操作对话框。
 - **版本演进。** 协议版本只有一个整数，写在初始态与 `lifecycle.ready` 里。加字段、加类型名、加枚举值都向后兼容，不升版本：旧的一方忽略不认识的字段与报文，不认识的枚举值按「丢弃这条报文」处理。删改字段或改变语义才升版本；页面与宿主同属一次发布，版本不一致只会出现在开发时的混合构建中，这时直接进入 `Faulted`。
 
-### 10. 契约需要的调整
+### 10. 契约为本协议做的调整
 
-以下是现有契约为本协议必须做的改动，均在 C5（宿主接入）开始前完成。`LegacyMuyaSession` 同步给出旧协议下的等价实现，ViewModel 在两种会话下行为一致：
+现有契约为本协议做了以下改动，`LegacyMuyaSession` 同步给出旧协议下的等价实现，ViewModel 在两种会话下行为一致：
 
 | 调整 | 原因 | 旧协议适配器怎么做 |
 |---|---|---|
-| `EditorDocument(string Text)` 加 `long Version` | 镜像要带版本号，保存点按版本记录 | 每次 `MarkdownChange`、装载、撤销回灌时版本加一 |
-| `DocumentChanged(string Text)` 改为 `DocumentChanged(long Version)`，`DocumentLoaded` 同样只带版本号 | 事件不再携带全文；订阅者（`EditorViewModel.OnMarkdownChange`、`OnDocumentLoaded`）改读 `Session.Document.Text` | 旧页面本来就发全文，适配器更新镜像后发版本号即可，不需要算差异 |
-| 新增请求 `FlushDocument : EditorRequest<long>` | 手动保存前取精确正文 | 旧页面每次变化都立即上报，直接应答当前镜像版本 |
-| 新增请求 `ContextAt(double X, double Y) : EditorRequest<RichSelection?>` | 右键菜单按点击处决定菜单项 | 应答最后一次 `SelectionChanged` 的 `Rich` |
-| 新增事件 `SearchResultChanged(int Count, int Current)` | 查找栏显示匹配数 | 旧页面没有这个信息，从不发出 |
-| `IEditorHostCallbacks` 新增 `ResolveImageAsync(ImageSource, CancellationToken)`，`ImageSource(ImageSourceKind Kind, string Value)`，结果 `string?` | 粘贴与拖入图片由宿主落盘或上传 | 旧页面自己处理图片，从不调用 |
-| 新增 `EditorInitState`、`EditorWireError`、`EditorRequestFailedException`、`EditorWireTypes` 类型名表与 `EditorWireJsonContext` | 本协议的编码 | 不涉及 |
+| `EditorDocument(string Text, long Version)` | 镜像要带版本号，保存点按版本记录 | 每次 `MarkdownChange`、`FileLoaded`、装载、撤销回灌时版本加一 |
+| `DocumentChanged(long Version)`、`DocumentLoaded(long Version)` 只带版本号 | 事件不再携带全文；订阅者（`EditorViewModel.OnMarkdownChange`、`OnDocumentLoaded`）改读 `Session.Document.Text` | 旧页面本来就发全文，适配器更新镜像后发版本号即可，不需要算差异 |
+| 请求 `FlushDocument : EditorRequest<long>` | 手动保存前取精确正文 | 旧页面每次变化都立即上报，直接应答当前镜像版本 |
+| 请求 `ContextAt(double X, double Y) : EditorRequest<RichSelection?>` | 右键菜单按点击处决定菜单项 | 右键时光标已落到点击处，应答最后一次 `SelectionChanged` 的 `Rich`（源码模式为 `null`） |
+| 事件 `SearchResultChanged(int Count, int Current)` | 查找栏显示匹配数 | 旧页面没有这个信息，从不发出 |
+| `IEditorHostCallbacks.ResolveImageAsync(ImageSource, CancellationToken)`，`ImageSource(ImageSourceKind Kind, string Value)`，结果 `string?` | 粘贴与拖入图片由宿主落盘或上传；`EditorViewModel` 按 `Kind` 走本地文件、网络图片或剪贴板图片的设置，`dataUrl` 解码成字节后按剪贴板图片处理 | 旧页面自己处理图片，从不调用 |
+| `EditorInitState`、`EditorWireError`、`EditorRequestFailedException`（Core 的 [Editor](/Dev/Typedown.Core/Editor/) 下）；`EditorWireTypes`、`EditorWireJsonContext`、`EditorWireCodec`、`DocumentMirror`（[Editor/Wire](/Dev/Typedown.Core/Editor/Wire/) 下） | 本协议的编码 | 不涉及 |
 
 ### 11. 契约测试
 
@@ -325,10 +328,13 @@ flowchart LR
     Samples --> Ts["页面 Vitest: protocol.test.ts"]
     Cs --> C1["反序列化 → 契约 record，再序列化，与样例 JsonNode.DeepEquals"]
     Cs --> C2["反射：每个契约命令、事件、请求都在类型名表里"]
+    Shared["Tests/Protocol/enums.json<br/>init-state.json"] --> Cs
+    Shared --> Ts
     Ts --> T1["JSON.parse → 按 t 收窄类型，逐字段断言"]
     Ts --> T2["类型检查：每个 protocol.ts 联合成员都有样例"]
 ```
 
-- 样例放在仓库根的 `Tests/Protocol/samples/`，文件名就是类型名（`format.toggle.json`），内容是一条完整信封。两个工作区（集成分支与 `work/editor-next`）都能访问到它。
-- C# 侧额外守住：类型名表是双射；每个类型名在 `EditorWireJsonContext` 里都有 `JsonTypeInfo`（AOT 下缺失会在运行时才失败）；枚举的线上值集合与样例里出现的一致。
+- 样例放在仓库根的 `Tests/Protocol/samples/`，文件名就是类型名（`format.toggle.json`），内容是一条完整信封；每个请求另有一份 `类型名.res.json`，是它的成功应答信封。两个工作区（集成分支与 `work/editor-next`）都能访问到它。样例是手写的规格，不由序列化器生成。
+- `Tests/Protocol/enums.json` 列出每个字符串枚举的全部线上值（按声明顺序），`Tests/Protocol/init-state.json` 是一份完整的初始态；两端都拿它们对照自己的枚举与初始态类型。
+- C# 侧的 [EditorWireContractTests](/Tests/Typedown.CoreTests/Editor/EditorWireContractTests.cs) 额外守住：类型名表是双射；每个类型名在 `EditorWireJsonContext` 里都有 `JsonTypeInfo`（AOT 下缺失会在运行时才失败）；从类型名表出发能走到的枚举与 `enums.json` 一一对应、值相同；信封字段任意顺序、未知字段、缺必填字段、未知枚举值、方向不符等报文的处理；错误码到异常的映射。[DocumentMirrorTests](/Tests/Typedown.CoreTests/Editor/DocumentMirrorTests.cs) 用随机编辑批次、乱序、重复、丢失与中途装载做性质测试，最终镜像必须与页面正文相同。
 - 页面侧的 `protocol.ts` 由人手维护而不是代码生成：契约只有几十个 record，生成器的维护成本高于对照表，漏改会被上面两条测试拦下。
