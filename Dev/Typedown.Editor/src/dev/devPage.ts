@@ -1,5 +1,7 @@
 import '../styles/editor.css';
 import './dev.css';
+import '../styles/prism.css';
+import '../styles/blocks.css';
 import { EditorState } from '@codemirror/state';
 import { EditorView } from '@codemirror/view';
 import { ensureSyntaxTree, syntaxTree } from '@codemirror/language';
@@ -82,7 +84,8 @@ host.onMessage(m => {
   if (m.k !== 'evt') return;
   if (m.t === 'lifecycle.ready') {
     P.t.ready = performance.now();
-    host.command('doc.load', { version: 1, text: original, basePath: '' });
+    // ?base= 给图片的文档目录（blocks 样例的相对图片路径按它解析）
+    host.command('doc.load', { version: 1, text: original, basePath: params.get('base') ?? '' });
     P.t.constructed = performance.now();
     requestAnimationFrame(() => requestAnimationFrame(() => { P.t.painted = performance.now(); showStatus(); }));
   } else if (m.t === 'doc.rendered') P.t.rendered = performance.now();

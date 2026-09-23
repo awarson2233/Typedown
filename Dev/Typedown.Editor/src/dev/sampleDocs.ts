@@ -75,6 +75,78 @@ flowchart LR
 结尾段落。
 `;
 
+/** 各类块组件各一个，给样式对照截图与手测用（图片用相对路径 images/logo.png，需要 basePath 指向放图片的目录） */
+export const BLOCKS_DOC = `---
+title: 块组件样例
+tags: [typedown, blocks]
+---
+
+# 块组件样例
+
+[TOC]
+
+## 代码块
+
+正文段落，下面是带语言的代码块：
+
+\`\`\`javascript
+// 计算斐波那契数
+function fib(n) {
+  return n < 2 ? n : fib(n - 1) + fib(n - 2);
+}
+const s = \`fib(10) = \${fib(10)}\`;
+\`\`\`
+
+\`\`\`python
+def greet(name: str) -> str:
+    return f"Hello, {name}!"  # 注释
+\`\`\`
+
+\`\`\`
+没有语言的代码块
+\`\`\`
+
+## 公式与图表
+
+$$
+\\int_0^1 x^2\\,dx = \\frac{1}{3}
+$$
+
+\`\`\`mermaid
+flowchart LR
+  A[开始] --> B{判断}
+  B -->|是| C[结束]
+\`\`\`
+
+## HTML 块
+
+<div align="center">
+  <b>居中的粗体</b> 与 <i>斜体</i>
+</div>
+
+<script>
+console.log('不可见');
+</script>
+
+## 图片
+
+本地图片：
+
+![logo](images/logo.png "Typedown")
+
+加载失败：![坏图](images/missing.png)
+
+空图片：![]()
+
+## 脚注
+
+这里有两个脚注引用[^1]，第二个[^note]。
+
+[^1]: 第一个脚注的内容，带**粗体**。
+
+[^note]: 第二个脚注。
+`;
+
 export function sampleDoc(name: string): string {
   switch (name) {
     case 'small': return range(8, false);
@@ -83,6 +155,7 @@ export function sampleDoc(name: string): string {
     case 'large': { const half = range(1300, false); return half + half; }
     case 'large-rich': { const r = range(100, true); return r.repeat(25); }
     case 'ime': return IME_DOC;
+    case 'blocks': return BLOCKS_DOC;
     default: return range(8, false);
   }
 }

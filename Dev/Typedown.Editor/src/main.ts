@@ -1,4 +1,6 @@
 import './styles/editor.css';
+import './styles/prism.css';
+import './styles/blocks.css';
 import { startEditorApp } from './app';
 import { FakeHost, webviewTransport } from './bridge/channel';
 import type { EditorInitState } from './bridge/protocol';
