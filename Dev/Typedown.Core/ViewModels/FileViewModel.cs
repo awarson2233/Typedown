@@ -96,10 +96,25 @@ namespace Typedown.Core.ViewModels
             _ = UiDispatcher.RunIdleAsync(() => OnStartup());
         }
 
-        private async void SaveFileTimerTick(object? sender, ElapsedEventArgs e)
+        /// <summary>
+        /// 计时器在线程池上触发；自动保存会改 <see cref="EditorViewModel.AutoSavedSucc"/> 与保存状态，
+        /// 进而改窗口标题，所以整轮保存都切回 UI 线程执行。
+        /// </summary>
+        private void SaveFileTimerTick(object? sender, ElapsedEventArgs e)
         {
             if (disposables.IsDisposed) return;
-            await autoPersistenceOperation.TryRunAsync(RunAutoPersistenceTickAsync);
+            try
+            {
+                _ = UiDispatcher.RunAsync(() =>
+                {
+                    if (!disposables.IsDisposed)
+                        _ = autoPersistenceOperation.TryRunAsync(RunAutoPersistenceTickAsync);
+                });
+            }
+            catch (UiDispatcherUnavailableException)
+            {
+                // 窗口正在关闭，UI 线程已不可用，这一轮直接跳过。
+            }
         }
 
         private async Task RunAutoPersistenceTickAsync()
