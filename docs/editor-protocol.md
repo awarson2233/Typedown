@@ -1,6 +1,6 @@
 # 编辑器桥接协议 v1
 
-基于集成分支 `work/p0-host-prep`，契约已按第 10 节调整，Core 侧的编解码与正文镜像已就位；新引擎页面与宿主侧 `WebViewEditorSession` 都按本文实现，现有 Muya 页面仍走 [architecture.md](architecture.md) 第 4–5 节的旧协议。
+契约已按第 10 节调整；新引擎页面、Core 侧的编解码与正文镜像、宿主侧 `WebViewEditorSession` 都按本文实现。旧 Muya 页面走的是 [architecture.md](architecture.md) 第 4–5 节的旧协议，Muya 前端已删除，`LegacyMuyaSession` 仍保留但不再注册。
 
 ## 概念
 
@@ -77,7 +77,7 @@ stateDiagram-v2
 | 正文同步 | `doc.load`、`doc.changed`、`doc.flush`、`doc.getText` | 维护 `DocumentMirror`，对外只发不带正文的 `DocumentChanged(Version)`（第 4 节） |
 | 回问宿主 | `table.pickSize`、`clipboard.write`、`image.resolve` | 调 [IEditorHostCallbacks](/Dev/Typedown.Core/Editor/IEditorHostCallbacks.cs) 的对应方法，把结果作为应答 |
 
-类型名与 record 的对应集中在 Core 的一张表 [EditorWireTypes](/Dev/Typedown.Core/Editor/Wire/EditorWireTypes.cs)（`Type ↔ string` 双射，外加每个类型的 `JsonTypeInfo`、种类、方向与请求的应答类型），不用 `[JsonPolymorphic]` 标注契约 record：契约不该知道自己在线上叫什么，旧协议适配器也用不到这些名字。表里的载荷多数就是契约 record（`doc.rendered` 的载荷 `{version}` 也直接是 `DocumentLoaded`）；三个契约类型因为线上形状不同而由会话转换，登记在 `EditorWireTypes.SessionTranslated`：`LoadDocument` 经 `DocumentMirror.Load` 补上版本号成为 `DocLoad`，`DocumentChanged` 由 `DocChanged` 增量推出，`SelectionChanged` 取自多带偏移的 `SelectionReport`。线上独有的 record（正文同步、生命周期、回问宿主的请求及各请求的应答）在 [EditorWireMessages.cs](/Dev/Typedown.Core/Editor/Wire/EditorWireMessages.cs)。页面侧的 `bridge/protocol.ts`（在 `work/editor-next` 分支的 Dev/Typedown.Editor 下）是同一张表的 TypeScript 版本，每个类型名一个 interface，按 `t` 组成可辨识联合。
+类型名与 record 的对应集中在 Core 的一张表 [EditorWireTypes](/Dev/Typedown.Core/Editor/Wire/EditorWireTypes.cs)（`Type ↔ string` 双射，外加每个类型的 `JsonTypeInfo`、种类、方向与请求的应答类型），不用 `[JsonPolymorphic]` 标注契约 record：契约不该知道自己在线上叫什么，旧协议适配器也用不到这些名字。表里的载荷多数就是契约 record（`doc.rendered` 的载荷 `{version}` 也直接是 `DocumentLoaded`）；三个契约类型因为线上形状不同而由会话转换，登记在 `EditorWireTypes.SessionTranslated`：`LoadDocument` 经 `DocumentMirror.Load` 补上版本号成为 `DocLoad`，`DocumentChanged` 由 `DocChanged` 增量推出，`SelectionChanged` 取自多带偏移的 `SelectionReport`。线上独有的 record（正文同步、生命周期、回问宿主的请求及各请求的应答）在 [EditorWireMessages.cs](/Dev/Typedown.Core/Editor/Wire/EditorWireMessages.cs)。页面侧的 [bridge/protocol.ts](/Dev/Typedown.Editor/src/bridge/protocol.ts)是同一张表的 TypeScript 版本，每个类型名一个 interface，按 `t` 组成可辨识联合。
 
 编解码在 [EditorWireCodec](/Dev/Typedown.Core/Editor/Wire/EditorWireCodec.cs)，无状态、不含 WebView2 代码。会话把收到的报文字符串交给 `Decode`，得到按动作分类的结果：`WireEvent`（契约事件，直接外发）、`WireSignal`（生命周期、`DocChanged`、`SelectionReport`，会话自己处理）、`WireHostRequest`（调回调后用 `Encode…Reply` 应答）、`WireResponse` / `WireFailure`（交给挂起请求的 `EditorWireCall<T>.ReadReply`）、`WireRejected`（记日志；带 id 的请求回 `EncodeFailure`）。发送方向用 `EncodeCommand`、`EncodeDocLoad`、`EncodeRequest`（返回带报文与读应答方法的 `EditorWireCall<T>`）、`EncodeGetText` 与 `EncodeInitScript`。
 
@@ -344,7 +344,7 @@ flowchart LR
     Ts --> T2["类型检查：每个 protocol.ts 联合成员都有样例"]
 ```
 
-- 样例放在仓库根的 `Tests/Protocol/samples/`，文件名就是类型名（`format.toggle.json`），内容是一条完整信封；每个请求另有一份 `类型名.res.json`，是它的成功应答信封。两个工作区（集成分支与 `work/editor-next`）都能访问到它。样例是手写的规格，不由序列化器生成。
+- 样例放在仓库根的 `Tests/Protocol/samples/`，文件名就是类型名（`format.toggle.json`），内容是一条完整信封；每个请求另有一份 `类型名.res.json`，是它的成功应答信封。C# 与 TypeScript 两侧的测试都读它。样例是手写的规格，不由序列化器生成。
 - `Tests/Protocol/enums.json` 列出每个字符串枚举的全部线上值（按声明顺序），`Tests/Protocol/init-state.json` 是一份完整的初始态；两端都拿它们对照自己的枚举与初始态类型。
 - C# 侧的 [EditorWireContractTests](/Tests/Typedown.CoreTests/Editor/EditorWireContractTests.cs) 额外守住：类型名表是双射；每个类型名在 `EditorWireJsonContext` 里都有 `JsonTypeInfo`（AOT 下缺失会在运行时才失败）；从类型名表出发能走到的枚举与 `enums.json` 一一对应、值相同；信封字段任意顺序、未知字段、缺必填字段、未知枚举值、方向不符等报文的处理；错误码到异常的映射。[DocumentMirrorTests](/Tests/Typedown.CoreTests/Editor/DocumentMirrorTests.cs) 用随机编辑批次、乱序、重复、丢失与中途装载做性质测试，最终镜像必须与页面正文相同。
 - 页面侧的 `protocol.ts` 由人手维护而不是代码生成：契约只有几十个 record，生成器的维护成本高于对照表，漏改会被上面两条测试拦下。
