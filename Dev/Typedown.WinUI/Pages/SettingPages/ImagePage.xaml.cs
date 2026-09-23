@@ -139,9 +139,9 @@ namespace Typedown.WinUI.Pages.SettingPages
             ClipboardImageUploadConfig = UploadConfigOptions.FirstOrDefault(x => x.Id == settings.InsertClipboardImageUseUploadConfigId) ?? UploadConfigOption.None;
             LocalImageUploadConfig = UploadConfigOptions.FirstOrDefault(x => x.Id == settings.InsertLocalImageUseUploadConfigId) ?? UploadConfigOption.None;
             WebImageUploadConfig = UploadConfigOptions.FirstOrDefault(x => x.Id == settings.InsertWebImageUseUploadConfigId) ?? UploadConfigOption.None;
-            ImageUploadConfigsDisposables.Add(this.WhenPropertyChanged(nameof(ClipboardImageUploadConfig)).Select(value => value as UploadConfigOption ?? UploadConfigOption.None).Subscribe(x => settings.InsertClipboardImageUseUploadConfigId = x.Id));
-            ImageUploadConfigsDisposables.Add(this.WhenPropertyChanged(nameof(LocalImageUploadConfig)).Select(value => value as UploadConfigOption ?? UploadConfigOption.None).Subscribe(x => settings.InsertLocalImageUseUploadConfigId = x.Id));
-            ImageUploadConfigsDisposables.Add(this.WhenPropertyChanged(nameof(WebImageUploadConfig)).Select(value => value as UploadConfigOption ?? UploadConfigOption.None).Subscribe(x => settings.InsertWebImageUseUploadConfigId = x.Id));
+            ImageUploadConfigsDisposables.Add(this.WhenPropertyChanged(nameof(ClipboardImageUploadConfig), x => x.ClipboardImageUploadConfig ?? UploadConfigOption.None).Subscribe(x => settings.InsertClipboardImageUseUploadConfigId = x.Id));
+            ImageUploadConfigsDisposables.Add(this.WhenPropertyChanged(nameof(LocalImageUploadConfig), x => x.LocalImageUploadConfig ?? UploadConfigOption.None).Subscribe(x => settings.InsertLocalImageUseUploadConfigId = x.Id));
+            ImageUploadConfigsDisposables.Add(this.WhenPropertyChanged(nameof(WebImageUploadConfig), x => x.WebImageUploadConfig ?? UploadConfigOption.None).Subscribe(x => settings.InsertWebImageUseUploadConfigId = x.Id));
         }
 
         private void OnUnloaded(object sender, RoutedEventArgs e)

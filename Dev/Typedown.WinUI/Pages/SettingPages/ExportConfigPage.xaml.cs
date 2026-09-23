@@ -58,7 +58,7 @@ namespace Typedown.WinUI.Pages.SettingPages
                 if (ExportConfig != null)
                 {
                     Bindings.Update();
-                    disposables.Add(ExportConfig.WhenPropertyChanged(nameof(ExportConfig.Name)).Select(value => value as string).StartWith(ExportConfig.Name).Subscribe(UpdateTitle));
+                    disposables.Add(ExportConfig.WhenPropertyChanged(nameof(ExportConfig.Name), x => x.Name).StartWith(ExportConfig.Name).Subscribe(UpdateTitle));
                 }
             }
             catch (Exception ex)

@@ -137,40 +137,25 @@ namespace Typedown.Core.Utilities
             return buffer.ToString();
         }
 
-        public static void CopyProperties<T>(this T source, T target)
+        /// <summary>
+        /// 把 <typeparamref name="T"/> 上可读写的公开实例属性逐个拷到 <paramref name="target"/>，值相等的不写。
+        /// 按静态类型 <typeparamref name="T"/> 取属性（带 <see cref="DynamicallyAccessedMembersAttribute"/>），
+        /// 裁剪与 Native AOT 会为调用方给出的具体类型保留这些属性。
+        /// </summary>
+        public static void CopyProperties<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] T>(this T source, T target)
         {
             ArgumentNullException.ThrowIfNull(source);
             ArgumentNullException.ThrowIfNull(target);
 
-            foreach (var (sourceProperty, targetProperty) in GetSharedRuntimeProperties(source, target))
+            foreach (var property in typeof(T).GetProperties(BindingFlags.Public | BindingFlags.Instance))
             {
-                var oldValue = targetProperty.GetValue(target);
-                var newValue = sourceProperty.GetValue(source);
+                if (!property.CanRead || !property.CanWrite || property.GetIndexParameters().Length != 0)
+                    continue;
+
+                var oldValue = property.GetValue(target);
+                var newValue = property.GetValue(source);
                 if (!(oldValue?.Equals(newValue) ?? oldValue == newValue))
-                    targetProperty.SetValue(target, newValue);
-            }
-        }
-
-        [UnconditionalSuppressMessage("Trimming", "IL2075", Justification = "Runtime property inspection is intentionally localized here for property copy semantics.")]
-        private static IEnumerable<(PropertyInfo Source, PropertyInfo Target)> GetSharedRuntimeProperties(object source, object target)
-        {
-            var sourceProperties = source.GetType()
-                .GetProperties(BindingFlags.Public | BindingFlags.Instance)
-                .Where(prop => prop.CanRead && prop.GetIndexParameters().Length == 0)
-                .ToDictionary(prop => prop.Name, StringComparer.Ordinal);
-
-            foreach (var targetProperty in target.GetType().GetProperties(BindingFlags.Public | BindingFlags.Instance))
-            {
-                if (!targetProperty.CanWrite || targetProperty.GetIndexParameters().Length != 0)
-                    continue;
-
-                if (!sourceProperties.TryGetValue(targetProperty.Name, out var sourceProperty))
-                    continue;
-
-                if (!targetProperty.PropertyType.IsAssignableFrom(sourceProperty.PropertyType))
-                    continue;
-
-                yield return (sourceProperty, targetProperty);
+                    property.SetValue(target, newValue);
             }
         }
 

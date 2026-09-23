@@ -54,7 +54,7 @@ namespace Typedown.WinUI.Pages.SettingPages
         {
             ImageUploadConfig = await UploadService.Value.GetImageUploadConfig(configId);
             if (ImageUploadConfig != null)
-                disposables.Add(ImageUploadConfig.WhenPropertyChanged(nameof(ImageUploadConfig.Name)).Select(value => value as string).StartWith(ImageUploadConfig.Name).Subscribe(UpdateTitle));
+                disposables.Add(ImageUploadConfig.WhenPropertyChanged(nameof(ImageUploadConfig.Name), x => x.Name).StartWith(ImageUploadConfig.Name).Subscribe(UpdateTitle));
         }
 
         private void OnUnloaded(object sender, RoutedEventArgs e)

@@ -336,14 +336,11 @@ namespace Typedown.WinUI
 
             var settings = appViewModel.SettingsViewModel;
 
-            var appThemeChanges = settings.WhenPropertyChanged(nameof(SettingsViewModel.AppTheme))
-                .Select(value => RequirePropertyValue<AppTheme>(value, nameof(SettingsViewModel.AppTheme)))
+            var appThemeChanges = settings.WhenPropertyChanged(nameof(SettingsViewModel.AppTheme), x => x.AppTheme)
                 .StartWith(settings.AppTheme);
-            var micaEffectChanges = settings.WhenPropertyChanged(nameof(SettingsViewModel.UseMicaEffect))
-                .Select(value => RequirePropertyValue<bool>(value, nameof(SettingsViewModel.UseMicaEffect)))
+            var micaEffectChanges = settings.WhenPropertyChanged(nameof(SettingsViewModel.UseMicaEffect), x => x.UseMicaEffect)
                 .StartWith(settings.UseMicaEffect);
-            var editorMicaEffectChanges = settings.WhenPropertyChanged(nameof(SettingsViewModel.UseEditorMicaEffect))
-                .Select(value => RequirePropertyValue<bool>(value, nameof(SettingsViewModel.UseEditorMicaEffect)))
+            var editorMicaEffectChanges = settings.WhenPropertyChanged(nameof(SettingsViewModel.UseEditorMicaEffect), x => x.UseEditorMicaEffect)
                 .StartWith(settings.UseEditorMicaEffect);
 
             shellBindings.Add(appThemeChanges.Subscribe(ApplyAppTheme));
@@ -355,13 +352,11 @@ namespace Typedown.WinUI
                     (_, _, _) => settings)
                 .Subscribe(ApplyEditorBackground));
 
-            shellBindings.Add(settings.WhenPropertyChanged(nameof(SettingsViewModel.Topmost))
-                .Select(value => RequirePropertyValue<bool>(value, nameof(SettingsViewModel.Topmost)))
+            shellBindings.Add(settings.WhenPropertyChanged(nameof(SettingsViewModel.Topmost), x => x.Topmost)
                 .StartWith(settings.Topmost)
                 .Subscribe(ApplyTopmost));
 
-            shellBindings.Add(settings.WhenPropertyChanged(nameof(SettingsViewModel.AnimationEnable))
-                .Select(value => RequirePropertyValue<bool>(value, nameof(SettingsViewModel.AnimationEnable)))
+            shellBindings.Add(settings.WhenPropertyChanged(nameof(SettingsViewModel.AnimationEnable), x => x.AnimationEnable)
                 .StartWith(settings.AnimationEnable)
                 .Subscribe(rootControl.SetAnimationEnabled));
             shellBindings.Add(appViewModel.FileViewModel.NewWindowCommand.OnExecute.Subscribe(OpenNewWindowInNewProcess));
@@ -435,16 +430,6 @@ namespace Typedown.WinUI
             }
 
             Process.Start(startInfo);
-        }
-
-        private static T RequirePropertyValue<T>(object? value, string propertyName)
-        {
-            return value switch
-            {
-                T typed => typed,
-                null => throw new InvalidOperationException($"Property '{propertyName}' emitted a null value."),
-                _ => throw new InvalidOperationException($"Property '{propertyName}' emitted '{value.GetType().FullName}' instead of '{typeof(T).FullName}'.")
-            };
         }
 
         private void ApplyAppTheme(AppTheme theme)
