@@ -216,8 +216,8 @@ describe('块级标记', () => {
     expect(off.lines).toEqual(on.lines);
     expect(structural(on.lines)).toEqual(['1:cm-td-h cm-td-h2']);
   });
-  it('标题之间只隔一个空行时，后一个标题不再补上内边距（旧编辑器里两个外边距折叠）', () => {
-    expect(structural(specs('# a\n\n## b\n\nc\n\n### d', [99]).lines)).toEqual(['1:cm-td-h cm-td-h1', '3:cm-td-h cm-td-h2 cm-td-h-follow', '7:cm-td-h cm-td-h3']);
+  it('标题行只带字号类名，上下外边距交给前后的空行', () => {
+    expect(structural(specs('# a\n\n## b\n\nc\n\n### d', [99]).lines)).toEqual(['1:cm-td-h cm-td-h1', '3:cm-td-h cm-td-h2', '7:cm-td-h cm-td-h3']);
   });
   it('列表符号、任务框始终换成 widget（连同前面的缩进），与光标无关', () => {
     const d = '- 一\n  - 二\n1. 三\n- [x] 四';
@@ -237,7 +237,8 @@ describe('块级标记', () => {
   it('列表行：按容器层数施加缩进；已完成任务的整项（含子项）变淡', () => {
     const r = specs('- [x] 完成\n  - 子项\n- [ ] 未完成', [99]);
     expect(r.lines).toEqual(['1:cm-td-nest cm-td-task-done', '2:cm-td-nest cm-td-task-done', '3:cm-td-nest']);
-    expect(r.styles).toEqual(['1:--td-indent:1', '2:--td-indent:2', '3:--td-indent:1']);
+    // 首行另有文档首块的上外边距（列表 .5em）
+    expect(r.styles).toEqual(['1:--td-indent:1;padding-top:var(--td-m-p)', '2:--td-indent:2', '3:--td-indent:1']);
   });
   it('引用：> 始终隐藏（同一行的多层合成一段），按行施加竖线所在的层', () => {
     const r = specs('> 外\n> > 内', [0]);
@@ -282,5 +283,33 @@ describe('块间空行（段距）', () => {
   it('引用里只有 > 的行、松散列表项之间的空行也是段距；只有符号的空列表项不是', () => {
     const r = specs('> a\n>\n> b\n\n- x\n\n- y\n- ', [0]);
     expect(r.lines.filter(l => l.includes(GAP_LINE)).map(l => l.split(':')[0])).toEqual(['2', '4', '6']);
+  });
+  it('空行高度按前后两块在旧编辑器里的外边距：可折叠的取大者，代码块（inline-flex）的相加；段落之间用默认值', () => {
+    const gaps = (d: string) => specs(d, [d.length]).styles.filter(s => s.includes('--td-gap-h'));
+    expect(gaps('a\n\nb')).toEqual([]);
+    expect(gaps('# a\n\n## b')).toEqual(['2:--td-gap-h:var(--td-m-h)']);
+    expect(gaps('a\n\n# b')).toEqual(['2:--td-gap-h:max(var(--td-m-p), var(--td-m-h))']);
+    expect(gaps('a\n\n| x |\n| - |\n\nb')).toEqual(['2:--td-gap-h:max(var(--td-m-p), var(--td-m-fig))', '5:--td-gap-h:max(var(--td-m-fig), var(--td-m-p))']);
+    expect(gaps('```\nx\n```\n\n```\ny\n```')).toEqual(['4:--td-gap-h:calc(var(--td-m-code) + var(--td-m-code))']);
+    expect(gaps('a\n\n```\nx\n```')).toEqual(['2:--td-gap-h:calc(var(--td-m-p) + var(--td-m-code))']);
+    // 列表项之间的空行落在列表内部：段落间距
+    expect(gaps('- a\n\n- b')).toEqual([]);
+  });
+  it('连续多个空行：按 Muya 生成的空段落数平分总高度（n 个换行 → ⌊n/2⌋ − 1 个空段落）', () => {
+    const gaps = (d: string) => specs(d, [d.length]).styles.filter(s => s.includes('--td-gap-h'));
+    // 两个空行：没有空段落，两行平分一个段距
+    expect(gaps('a\n\n\nb')).toEqual(['2:--td-gap-h:calc((var(--td-m-p)) / 2)', '3:--td-gap-h:calc((var(--td-m-p)) / 2)']);
+    // 三个空行：一个空段落（一行正文高，上下各一个段距）
+    const three = gaps('a\n\n\n\nb');
+    expect(three).toHaveLength(3);
+    expect(three[0]).toBe('2:--td-gap-h:calc((calc(var(--td-m-p) + 1 * var(--td-lh-px) + 0 * var(--td-m-p) + var(--td-m-p))) / 3)');
+  });
+  it('没有空行的相邻块：间距加成文字行的内边距（优先加在前一块末行）', () => {
+    const pads = (d: string) => specs(d, [d.length]).styles.filter(s => s.includes('padding'));
+    // 首行同时带文档首块的上外边距
+    expect(pads('# a\nb')).toEqual(['1:padding-top:var(--td-m-h);padding-bottom:max(var(--td-m-h), var(--td-m-p))']);
+    expect(pads('x\n\na\n```\nc\n```')).toContain('3:padding-bottom:calc(var(--td-m-p) + var(--td-m-code))');
+    // 前一块是整块 widget（代码块）时加在后一块首行
+    expect(pads('x\n\n```\nc\n```\nb')).toContain('6:padding-top:calc(var(--td-m-code) + var(--td-m-p))');
   });
 });

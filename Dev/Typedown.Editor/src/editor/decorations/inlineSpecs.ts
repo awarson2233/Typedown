@@ -3,6 +3,8 @@ import type { SyntaxNode, Tree } from '@lezer/common';
 import { emojiFor } from '../../shared/emoji';
 import { RENDERED_TAGS, htmlAttr, pairHtmlTags, type HtmlTag } from './inlineHtml';
 import { linePrefix, type MarkerSpec } from './lineStructure';
+import { adjacentPadding, gapLineHeight, lastLineOf } from './blockSpacing';
+import { iterateTopBlocks } from '../syntax';
 
 /**
  * 行内显形的决策层：给定语法树、文档、要覆盖的区间与「显形位置」（选区端点），
@@ -69,7 +71,7 @@ const HANDLED_BY_PARENT = new Set([
 const BLOCK_CONTENT = new Set(['FencedCode', 'CodeBlock', 'BlockMath', 'HTMLBlock', 'CommentBlock', 'ProcessingInstructionBlock', 'Frontmatter', 'Table']);
 
 export const SYNTAX = 'cm-td-syntax';
-/** 块间空行（段距）：旧编辑器里段落之间是 0.5em 的外边距，这里把空行压成同样的高度 */
+/** 块间空行（段距）：高度按旧编辑器相邻两块的外边距折叠结果给出（blockSpacing.ts），默认是段落的 .5em */
 export const GAP_LINE = 'cm-td-gap';
 
 export interface Range { from: number; to: number }
@@ -90,21 +92,6 @@ function children(node: SyntaxNode, name?: string): SyntaxNode[] {
 /** 链接或图片目标里的标题去掉两端的引号或括号 */
 const unquote = (s: string) => (s.length >= 2 ? s.slice(1, -1) : s);
 
-const HEADING = /^(ATX|Setext)Heading\d$/;
-
-/**
- * 标题行之前隔一个空行就是另一个标题：旧编辑器里两个标题的外边距折叠成一个 1rem，
- * 这里上一个标题的下内边距加空行已经够 1rem，本行不再补上内边距。
- */
-function followsHeading(doc: Text, tree: Tree, line: Line): boolean {
-  if (line.number < 3) return false;
-  const blank = doc.line(line.number - 1);
-  if (!/^[ \t]*$/.test(blank.text)) return false;
-  const prev = doc.line(line.number - 2);
-  for (let n: SyntaxNode | null = tree.resolveInner(prev.to, -1); n; n = n.parent) if (HEADING.test(n.name)) return true;
-  return false;
-}
-
 /** 块间空行：整行空白、不在代码类块里、行首没有要画的列表符号 */
 function isGapLine(tree: Tree, line: Line, contentFrom: number): boolean {
   if (!/^[ \t]*$/.test(line.text.slice(contentFrom - line.from))) return false;
@@ -120,7 +107,7 @@ export function buildInlineSpecs(doc: Text, tree: Tree, range: Range, reveal: re
     let e = lines.get(at);
     if (!e) lines.set(at, (e = { cls: new Set(), style: '' }));
     if (cls) for (const c of cls.split(' ')) e.cls.add(c);
-    if (style) e.style = style;
+    if (style) e.style = e.style ? `${e.style};${style}` : style;
   };
   /** 对节点覆盖、且落在可见区间内的每一行调用 f */
   const eachLine = (from: number, to: number, f: (lineFrom: number, first: boolean, last: boolean) => void) => {
@@ -220,7 +207,7 @@ export function buildInlineSpecs(doc: Text, tree: Tree, range: Range, reveal: re
         case 'ATXHeading4': case 'ATXHeading5': case 'ATXHeading6': {
           const level = name.charCodeAt(10) - 48;
           const line = doc.lineAt(ref.from);
-          lineCls(line.from, `cm-td-h cm-td-h${level}${followsHeading(doc, tree, line) ? ' cm-td-h-follow' : ''}`);
+          lineCls(line.from, `cm-td-h cm-td-h${level}`);
           const shown = revealedBy(reveal, line.from, line.to);
           const marks = children(ref.node, 'HeaderMark');
           marks.forEach((m, i) => {
@@ -240,9 +227,9 @@ export function buildInlineSpecs(doc: Text, tree: Tree, range: Range, reveal: re
         case 'SetextHeading1': case 'SetextHeading2': {
           const level = name.endsWith('1') ? 1 : 2;
           const underline = ref.node.getChild('HeaderMark');
-          eachLine(ref.from, ref.to, (at, first) => {
+          eachLine(ref.from, ref.to, at => {
             if (underline && at === doc.lineAt(underline.from).from) lineCls(at, 'cm-td-setext-underline');
-            else lineCls(at, `cm-td-h cm-td-h${level}${first && followsHeading(doc, tree, doc.lineAt(at)) ? ' cm-td-h-follow' : ''}`);
+            else lineCls(at, `cm-td-h cm-td-h${level}`);
           });
           if (underline) mark(underline.from, underline.to, SYNTAX);
           return true;
@@ -293,12 +280,13 @@ export function buildInlineSpecs(doc: Text, tree: Tree, range: Range, reveal: re
           const node = ref.node;
           const marks = children(node, 'LinkMark');
           const url = node.getChild('URL');
-          // 引用式图片（`![alt][ref]`）要先找到定义才知道地址，暂按源码显示
-          if (marks.length < 2 || !url) { mark(ref.from, ref.to, 'cm-td-image-src'); return false; }
+          // 引用式图片（`![alt][ref]`）要先找到定义才知道地址，暂按源码显示；`![alt]()` 是空图片（有括号、没有地址），显示空图片占位
+          const emptyTarget = !url && marks.length >= 4 && doc.sliceString(marks[2].from, marks[2].to) === '(';
+          if (marks.length < 2 || (!url && !emptyTarget)) { mark(ref.from, ref.to, 'cm-td-image-src'); return false; }
           const title = node.getChild('LinkTitle');
           const widget: InlineWidgetSpec = {
             type: 'image',
-            src: doc.sliceString(url.from, url.to),
+            src: url ? doc.sliceString(url.from, url.to) : '',
             alt: doc.sliceString(marks[0].to, marks[1].from),
             title: title ? unquote(doc.sliceString(title.from, title.to)) : null,
           };
@@ -388,11 +376,30 @@ export function buildInlineSpecs(doc: Text, tree: Tree, range: Range, reveal: re
     lineCls(at, `cm-td-nest${p.quoteLevels.length ? ' cm-td-quote' : ''}${p.taskDone ? ' cm-td-task-done' : ''}`, style);
     if (!p.marker && isGapLine(tree, line, p.end)) lineCls(at, GAP_LINE);
   }
-  // 顶层的块间空行
+  // 顶层的块间空行：同一段连续空行共用一个高度（按前后两块的外边距算，见 blockSpacing.ts）
+  const isTopGap = (l: Line) => !prefixEnds.has(l.from) && isGapLine(tree, l, l.from);
+  let run: { last: number; style: string | undefined } | null = null;
   for (let l = doc.lineAt(range.from); ; l = doc.line(l.number + 1)) {
-    if (!prefixEnds.has(l.from) && isGapLine(tree, l, l.from)) lineCls(l.from, GAP_LINE);
+    if (isTopGap(l)) {
+      if (!run || l.number > run.last) {
+        let first = l.number, last = l.number;
+        while (first > 1 && isTopGap(doc.line(first - 1))) first--;
+        while (last < doc.lines && isTopGap(doc.line(last + 1))) last++;
+        const h = gapLineHeight(doc, tree, first, last);
+        run = { last, style: h ? `--td-gap-h:${h}` : undefined };
+      }
+      lineCls(l.from, GAP_LINE, run.style);
+    }
     if (l.to >= range.to || l.number >= doc.lines) break;
   }
+  // 中间没有空行的相邻顶层块（以及文档首块）：旧编辑器里两块之间的外边距加成文字行的内边距
+  iterateTopBlocks(tree, range.from, range.to, ref => {
+    const node = ref.node;
+    const prev = node.prevSibling;
+    if (prev ? lastLineOf(doc, prev).number + 1 !== doc.lineAt(node.from).number : node.from !== 0) return;
+    const pad = adjacentPadding(doc, prev, node);
+    if (pad) lineCls(pad.at, null, `padding-${pad.side}:${pad.value}`);
+  });
 
   for (const [at, e] of lines) {
     out.push({ kind: 'line', at, cls: [...e.cls].join(' '), style: e.style });

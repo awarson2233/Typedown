@@ -48,7 +48,8 @@
 
 /* 行内公式：源码（Muya：span.ag-math）、渲染结果、显形时的浮出预览（.ag-math-render） */
 .cm-td-math-inline-src { font-family: monospace; color: var(--editorColor); }
-.cm-td-math-inline { color: var(--editorColor); }
+/* Muya 的行内公式包在 span.ag-math（行内块、顶端对齐、等宽字体）里，公式所在行因此比纯文字行略高，这里照做 */
+.cm-td-math-inline { color: var(--editorColor); display: inline-block; vertical-align: top; font-family: monospace; }
 .cm-td-math-inline .katex { vertical-align: middle; white-space: nowrap; }
 .cm-td-math-inline.cm-td-pending { color: var(--editorColor50); font-family: monospace; }
 .cm-td-math-inline .cm-td-render-error {

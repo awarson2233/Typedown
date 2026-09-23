@@ -2,9 +2,10 @@
  * 正文排版：取值照抄旧编辑器（Muya themes/default.css 与 Typedown 定制的 assets/styles/index.css），
  * 只把选择器从 Muya 的 `.ag-*` / 真实 `<h1>`、`<ul>`、`<blockquote>` 结构改写到 CM6 的行装饰类与 widget 类上。
  *
- * 纵向间距的换算：Muya 里块与块之间是外边距（段落、列表、引用 .5em，标题 1rem，相邻外边距折叠取大者）；
- * CM6 里块之间是源码的空行。空行压成 .5em 高（cm-td-gap），标题行上下各补 1rem − .5em 的内边距，
- * 于是段落–段落 .5em、段落–标题 1rem，与旧编辑器相同。块组件要复刻 Muya 的外边距 M 时，上下各补 M − .5em。
+ * 纵向间距的换算：Muya 里块与块之间是外边距（段落、列表、引用 .5em，标题 1rem，figure 1.4em，代码块 .45em 且不折叠，
+ * 相邻外边距能折叠时取大者）；CM6 里块之间是源码的空行。块本身不带任何模拟外边距，两块之间的间距整段交给空行（cm-td-gap）：
+ * 空行的高度由 decorations/blockSpacing.ts 按前后两块的外边距算好，以 --td-gap-h 写在行上；没有空行的相邻块，间距加成文字行的内边距。
+ * 各类外边距的取值是下面的 --td-m-* 变量。
  *
  * CM6 的基础主题以 adoptedStyleSheets 注入、排在文档样式表之后，同权重时它赢；改 `.cm-line` 的规则因此写成 `.cm-content .cm-line.x`。
  */
@@ -105,9 +106,17 @@
   --td-indent-step: 30px;
   --td-quote-bar-left: 15px;
   --td-quote-bar: linear-gradient(var(--themeColor), var(--themeColor));
-  /* 块间空行的高度（= Muya 段落的 .5em 外边距）与标题行上下补的内边距（1rem 外边距减去空行） */
-  --td-gap: calc(var(--td-font-size, 16px) * .5);
-  --td-heading-gap: max(0px, calc(1rem - var(--td-gap)));
+  /* Muya 各类块的外边距（F 为宿主设置的字号）：段落、列表、引用 .5em；标题 1rem（恒为 16px）；
+     figure 1.4em；脚注区 1.4em × .8；代码块与 front matter 的 pre 是 .5em × 90% 字号 */
+  --td-m-p: calc(var(--td-font-size, 16px) * .5);
+  --td-m-h: 1rem;
+  --td-m-fig: calc(var(--td-font-size, 16px) * 1.4);
+  --td-m-fn: calc(var(--td-font-size, 16px) * 1.12);
+  --td-m-code: calc(var(--td-font-size, 16px) * .45);
+  /* 正文一行的高度（Muya 的空段落就是这么高） */
+  --td-lh-px: calc(var(--td-font-size, 16px) * var(--td-line-height, 1.6));
+  /* 块间空行的默认高度（段落与段落之间） */
+  --td-gap: var(--td-m-p);
 }
 
 html, body {
@@ -138,13 +147,16 @@ html.td-host::-webkit-scrollbar { display: none; }
 .cm-editor.cm-focused { outline: none; }
 /* CM6 基础主题给滚动容器设了等宽字体与 1.4 的行高，正文要继承上面的字体与行高 */
 #root .cm-editor .cm-scroller { font-family: inherit; line-height: inherit; }
-/* 顶部 .5em 对应首个段落的上外边距；底部留白让最后几行能滚到窗口中部 */
-.cm-editor .cm-content { padding: var(--td-gap) 0 40vh; caret-color: var(--editorColor); }
+/* 首块的上外边距由首行的内边距给出（blockSpacing.ts）；底部留白让最后几行能滚到窗口中部 */
+.cm-editor .cm-content { padding: 0 0 40vh; caret-color: var(--editorColor); }
+/* 折行照 Muya（段落内容是 pre-wrap）：CM6 的 break-spaces 让行尾空格占宽，同一段文字会比 Muya 早一个词折行 */
+.cm-editor .cm-content.cm-lineWrapping { white-space: pre-wrap; }
 .cm-editor .cm-content .cm-line { padding: 0; }
 .cm-content ::selection { background: var(--selectionColor); color: var(--editorColor); }
 
-/* 块间空行：定高而不只是压行高，行首隐藏前缀留下的 widget 缓冲元素（1em 高）不会把它撑开 */
-.cm-content .cm-line.cm-td-gap { line-height: var(--td-gap); height: var(--td-gap); }
+/* 块间空行：定高而不只是压行高，行首隐藏前缀留下的 widget 缓冲元素（1em 高）不会把它撑开；
+   高度按前后两块算（--td-gap-h，行内样式），段落之间默认 .5em */
+.cm-content .cm-line.cm-td-gap { line-height: var(--td-gap-h, var(--td-gap)); height: var(--td-gap-h, var(--td-gap)); }
 
 /* 引用与列表：按容器层数缩进，竖线由行装饰的内联样式给出位置（inlineSpecs 的 linePrefix） */
 .cm-content .cm-line.cm-td-nest { padding-left: calc(var(--td-indent, 0) * var(--td-indent-step)); }
@@ -157,23 +169,21 @@ html.td-host::-webkit-scrollbar { display: none; }
 /* 已勾选任务项的内容（Muya：input.ag-checkbox-checked ~ *） */
 .cm-content .cm-line.cm-td-task-done { color: var(--editorColor50); }
 
-/* 标题（字号按行无条件施加，不随 # 的显形变化） */
+/* 标题（字号按行无条件施加，不随 # 的显形变化；上下 1rem 的外边距由前后的空行给出） */
 .cm-content .cm-line.cm-td-h {
   font-weight: bold;
   line-height: 1.4;
   color: var(--editorColor80);
-  padding-top: var(--td-heading-gap);
-  padding-bottom: var(--td-heading-gap);
 }
-/* 前面隔一个空行就是标题：两个标题的外边距在旧编辑器里折叠成一个，不再补上内边距 */
-.cm-content .cm-line.cm-td-h.cm-td-h-follow { padding-top: 0; }
 .cm-td-h1 { font-size: 1.875em; }
 .cm-td-h2 { font-size: 1.5em; }
 .cm-td-h3 { font-size: 1.375em; }
 .cm-td-h4 { font-size: 1.25em; }
 .cm-td-h5 { font-size: 1.125em; }
 .cm-td-h6 { font-size: 1em; }
-.cm-td-h .cm-td-code-inline { font-size: inherit; }
+/* CM6 在 widget（隐藏的 `#` 等）两侧放的缓冲 img 是 text-top 对齐的 1em 高图片：字号带小数（如 14px 设置下 h3 的 19.25px）时
+   它按整像素取整后会把标题行撑高 1px（Muya 没有这个元素）。标题行高固定 1.4、与字体内容区几乎等高，改成顶端对齐位置差不到 0.5px */
+.cm-content .cm-line.cm-td-h .cm-widgetBuffer { vertical-align: top; }
 .cm-td-setext-underline { font-size: .8em; color: var(--editorColor30); }
 
 /* 分隔线（Muya：p[data-role="hr"] 的虚线；显形时源码叠在虚线上） */
