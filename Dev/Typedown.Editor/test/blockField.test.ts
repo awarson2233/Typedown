@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { EditorSelection, EditorState } from '@codemirror/state';
-import { ensureSyntaxTree, syntaxTree } from '@codemirror/language';
+import { ensureSyntaxTree } from '@codemirror/language';
 import { blockField, blockFieldStats, createBlockState } from '../src/editor/widgets/blockField';
 import { revealFrozen, setRevealFrozen, refreshReveal } from '../src/editor/decorations/revealState';
 import { DiagramWidget } from '../src/editor/widgets/blockWidgets';
@@ -68,9 +68,7 @@ describe('块组件 StateField', () => {
   it('随机编辑 300 次：覆盖范围内的增量结果 ≡ 全文解析后的全量扫描；解析追上后整篇相同', () => {
     const random = rng(42);
     const pieces = ['|', ' | ', '\n', '\n\n', '$$', '$$\n', '```', '```mermaid\n', '-', 'x', '中', '#', '---', '> '];
-    // 前缀要长过同步解析的范围（无视图时视口是开头 3000 字符 + 余量），让编辑后语法树真的会缩短
     let s = create(sampleDoc('rich').slice(0, 12000) + doc);
-    let shrunk = 0, keptBeyondTree = 0;
     for (let i = 0; i < 300; i++) {
       const len = s.doc.length;
       const from = Math.floor(random() * len);
@@ -82,10 +80,8 @@ describe('块组件 StateField', () => {
         userEvent: 'input.type',
       });
       s = tr.state;
-      if (syntaxTree(s).length < s.doc.length) shrunk++;
       const oracle = create(s.doc.toString(), s.selection.main.head);
       const covered = s.field(blockField).covered;
-      if (covered > syntaxTree(s).length) keptBeyondTree++;
       const within = (d: string) => Number(d.split('@')[1].split('-')[1].split(':')[0]) <= covered;
       expect(describeDecos(s).filter(within), `第 ${i} 次编辑`).toEqual(describeDecos(oracle).filter(within));
       if (i % 10 === 9) {
@@ -96,8 +92,6 @@ describe('块组件 StateField', () => {
         expect(describeDecos(s), `第 ${i} 次编辑后追平`).toEqual(describeDecos(oracle));
       }
     }
-    expect(shrunk).toBeGreaterThan(100);
-    expect(keptBeyondTree).toBeGreaterThan(50);
   });
 
   it('段落内打字只重扫所在的块，与文档长度无关', () => {

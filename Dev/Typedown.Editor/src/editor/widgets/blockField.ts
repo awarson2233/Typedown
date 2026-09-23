@@ -156,7 +156,7 @@ export function updateBlockState(value: BlockState, tr: Transaction): BlockState
   let decos = tr.docChanged ? value.decos.map(tr.changes) : value.decos;
   const add: Range<Decoration>[] = [];
   let rescanned = 0;
-  // 同步解析只推进到视口末尾（patches/@codemirror+language+*.patch），编辑后语法树可能比上次短。
+  // 事务内的同步解析有时间上限（@codemirror/language 的 Work.Apply），编辑后语法树可能比上次短。
   // 旧覆盖范围内、新语法树之后的装饰是按变化映射过来的旧结果，只要不落在脏区间里就仍然正确，
   // 所以覆盖终点保留到第一个越过新语法树的脏区间为止，免得后台解析追回来时整段重扫。
   let keep = mappedCovered;

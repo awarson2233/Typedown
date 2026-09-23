@@ -11,7 +11,7 @@
 //          inp       G1 口径：真实按键（Input.dispatchKeyEvent），Event Timing 的交互时长（按键到下一次绘制），
 //                    顶部 / 中部 / 末尾各 --keys 键；同时录 devtools.timeline 追踪取未取整的值与输入延迟 / 处理 / 呈现拆分；
 //                    每轮开测前记整机 CPU 占用，超过 --idle（默认 15%）先等
-//          patchcheck  同步解析只到视口末尾之后：滚到未解析区、Ctrl+End、大段粘贴、撤销，每步核对块组件 ≡ 全量扫描、视口里没露出 `**`
+//          patchcheck  解析补丁的视图级核对：滚到未解析区、Ctrl+End、大段粘贴、撤销，每步核对块组件 ≡ 全量扫描、视口里没露出 `**`
 //   --docs=small,mid,rich,large,large-rich   --runs=3   --port=9360   --out=<目录>（默认系统临时目录）
 //   --dist=<目录>   换一份 bench 产物（默认 Dev/Typedown.Editor/dist-bench），做补丁前后对照   --keys=20   --idle=15
 //   --query=nested=1&fm=yaml   附加到 dev.html 的参数（nested=1 开 parseMixed 嵌套代码语言，fm=yaml 用 lang-yaml 的 front matter）
@@ -312,7 +312,7 @@ async function inp(doc, run) {
 }
 
 /**
- * @codemirror/language 补丁（同步解析只到视口末尾）在视图里的行为：开头打字让可信解析终点缩回视口附近后，
+ * 解析补丁在视图里的行为：开头打字后，
  * 滚到未解析区、Ctrl+End 跳到文末、大段粘贴、Ctrl+Z 撤销，每步之后等语法树覆盖视口（记等了多久），
  * 再核对块组件 ≡ 全量扫描、视口里没有露出的 `**`、正文字节。
  */
