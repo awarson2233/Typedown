@@ -1,0 +1,7 @@
+#dev-bar {
+  position: sticky; top: 0; z-index: 10;
+  display: flex; flex-wrap: wrap; gap: 12px; align-items: center;
+  padding: 6px 16px; font: 13px "Segoe UI", system-ui, sans-serif;
+  background: var(--td-code-bg); border-bottom: 1px solid var(--td-border); color: var(--td-fg);
+}
+#dev-status { color: var(--td-muted); }

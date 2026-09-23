@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Typedown editor-next dev</title>
+  </head>
+  <body class="td-dev">
+    <header id="dev-bar">
+      <label>文档
+        <select id="dev-doc">
+          <option value="ime">ime（输入法手测）</option>
+          <option value="small">small</option>
+          <option value="mid">mid</option>
+          <option value="rich">rich</option>
+          <option value="large">large（约 1 MB）</option>
+          <option value="large-rich">large-rich（约 1 MB，带块组件）</option>
+        </select>
+      </label>
+      <label><input type="checkbox" id="dev-source" /> 源码模式</label>
+      <label><input type="checkbox" id="dev-dark" /> 暗色</label>
+      <button id="dev-verify" type="button">字节核对</button>
+      <span id="dev-status"></span>
+    </header>
+    <div id="root"></div>
+    <script type="module" src="./src/dev/devPage.ts"></script>
+  </body>
+</html>
