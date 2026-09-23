@@ -15,7 +15,7 @@
 
 ## 架构
 
-每个窗口独占一个进程。进程内由 Presentation 的 ViewModel 持有应用状态，经 Core 的桥与页面通信；WinUI 负责把桥接到 WebView2，并把 ViewModel 的意图画成 XAML。
+每个窗口独占一个进程。进程内由 Core 的 ViewModel 持有应用状态，经 Core 的桥与页面通信；WinUI 负责把桥接到 WebView2，并把 ViewModel 的意图画成 XAML。
 
 ```mermaid
 flowchart TB
@@ -29,8 +29,6 @@ flowchart TB
     subgraph Core["Typedown.Core"]
         Bridge["EditorBridge"] --> RI["RemoteInvoke"]
         Bridge --> TP["Transport"] --> EVC["EventCenter"]
-    end
-    subgraph Pres["Typedown.Presentation"]
         VM["Editor / File / Float / Format / Paragraph / UI ViewModel"]
     end
     subgraph Page["Typedown.Editor（WebView2 页面）"]
@@ -51,13 +49,12 @@ flowchart TB
 
 | 工程 | 职责 |
 |---|---|
-| [Typedown.Core](../Dev/Typedown.Core/) | 模型、配置、持久化、桥协议（`EditorBridge` / `RemoteInvoke` / `Transport` / `EventCenter`），不含任何 UI 类型 |
-| [Typedown.Presentation](../Dev/Typedown.Presentation/) | ViewModel 与平台抽象接口（`IEditorCommandSink`、`IFloatViewService`、`IKeyboardAccelerator` 等），只依赖 Core |
-| [Typedown.WinUI](../Dev/Typedown.WinUI/) | 入口、窗口、XAML 控件与页面，实现 Presentation 的平台接口 |
+| [Typedown.Core](../Dev/Typedown.Core/) | 模型、配置、持久化、桥协议（`EditorBridge` / `RemoteInvoke` / `Transport` / `EventCenter`）、ViewModel 与平台抽象接口（`IEditorCommandSink`、`IFloatViewService`、`IKeyboardAccelerator` 等）；AnyCPU、`IsAotCompatible`，不引用 WinUI / Windows SDK 投影，不含任何 UI 类型 |
+| [Typedown.WinUI](../Dev/Typedown.WinUI/) | 入口、窗口、XAML 控件与页面，实现 Core 的平台接口 |
 | [Typedown.Editor](../Dev/Typedown.Editor/) | 页面前端（CRA + react-app-rewired，Yarn 1），宿主从本地文件加载它的构建产物 |
 | [Tests](../Tests/) | `ArchitectureTests` 守护分层，`CoreTests` 覆盖 Core |
 
-依赖方向由 [LayerDependencyGuardTests](../Tests/Typedown.ArchitectureTests/Guards/LayerDependencyGuardTests.cs) 与 [CleanArchitectureGuardTests](../Tests/Typedown.ArchitectureTests/Guards/CleanArchitectureGuardTests.cs) 强制：Core 不引用 Presentation 与 WinUI，Presentation 只引用 Core，两者都不得出现平台 UI 类型。
+依赖方向由 [LayerDependencyGuardTests](../Tests/Typedown.ArchitectureTests/Guards/LayerDependencyGuardTests.cs) 与 [CleanArchitectureGuardTests](../Tests/Typedown.ArchitectureTests/Guards/CleanArchitectureGuardTests.cs) 强制：Core 不引用 WinUI 与 Editor，也不得引用 `Microsoft.UI.*` / `Microsoft.WinUI`、Windows SDK 投影（`Microsoft.Windows.SDK.NET`、`WinRT.Runtime`、`Windows.*`）、`Microsoft.Web.WebView2` 与 `SkiaSharp`。工程只分两层，唯一的边界是「有没有平台 UI 类型」：ViewModel 不碰平台类型、可脱离 WinUI 测试，所以与模型和桥协议同在 Core。
 
 ### 2. 进程、窗口与 DI 作用域
 
@@ -191,7 +188,7 @@ sequenceDiagram
 
 ### 9. 文档状态与撤销
 
-[FileViewModel](../Dev/Typedown.Presentation/ViewModels/FileViewModel.cs) 打开、新建文档时同步调用 `ApplyDocument` 写入路径、正文、哈希与历史基线，必要时推送 `LoadFile {text, basePath}`。`EditorViewModel.Saved` 由 `FileHash` 与当前正文哈希比较得出。
+[FileViewModel](../Dev/Typedown.Core/ViewModels/FileViewModel.cs) 打开、新建文档时同步调用 `ApplyDocument` 写入路径、正文、哈希与历史基线，必要时推送 `LoadFile {text, basePath}`。`EditorViewModel.Saved` 由 `FileHash` 与当前正文哈希比较得出。
 
 撤销历史由宿主的 `ContentHistory` 维护，页面没有自己的撤销栈。撤销/重做时，宿主取出历史正文、置 `contentUpdating`，再以 `SetMarkdown {text, cursor, basePath}` 推给页面；页面回显的 `MarkdownChange` 因 `contentUpdating` 不会再次入栈，下一次 `StateChange` 或 `CodeMirrorSelectionChange` 到来时复位。
 
