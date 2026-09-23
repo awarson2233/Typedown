@@ -2,6 +2,7 @@ using System;
 using System.Linq;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Typedown.Core.Enums;
+using Typedown.Core.Utilities;
 
 namespace Typedown.CoreTests.Models;
 
@@ -48,6 +49,24 @@ public class EnumContractTests
             ("Default", 0),
             ("Light", 1),
             ("Dark", 2));
+    }
+
+    [TestMethod]
+    public void LocalizedEnums_AreAllDispatchedByEnumLocale()
+    {
+        // 设置界面的 EnumNameBlock 只拿到装箱值，靠 EnumLocale.GetText(object) 的类型分发取文本；
+        // 任何带 [Locale] 字段的枚举漏在分发表外，界面上就会显示空白。
+        var localizedEnums = typeof(AppTheme).Assembly
+            .GetTypes()
+            .Where(type => type.IsEnum && type.GetFields().Any(field => field.IsDefined(typeof(LocaleAttribute), false)))
+            .ToArray();
+
+        Assert.IsTrue(localizedEnums.Length > 0);
+        foreach (var enumType in localizedEnums)
+        {
+            foreach (var value in Enum.GetValues(enumType))
+                Assert.IsNotNull(EnumLocale.GetText(value), $"{enumType.Name}.{value} is not dispatched by EnumLocale.GetText(object).");
+        }
     }
 
     private static void AssertEnumMembers<TEnum>(params (string Name, int Value)[] expectedMembers)

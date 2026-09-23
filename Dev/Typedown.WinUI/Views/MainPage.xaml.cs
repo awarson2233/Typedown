@@ -117,28 +117,23 @@ namespace Typedown.WinUI.Views
             ViewModel = nextViewModel;
 
             var settings = nextViewModel.SettingsViewModel;
-            viewModelBindings.Add(settings.WhenPropertyChanged(nameof(SettingsViewModel.SidePaneOpen))
-                .Select(value => RequirePropertyValue<bool>(value, nameof(SettingsViewModel.SidePaneOpen)))
+            viewModelBindings.Add(settings.WhenPropertyChanged(nameof(SettingsViewModel.SidePaneOpen), x => x.SidePaneOpen)
                 .StartWith(settings.SidePaneOpen)
                 .Subscribe(ApplySidePaneOpen));
 
-            viewModelBindings.Add(settings.WhenPropertyChanged(nameof(SettingsViewModel.StatusBarOpen))
-                .Select(value => RequirePropertyValue<bool>(value, nameof(SettingsViewModel.StatusBarOpen)))
+            viewModelBindings.Add(settings.WhenPropertyChanged(nameof(SettingsViewModel.StatusBarOpen), x => x.StatusBarOpen)
                 .StartWith(settings.StatusBarOpen)
                 .Subscribe(ApplyStatusBarVisibility));
 
-            viewModelBindings.Add(settings.WhenPropertyChanged(nameof(SettingsViewModel.AnimationEnable))
-                .Select(value => RequirePropertyValue<bool>(value, nameof(SettingsViewModel.AnimationEnable)))
+            viewModelBindings.Add(settings.WhenPropertyChanged(nameof(SettingsViewModel.AnimationEnable), x => x.AnimationEnable)
                 .StartWith(settings.AnimationEnable)
                 .Subscribe(ApplyAnimationEnabled));
 
-            viewModelBindings.Add(settings.WhenPropertyChanged(nameof(SettingsViewModel.AppCompactMode))
-                .Select(value => RequirePropertyValue<bool>(value, nameof(SettingsViewModel.AppCompactMode)))
+            viewModelBindings.Add(settings.WhenPropertyChanged(nameof(SettingsViewModel.AppCompactMode), x => x.AppCompactMode)
                 .StartWith(settings.AppCompactMode)
                 .Subscribe(ApplyCompactMode));
 
-            viewModelBindings.Add(nextViewModel.UIViewModel.WhenPropertyChanged(nameof(UIViewModel.MainWindowTitle))
-                .Select(value => RequirePropertyValue<string>(value, nameof(UIViewModel.MainWindowTitle)))
+            viewModelBindings.Add(nextViewModel.UIViewModel.WhenPropertyChanged(nameof(UIViewModel.MainWindowTitle), x => x.MainWindowTitle)
                 .StartWith(nextViewModel.UIViewModel.MainWindowTitle)
                 .Subscribe(UpdateCompactTitle));
         }
@@ -209,16 +204,6 @@ namespace Typedown.WinUI.Views
             {
                 compactTitleTextBlock.Text = string.IsNullOrWhiteSpace(title) ? Config.AppName : title;
             }
-        }
-
-        private static T RequirePropertyValue<T>(object? value, string propertyName)
-        {
-            return value switch
-            {
-                T typed => typed,
-                null => throw new InvalidOperationException($"Property '{propertyName}' emitted a null value."),
-                _ => throw new InvalidOperationException($"Property '{propertyName}' emitted '{value.GetType().FullName}' instead of '{typeof(T).FullName}'.")
-            };
         }
 
         private void EnsureMenuBarShellElements()

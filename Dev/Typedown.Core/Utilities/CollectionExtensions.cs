@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 
 namespace Typedown.Core.Utilities
@@ -21,7 +22,7 @@ namespace Typedown.Core.Utilities
             source.ToList().ForEach(collection.Add);
         }
 
-        public static void UpdateCollection<T>(this ObservableCollection<T> collection, IList<T> source, Func<T, T, bool> equals)
+        public static void UpdateCollection<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] T>(this ObservableCollection<T> collection, IList<T> source, Func<T, T, bool> equals)
         {
             foreach (var item in collection.Where(x => source.All(y => !equals(x, y))).ToList())
             {

@@ -1,8 +1,6 @@
 using System;
 using System.Collections.Specialized;
 using System.ComponentModel;
-using System.Diagnostics.CodeAnalysis;
-using System.Linq.Expressions;
 using System.Reactive;
 using System.Reactive.Linq;
 
@@ -10,28 +8,6 @@ namespace Typedown.Core.Utilities
 {
     public static class ReactiveExtensions
     {
-        public static IDisposable SubscribeWeak<T>(this IObservable<T> observable, Action<T> onNext)
-        {
-            var targetRef = new WeakReference(onNext.Target);
-            var method = onNext.Method;
-            var param = Expression.Parameter(typeof(T));
-            IDisposable? d = null;
-            d = observable.Subscribe(x =>
-            {
-                if (targetRef.Target is object target)
-                {
-                    var body = Expression.Call(Expression.Constant(target), method, param);
-                    var func = Expression.Lambda<Action<T>>(body, param).Compile();
-                    func(x);
-                }
-                else
-                {
-                    d?.Dispose();
-                }
-            });
-            return d;
-        }
-
         public static IObservable<EventPattern<NotifyCollectionChangedEventArgs>> GetCollectionObservable(this INotifyCollectionChanged collection)
         {
             return Observable.FromEventPattern<NotifyCollectionChangedEventHandler, NotifyCollectionChangedEventArgs>(
@@ -48,19 +24,25 @@ namespace Typedown.Core.Utilities
                 handler => obj.PropertyChanged -= handler);
         }
 
-        public static IObservable<object?> WhenPropertyChanged<T>(this T source, string propertyName)
+        /// <summary>属性 <paramref name="propertyName"/> 每变化一次发一个信号，不取值。</summary>
+        public static IObservable<Unit> WhenPropertyChanged<T>(this T source, string propertyName)
             where T : INotifyPropertyChanged
         {
-            var property = ResolveRuntimeProperty(source, propertyName);
             return source.GetPropertyObservable()
                 .Where(x => x.EventArgs.PropertyName == propertyName)
-                .Select(_ => property.GetValue(source));
+                .Select(_ => Unit.Default);
         }
 
-        [UnconditionalSuppressMessage("Trimming", "IL2075", Justification = "Runtime property lookup is required to support derived instances passed through a base or interface generic type.")]
-        private static System.Reflection.PropertyInfo ResolveRuntimeProperty(object source, string propertyName)
+        /// <summary>
+        /// 属性 <paramref name="propertyName"/> 每变化一次，发出 <paramref name="getValue"/> 读到的新值。
+        /// 取值由调用方给出，不经反射，所以在裁剪与 Native AOT 下同样可用。
+        /// </summary>
+        public static IObservable<TValue> WhenPropertyChanged<T, TValue>(this T source, string propertyName, Func<T, TValue> getValue)
+            where T : INotifyPropertyChanged
         {
-            return source.GetType().GetProperty(propertyName) ?? throw new ArgumentException($"Property '{propertyName}' was not found.", nameof(propertyName));
+            return source.GetPropertyObservable()
+                .Where(x => x.EventArgs.PropertyName == propertyName)
+                .Select(_ => getValue(source));
         }
     }
 }

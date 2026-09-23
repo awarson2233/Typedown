@@ -1,5 +1,4 @@
 using System;
-using System.Reflection;
 using Typedown.Core.Utilities;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
@@ -23,10 +22,7 @@ namespace Typedown.WinUI.Controls
         {
             public object Convert(object value, Type targetType, object parameter, string language)
             {
-                var fieldName = value?.ToString();
-                var field = fieldName is null ? null : value?.GetType().GetField(fieldName);
-                var attribute = field?.GetCustomAttribute(typeof(LocaleAttribute)) as LocaleAttribute;
-                return attribute?.Text ?? string.Empty;
+                return EnumLocale.GetText(value) ?? string.Empty;
             }
 
             public object ConvertBack(object value, Type targetType, object parameter, string language)

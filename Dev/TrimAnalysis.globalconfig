@@ -1,0 +1,6 @@
+is_global = true
+
+# 裁剪与 AOT 分析器（IL2xxx / IL3xxx）的诊断一律按错误处理，Native AOT 发布以零警告为门槛。
+dotnet_analyzer_diagnostic.category-Trimming.severity = error
+dotnet_analyzer_diagnostic.category-AOT.severity = error
+dotnet_analyzer_diagnostic.category-SingleFile.severity = error
