@@ -1,0 +1,2 @@
+# patch-package 的补丁按 LF 应用到 node_modules 里的 LF 源文件；CRLF 检出会把 CR 带进打过补丁的文件
+patches/*.patch text eol=lf

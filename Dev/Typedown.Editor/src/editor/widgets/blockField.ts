@@ -139,7 +139,7 @@ export function updateBlockState(value: BlockState, tr: Transaction): BlockState
   const newCovered = tree === oldTree && !tr.docChanged ? value.covered : coveredEnd(state, tree);
   const mappedCovered = tr.docChanged ? tr.changes.mapPos(value.covered, -1) : value.covered;
   const revealChanged = !sameReveal(reveal, mappedReveal) || refresh;
-  if (!tr.docChanged && !revealChanged && newCovered === value.covered) return value;
+  if (!tr.docChanged && !revealChanged && newCovered <= value.covered) return value;
 
   const dirty: [number, number][] = [];
   if (tr.docChanged) {
@@ -156,6 +156,10 @@ export function updateBlockState(value: BlockState, tr: Transaction): BlockState
   let decos = tr.docChanged ? value.decos.map(tr.changes) : value.decos;
   const add: Range<Decoration>[] = [];
   let rescanned = 0;
+  // 同步解析只推进到视口末尾（patches/@codemirror+language+*.patch），编辑后语法树可能比上次短。
+  // 旧覆盖范围内、新语法树之后的装饰是按变化映射过来的旧结果，只要不落在脏区间里就仍然正确，
+  // 所以覆盖终点保留到第一个越过新语法树的脏区间为止，免得后台解析追回来时整段重扫。
+  let keep = mappedCovered;
   for (const [a, b] of mergeRanges(dirty.map(([a, b]) => expandToBlocks(state, tree, a, b)))) {
     const [f, t] = expandToBlocks(state, tree, a, b);
     decos = decos.update({ filterFrom: f, filterTo: t, filter: (x, y) => y < f || x > t });
@@ -163,12 +167,13 @@ export function updateBlockState(value: BlockState, tr: Transaction): BlockState
       for (const s of scanBlocks(state, tree, f, t, newCovered, reveal)) add.push(specToDecoration(s));
       rescanned += Math.min(t, newCovered) - f;
     }
+    if (t > newCovered) keep = Math.min(keep, f);
   }
   if (add.length) decos = decos.update({ add, sort: true });
   blockFieldStats.updates++;
   blockFieldStats.lastRescan = rescanned;
   blockFieldStats.rescannedChars += rescanned;
-  return { decos, covered: newCovered, reveal };
+  return { decos, covered: Math.max(newCovered, keep), reveal };
 }
 
 export const blockField = StateField.define<BlockState>({

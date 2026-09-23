@@ -1,0 +1,58 @@
+diff --git a/node_modules/@codemirror/language/dist/index.cjs b/node_modules/@codemirror/language/dist/index.cjs
+index 68d14f3..229dd1a 100644
+--- a/node_modules/@codemirror/language/dist/index.cjs
++++ b/node_modules/@codemirror/language/dist/index.cjs
+@@ -530,11 +530,19 @@ class LanguageState {
+         if (!tr.docChanged && this.tree == this.context.tree)
+             return this;
+         let newCx = this.context.changes(tr.changes, tr.state);
+-        // If the previous parse wasn't done, go forward only up to its
+-        // end position or the end of the viewport, to avoid slowing down
+-        // state updates with parse work beyond the viewport.
+-        let upto = this.context.treeLen == tr.startState.doc.length ? undefined
+-            : Math.max(tr.changes.mapPos(this.context.treeLen), newCx.viewport.to);
++        // [Typedown patch, patches/@codemirror+language+*.patch]
++        // Upstream parses synchronously up to max(previous parse end, viewport
++        // end), or to the document end when the previous parse was complete,
++        // so the work done inside a keystroke's transaction can grow with the
++        // parsed length. Stop at the (mapped) viewport end plus a small margin
++        // instead and leave the rest to the idle ParseWorker. Parsers that reuse
++        // whole fragments may still return a tree longer than this; the trusted
++        // extent is context.treeLen (Typedown's parsedLength), and the part of
++        // the tree past it is only a reuse candidate. Unparsed fragments now
++        // outlive later edits, which needs patches/@lezer+common+*.patch to keep
++        // their open ends.
++        let vpEnd = newCx.viewport.to + 2000 /* Typedown: SyncParseMargin */;
++        let upto = vpEnd >= tr.state.doc.length ? undefined : vpEnd;
+         if (!newCx.work(20 /* Work.Apply */, upto))
+             newCx.takeTree();
+         return new LanguageState(newCx);
+diff --git a/node_modules/@codemirror/language/dist/index.js b/node_modules/@codemirror/language/dist/index.js
+index 1873fde..4598c66 100644
+--- a/node_modules/@codemirror/language/dist/index.js
++++ b/node_modules/@codemirror/language/dist/index.js
+@@ -528,11 +528,19 @@ class LanguageState {
+         if (!tr.docChanged && this.tree == this.context.tree)
+             return this;
+         let newCx = this.context.changes(tr.changes, tr.state);
+-        // If the previous parse wasn't done, go forward only up to its
+-        // end position or the end of the viewport, to avoid slowing down
+-        // state updates with parse work beyond the viewport.
+-        let upto = this.context.treeLen == tr.startState.doc.length ? undefined
+-            : Math.max(tr.changes.mapPos(this.context.treeLen), newCx.viewport.to);
++        // [Typedown patch, patches/@codemirror+language+*.patch]
++        // Upstream parses synchronously up to max(previous parse end, viewport
++        // end), or to the document end when the previous parse was complete,
++        // so the work done inside a keystroke's transaction can grow with the
++        // parsed length. Stop at the (mapped) viewport end plus a small margin
++        // instead and leave the rest to the idle ParseWorker. Parsers that reuse
++        // whole fragments may still return a tree longer than this; the trusted
++        // extent is context.treeLen (Typedown's parsedLength), and the part of
++        // the tree past it is only a reuse candidate. Unparsed fragments now
++        // outlive later edits, which needs patches/@lezer+common+*.patch to keep
++        // their open ends.
++        let vpEnd = newCx.viewport.to + 2000 /* Typedown: SyncParseMargin */;
++        let upto = vpEnd >= tr.state.doc.length ? undefined : vpEnd;
+         if (!newCx.work(20 /* Work.Apply */, upto))
+             newCx.takeTree();
+         return new LanguageState(newCx);

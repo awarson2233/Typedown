@@ -1,14 +1,19 @@
 import { describe, expect, it } from 'vitest';
 import { EditorState, type Transaction } from '@codemirror/state';
-import { ensureSyntaxTree } from '@codemirror/language';
+import { ensureSyntaxTree, syntaxTree } from '@codemirror/language';
 import { history, redo, undo } from '@codemirror/commands';
 import { markdownSupport } from '../src/editor/syntax';
+import { parsedLength } from '../src/editor/state/parseProgress';
 import { sampleDoc } from '../src/dev/sampleDocs';
 import { allExamples } from './spec';
 import { rng } from './helpers';
 
 /**
- * patches/@lezer+markdown+*.patch：复用旧片段时整块拿走平衡树的匿名分组，不再逐个顶层块重建。
+ * patches/ 下三份补丁的行为：
+ * - @codemirror/language：改动正文的事务里同步解析只推进到视口末尾 + 2000 字符。无视图时视口是
+ *   LanguageState.init 的开头 3000 字符（按变化映射），所以同步解析的终点约在 5000 附近；
+ * - @lezer/markdown：复用旧片段时整块拿走平衡树的匿名分组，不再逐个顶层块重建；
+ * - @lezer/common：只被位移的片段保留 openStart/openEnd，未解析的旧改动边界不会在下一次编辑后丢失。
  * 核心性质：任意编辑、粘贴、撤销/重做序列之后，把解析追到文末得到的语法树与从零解析逐节点相同。
  */
 
@@ -33,7 +38,26 @@ const big = sampleDoc('rich').repeat(3); // 约 12 万字符
 // CommonMark + GFM 全部用例拼成一篇：各种块结构的边界情况挨在一起，最容易暴露片段复用的错误
 const specDoc = allExamples.map(e => e.markdown).join('\n\n');
 
-describe('增量解析 ≡ 从零解析', () => {
+describe('同步解析只推进到视口末尾（@codemirror/language 补丁）', () => {
+  it('全文已解析时在开头打字：可信的解析终点缩到视口附近，不再同步解析到文末', () => {
+    let s = parsed(big);
+    expect(parsedLength(s)).toBe(big.length);
+    s = s.update({ changes: { from: 10, insert: 'a' } }).state;
+    expect(parsedLength(s)).toBeGreaterThanOrEqual(3000 + 2000);
+    expect(parsedLength(s)).toBeLessThan(20000);
+    // 片段复用可以让语法树本身长过可信终点（@lezer/markdown 整块复用时不看 stoppedAt）
+    expect(syntaxTree(s).length).toBeGreaterThanOrEqual(parsedLength(s));
+  });
+
+  it('视口末尾 + 余量越过文末时解析到文末', () => {
+    const small = sampleDoc('rich').slice(0, 4500);
+    let s = parsed(small);
+    s = s.update({ changes: { from: small.length, insert: '\n\n# 末尾' } }).state;
+    expect(parsedLength(s)).toBe(s.doc.length);
+  });
+});
+
+describe('增量解析 ≡ 从零解析（三份补丁合起来）', () => {
   const pieces = ['\n', '\n\n', '```', '```mermaid\n', '$$\n', '# ', '- ', '1. ', '> ', '    ', '| a | b |\n|---|---|\n', '|---|', '**', '*', '`', '<div>', '[x]: /u', 'x', '中', '---\n', '==='];
   for (const [name, doc, seed] of [['示例文档', big, 7], ['示例文档', big, 11], ['CommonMark+GFM 用例合集', specDoc, 3], ['CommonMark+GFM 用例合集', specDoc, 5]] as const) {
     it(`${name}（种子 ${seed}）：随机编辑、大段粘贴、撤销/重做，不定期追平`, () => {

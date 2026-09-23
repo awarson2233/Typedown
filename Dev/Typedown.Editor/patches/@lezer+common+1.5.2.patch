@@ -1,0 +1,40 @@
+diff --git a/node_modules/@lezer/common/dist/index.cjs b/node_modules/@lezer/common/dist/index.cjs
+index e9a36ce..ee2356d 100644
+--- a/node_modules/@lezer/common/dist/index.cjs
++++ b/node_modules/@lezer/common/dist/index.cjs
+@@ -1714,7 +1714,14 @@ class TreeFragment {
+                     let cut = nextF;
+                     if (pos >= cut.from || nextPos <= cut.to || off) {
+                         let fFrom = Math.max(cut.from, pos) - off, fTo = Math.min(cut.to, nextPos) - off;
+-                        cut = fFrom >= fTo ? null : new TreeFragment(fFrom, fTo, cut.tree, cut.offset + off, cI > 0, !!nextC);
++                        // [Typedown patch, patches/@lezer+common+*.patch] keep the open flags of a fragment
++                        // that is only shifted by an earlier change. Upstream rebuilds it with
++                        // openEnd = !!nextC, so a fragment whose end was cut by a previous, not yet
++                        // re-parsed change (possible once the editor stops the synchronous parse at the
++                        // viewport, see patches/@codemirror+language+*.patch) turns "closed" on the next
++                        // unrelated edit, and the block before that old change -- e.g. a table header
++                        // row that was a lone paragraph -- is reused although its context changed.
++                        cut = fFrom >= fTo ? null : new TreeFragment(fFrom, fTo, cut.tree, cut.offset + off, cI > 0 || cut.openStart, !!nextC || cut.openEnd);
+                     }
+                     if (cut)
+                         result.push(cut);
+diff --git a/node_modules/@lezer/common/dist/index.js b/node_modules/@lezer/common/dist/index.js
+index 8b29bb3..34894c9 100644
+--- a/node_modules/@lezer/common/dist/index.js
++++ b/node_modules/@lezer/common/dist/index.js
+@@ -1712,7 +1712,14 @@ class TreeFragment {
+                     let cut = nextF;
+                     if (pos >= cut.from || nextPos <= cut.to || off) {
+                         let fFrom = Math.max(cut.from, pos) - off, fTo = Math.min(cut.to, nextPos) - off;
+-                        cut = fFrom >= fTo ? null : new TreeFragment(fFrom, fTo, cut.tree, cut.offset + off, cI > 0, !!nextC);
++                        // [Typedown patch, patches/@lezer+common+*.patch] keep the open flags of a fragment
++                        // that is only shifted by an earlier change. Upstream rebuilds it with
++                        // openEnd = !!nextC, so a fragment whose end was cut by a previous, not yet
++                        // re-parsed change (possible once the editor stops the synchronous parse at the
++                        // viewport, see patches/@codemirror+language+*.patch) turns "closed" on the next
++                        // unrelated edit, and the block before that old change -- e.g. a table header
++                        // row that was a lone paragraph -- is reused although its context changed.
++                        cut = fFrom >= fTo ? null : new TreeFragment(fFrom, fTo, cut.tree, cut.offset + off, cI > 0 || cut.openStart, !!nextC || cut.openEnd);
+                     }
+                     if (cut)
+                         result.push(cut);
