@@ -119,10 +119,10 @@ sequenceDiagram
 ```
 
 - **初始态。** 会话调 `AddScriptToExecuteOnDocumentCreated` 注入一行 `window.__typedownInit = {...}`，内容是 `EditorInitState(Protocol, Settings, Theme, Keymap, Locale)`：全量 `EditorSettings`、`EditorTheme`、快捷键和弦表、界面语言代码。页面自带的少量界面文字（补全列表的空状态等）按 `locale` 取自己的资源，不再有 `GetStringResources`。每次导航前，会话先移除上一次注入的脚本再注入最新值，所以页面重载拿到的总是当下状态。
-- **ready。** 页面挂载完 CM6、能接收 `doc.load` 时发出，载荷 `{protocol, engine}`。`protocol` 与宿主不一致时，会话记日志并进入 `Faulted`，不重试；`engine` 是版本描述，只进日志。
+- **ready。** 页面同步读完初始态、以空文档挂好 CM6 后立即发出（模块脚本执行期间），载荷 `{protocol, engine}`。`ready` 之前页面收到的命令排队，收到的请求回 `notReady`。`protocol` 与宿主不一致时，会话记日志并进入 `Faulted`，不重试；`engine` 是版本描述，只进日志。
 - **doc.load 与就绪门。** 会话收到 `ready` 后先发 `doc.load`，紧接着打开 [EditorCommandGate](/Dev/Typedown.Core/Editor/EditorCommandGate.cs) 并重放排队命令。WebView2 的消息通道保序，排队命令一定排在 `doc.load` 之后到达。门的规则沿用 P0：门关时普通命令按序排队（上限 128，满了丢最旧）；主题、快捷键表、视口刷新只留最新一份；设置增量合并成一份；宿主卸载期间保留，重新挂载后重放。初始态已经含有注入时刻的设置、主题与快捷键表，重放的只是注入之后的变化。
-- **rendered。** 页面首屏画完（首个视口的装饰与块组件就绪）发 `doc.rendered {version}`，会话据此发契约事件 `DocumentLoaded(Version)`，宿主此时才让 WebView 可见，不再出现空编辑区的一帧。每次 `doc.load` 都对应一次 `doc.rendered`；版本号不等于最近一次 `doc.load` 的，说明是过期的回声，丢弃。
-- **fault。** 页面把 `window.onerror`、`unhandledrejection` 与 CM6 的 `EditorView.exceptionSink` 都接到 `lifecycle.fault {message, stack, fatal}`。`fatal:false` 只记日志；`fatal:true` 表示编辑器状态不可信，会话进入 `Faulted` 并重载页面。同一 `message + stack` 在一次页面生命周期内只上报一次。
+- **rendered。** 页面首屏画完（首个视口的装饰与块组件就绪）发 `doc.rendered {version}`，会话据此发契约事件 `DocumentLoaded(Version)`，宿主此时才让 WebView 可见，不再出现空编辑区的一帧。「首屏画完」的判定：从装载后第 2 帧起每帧检查语法树与块组件是否都已覆盖首个视口，满足即发，最多等 30 帧（约 0.5 s）兜底；KaTeX、mermaid 的异步渲染不在等待之列。每次 `doc.load` 都对应恰好一次 `doc.rendered`，版本号就是这次装载的版本；版本号不等于最近一次 `doc.load` 的，说明是过期的回声，丢弃。
+- **fault。** 页面把 `window.onerror`、`unhandledrejection` 与 CM6 的 `EditorView.exceptionSink` 都接到 `lifecycle.fault {message, stack, fatal}`。`ready` 之前的错误与处理 `doc.load` 时抛出的异常是 `fatal:true`，其余都是 `fatal:false`。`fatal:false` 只记日志；`fatal:true` 表示编辑器状态不可信，会话进入 `Faulted` 并重载页面。同一 `message + stack` 在一次页面生命周期内只上报一次。
 - **重载恢复。** 渲染进程退出与致命 fault 走同一条路径，由 [EditorCrashRecovery](/Dev/Typedown.Core/Editor/EditorCrashRecovery.cs) 决定：一分钟内超过 3 次不再自动重载；距上次崩溃不少于 15 秒时，`doc.load` 带上崩溃前最后一次 `selection.changed` 的选区与最后一次 `view.viewport` 的滚动位置。正文取镜像，镜像最多落后页面一帧（第 4 节）。重载时挂起的宿主→页面请求一律以 `OperationCanceledException` 结束。
 
 ### 4. 正文同步
@@ -243,7 +243,9 @@ flowchart TD
 | `search.result` | 每次 `search.set` / `search.step` / `search.replace` 后一条；正文变化使计数改变时也发一条 | 查找栏显示「第 n / 共 m 处」 |
 | `view.settings`、`view.keymap`、`view.theme` | 宿主侧就绪门合并成一份最新值 | 设置页里连续调整只下发最终值 |
 
-页面在同一帧里要发多条事件时，顺序固定为 `doc.changed` → `history.changed` → `selection.changed` → `selection.marks` → 其他。宿主处理 `selection.changed` 时镜像已经是同一帧的正文，偏移不会错位。
+页面在同一帧里要发多条事件时，顺序固定为 `doc.changed` → `history.changed` → `selection.changed` → `selection.marks` → 其他。宿主处理 `selection.changed` 时镜像已经是同一帧的正文，偏移不会错位。`view.shortcut` 不进帧队列，命中即发：页面此时已经吞掉这个按键，宿主必须执行对应命令（Ctrl+Z 就是 `history.undo`）。
+
+「变化才发」的比较起点是宿主的初始值：`canUndo`、`canRedo` 为 false，行内标记为空；此外每次装载后页面必发一次 `selection.changed`、`outline.changed` 与 `view.viewport`，`stats.changed` 在装载后 300 ms 首发，所以宿主不需要在装载时自行清零这些状态。
 
 ### 7. 宿主浮层与坐标
 
@@ -270,7 +272,7 @@ sequenceDiagram
 
 ### 8. 滚动条
 
-竖横两条滚动条都是 [EditorContainer](/Dev/Typedown.WinUI/Controls/EditorControls/EditorContainer.xaml.cs) 里的 XAML `ScrollBar`。新引擎不给编辑器设固定高度，CM6 以窗口为滚动容器，页面隐藏原生滚动条。
+竖横两条滚动条都是 [EditorContainer](/Dev/Typedown.WinUI/Controls/EditorControls/EditorContainer.xaml.cs) 里的 XAML `ScrollBar`。新引擎不给编辑器设固定高度，CM6 以窗口为滚动容器；页面在真实宿主里（根元素带 `td-host` 类）隐藏原生滚动条，dev 页与普通浏览器里保留。`doc.load` 带 `scrollTop` 时页面等 CM6 首次测量后滚到该位置；不带时回到顶部，若带了选区则把选区滚到视口中间。ready 后与每次装载后页面各报一次 `view.viewport`；宿主 XAML 布局定型后再发一次 `view.refreshViewport`，页面下一帧必定回报。
 
 ```mermaid
 sequenceDiagram
