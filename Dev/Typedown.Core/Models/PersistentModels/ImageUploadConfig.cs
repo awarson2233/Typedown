@@ -1,7 +1,8 @@
-using Newtonsoft.Json.Linq;
 using System;
 using System.ComponentModel;
+using System.Text.Json.Nodes;
 using Typedown.Core.Enums;
+using Typedown.Core.Serialization;
 using Typedown.Core.Models.UploadConfigModels;
 
 namespace Typedown.Core.Models
@@ -18,14 +19,14 @@ namespace Typedown.Core.Models
 
         public ImageUploadMethod Method { get; set; }
 
-        public string Config { get; internal set; } = new JObject().ToString();
+        public string Config { get; internal set; } = "{}";
 
         public ConfigModel LoadUploadConfig()
         {
             try
             {
                 var allConfig = ParseConfig();
-                if (allConfig.TryGetValue(GetConfigModelKey(), out var value) && value.ToObject(GetConfigModelType()) is ConfigModel config)
+                if (allConfig.TryGetPropertyValue(GetConfigModelKey(), out var value) && value is not null && StorageJson.Deserialize(value, GetConfigModelType()) is ConfigModel config)
                     return config;
             }
             catch
@@ -40,8 +41,8 @@ namespace Typedown.Core.Models
         public void StoreUploadConfig(ConfigModel uploadConfig)
         {
             var config = ParseConfig();
-            config[GetConfigModelKey()] = JObject.FromObject(uploadConfig);
-            Config = config.ToString();
+            config[GetConfigModelKey()] = StorageJson.SerializeToNode((object)uploadConfig);
+            Config = StorageJson.Write(config);
         }
 
         private Type GetConfigModelType()
@@ -83,11 +84,11 @@ namespace Typedown.Core.Models
             };
         }
 
-        private JObject ParseConfig()
+        private JsonObject ParseConfig()
         {
             try
             {
-                return JObject.Parse(Config);
+                return StorageJson.ParseObject(Config);
             }
             catch
             {

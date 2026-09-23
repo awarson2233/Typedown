@@ -1,5 +1,4 @@
 using Microsoft.Extensions.DependencyInjection;
-using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -8,8 +7,10 @@ using System.Linq;
 using System.Reactive;
 using System.Reactive.Disposables;
 using System.Runtime.CompilerServices;
+using System.Text.Json.Nodes;
 using Typedown.Core;
 using Typedown.Core.Enums;
+using Typedown.Core.Serialization;
 using Typedown.Core.Utilities;
 using Typedown.Core.Interfaces;
 
@@ -82,7 +83,7 @@ namespace Typedown.Core.ViewModels
 
         private readonly string settingsFile = Config.GetSettingsFilePath();
 
-        private JToken store = new JObject();
+        private JsonObject store = new();
 
         private readonly IReadOnlyDictionary<string, string> editorSettingNameMap = new Dictionary<string, string>(StringComparer.Ordinal)
         {
@@ -117,18 +118,18 @@ namespace Typedown.Core.ViewModels
             {
                 if (!File.Exists(settingsFile))
                 {
-                    store = new JObject();
+                    store = new JsonObject();
                     return;
                 }
 
                 var json = File.ReadAllText(settingsFile);
                 store = string.IsNullOrWhiteSpace(json)
-                    ? new JObject()
-                    : JToken.Parse(json) as JObject ?? new JObject();
+                    ? new JsonObject()
+                    : StorageJson.ParseObject(json);
             }
             catch
             {
-                store = new JObject();
+                store = new JsonObject();
             }
         }
 
@@ -140,7 +141,7 @@ namespace Typedown.Core.ViewModels
                 if (!string.IsNullOrEmpty(settingsDirectory))
                     Directory.CreateDirectory(settingsDirectory);
 
-                File.WriteAllText(settingsFile, store.ToString());
+                File.WriteAllText(settingsFile, StorageJson.Write(store));
             }
             catch
             {
@@ -151,20 +152,20 @@ namespace Typedown.Core.ViewModels
         public T GetSettingValue<T>(T defaultValue = default!, [CallerMemberName] string propertyName = "")
         {
             var value = store[propertyName];
-            return value is null || value.Type == JTokenType.Null ? defaultValue : value.ToObject<T>()!;
+            return value is null ? defaultValue : StorageJson.Deserialize<T>(value)!;
         }
 
         public void SetSettingValue<T>(T value, [CallerMemberName] string propertyName = "")
         {
-            var updatedValue = CreateSettingToken(value);
+            var updatedValue = StorageJson.SerializeToNode(value);
             var currentValue = store[propertyName];
-            if ((currentValue is null || currentValue.Type == JTokenType.Null)
+            if (currentValue is null
                 && TryGetEffectiveSettingValue(propertyName, out var effectiveValue))
             {
-                currentValue = CreateSettingToken(effectiveValue);
+                currentValue = effectiveValue is T effective ? StorageJson.SerializeToNode(effective) : null;
             }
 
-            if (JToken.DeepEquals(currentValue, updatedValue))
+            if (JsonNode.DeepEquals(currentValue, updatedValue))
             {
                 return;
             }
@@ -175,7 +176,7 @@ namespace Typedown.Core.ViewModels
 
         private bool TryGetEffectiveSettingValue(string propertyName, out object? value)
         {
-            var property = GetType().GetProperty(propertyName);
+            var property = typeof(SettingsViewModel).GetProperty(propertyName);
             if (property?.GetSetMethod() is null || property.GetMethod is null)
             {
                 value = null;
@@ -184,18 +185,6 @@ namespace Typedown.Core.ViewModels
 
             value = property.GetValue(this);
             return true;
-        }
-
-        private static JToken CreateSettingToken<T>(T value)
-        {
-            if (value is null || value is string || value is long || value is int || value is short || value is sbyte || value is ulong ||
-                value is uint || value is ushort || value is byte || value is Enum || value is double || value is float || value is decimal ||
-                value is DateTime || value is byte[] || value is bool || value is Guid || value is Uri || value is TimeSpan)
-            {
-                return new JValue(value);
-            }
-
-            return JObject.FromObject(value);
         }
 
         public IReadOnlyDictionary<string, object> GetEditorSettings()
@@ -252,9 +241,9 @@ namespace Typedown.Core.ViewModels
             });
             if (result != DialogButton.Primary)
                 return;
-            store = new JObject();
+            store = new JsonObject();
             SaveAllSettings();
-            foreach (var item in GetType().GetProperties().Where(x => x.GetSetMethod() != null).Select(x => x.Name))
+            foreach (var item in typeof(SettingsViewModel).GetProperties().Where(x => x.GetSetMethod() != null).Select(x => x.Name))
                 OnPropertyChanged(item);
         }
 

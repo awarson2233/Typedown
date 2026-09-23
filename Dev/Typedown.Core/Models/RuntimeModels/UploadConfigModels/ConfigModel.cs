@@ -1,14 +1,14 @@
-﻿using Newtonsoft.Json.Linq;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Text.Json;
 using System.Threading.Tasks;
 
 namespace Typedown.Core.Models.UploadConfigModels
 {
     public partial class ConfigModel : INotifyPropertyChanged
     {
-        public Dictionary<string, JToken> Addition { get; } = new();
+        public Dictionary<string, JsonElement> Addition { get; } = new();
 
         public string UploadPath { get; set; } = string.Empty;
 
