@@ -9,12 +9,15 @@ import { MathExtension } from './math';
 import { HighlightExtension } from './highlight';
 import { CjkEmphasisExtension } from './cjkEmphasis';
 import { FrontmatterExtension } from './frontmatter';
+import { FootnoteExtension } from './footnote';
+import { TocExtension } from './toc';
 
 /**
  * 语法：CommonMark + GFM（表格、任务列表、删除线、自动链接）+ emoji + 自有扩展。
  * 不用 lang-markdown 的 markdownLanguage，因为它带着上下标（W4 已砍）。
  */
-export const markdownExtensions: MarkdownExtension[] = [GFM, Emoji, MathExtension, HighlightExtension, CjkEmphasisExtension];
+export const markdownExtensions: MarkdownExtension[] = [GFM, Emoji, MathExtension, HighlightExtension, CjkEmphasisExtension,
+  FootnoteExtension, TocExtension];
 
 export interface SyntaxOptions {
   /**
