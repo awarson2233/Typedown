@@ -10,7 +10,8 @@
     "build:bench": "vite build --mode bench",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "postinstall": "patch-package"
   },
   "browserslist": [
     "last 2 edge versions"
@@ -36,6 +37,7 @@
     "@types/node": "^26.6.2",
     "commonmark-spec": "^0.31.2",
     "jsdom": "^30.1.1",
+    "patch-package": "^8.0.1",
     "typescript": "^7.0.2",
     "vite": "^8.3.0",
     "vitest": "^5.0.1"

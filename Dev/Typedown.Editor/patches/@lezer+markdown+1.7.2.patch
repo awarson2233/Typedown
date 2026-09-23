@@ -1,0 +1,166 @@
+diff --git a/node_modules/@lezer/markdown/dist/index.cjs b/node_modules/@lezer/markdown/dist/index.cjs
+index a7f1502..453e262 100644
+--- a/node_modules/@lezer/markdown/dist/index.cjs
++++ b/node_modules/@lezer/markdown/dist/index.cjs
+@@ -1848,6 +1848,36 @@ function injectMarks(elements, marks) {
+ // These are blocks that can span blank lines, and should thus only be
+ // reused if their next sibling is also being reused.
+ const NotLast = [Type.CodeBlock, Type.ListItem, Type.OrderedList, Type.BulletList];
++// [Typedown patch, patches/@lezer+markdown+*.patch]
++// Upstream walks the reused fragment with a cursor that skips anonymous nodes,
++// so takeNodes re-adds every named top-level block one by one and finish()
++// rebalances a flat Document: every keystroke costs O(top-level blocks in the
++// parsed range), about 6-10 ms for a 1 MB document. The cursor now also stops
++// at the anonymous balance chunks built by CompositeBlock.toTree, and a chunk
++// that fits in the fragment and the current range is taken whole when its last
++// descendant is a block that may end a take (a Block not in NotLast) -- exactly
++// the case where taking its children one by one would have ended at chunk.to.
++// Otherwise the cursor descends into the chunk and the upstream rules apply.
++function chunkEndsInBlock(tree) {
++    for (;;) {
++        let last = tree.children[tree.children.length - 1];
++        if (!(last instanceof common.Tree))
++            return false;
++        if (!last.type.isAnonymous)
++            return last.type.is("Block") && NotLast.indexOf(last.type.id) < 0;
++        tree = last;
++    }
++}
++// nextSibling that climbs out of exhausted anonymous chunks, like the upstream
++// cursor mode did implicitly.
++function nextSiblingOrUp(cur) {
++    for (;;) {
++        if (cur.nextSibling())
++            return true;
++        if (!cur.parent() || !cur.type.isAnonymous)
++            return false;
++    }
++}
+ class FragmentCursor {
+     constructor(fragments, input) {
+         this.fragments = fragments;
+@@ -1881,7 +1911,7 @@ class FragmentCursor {
+         }
+         let c = this.cursor;
+         if (!c) {
+-            c = this.cursor = this.fragment.tree.cursor();
++            c = this.cursor = this.fragment.tree.cursor(2 /* IterMode.IncludeAnonymous, Typedown patch */);
+             c.firstChild();
+         }
+         let rPos = pos + this.fragment.offset;
+@@ -1904,11 +1934,21 @@ class FragmentCursor {
+         let start = cx.absoluteLineStart, end = start, blockI = cx.block.children.length;
+         let prevEnd = end, prevI = blockI;
+         for (;;) {
+-            if (cur.to - off > fragEnd) {
+-                if (cur.type.isAnonymous && cur.firstChild())
++            if (cur.type.isAnonymous) { // [Typedown patch] see chunkEndsInBlock
++                if (cur.to - off <= fragEnd && cur.to - off <= cx.ranges[cx.rangeI].to && chunkEndsInBlock(cur.tree)) {
++                    cx.addNode(cur.tree, toRelative(cur.from - off, cx.ranges));
++                    end = prevEnd = cur.to - off;
++                    blockI = prevI = cx.block.children.length;
++                    if (!nextSiblingOrUp(cur))
++                        break;
++                    continue;
++                }
++                if (cur.firstChild())
+                     continue;
+                 break;
+             }
++            if (cur.to - off > fragEnd)
++                break;
+             let pos = toRelative(cur.from - off, cx.ranges);
+             if (cur.to - off <= cx.ranges[cx.rangeI].to) { // Fits in current range
+                 cx.addNode(cur.tree, pos);
+@@ -1934,7 +1974,7 @@ class FragmentCursor {
+                 prevEnd = cur.to - off;
+                 prevI = cx.block.children.length;
+             }
+-            if (!cur.nextSibling())
++            if (!nextSiblingOrUp(cur)) // [Typedown patch]
+                 break;
+         }
+         while (cx.block.children.length > blockI) {
+diff --git a/node_modules/@lezer/markdown/dist/index.js b/node_modules/@lezer/markdown/dist/index.js
+index e5725e7..6adab4f 100644
+--- a/node_modules/@lezer/markdown/dist/index.js
++++ b/node_modules/@lezer/markdown/dist/index.js
+@@ -1846,6 +1846,36 @@ function injectMarks(elements, marks) {
+ // These are blocks that can span blank lines, and should thus only be
+ // reused if their next sibling is also being reused.
+ const NotLast = [Type.CodeBlock, Type.ListItem, Type.OrderedList, Type.BulletList];
++// [Typedown patch, patches/@lezer+markdown+*.patch]
++// Upstream walks the reused fragment with a cursor that skips anonymous nodes,
++// so takeNodes re-adds every named top-level block one by one and finish()
++// rebalances a flat Document: every keystroke costs O(top-level blocks in the
++// parsed range), about 6-10 ms for a 1 MB document. The cursor now also stops
++// at the anonymous balance chunks built by CompositeBlock.toTree, and a chunk
++// that fits in the fragment and the current range is taken whole when its last
++// descendant is a block that may end a take (a Block not in NotLast) -- exactly
++// the case where taking its children one by one would have ended at chunk.to.
++// Otherwise the cursor descends into the chunk and the upstream rules apply.
++function chunkEndsInBlock(tree) {
++    for (;;) {
++        let last = tree.children[tree.children.length - 1];
++        if (!(last instanceof Tree))
++            return false;
++        if (!last.type.isAnonymous)
++            return last.type.is("Block") && NotLast.indexOf(last.type.id) < 0;
++        tree = last;
++    }
++}
++// nextSibling that climbs out of exhausted anonymous chunks, like the upstream
++// cursor mode did implicitly.
++function nextSiblingOrUp(cur) {
++    for (;;) {
++        if (cur.nextSibling())
++            return true;
++        if (!cur.parent() || !cur.type.isAnonymous)
++            return false;
++    }
++}
+ class FragmentCursor {
+     constructor(fragments, input) {
+         this.fragments = fragments;
+@@ -1879,7 +1909,7 @@ class FragmentCursor {
+         }
+         let c = this.cursor;
+         if (!c) {
+-            c = this.cursor = this.fragment.tree.cursor();
++            c = this.cursor = this.fragment.tree.cursor(2 /* IterMode.IncludeAnonymous, Typedown patch */);
+             c.firstChild();
+         }
+         let rPos = pos + this.fragment.offset;
+@@ -1902,11 +1932,21 @@ class FragmentCursor {
+         let start = cx.absoluteLineStart, end = start, blockI = cx.block.children.length;
+         let prevEnd = end, prevI = blockI;
+         for (;;) {
+-            if (cur.to - off > fragEnd) {
+-                if (cur.type.isAnonymous && cur.firstChild())
++            if (cur.type.isAnonymous) { // [Typedown patch] see chunkEndsInBlock
++                if (cur.to - off <= fragEnd && cur.to - off <= cx.ranges[cx.rangeI].to && chunkEndsInBlock(cur.tree)) {
++                    cx.addNode(cur.tree, toRelative(cur.from - off, cx.ranges));
++                    end = prevEnd = cur.to - off;
++                    blockI = prevI = cx.block.children.length;
++                    if (!nextSiblingOrUp(cur))
++                        break;
++                    continue;
++                }
++                if (cur.firstChild())
+                     continue;
+                 break;
+             }
++            if (cur.to - off > fragEnd)
++                break;
+             let pos = toRelative(cur.from - off, cx.ranges);
+             if (cur.to - off <= cx.ranges[cx.rangeI].to) { // Fits in current range
+                 cx.addNode(cur.tree, pos);
+@@ -1932,7 +1972,7 @@ class FragmentCursor {
+                 prevEnd = cur.to - off;
+                 prevI = cx.block.children.length;
+             }
+-            if (!cur.nextSibling())
++            if (!nextSiblingOrUp(cur)) // [Typedown patch]
+                 break;
+         }
+         while (cx.block.children.length > blockI) {
