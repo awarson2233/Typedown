@@ -41,6 +41,25 @@ export const transformAliasToOrigin = langs => {
 }
 
 function initLoadLanguage(Prism) {
+  // 每种语言是一个独立的懒加载块，加载完成的先后不再等于调用的先后；
+  // 同一语言只发起一次加载，并发的调用共用同一个 Promise。
+  const languageLoads = new Map()
+  const importLanguage = lang => {
+    if (!languageLoads.has(lang)) {
+      delete Prism.languages[lang]
+      languageLoads.set(lang, import(
+        /* webpackChunkName: "prism/[request]" */
+        'prismjs/components/prism-' + lang
+      ).then(() => {
+        loadedLanguages.add(lang)
+      }, err => {
+        languageLoads.delete(lang)
+        throw err
+      }))
+    }
+    return languageLoads.get(lang)
+  }
+
   return async function loadLanguages(langs) {
     // If no argument is passed, load all components
     if (!langs) {
@@ -60,28 +79,33 @@ function initLoadLanguage(Prism) {
     // We don't need to validate the ids because `getLoader` will ignore invalid ones
     const loaded = [...loadedLanguages, ...Object.keys(Prism.languages)]
 
-    getLoader(components, langs, loaded).load(async lang => {
+    // getLoader 按依赖顺序回调（被依赖的语言在前），语言定义里会 extend 依赖语言，
+    // 所以这里逐个串行执行，前一个语言的块执行完才加载下一个。
+    let chain = Promise.resolve()
+    getLoader(components, langs, loaded).load(lang => {
       const defer = getDefer()
       promises.push(defer.promise)
-      if (!(lang in components.languages)) {
-        defer.resolve({
-          lang,
-          status: 'noexist'
-        })
-      } else if (loadedLanguages.has(lang)) {
-        defer.resolve({
-          lang,
-          status: 'cached'
-        })
-      } else {
-        delete Prism.languages[lang]
-        await import('prismjs/components/prism-' + lang)
-        defer.resolve({
-          lang,
-          status: 'loaded'
-        })
-        loadedLanguages.add(lang)
-      }
+      chain = chain.then(async () => {
+        if (!(lang in components.languages)) {
+          defer.resolve({
+            lang,
+            status: 'noexist'
+          })
+        } else if (loadedLanguages.has(lang)) {
+          defer.resolve({
+            lang,
+            status: 'cached'
+          })
+        } else {
+          await importLanguage(lang)
+          defer.resolve({
+            lang,
+            status: 'loaded'
+          })
+        }
+      }).catch(err => {
+        defer.reject(err)
+      })
     })
 
     return Promise.all(promises)

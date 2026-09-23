@@ -1,6 +1,8 @@
-import CodeMirror from "components/CodeMirror";
+// codemirror.css 留在主包且排在最前，保持它在样式表里的原有位置：其后的 Muya 样式与运行时插入的
+// public/theme/codemirror 主题都有与它同优先级的规则，靠先后顺序生效。JS 部分只在源码模式才加载。
+import 'codemirror/lib/codemirror.css';
 import MuyaEditor from "components/Muya";
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { remote } from "services/remote";
 import transport from "services/transport";
 import './index.scss'
@@ -8,6 +10,8 @@ import ExportHtml from "services/exportHtml";
 import { htmlToMarkdown } from "services/importHtml";
 import { DEFAULT_TURNDOWN_CONFIG } from "components/Muya/lib/config";
 import { getHtmlToc, getTOC } from "services/common";
+
+const CodeMirror = React.lazy(() => import(/* webpackChunkName: "codemirror" */ "components/CodeMirror"));
 
 const Editor: React.FC = () => {
     const [markdown, setMarkdown] = useState<string>();
@@ -96,17 +100,19 @@ const Editor: React.FC = () => {
 
     if (options.sourceCode) {
         return (
-            <CodeMirror
-                options={options}
-                cursor={cursor}
-                markdown={markdown ?? ''}
-                searchOpen={searchOpen}
-                searchArg={searchArg}
-                scrollTopRef={codeMirrorScrollRef}
-                onMarkdownChange={setMarkdown}
-                onCursorChange={setCursor}
-                onSearchArgChange={setSearchArg}
-            />
+            <Suspense fallback={<></>}>
+                <CodeMirror
+                    options={options}
+                    cursor={cursor}
+                    markdown={markdown ?? ''}
+                    searchOpen={searchOpen}
+                    searchArg={searchArg}
+                    scrollTopRef={codeMirrorScrollRef}
+                    onMarkdownChange={setMarkdown}
+                    onCursorChange={setCursor}
+                    onSearchArgChange={setSearchArg}
+                />
+            </Suspense>
         )
     } else {
         return (
