@@ -7,6 +7,7 @@ import { codeLanguages } from './syntax/codeLanguages';
 import { inlineRevealExtension } from './decorations/inlinePlugin';
 import { revealState } from './decorations/revealState';
 import { blockField } from './widgets/blockField';
+import { outlineField } from './state/outline';
 import { codeHighlightStyle } from './highlight';
 
 export interface EditorOptions {
@@ -45,6 +46,8 @@ export function createEditor(opts: EditorOptions): TypedownEditor {
       languageSupport,
       history(),
       EditorView.lineWrapping,
+      // 大纲与标题 id：行首扫描器按改动增量维护，不依赖语法树（源码模式也要）
+      outlineField,
       mode.of(opts.sourceMode ? [] : typoraLayer),
       // 全局 syntaxHighlighting 的 highlightTree 从文首逐个兄弟节点走到视口（markdown 的 Document 很扁平），
       // 1 MB 文档中部每键约 5 ms；不做嵌套代码解析时正文里只有 markdown 标记可高亮，显形装饰已覆盖，所以只在嵌套模式下开
