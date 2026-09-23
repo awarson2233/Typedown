@@ -39,7 +39,7 @@ function setup(doc: string) {
   const sync: DocSync = new DocSync({
     post: m => { sent.push(m); mirror.receive(m); },
     schedule: f => frames.push(f),
-    createState: p => EditorState.create({ doc: p.text, extensions: [markdownSupport(), history(), sync.extension], selection: p.selection }),
+    createState: p => EditorState.create({ doc: p.text, extensions: [markdownSupport(), history(), sync.extension], selection: p.selection ?? undefined }),
   });
   const view = new EditorView({ state: EditorState.create({ doc: '', extensions: [markdownSupport(), history(), sync.extension] }), parent: document.body });
   const runFrames = () => { while (frames.length) frames.shift()!(); };
