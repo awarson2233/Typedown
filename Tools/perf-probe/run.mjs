@@ -12,11 +12,15 @@
 //                    顶部 / 中部 / 末尾各 --keys 键；同时录 devtools.timeline 追踪取未取整的值与输入延迟 / 处理 / 呈现拆分；
 //                    每轮开测前记整机 CPU 占用，超过 --idle（默认 15%）先等
 //          patchcheck  解析补丁的视图级核对：滚到未解析区、Ctrl+End、大段粘贴、撤销，每步核对块组件 ≡ 全量扫描、视口里没露出 `**`
+//          hostpage  宿主加载方式的核对：用 CDP 的 Fetch 拦截把 https://typedown.editor/* 映射到生产产物目录
+//                    （等同 SetVirtualHostNameToFolderMapping），不带 --disable-web-security；注入 chrome.webview 桩与 __typedownInit，
+//                    走一遍 ready → doc.load → rendered → 编辑 → flush，并看懒块（KaTeX、mermaid）能否加载
 //   --docs=small,mid,rich,large,large-rich   --runs=3   --port=9360   --out=<目录>（默认系统临时目录）
 //   --dist=<目录>   换一份 bench 产物（默认 Dev/Typedown.Editor/dist-bench），做补丁前后对照   --keys=20   --idle=15
 //   --query=nested=1&fm=yaml   附加到 dev.html 的参数（nested=1 开 parseMixed 嵌套代码语言，fm=yaml 用 lang-yaml 的 front matter）
+//   --statics=<目录>   hostpage 用的生产产物（默认 Dev/Typedown.WinUI/Resources/Statics，先 `yarn build`）
 // 原始结果写成 JSONL 到 --out，不入库。
-import { mkdirSync, appendFileSync, writeFileSync } from 'node:fs';
+import { mkdirSync, appendFileSync, writeFileSync, readFileSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import { join, dirname, resolve } from 'node:path';
 import { tmpdir } from 'node:os';
@@ -365,8 +369,76 @@ async function patchcheck(doc) {
   log(R);
 }
 
+const MIME = { '.html': 'text/html', '.js': 'text/javascript', '.mjs': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.map': 'application/json',
+  '.svg': 'image/svg+xml', '.png': 'image/png', '.woff2': 'font/woff2', '.woff': 'font/woff', '.ttf': 'font/ttf' };
+
+/**
+ * 宿主加载方式：https://typedown.editor/index.html 映射到 Resources/Statics（--statics 可换目录）。
+ * chrome.webview 桩：页面 postMessage 的字符串记进 __wv.out；__wv.send(obj) 以 message 事件（data 是 JSON 字符串）投给页面。
+ */
+async function hostpage() {
+  const statics = resolve(args.statics ?? resolve(here, '../../Dev/Typedown.WinUI/Resources/Statics'));
+  const b = await launch(port++, []);
+  const R = { mode, statics, requests: [] };
+  try {
+    await b.send('Page.enable');
+    await b.send('Runtime.enable');
+    const consoleErrors = [];
+    b.on(m => {
+      if (m.method === 'Runtime.exceptionThrown') consoleErrors.push(m.params.exceptionDetails?.exception?.description ?? m.params.exceptionDetails?.text);
+      if (m.method === 'Runtime.consoleAPICalled' && ['error', 'warning'].includes(m.params.type)) consoleErrors.push(`${m.params.type}: ${m.params.args.map(a => a.value ?? a.description).join(' ')}`);
+    });
+    await b.send('Fetch.enable', { patterns: [{ urlPattern: 'https://typedown.editor/*', requestStage: 'Request' }] });
+    b.on(async m => {
+      if (m.method !== 'Fetch.requestPaused') return;
+      const { requestId, request } = m.params;
+      const path = decodeURIComponent(new URL(request.url).pathname).replace(/^\/+/, '') || 'index.html';
+      const file = join(statics, path);
+      let body = null;
+      try { body = readFileSync(file); } catch { }
+      R.requests.push({ path, ok: !!body });
+      if (!body) { await b.send('Fetch.fulfillRequest', { requestId, responseCode: 404, responseHeaders: [], body: '' }); return; }
+      const ext = path.slice(path.lastIndexOf('.'));
+      await b.send('Fetch.fulfillRequest', { requestId, responseCode: 200, responseHeaders: [{ name: 'Content-Type', value: MIME[ext] ?? 'application/octet-stream' }], body: body.toString('base64') });
+    });
+    const init = { protocol: 1, settings: { fontSize: 16, lineHeight: 1.6, tabSize: 4, spellcheckEnabled: false, editorAreaWidth: '1200px', sourceCode: false },
+      theme: { isDark: false, accent: { r: 0, g: 120, b: 212, a: 1 }, background: { r: 255, g: 255, b: 255, a: 1 } }, keymap: [{ key: 83, modifiers: 1 }], locale: 'zh-CN' };
+    await b.send('Page.addScriptToEvaluateOnNewDocument', { source: `
+      window.__typedownInit = ${JSON.stringify(init)};
+      (() => {
+        const listeners = [];
+        window.__wv = { out: [], send: obj => { const data = JSON.stringify(obj); setTimeout(() => listeners.forEach(l => l({ data })), 0); } };
+        window.chrome = window.chrome || {};
+        window.chrome.webview = { postMessage: s => { if (typeof s !== 'string') throw new Error('postMessage 只收字符串'); window.__wv.out.push(JSON.parse(s)); }, addEventListener: (t, l) => { if (t === 'message') listeners.push(l); } };
+      })();` });
+    await b.send('Page.navigate', { url: 'https://typedown.editor/index.html' });
+    const waitFor = async (expr, ms = 20000) => { const t0 = Date.now(); for (;;) { const v = await b.evalJs(expr); if (v || Date.now() - t0 > ms) return v; await sleep(50); } };
+    const out = t => `__wv.out.filter(m => m.t === ${JSON.stringify(t)})`;
+    R.ready = await waitFor(`${out('lifecycle.ready')}[0]?.p`);
+    R.hostClass = await b.evalJs('document.documentElement.className');
+    R.origin = await b.evalJs('location.origin');
+    const text = '# 宿主加载\n\n行内公式 $e^{i\\pi}+1=0$ 与 **粗体**。\n\n$$\n\\int_0^1 x^2\\,dx\n$$\n\n```mermaid\ngraph TD\n  A-->B\n```\n\n| a | b |\n| - | - |\n| 1 | 2 |\n';
+    await b.evalJs(`__wv.send({ k: 'cmd', t: 'doc.load', p: { version: 3, text: ${JSON.stringify(text)}, basePath: '' } })`);
+    R.rendered = await waitFor(`${out('doc.rendered')}[0]?.p`);
+    R.katex = await waitFor(`document.querySelectorAll('.katex').length`, 15000);
+    R.mermaid = await waitFor(`document.querySelectorAll('.cm-td-mermaid svg').length`, 20000);
+    // 编辑后 flush：镜像按 doc.changed 重放，应与页面正文相同
+    await b.evalJs(`(() => { const v = typedown.view; v.dispatch({ changes: { from: v.state.doc.length, insert: '尾' } }); })()`);
+    await b.evalJs(`__wv.send({ k: 'req', id: 1, t: 'doc.flush', p: {} })`);
+    R.flush = await waitFor(`__wv.out.find(m => m.k === 'res' && m.id === 1)`);
+    R.mirrorOk = await b.evalJs(`(() => { let t = ${JSON.stringify(text)}; for (const m of ${out('doc.changed')}) for (const c of [...m.p.changes].reverse()) t = t.slice(0, c.from) + c.insert + t.slice(c.to); return t === typedown.view.state.doc.toString(); })()`);
+    R.events = await b.evalJs(`[...new Set(__wv.out.filter(m => m.k === 'evt').map(m => m.t))]`);
+    R.failedRequests = R.requests.filter(r => !r.ok).map(r => r.path);
+    R.requestCount = R.requests.length;
+    delete R.requests;
+    R.consoleErrors = consoleErrors;
+  } finally { await b.close(); }
+  log(R);
+}
+
 console.log(`输出：${outFile}`);
 if (mode === 'filemode') await filemode();
+else if (mode === 'hostpage') await hostpage();
 else for (const doc of docs) {
   if (mode === 'perf') for (let r = 0; r < runs; r++) await perf(doc, r);
   else if (mode === 'inp') for (let r = 0; r < runs; r++) await inp(doc, r);
