@@ -40,6 +40,9 @@ namespace Typedown.Core.ViewModels
 
         private string? startupOpenedFilePath;
 
+        /// <summary>当前文件打开时的编码、BOM 与换行符；编辑器里的正文只有 <c>\n</c>，写盘时按它还原。</summary>
+        private TextFileFormat fileFormat = TextFileFormat.Default;
+
         public string ImageBasePath => string.IsNullOrEmpty(FilePath) ? SettingsViewModel.DefaultImageBasePath : Path.GetDirectoryName(FilePath) ?? SettingsViewModel.DefaultImageBasePath;
 
         public string? FileName => string.IsNullOrEmpty(FilePath) ? null : Path.GetFileName(FilePath);
@@ -82,7 +85,11 @@ namespace Typedown.Core.ViewModels
             disposables.Add(OpenFileCommand.OnExecute.Subscribe(async x => await OpenFile(x)));
             disposables.Add(OpenFolderCommand.OnExecute.Subscribe(async x => await OpenFolder(x)));
             disposables.Add(SaveAsCommand.OnExecute.Subscribe(async _ => await SaveAs()));
-            disposables.Add(SaveCommand.OnExecute.Subscribe(async _ => await Save()));
+            disposables.Add(SaveCommand.OnExecute.Subscribe(async _ =>
+            {
+                await FlushEditorAsync();
+                await Save();
+            }));
             disposables.Add(ExitCommand.OnExecute.Subscribe(_ => Exit()));
             disposables.Add(ClearHistoryCommand.OnExecute.Subscribe(x => { _ = AccessHistory.ClearHistory(); }));
             disposables.Add(ExportCommand.OnExecute.Subscribe(Export));
@@ -198,10 +205,12 @@ namespace Typedown.Core.ViewModels
         /// 编辑引擎正在启动握手时，会话把正文放进握手应答，不再另发装载命令。
         /// 只有"已保存"的内容才把 FileLoaded 置 false——此时基线哈希要等引擎归一化后的
         /// 装载回声重新计算；从备份恢复的内容本来就是脏的，不需要重新定基线。
+        /// <paramref name="text"/> 只含 <c>\n</c> 换行，原文件的字节形态记在 <paramref name="format"/> 里。
         /// </summary>
-        private void ApplyDocument(string text, ulong fileHash, string? filePath, bool saved)
+        private void ApplyDocument(string text, ulong fileHash, string? filePath, bool saved, TextFileFormat format)
         {
             FilePath = filePath;
+            fileFormat = format;
             EditorViewModel.FileHash = fileHash;
             EditorViewModel.CurrentHash = Common.SimpleHash(text);
             EditorViewModel.Saved = saved;
@@ -214,7 +223,7 @@ namespace Typedown.Core.ViewModels
         {
             if (!await AskToSave()) return;
             var text = Common.DefaultMarkdwn;
-            ApplyDocument(text, Common.SimpleHash(text), null, true);
+            ApplyDocument(text, Common.SimpleHash(text), null, true, TextFileFormat.Default);
         }
 
         public async Task<bool> OpenFile(string? filePath = null)
@@ -260,7 +269,8 @@ namespace Typedown.Core.ViewModels
                 {
                     return false;
                 }
-                var text = await File.ReadAllTextAsync(path);
+                var file = await TextFileCodec.ReadAsync(path);
+                var text = file.Text;
                 EditorViewModel.FirstStart = false;
                 var fileHash = Common.SimpleHash(text);
                 SettingsViewModel.LastFilePath = path;
@@ -269,7 +279,7 @@ namespace Typedown.Core.ViewModels
                 var backup = await CheckBackup(path, fileHash);
                 var markdown = backup ?? text;
                 var saved = backup is null;
-                ApplyDocument(markdown, fileHash, path, saved);
+                ApplyDocument(markdown, fileHash, path, saved, file.Format);
                 return true;
             }
             catch (Exception ex)
@@ -309,7 +319,9 @@ namespace Typedown.Core.ViewModels
         private async Task<string?> CheckBackup(string path, ulong fileHash)
         {
             string? text = await AutoBackup.GetBackup(path);
-            if (text == null || Common.SimpleHash(text) == fileHash) return null;
+            if (text == null) return null;
+            text = TextFileCodec.NormalizeLineEndings(text);
+            if (Common.SimpleHash(text) == fileHash) return null;
             var result = await DialogService.ShowAsync(new DialogRequest
             {
                 Title = Locale.GetDialogString("RecoverTitle"),
@@ -329,11 +341,12 @@ namespace Typedown.Core.ViewModels
             }
         }
 
-        private async Task<bool> WriteAllText(string path, string text, bool alert = true)
+        /// <summary>按打开时的编码、BOM 与换行符把只含 <c>\n</c> 的正文写回磁盘。</summary>
+        private async Task<bool> WriteAllText(string path, string text, TextFileFormat format, bool alert = true)
         {
             try
             {
-                await FileWriter.WriteAllTextAsync(path, text);
+                await FileWriter.WriteAllBytesAsync(path, TextFileCodec.Encode(text, format));
                 return true;
             }
             catch (Exception ex)
@@ -349,6 +362,33 @@ namespace Typedown.Core.ViewModels
             }
         }
 
+        /// <summary>
+        /// 手动保存、另存为、导出、关闭窗口前让引擎把挂起的改动同步进正文镜像；之后读到的
+        /// <see cref="IEditorSession.Document"/> 就是写盘的那份，保存点按它的版本号记录。
+        /// 引擎重载、不支持或出错时不阻塞用户，按当前镜像继续。自动保存与备份不调它，直接读镜像。
+        /// </summary>
+        private async Task FlushEditorAsync()
+        {
+            try
+            {
+                await EditorSession.RequestAsync(new FlushDocument());
+            }
+            catch (Exception ex) when (ex is OperationCanceledException or NotSupportedException or EditorRequestFailedException or TimeoutException)
+            {
+                // 按当前镜像继续。
+            }
+        }
+
+        /// <summary>
+        /// 写盘期间正文没有变化：镜像仍是写盘那份快照。版本号相同即正文相同；旧页面对同一正文的回声也会推进版本，
+        /// 所以版本不同时再比一次正文。
+        /// </summary>
+        private bool IsMirrorAt(EditorDocument snapshot)
+        {
+            var current = EditorSession.Document;
+            return current.Version == snapshot.Version || string.Equals(current.Text, snapshot.Text, StringComparison.Ordinal);
+        }
+
         private async Task<bool> Save(bool alert = true, PendingImportGate.PersistenceLease? existingLease = null)
         {
             var lease = existingLease ?? await AcquirePersistenceLease(true);
@@ -362,11 +402,11 @@ namespace Typedown.Core.ViewModels
                     return savedPath != null;
                 }
                 var path = FilePath;
-                var markdown = EditorViewModel.Markdown;
+                var snapshot = EditorSession.Document;
                 var currentHash = EditorViewModel.CurrentHash;
-                if (!await WriteAllText(path, markdown, alert)) return false;
+                if (!await WriteAllText(path, snapshot.Text, fileFormat, alert)) return false;
                 return lease.TryCommit(
-                    () => FilePath == path && EditorViewModel.Markdown == markdown && EditorViewModel.CurrentHash == currentHash,
+                    () => FilePath == path && IsMirrorAt(snapshot) && EditorViewModel.CurrentHash == currentHash,
                     () =>
                     {
                         EditorViewModel.FileHash = currentHash;
@@ -395,15 +435,16 @@ namespace Typedown.Core.ViewModels
                 });
                 if (filePath is null) return null;
 
+                await FlushEditorAsync();
                 using var lease = await AcquirePersistenceLease(true);
                 if (lease is null || !lease.IsValid) return null;
                 var oldPath = FilePath;
-                var markdown = EditorViewModel.Markdown;
+                var snapshot = EditorSession.Document;
                 var currentHash = EditorViewModel.CurrentHash;
-                if (!await WriteAllText(filePath, markdown)) return null;
+                if (!await WriteAllText(filePath, snapshot.Text, fileFormat)) return null;
 
                 var committed = lease.TryCommit(
-                    () => FilePath == oldPath && EditorViewModel.Markdown == markdown && EditorViewModel.CurrentHash == currentHash,
+                    () => FilePath == oldPath && IsMirrorAt(snapshot) && EditorViewModel.CurrentHash == currentHash,
                     () =>
                     {
                         if (oldPath is not null) AutoBackup.DeleteBackup(oldPath);
@@ -431,6 +472,8 @@ namespace Typedown.Core.ViewModels
 
         public async Task<bool> AskToSave()
         {
+            // 关闭窗口、打开别的文件之前：先让引擎把挂起的改动同步进镜像，保存状态才是准的。
+            await FlushEditorAsync();
             var initialLease = await AcquirePersistenceLease(true);
             if (initialLease is null || !initialLease.IsValid) return false;
             var generation = initialLease.Generation;
@@ -561,6 +604,7 @@ namespace Typedown.Core.ViewModels
             if (filePath == null) return;
             try
             {
+                await FlushEditorAsync();
                 string? basePath = null;
                 if (config.Type == ExportType.PDF || config.Type == ExportType.Image)
                     basePath = ImageBasePath;
@@ -597,6 +641,7 @@ namespace Typedown.Core.ViewModels
         {
             try
             {
+                await FlushEditorAsync();
                 var html = await EditorSession.RequestAsync(new RenderExportHtml(
                     ExportPurpose.Print,
                     FileName ?? "untitled",

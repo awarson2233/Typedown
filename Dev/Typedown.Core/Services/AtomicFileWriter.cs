@@ -7,6 +7,7 @@ namespace Typedown.Core.Services
     public interface IAtomicFileWriter
     {
         Task WriteAllTextAsync(string path, string content);
+        Task WriteAllBytesAsync(string path, byte[] content);
         Task<string> WriteTemporaryAsync(string destinationPath, string content);
         void Commit(string temporaryPath, string destinationPath);
         void Discard(string? temporaryPath);
@@ -16,6 +17,9 @@ namespace Typedown.Core.Services
     {
         public Task WriteAllTextAsync(string path, string content) =>
             File.WriteAllTextAsync(path, content);
+
+        public Task WriteAllBytesAsync(string path, byte[] content) =>
+            File.WriteAllBytesAsync(path, content);
 
         public async Task<string> WriteTemporaryAsync(string destinationPath, string content)
         {
