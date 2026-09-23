@@ -1,19 +1,15 @@
-using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
-using System.ComponentModel.DataAnnotations;
-using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json.Nodes;
 using Typedown.Core.Enums;
+using Typedown.Core.Serialization;
 using Typedown.Core.Models.ExportConfigModels;
 
 namespace Typedown.Core.Models
 {
-    [Table("ExportConfig")]
     public partial class ExportConfig : INotifyPropertyChanged
     {
-        [Key]
-        [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
         public int Id { get; set; }
 
         public string Name { get; set; } = string.Empty;
@@ -24,14 +20,14 @@ namespace Typedown.Core.Models
 
         public List<(string name, string extension)> FileExtensions => GetFileExtensions();
 
-        public string Config { get; private set; } = new JObject().ToString();
+        public string Config { get; internal set; } = "{}";
 
         public ConfigModel LoadExportConfig()
         {
             try
             {
                 var allConfig = ParseConfig();
-                if (allConfig.TryGetValue(GetConfigModelKey(), out var value) && value.ToObject(GetConfigModelType()) is ConfigModel config)
+                if (allConfig.TryGetPropertyValue(GetConfigModelKey(), out var value) && value is not null && StorageJson.Deserialize(value, GetConfigModelType()) is ConfigModel config)
                     return config;
             }
             catch
@@ -46,8 +42,8 @@ namespace Typedown.Core.Models
         public void StoreExportConfig(ConfigModel exportConfig)
         {
             var config = ParseConfig();
-            config[GetConfigModelKey()] = JObject.FromObject(exportConfig);
-            Config = config.ToString();
+            config[GetConfigModelKey()] = StorageJson.SerializeToNode((object)exportConfig);
+            Config = StorageJson.Write(config);
         }
 
         private Type GetConfigModelType()
@@ -94,11 +90,11 @@ namespace Typedown.Core.Models
             };
         }
 
-        private JObject ParseConfig()
+        private JsonObject ParseConfig()
         {
             try
             {
-                return JObject.Parse(Config);
+                return StorageJson.ParseObject(Config);
             }
             catch
             {

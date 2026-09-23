@@ -10,7 +10,7 @@ using Microsoft.UI.Xaml.Controls;
 
 namespace Typedown.WinUI.Controls
 {
-        public class PathPickerButton : Button
+        public partial class PathPickerButton : Button
         {
         public static DependencyProperty PathProperty = DependencyProperty.Register(nameof(Path), typeof(string), typeof(PathPickerButton), new(""));
         public string Path { get => (string)GetValue(PathProperty); set => SetValue(PathProperty, (value ?? string.Empty).Replace("\\", "/")); }

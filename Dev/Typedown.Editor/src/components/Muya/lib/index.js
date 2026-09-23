@@ -9,7 +9,6 @@ import ClickEvent from './eventHandler/clickEvent'
 import { CLASS_OR_ID, MUYA_DEFAULT_OPTION } from './config'
 import { wordCount } from './utils'
 import ExportMarkdown from './utils/exportMarkdown'
-import ExportHtml from '../../../services/exportHtml'
 import ToolTip from './ui/tooltip'
 import '../../../assets/styles/index.css'
 
@@ -149,13 +148,16 @@ class Muya {
     return this.contentState.getTOC()
   }
 
-  exportStyledHTML(options) {
+  // 导出模块（marked 之外还有四份导出用 CSS 字符串）只在导出时加载。
+  async exportStyledHTML(options) {
     const { markdown } = this
+    const { default: ExportHtml } = await import(/* webpackChunkName: "export" */ '../../../services/exportHtml')
     return new ExportHtml(markdown, this.options).generate(options)
   }
 
-  exportHtml() {
+  async exportHtml() {
     const { markdown } = this
+    const { default: ExportHtml } = await import(/* webpackChunkName: "export" */ '../../../services/exportHtml')
     return new ExportHtml(markdown, this.options).renderHtml()
   }
 

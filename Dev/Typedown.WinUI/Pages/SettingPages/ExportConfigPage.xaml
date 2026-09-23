@@ -25,11 +25,10 @@
             <ComboBox
                 MinWidth="200"
                 ItemsSource="{x:Bind enums:Enumerable.AvailableExportTypes}"
-                DataContext="{x:Bind}"
-                SelectedItem="{Binding ExportConfig.Type, Mode=TwoWay}">
+                SelectedItem="{x:Bind GetSelectedExportType(ExportConfig.Type), Mode=TwoWay, BindBack=SetExportType}">
                 <ComboBox.ItemTemplate>
-                    <DataTemplate>
-                        <controls:EnumNameBlock Value="{Binding}"/>
+                    <DataTemplate x:DataType="enums:ExportType">
+                        <controls:EnumNameBlock Value="{x:Bind}"/>
                     </DataTemplate>
                 </ComboBox.ItemTemplate>
             </ComboBox>

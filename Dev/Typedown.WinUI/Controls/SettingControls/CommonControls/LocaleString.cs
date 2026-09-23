@@ -5,7 +5,7 @@ using CoreLocale = Typedown.Core.Utilities.Locale;
 namespace Typedown.WinUI.Controls
 {
     [MarkupExtensionReturnType(ReturnType = typeof(string))]
-    public class LocaleString : MarkupExtension
+    public partial class LocaleString : MarkupExtension
     {
         public string Key { get; set; } = string.Empty;
 

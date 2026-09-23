@@ -725,7 +725,7 @@ namespace Typedown.WinUI.Pages.SidePanePages
         }
     }
 
-    public sealed class ExplorerItemTemplateSelector : DataTemplateSelector
+    public sealed partial class ExplorerItemTemplateSelector : DataTemplateSelector
     {
         public DataTemplate? FolderTemplate { get; set; }
         public DataTemplate? FileTemplate { get; set; }

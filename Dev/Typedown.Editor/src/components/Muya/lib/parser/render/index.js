@@ -1,7 +1,8 @@
 import loadRenderer from '../../renderers'
+import { getKatex, loadKatex } from '../../renderers/katex'
 import { CLASS_OR_ID, PREVIEW_DOMPURIFY_CONFIG } from '../../config'
 import { conflict, mixins, camelToSnake, sanitize } from '../../utils'
-import { patch, toVNode, toHTML, h } from './snabbdom'
+import { patch, toVNode, toHTML, h, htmlToVNode } from './snabbdom'
 import { beginRules } from '../rules'
 import renderInlines from './renderInlines'
 import renderBlock from './renderBlock'
@@ -13,6 +14,9 @@ class StateRender {
     this.codeCache = new Map()
     this.loadImageMap = new Map()
     this.loadMathMap = new Map()
+    this.pendingMath = new Map()
+    this.pendingMathSeq = 0
+    this.katexRequested = false
     this.mermaidCache = new Map()
     this.diagramCache = new Map()
     this.tokenCache = new Map()
@@ -93,6 +97,46 @@ class StateRender {
       selector += `.${CLASS_OR_ID.AG_SELECTED}`
     }
     return selector
+  }
+
+  /**
+   * katex 还没加载时，公式先渲染成空的占位元素（带 data-math-pending），这里登记源码并触发加载；
+   * 加载完成后 renderPendingMath 直接填充这些占位元素（与图表的做法一致，不重新渲染、不动光标），
+   * 并写入 loadMathMap，之后的渲染直接命中缓存。
+   */
+  addPendingMath(math, displayMode, cacheKey) {
+    const id = String(++this.pendingMathSeq)
+    this.pendingMath.set(id, { math, displayMode, cacheKey })
+    if (!this.katexRequested) {
+      this.katexRequested = true
+      loadKatex().then(() => this.renderPendingMath(), err => {
+        this.katexRequested = false
+        console.error(err)
+      })
+    }
+    return id
+  }
+
+  renderPendingMath() {
+    const katex = getKatex()
+    const root = this.muya.container || document
+    for (const el of root.querySelectorAll('[data-math-pending]')) {
+      const entry = this.pendingMath.get(el.getAttribute('data-math-pending'))
+      el.removeAttribute('data-math-pending')
+      if (!entry) {
+        continue
+      }
+      const { math, displayMode, cacheKey } = entry
+      try {
+        const html = katex.renderToString(math, { displayMode })
+        this.loadMathMap.set(cacheKey, htmlToVNode(html))
+        el.innerHTML = html
+      } catch (err) {
+        el.textContent = '< Invalid Mathematical Formula >'
+        el.classList.add(CLASS_OR_ID.AG_MATH_ERROR)
+      }
+    }
+    this.pendingMath.clear()
   }
 
   async renderMermaid() {

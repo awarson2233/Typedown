@@ -65,7 +65,7 @@
         </MenuFlyout>
 
         <DataTemplate x:Key="FolderTemplate" x:DataType="models:ExplorerItem">
-            <muxc:TreeViewItem ItemsSource="{Binding Children}" IsExpanded="{Binding IsExpanded, Mode=TwoWay}" 
+            <muxc:TreeViewItem ItemsSource="{x:Bind Children, Mode=OneWay}" IsExpanded="{x:Bind IsExpanded, Mode=TwoWay}" 
                                ContextFlyout="{StaticResource FolderContextFlyout}" BorderThickness="1" Margin="-1" 
                                Loaded="{x:Bind local:FolderPage.OnTreeViewItemLoaded}"
                                CanDrag="True" DragStarting="{x:Bind local:FolderPage.OnItemDragStarting}" DragOver="{x:Bind local:FolderPage.OnItemDragOver}" 
@@ -76,7 +76,7 @@
                         <ColumnDefinition Width="*"/>
                     </Grid.ColumnDefinitions>
                     <FontIcon FontSize="14" Glyph="&#xf12b;" VerticalAlignment="Center"/>
-                    <TextBlock x:Name="NameTextBlock" Grid.Column="1" Text="{Binding Name, Mode=OneWay}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" Margin="0,0,0,1"/>
+                    <TextBlock x:Name="NameTextBlock" Grid.Column="1" Text="{x:Bind Name, Mode=OneWay}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" Margin="0,0,0,1"/>
                     <ContentPresenter Grid.Column="1" x:Name="TextBoxContainer" VerticalAlignment="Center"/>
                 </Grid>
             </muxc:TreeViewItem>
@@ -85,7 +85,7 @@
         <DataTemplate x:Key="FileTemplate" x:DataType="models:ExplorerItem">
             <muxc:TreeViewItem ContextFlyout="{StaticResource FileContextFlyout}" BorderThickness="1" Margin="-1" 
                                Loaded="{x:Bind local:FolderPage.OnTreeViewItemLoaded}"
-                               IsSelected="{Binding IsSelected, Mode=TwoWay}"
+                               IsSelected="{x:Bind IsSelected, Mode=TwoWay}"
                                CanDrag="True" DragStarting="{x:Bind local:FolderPage.OnItemDragStarting}" DragOver="{x:Bind local:FolderPage.OnItemDragOver}" 
                                Background="Transparent" AllowDrop="True" Drop="{x:Bind local:FolderPage.OnFolderItemDrop}">
                 <Grid ColumnSpacing="8" Height="32">
@@ -94,7 +94,7 @@
                         <ColumnDefinition Width="*"/>
                     </Grid.ColumnDefinitions>
                     <FontIcon FontSize="14" Glyph="&#xe8a5;" VerticalAlignment="Center"/>
-                    <TextBlock x:Name="NameTextBlock" Grid.Column="1" Text="{Binding Name, Mode=OneWay}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+                    <TextBlock x:Name="NameTextBlock" Grid.Column="1" Text="{x:Bind Name, Mode=OneWay}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
                     <ContentPresenter Grid.Column="1" x:Name="TextBoxContainer" VerticalAlignment="Center"/>
                 </Grid>
             </muxc:TreeViewItem>

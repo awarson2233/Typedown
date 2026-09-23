@@ -7,7 +7,7 @@ using Microsoft.UI.Xaml.Data;
 
 namespace Typedown.WinUI.Controls
 {
-    public class EnumNameBlock : ContentControl
+    public partial class EnumNameBlock : ContentControl
     {
         public static DependencyProperty ValueProperty = DependencyProperty.Register(nameof(Value), typeof(object), typeof(EnumNameBlock), null);
         public object Value { get => GetValue(ValueProperty); set => SetValue(ValueProperty, value); }
@@ -19,7 +19,7 @@ namespace Typedown.WinUI.Controls
             textBlock.SetBinding(TextBlock.TextProperty, new Binding() { Source = this, Path = new(nameof(Value)), Converter = new ValueConverter() });
         }
 
-        private class ValueConverter: IValueConverter
+        private partial class ValueConverter : IValueConverter
         {
             public object Convert(object value, Type targetType, object parameter, string language)
             {

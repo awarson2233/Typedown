@@ -1,5 +1,4 @@
-import katex from 'katex'
-import 'katex/dist/contrib/mhchem.min.js'
+import { getKatex } from '../../../renderers/katex'
 import { CLASS_OR_ID } from '../../../config'
 import { htmlToVNode } from '../snabbdom'
 
@@ -26,8 +25,13 @@ export default function displayMath (h, cursor, block, token, outerClass) {
   const key = `${math}_${type}`
   let mathVnode = null
   let previewSelector = `span.${CLASS_OR_ID.AG_MATH_RENDER}`
+  const previewAttrs = { contenteditable: 'false' }
+  const katex = getKatex()
   if (loadMathMap.has(key)) {
     mathVnode = loadMathMap.get(key)
+  } else if (!katex) {
+    mathVnode = ''
+    previewAttrs['data-math-pending'] = this.addPendingMath(math, displayMode, key)
   } else {
     try {
       const html = katex.renderToString(math, {
@@ -48,7 +52,7 @@ export default function displayMath (h, cursor, block, token, outerClass) {
         attrs: { spellcheck: 'false' }
       }, content),
       h(previewSelector, {
-        attrs: { contenteditable: 'false' }
+        attrs: previewAttrs
       }, mathVnode)
     ]),
     h(`span.${className}.${CLASS_OR_ID.AG_MATH_MARKER}`, endMarker)

@@ -2,12 +2,13 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import transport from "services/transport";
 import { matchString } from 'services/common'
 import { UnControlled as CodeMirror } from 'react-codemirror2';
-import 'codemirror/lib/codemirror.css';
 import { getTOC } from "services/common";
 require('codemirror/mode/markdown/markdown');
 
 interface ICodeMirrorEditor {
     markdown: string
+    // 宿主装载新正文时递增；同一份正文再次装载（如撤销回到上次渲染时的内容）也要重新应用
+    markdownVersion: number
     cursor: any
     options: any
     searchOpen: number
@@ -177,6 +178,12 @@ const CodeMirrorEditor: React.FC<ICodeMirrorEditor> = (props) => {
         markdownRef.current = ''
     }, [editor])
 
+    // 须在下面应用正文的 effect 之前：装载新正文时光标与正文在同一次渲染里到达。
+    useEffect(() => {
+        const { anchor, focus: head } = props.cursor ?? {}
+        cursorRef.current = { anchor, head }
+    }, [editor, props.cursor])
+
     useEffect(() => {
         if (markdownRef.current != props.markdown && editor) {
             markdownRef.current = props.markdown
@@ -191,7 +198,7 @@ const CodeMirrorEditor: React.FC<ICodeMirrorEditor> = (props) => {
                 search({ value, opt: { ...opt, selection } })
             }
         }
-    }, [editor, props.markdown, props.scrollTopRef, search])
+    }, [editor, props.markdown, props.markdownVersion, props.scrollTopRef, search])
 
     useEffect(() => {
         if (props.searchArg && editor) {
@@ -200,11 +207,6 @@ const CodeMirrorEditor: React.FC<ICodeMirrorEditor> = (props) => {
             search({ value, opt: { ...opt, selection } })
         }
     }, [editor, props.searchArg, search])
-
-    useEffect(() => {
-        const { anchor, focus: head } = props.cursor ?? {}
-        cursorRef.current = { anchor, head }
-    }, [editor, props.cursor])
 
     const handleCodeMirrorState = useCallback((value: string) => {
         const wordCount = { character: value.length, word: value.split(' ').length }

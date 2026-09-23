@@ -88,8 +88,7 @@ namespace Typedown.WinUI.Views
 
         private static AppViewModel ResolveViewModel(object? parameter)
         {
-            var providerProperty = parameter?.GetType().GetProperty("UiServices");
-            var provider = providerProperty?.GetValue(parameter) as IServiceProvider;
+            var provider = (parameter as App.MainPageNavigationContext)?.UiServices;
             return provider?.GetRequiredService<AppViewModel>()
                 ?? throw new InvalidOperationException("Typedown presentation services are not initialized.");
         }

@@ -4,7 +4,7 @@ using CoreLocale = Typedown.Core.Utilities.Locale;
 namespace Typedown.WinUI.Pages.SidePanePages
 {
     [MarkupExtensionReturnType(ReturnType = typeof(string))]
-    public sealed class LocaleString : MarkupExtension
+    public sealed partial class LocaleString : MarkupExtension
     {
         public string Key { get; set; } = string.Empty;
 

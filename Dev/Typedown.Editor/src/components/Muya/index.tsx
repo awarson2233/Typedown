@@ -15,6 +15,8 @@ import 'components/Muya/themes/default.css'
 
 interface IMuyaEditor {
     markdown: string
+    // 宿主装载新正文时递增；同一份正文再次装载（如撤销回到上次渲染时的内容）也要重新应用
+    markdownVersion: number
     cursor: any
     options: any
     searchOpen: number
@@ -118,7 +120,7 @@ const MuyaEditor: React.FC<IMuyaEditor> = (props) => {
                 search(searchArgRef.current)
             }, 100);
         }
-    }, [editor, props.markdown, props.scrollTopRef, scrollToCursorIfInvisible, scrollToElementIfInvisible, search])
+    }, [editor, props.markdown, props.markdownVersion, props.scrollTopRef, scrollToCursorIfInvisible, scrollToElementIfInvisible, search])
 
     useEffect(() => {
         search(props.searchArg)
@@ -234,6 +236,16 @@ const MuyaEditor: React.FC<IMuyaEditor> = (props) => {
                 editor?.setFocusMode(value)
             } else if (name == 'typewriter') {
                 value && scrollToCursor()
+            } else if (name == 'tabSize') {
+                // contentState 在构造时把 tabSize 拷成自己的字段，只改 options 不会生效。
+                // 不走 Muya.setTabSize：它把值夹到 1–4，而构造时是原样使用宿主的值。
+                const tabSize = Number(value)
+                if (editor && Number.isFinite(tabSize)) {
+                    (editor as any).contentState.tabSize = tabSize
+                }
+            } else if (name == 'spellcheckEnabled') {
+                // spellcheck 只在构造时写进容器属性，运行中要显式改。
+                editor?.setOptions({ spellcheckEnabled: !!value })
             }
         }
     }), [editor, scrollToCursor]);

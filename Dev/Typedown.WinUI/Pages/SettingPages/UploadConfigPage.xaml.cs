@@ -126,6 +126,18 @@ namespace Typedown.WinUI.Pages.SettingPages
             };
         }
 
+        private object GetSelectedImageUploadMethod(ImageUploadMethod method) => method;
+
+        // The combo box only lists the available methods, so a stored method outside that list makes the
+        // selector revert SelectedItem to null; ignore non-ImageUploadMethod values instead of unboxing them.
+        private void SetImageUploadMethod(object? value)
+        {
+            if (value is ImageUploadMethod method && ImageUploadConfig is { } config)
+            {
+                config.Method = method;
+            }
+        }
+
         public async Task DeleteConfigAsync()
         {
             if (ImageUploadConfig != null)

@@ -6,7 +6,7 @@ import { languages } from './loadLanguage'
 const prism = Prism
 window.Prism = Prism
 /* eslint-disable */
-import('prismjs/plugins/keep-markup/prism-keep-markup')
+import(/* webpackChunkName: "prism/keep-markup" */ 'prismjs/plugins/keep-markup/prism-keep-markup')
 /* eslint-enable */
 const langs = []
 
