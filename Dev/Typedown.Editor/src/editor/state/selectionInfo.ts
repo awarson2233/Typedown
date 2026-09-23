@@ -1,7 +1,8 @@
 import { syntaxTree } from '@codemirror/language';
 import type { EditorState } from '@codemirror/state';
 import type { SyntaxNode } from '@lezer/common';
-import { ENUMS, type BlockContext, type BlockKind, type InlineMark } from '../../bridge/protocol';
+import { ENUMS, type BlockContext, type BlockKind, type ImageInfo, type InlineMark } from '../../bridge/protocol';
+import { htmlAttr, pairHtmlTags, parseHtmlTag } from '../decorations/inlineHtml';
 
 /**
  * 选区的语义描述：光标所在块的 BlockContext（段落菜单的勾选与可用状态由它投影）与选区覆盖的行内标记。
@@ -60,6 +61,8 @@ export function blockContextAt(state: EditorState, from: number, to: number): Bl
     } else if (name === 'Table') { kinds.add('table'); table = true; }
     else if (name === 'HorizontalRule') kinds.add('horizontalRule');
     else if (name === 'Blockquote' && !quote) { kinds.add('quote'); quote = true; }
+    // 脚注定义的语法由块组件一侧提供（节点名 FootnoteDefinition），这里只按名字认
+    else if (name === 'FootnoteDefinition') kinds.add('footnote');
     else if (name === 'ListItem' && !item) item = n;
     else if ((name === 'BulletList' || name === 'OrderedList') && !list) {
       list = true;
@@ -88,17 +91,59 @@ const MARKS: Record<string, InlineMark> = {
   StrongEmphasis: 'strong', Emphasis: 'emphasis', Strikethrough: 'strikethrough', Highlight: 'highlight',
   InlineCode: 'inlineCode', InlineMath: 'inlineMath', Link: 'link', Autolink: 'link', Image: 'image',
 };
+/** 由成对的行内 HTML 标签表达的标记（旧编辑器的下划线命令写的就是 `<u>`） */
+const HTML_MARKS: Record<string, InlineMark> = { u: 'underline' };
+
+/** 行内 HTML 不会是这些块容器的直接子节点，不必在它们的（可能很多的）子节点里配对 */
+const BLOCK_CONTAINERS = new Set(['Blockquote', 'BulletList', 'OrderedList', 'ListItem', 'FootnoteDefinition']);
+
+const within = (from: number, to: number, a: number, b: number) => (from === to ? a < from && from < b : a <= from && to <= b);
 
 /**
  * 选区覆盖的行内标记：空选区要求光标严格在标记内部（紧贴 `**` 外侧不算），非空选区要求整段落在标记里。
- * 下划线（`<u>` 标签对）不在语法树里成对出现，暂不识别。
+ * 下划线是 `<u>…</u>` 标签对：Lezer 只给出各自独立的 HTMLTag 节点，这里在每层祖先的子节点里配对后判断。
  */
 export function inlineMarksAt(state: EditorState, from: number, to: number): InlineMark[] {
   const found = new Set<InlineMark>();
   for (let n: SyntaxNode | null = syntaxTree(state).resolveInner(from, 1); n; n = n.parent) {
     const mark = MARKS[n.name];
-    if (!mark) continue;
-    if (from === to ? n.from < from && from < n.to : n.from <= from && to <= n.to) found.add(mark);
+    if (mark && within(from, to, n.from, n.to)) found.add(mark);
+    if (!n.firstChild || n.type.isTop || BLOCK_CONTAINERS.has(n.name)) continue;
+    for (const { open, close } of pairHtmlTags(state.doc, n).pairs) {
+      const m = HTML_MARKS[open.name];
+      if (m && within(from, to, open.from, close.to)) found.add(m);
+    }
   }
   return ENUMS.InlineMark.filter(m => found.has(m));
+}
+
+/**
+ * 光标所在的图片（选区落在 `![alt](src)` 或 `<img>` 源码内，含两端）：显形态下图片工具与右键菜单据此操作这张图。
+ * 引用式图片没有地址，不算。
+ */
+export function imageAt(state: EditorState, from: number, to: number): ImageInfo | null {
+  return imageFrom(state, from, to, 1) ?? imageFrom(state, from, to, -1);
+}
+
+function imageFrom(state: EditorState, from: number, to: number, side: -1 | 1): ImageInfo | null {
+  const doc = state.doc;
+  for (let n: SyntaxNode | null = syntaxTree(state).resolveInner(from, side); n; n = n.parent) {
+    if (n.name === 'Image') {
+      if (!(n.from <= from && to <= n.to)) return null;
+      const marks = n.getChildren('LinkMark'), url = n.getChild('URL'), title = n.getChild('LinkTitle');
+      if (marks.length < 2 || !url) return null;
+      return {
+        src: doc.sliceString(url.from, url.to),
+        alt: doc.sliceString(marks[0].to, marks[1].from),
+        title: title ? doc.sliceString(title.from + 1, title.to - 1) : '',
+      };
+    }
+    if (n.name === 'HTMLTag') {
+      const tag = parseHtmlTag(doc.sliceString(n.from, n.to), n.from);
+      if (!tag || tag.name !== 'img' || !(n.from <= from && to <= n.to)) return null;
+      return { src: htmlAttr(tag.attrs, 'src') ?? '', alt: htmlAttr(tag.attrs, 'alt') ?? '', title: htmlAttr(tag.attrs, 'title') ?? '' };
+    }
+    if (n.name === 'Paragraph' || n.type.isTop) break;
+  }
+  return null;
 }

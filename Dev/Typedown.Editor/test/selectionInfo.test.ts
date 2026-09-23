@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { Text } from '@codemirror/state';
-import { blockContextAt, inlineMarksAt } from '../src/editor/state/selectionInfo';
+import { blockContextAt, imageAt, inlineMarksAt } from '../src/editor/state/selectionInfo';
 import { countStats } from '../src/editor/state/stats';
 import { selectionPayload } from '../src/bridge/reporters';
 import { stateOf } from './helpers';
@@ -40,6 +40,14 @@ describe('BlockContext', () => {
     expect(ctx('<div>\nh‸i\n</div>\n')).toMatchObject({ kinds: ['htmlBlock'], codeLike: true });
   });
 
+  it('新增的块结构：引用里的任务、任务里的普通子项、列表续行、引用里的空行', () => {
+    expect(ctx('> - [x] 任‸务\n').kinds).toEqual(['quote', 'taskList']);
+    expect(ctx('- [ ] 任务\n  - 子‸项\n').kinds).toEqual(['bulletList']);
+    expect(ctx('- 第一行\n  续‸行\n').kinds).toEqual(['bulletList']);
+    expect(ctx('1. a\n\n   第二‸段\n').kinds).toEqual(['orderedList']);
+    expect(ctx('> a\n>‸\n> b\n').kinds).toEqual(['quote']);
+  });
+
   it('表格里块命令禁用', () => {
     expect(ctx('| a | b |\n| - | - |\n| 1 | ‸2 |\n')).toMatchObject({ kinds: ['table'], blockCommandsDisabled: true });
   });
@@ -64,9 +72,40 @@ describe('行内标记', () => {
     expect(marks('![al‸t](u)')).toEqual(['image']);
   });
 
+  it('下划线 <u>…</u>：标签配对后按同样的规则判断，嵌在强调里也认', () => {
+    expect(marks('a<u>下划‸线</u>b')).toEqual(['underline']);
+    expect(marks('a‸<u>下划线</u>b')).toEqual([]);
+    expect(marks('a<u>下划线</u>‸b')).toEqual([]);
+    expect(marks('**<u>粗‸下</u>**')).toEqual(['strong', 'underline']);
+    expect(marks('<u>‸ab‸</u>')).toEqual(['underline']);
+    expect(marks('<u>a‸b</u> c‸')).toEqual([]);
+    expect(marks('<u>未闭合‸')).toEqual([]);
+    expect(marks('<b>粗‸</b>')).toEqual([]);
+  });
+
   it('选区整段落在标记里才算', () => {
     expect(marks('**‸ab‸**')).toEqual(['strong']);
     expect(marks('**a‸b** c‸')).toEqual([]);
+  });
+});
+
+describe('光标所在的图片', () => {
+  const img = (src: string) => { const { state, from, to } = at(src); return imageAt(state, from, to); };
+  it('选区落在图片源码内（含两端）时给出 src、alt、title', () => {
+    expect(img('前‸![图](a.png "题")后')).toEqual({ src: 'a.png', alt: '图', title: '题' });
+    expect(img('前![图‸](a.png)后')).toEqual({ src: 'a.png', alt: '图', title: '' });
+    expect(img('前![图](a.png)‸后')).toEqual({ src: 'a.png', alt: '图', title: '' });
+    expect(img('前<img src="b.png" alt="x"‸>后')).toEqual({ src: 'b.png', alt: 'x', title: '' });
+  });
+  it('不在图片里、引用式图片、选区越出图片时为 null', () => {
+    expect(img('‸前![图](a.png)')).toBeNull();
+    expect(img('![a][r‸]\n\n[r]: x')).toBeNull();
+    expect(img('‸前![图](a.png)‸')).toBeNull();
+  });
+  it('selection.changed 的 rich 带上它', () => {
+    const { state } = at('![图](a.png)‸');
+    const s = state.update({ selection: { anchor: 3 } }).state;
+    expect(selectionPayload(s, false).rich?.selectedImage).toEqual({ src: 'a.png', alt: '图', title: '' });
   });
 });
 
