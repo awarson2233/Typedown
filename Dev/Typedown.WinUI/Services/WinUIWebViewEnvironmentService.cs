@@ -40,7 +40,7 @@ internal sealed class WinUIWebViewEnvironmentService
         StartupTrace.CoreWebView2EnvironmentCreateStart();
         try
         {
-            // 编辑器页面走 file:// 加载，命令行开关（本地文件访问、滚动条样式等）需要与 1.2.19 基线保持一致。
+            // 命令行开关见 Config.WebView2Args；同一用户数据目录下的所有 WebView2 必须用同一组开关。
             var commandLineArgs = new List<string>(Config.WebView2Args);
 #if DEBUG
             commandLineArgs.Add("--remote-debugging-port=9222");
@@ -51,7 +51,7 @@ internal sealed class WinUIWebViewEnvironmentService
             };
 
             // 用户数据目录固定在应用本地目录下，避免使用 WebView2 默认位置导致的路径不可控。
-            var userDataFolder = Path.Combine(appDataPathProvider.GetLocalFolderPath(), "WebView2");
+            var userDataFolder = Path.Combine(appDataPathProvider.GetLocalFolderPath(), Config.WebView2UserDataFolderName);
             Directory.CreateDirectory(userDataFolder);
 
             return await CoreWebView2Environment.CreateWithOptionsAsync(browserExecutableFolder: null, userDataFolder: userDataFolder, options: options);

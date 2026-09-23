@@ -28,6 +28,7 @@ public sealed partial class EditorContainer : UserControl
     private SettingsViewModel? settingsViewModel;
     private IDisposable? scrollSubscription;
     private bool hasFloatAnchor;
+    private EditorContextMenuContext contextMenuContext;
     private MenuFlyout? editorContextFlyout;
     private ContextFormatItem menuFormatItem = null!;
     private MenuFlyoutSeparator menuImageItemSeparator = null!;
@@ -244,7 +245,10 @@ public sealed partial class EditorContainer : UserControl
 
         menuFormatItem.DataContext = viewModel;
         menuImageItem.DataContext = viewModel;
-        var hasImageMenu = IsLoadImageMenu(Format?.FormatState.Image ?? false, Editor?.SelectedImage);
+        // 页面按点击处给出了上下文就以它为准；上下文未知（页面还不支持 ContextAt）时退回当前选区。
+        var hasImageMenu = contextMenuContext.IsKnown
+            ? contextMenuContext.Selection?.SelectedImage is not null
+            : IsLoadImageMenu(Format?.FormatState.Image ?? false, Editor?.SelectedImage);
         menuImageItem.Visibility = hasImageMenu ? Visibility.Visible : Visibility.Collapsed;
         menuImageItemSeparator.Visibility = hasImageMenu ? Visibility.Visible : Visibility.Collapsed;
 
@@ -485,6 +489,7 @@ public sealed partial class EditorContainer : UserControl
 
     private void OnEditorContextMenuRequested(object? sender, WinUIEditorContextMenuRequestedEventArgs e)
     {
+        contextMenuContext = e.Context;
         EnsureEditorContextFlyout().ShowAt(MarkdownEditorPresenter, new Microsoft.UI.Xaml.Controls.Primitives.FlyoutShowOptions
         {
             Position = e.Position

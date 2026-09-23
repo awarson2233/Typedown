@@ -18,16 +18,20 @@ namespace Typedown.Core
 
         public static bool IsMicaSupported { get; } = Environment.OSVersion.Version.Build >= 22000;
 
-        // WebView2 启动参数：编辑器页面走 file:// 加载，本地图片读取依赖 allow-file-access-from-files，
+        // WebView2 启动参数：编辑器页面以 https 虚拟主机加载，不再放开跨域与 file:// 访问；
         // 滚动条样式依赖 msOverlayScrollbarWinStyle 特性开关。
         public static IReadOnlyList<string> WebView2Args { get; } = new List<string>()
         {
-            "--disable-web-security",
-            "--allow-file-access-from-files",
             "--flag-switches-begin",
             "--enable-features=msOverlayScrollbarWinStyle",
             "--flag-switches-end"
         };
+
+        /// <summary>
+        /// WebView2 用户数据目录（应用本地数据目录下）。同一目录下的所有 WebView2 共用一个浏览器进程，启动参数必须一致；
+        /// 新引擎的参数与旧 Muya 构建不同，两种构建并存时共用目录会让后启动的一方建不出环境，所以分开存放（C6 退役旧构建后可以合回）。
+        /// </summary>
+        public const string WebView2UserDataFolderName = "WebView2Next";
 
         public static string GetLocalFolderPath()
         {

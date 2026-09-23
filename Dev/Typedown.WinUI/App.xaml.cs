@@ -132,8 +132,9 @@ namespace Typedown.WinUI
                         // 语义上属于窗口：keyEvents 是共享 Subject。目前每个窗口独占一个进程和一个 uiScope，
                         // Scoped 与单例运行时等价；将来若同一进程承载多个窗口，单例会让快捷键触发所有窗口的菜单项。
                         .AddScoped<IKeyboardAccelerator, WinUIKeyboardAccelerator>()
-                        .AddScoped<LegacyMuyaSession>()
-                        .AddScoped<IEditorSession>(sp => sp.GetRequiredService<LegacyMuyaSession>())
+                        // 新引擎页面的会话；旧的 LegacyMuyaSession 与旧协议代码保留到 C6 统一退役，不再注册。
+                        .AddScoped<WebViewEditorSession>()
+                        .AddScoped<IEditorSession>(sp => sp.GetRequiredService<WebViewEditorSession>())
                         .AddSingleton<IPowerShellService, WinUIPowerShellService>()
                         .AddSingleton<ITableDialogService, WinUITableDialogService>()
                         .AddSingleton<IWindowService, WinUIWindowService>()
