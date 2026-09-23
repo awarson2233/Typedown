@@ -77,29 +77,88 @@ export function lastLineOf(doc: Text, node: SyntaxNode): Line {
 }
 
 /**
- * 一段连续空行 [first, last]（行号）里每一行的高度表达式；段落间的普通空行（.5em）返回 null，用样式表的默认值。
- * 空行落在某个顶层块内部（列表项之间、引用里）时也返回 null：那里的间距就是段落的 .5em。
+ * 连续 lines 个空行夹在外边距 a、b 之间时每一行的高度表达式；段落间的普通空行（.5em）返回 null，用样式表的默认值。
+ * a 为 null 表示空行从文首开始（Muya 先在正文前补两个换行再做词法分析）。
  */
-export function gapLineHeight(doc: Text, tree: Tree, first: number, last: number): string | null {
+function gapRunHeight(a: Margin | null, b: Margin, lines: number): string | null {
+  const newlines = a ? lines + 1 : lines + 2;
+  const top = a ?? EDGE;
+  const empty = Math.max(0, Math.floor(newlines / 2) - 1);
+  let total: string;
+  if (!empty) total = joinMargins(top, b);
+  else {
+    const p = MARGIN.paragraph;
+    total = `calc(${joinMargins(top, p)} + ${empty} * var(--td-lh-px) + ${empty - 1} * var(--td-m-p) + ${joinMargins(p, b)})`;
+  }
+  if (lines === 1 && total === MARGIN.paragraph.v) return null;
+  return lines === 1 ? total : `calc((${total}) / ${lines})`;
+}
+
+/** 一段连续空行 [first, last] 前后的顶层块；空行落在某个顶层块内部（列表项之间、引用里）时返回 null */
+function gapNeighbours(doc: Text, tree: Tree, first: number, last: number): { prev: SyntaxNode | null; next: SyntaxNode | null } | null {
   const start = doc.line(first), end = doc.line(last);
   const prev = start.from > 0 ? topBlockAt(tree, start.from - 1, -1) : null;
   const next = end.to < doc.length ? topBlockAt(tree, end.to + 1, 1) : null;
   if (prev && prev.to > start.from) return null;
   if (next && next.from < end.to) return null;
   if (prev && next && prev.from === next.from) return null;
-  const a = prev ? marginOf(doc, prev) : EDGE, b = next ? marginOf(doc, next) : EDGE;
-  const lines = last - first + 1;
-  // 文首的空行：Muya 先在正文前补两个换行再做词法分析
-  const newlines = prev ? lines + 1 : lines + 2;
-  const empty = Math.max(0, Math.floor(newlines / 2) - 1);
-  let total: string;
-  if (!empty) total = joinMargins(a, b);
-  else {
-    const p = MARGIN.paragraph;
-    total = `calc(${joinMargins(a, p)} + ${empty} * var(--td-lh-px) + ${empty - 1} * var(--td-m-p) + ${joinMargins(p, b)})`;
+  return { prev, next };
+}
+
+/**
+ * 一段连续空行 [first, last]（行号）里每一行的高度表达式；段落间的普通空行（.5em）返回 null，用样式表的默认值。
+ * 空行落在某个顶层块内部（列表项之间、引用里）时也返回 null：那里的间距就是段落的 .5em。
+ */
+export function gapLineHeight(doc: Text, tree: Tree, first: number, last: number): string | null {
+  const n = gapNeighbours(doc, tree, first, last);
+  if (!n) return null;
+  return gapRunHeight(n.prev ? marginOf(doc, n.prev) : null, n.next ? marginOf(doc, n.next) : EDGE, last - first + 1);
+}
+
+/** 光标落在一段连续空行里时的排版：光标行按输入第一个字符后会成为的那一行排，其余空行按变成的新块间距重新分摊 */
+export interface CaretGap {
+  /** 光标行之上、之下两段空行每一行的高度表达式（null 用默认 .5em）；该段没有空行时不用 */
+  above: string | null;
+  below: string | null;
+  /** 光标行（正文行高）的上、下内边距；null 表示不加 */
+  paddingTop: string | null;
+  paddingBottom: string | null;
+}
+
+/** 行尾所在的最内层块是段落：下一行输入文字会成为它的惰性续行（段落本身、以段落结尾的列表与引用） */
+function endsInParagraph(tree: Tree, line: Line): boolean {
+  if (line.length === 0) return false;
+  for (let n: SyntaxNode | null = tree.resolveInner(line.to, -1); n; n = n.parent) {
+    if (n.name === 'Paragraph') return n.to >= line.to;
+    if (n.type.isTop) return false;
   }
-  if (lines === 1 && total === MARGIN.paragraph.v) return null;
-  return lines === 1 ? total : `calc((${total}) / ${lines})`;
+  return false;
+}
+
+/** 不能打断段落的块：紧跟在新段落之后时成为它的续行（缩进代码块），或本来就是段落 */
+const JOINS_PARAGRAPH = new Set(['Paragraph', 'CodeBlock']);
+
+/**
+ * 光标所在的块间空行（第 caret 行，位于连续空行 [first, last] 内）的排版。回车新起的一行在语法上是块间空行，
+ * 若照常压成段距，光标会先画在矮行里，输入文字后才跳到正文行的位置；这里让光标行一开始就处在输入后的位置：
+ * - 光标行紧接在段落（或以段落结尾的列表、引用）之后：输入后是该段落的续行，光标行就是一行正文，不加间距；
+ * - 否则输入后是一个新段落 P：光标行上方的空行按「前一块 | P」重新分摊，没有空行时把两者的间距加成光标行的上内边距；
+ *   下方同理按「P | 后一块」，后一块是段落时输入后会并进 P，不加间距。
+ * 空行落在顶层块内部时返回 null（光标行按普通正文行排，其余空行不变）。
+ */
+export function caretGapLayout(doc: Text, tree: Tree, first: number, last: number, caret: number): CaretGap | null {
+  const n = gapNeighbours(doc, tree, first, last);
+  if (!n) return null;
+  const a = n.prev ? marginOf(doc, n.prev) : null, b = n.next ? marginOf(doc, n.next) : EDGE;
+  const p = MARGIN.paragraph;
+  const continues = caret === first && !!n.prev && endsInParagraph(tree, doc.line(caret - 1));
+  const own = continues ? a! : p;
+  const out: CaretGap = { above: null, below: null, paddingTop: null, paddingBottom: null };
+  if (caret > first) out.above = gapRunHeight(a, p, caret - first);
+  else if (!continues) out.paddingTop = joinMargins(a ?? EDGE, p);
+  if (caret < last) out.below = gapRunHeight(own, b, last - caret);
+  else if (n.next && !JOINS_PARAGRAPH.has(n.next.name)) out.paddingBottom = joinMargins(own, b);
+  return out;
 }
 
 /** 块首行就是文字行、可以直接加内边距的块（其余是整块 widget 或带竖线、边框的行） */

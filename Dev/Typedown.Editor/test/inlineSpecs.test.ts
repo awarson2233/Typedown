@@ -304,6 +304,49 @@ describe('块间空行（段距）', () => {
     expect(three).toHaveLength(3);
     expect(three[0]).toBe('2:--td-gap-h:calc((calc(var(--td-m-p) + 1 * var(--td-lh-px) + 0 * var(--td-m-p) + var(--td-m-p))) / 3)');
   });
+  describe('光标所在的空行按输入第一个字符后会成为的正文行排版', () => {
+    /** 各空行（及光标行）的类名与内联样式，光标放在 at 处 */
+    const layout = (d: string, at: number) => {
+      const s = stateOf(d);
+      const r = describeSpecs(s.doc, fullTree(s), [at], { caret: [at] });
+      return r.list.filter(x => x.kind === 'line' && s.doc.lineAt(x.at).text.replace(/^[> ]*/, '') === '')
+        .map(x => (x.kind === 'line' ? `${s.doc.lineAt(x.at).number}:${x.cls}|${x.style}` : ''));
+    };
+    it('段落之后：光标行是该段落的续行，不加间距；下方剩下的空行按段落之间分摊', () => {
+      expect(layout('a\n\n\nb', 2)).toEqual([`3:${GAP_LINE}|`]);
+      // 文末回车
+      expect(layout('a\n', 2)).toEqual([]);
+    });
+    it('标题之后：光标行是新段落，两块的间距加成上内边距；后一块是段落时输入后并进来，不加下间距', () => {
+      expect(layout('# h\n\n\nb', 4)).toEqual([`2:|padding-top:max(var(--td-m-h), var(--td-m-p))`, `3:${GAP_LINE}|`]);
+      expect(layout('## h\n\nb', 5)).toEqual(['2:|padding-top:max(var(--td-m-h), var(--td-m-p))']);
+    });
+    it('代码块、公式块之后：上内边距按它们的外边距算', () => {
+      expect(layout('```\nc\n```\n\nb', 10)).toEqual(['4:|padding-top:calc(var(--td-m-code) + var(--td-m-p))']);
+      expect(layout('$$\nx\n$$\n\nb', 8)).toEqual(['4:|padding-top:max(var(--td-m-fig), var(--td-m-p))']);
+    });
+    it('文首空行：上内边距是首块的外边距', () => {
+      expect(layout('\n\nb', 0)).toEqual(['1:|padding-top:var(--td-m-p)', `2:${GAP_LINE}|`]);
+      // 光标在第 2 行：上方的一行空行与输入后一样按「文首 | 段落」算（默认段距）
+      expect(layout('\n\n\nb', 1)).toEqual([`1:${GAP_LINE}|`, `3:${GAP_LINE}|`]);
+    });
+    it('连续多个空行：光标行上下两段按变成的新块间距重新分摊', () => {
+      // 光标在 [2, 5] 的第 4 行：上段 2 行夹在两个段落之间，下段 1 行
+      expect(layout('a\n\n\n\n\nb', 4)).toEqual([`2:${GAP_LINE}|--td-gap-h:calc((var(--td-m-p)) / 2)`, `3:${GAP_LINE}|--td-gap-h:calc((var(--td-m-p)) / 2)`, `5:${GAP_LINE}|`]);
+      // 光标在最后一行、下接标题：间距加成下内边距
+      expect(layout('a\n\n\n\n# h', 4)).toEqual([`2:${GAP_LINE}|--td-gap-h:calc((var(--td-m-p)) / 2)`, `3:${GAP_LINE}|--td-gap-h:calc((var(--td-m-p)) / 2)`, '4:|padding-bottom:max(var(--td-m-p), var(--td-m-h))']);
+    });
+    it('块内部的空行（引用里只有 > 的行、列表项之间）：光标行按普通正文行排，不压成段距', () => {
+      expect(layout('> a\n>\n> b', 5).some(l => l.startsWith('2:') && l.includes(GAP_LINE))).toBe(false);
+      expect(layout('- a\n\n- b', 4)).toEqual([]);
+    });
+    it('没有光标的空行不受影响；有选区（非空）时不按光标处理', () => {
+      const s = stateOf('# h\n\nb');
+      const none = describeSpecs(s.doc, fullTree(s), [4], {}).styles;
+      expect(describeSpecs(s.doc, fullTree(s), [4], { caret: [] }).styles).toEqual(none);
+      expect(none).toEqual(['1:padding-top:var(--td-m-h)', '2:--td-gap-h:max(var(--td-m-h), var(--td-m-p))']);
+    });
+  });
   it('没有空行的相邻块：间距加成文字行的内边距（优先加在前一块末行）', () => {
     const pads = (d: string) => specs(d, [d.length]).styles.filter(s => s.includes('padding'));
     // 首行同时带文档首块的上外边距

@@ -60,6 +60,8 @@ const selectionPoints = (state: EditorState) => {
   for (const r of state.selection.ranges) { pts.push(r.head); if (r.anchor !== r.head) pts.push(r.anchor); }
   return pts;
 };
+/** 光标（空选区）的位置：块间空行上的光标行按正文行排版 */
+const caretPoints = (state: EditorState) => state.selection.ranges.filter(r => r.empty).map(r => r.head);
 
 const isGapDeco = (d: Decoration) => typeof d.spec.class === 'string' && d.spec.class.split(' ').includes(GAP_LINE);
 
@@ -69,10 +71,13 @@ class InlineReveal {
   atomic: DecorationSet;
   /** 用于显形判断的位置（冻结与组字期间按变化映射，不跟随选区） */
   reveal: number[];
+  /** 光标位置，与 reveal 同时跟随选区、同样冻结 */
+  caret: number[];
   stale = false;
 
   constructor(view: EditorView) {
     this.reveal = selectionPoints(view.state);
+    this.caret = caretPoints(view.state);
     ({ decorations: this.decorations, atomic: this.atomic } = this.build(view));
   }
 
@@ -85,8 +90,8 @@ class InlineReveal {
       return;
     }
     const refresh = u.transactions.some(hasRefresh);
-    if (!frozen && (u.selectionSet || refresh)) this.reveal = selectionPoints(u.state);
-    else if (u.docChanged) this.reveal = this.reveal.map(p => u.changes.mapPos(p));
+    if (!frozen && (u.selectionSet || refresh)) { this.reveal = selectionPoints(u.state); this.caret = caretPoints(u.state); }
+    else if (u.docChanged) { this.reveal = this.reveal.map(p => u.changes.mapPos(p)); this.caret = this.caret.map(p => u.changes.mapPos(p)); }
     const treeChanged = syntaxTree(u.state) !== syntaxTree(u.startState);
     if (u.docChanged || u.viewportChanged || u.selectionSet || refresh || treeChanged || this.stale) {
       this.stale = false;
@@ -99,6 +104,7 @@ class InlineReveal {
     this.decorations = unGapChangedLines(this.decorations.map(u.changes), u);
     this.atomic = this.atomic.map(u.changes);
     this.reveal = this.reveal.map(p => u.changes.mapPos(p));
+    this.caret = this.caret.map(p => u.changes.mapPos(p));
   }
 
   build(view: EditorView) {
@@ -107,7 +113,8 @@ class InlineReveal {
     if (!ranges.length) return { decorations: Decoration.none, atomic: Decoration.none };
     const numbers = state.facet(footnoteNumberSource)?.(state);
     // 编号表的键是规范化后的标签；上标没有编号时显示标签原文（inlineSpecs 负责）
-    const options: InlineSpecOptions = numbers ? { footnoteNumber: label => numbers.get(normalizeFootnoteLabel(label)) } : {};
+    const options: InlineSpecOptions = { caret: this.caret };
+    if (numbers) options.footnoteNumber = label => numbers.get(normalizeFootnoteLabel(label));
     const specs = buildInlineSpecs(state.doc, syntaxTree(state), { from: ranges[0].from, to: ranges[ranges.length - 1].to }, this.reveal, options);
     const decos: Range<Decoration>[] = [];
     const atomic: Range<Decoration>[] = [];

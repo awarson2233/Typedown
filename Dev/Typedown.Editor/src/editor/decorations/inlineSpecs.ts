@@ -3,7 +3,7 @@ import type { SyntaxNode, Tree } from '@lezer/common';
 import { emojiFor } from '../../shared/emoji';
 import { RENDERED_TAGS, htmlAttr, pairHtmlTags, type HtmlTag } from './inlineHtml';
 import { linePrefix, type MarkerSpec } from './lineStructure';
-import { adjacentPadding, gapLineHeight, lastLineOf } from './blockSpacing';
+import { adjacentPadding, caretGapLayout, gapLineHeight, lastLineOf, type CaretGap } from './blockSpacing';
 import { iterateTopBlocks } from '../syntax';
 
 /**
@@ -19,7 +19,8 @@ import { iterateTopBlocks } from '../syntax';
  * - ATX 标题按 Vditor IR：显形位置在标题所在行内时 `#` 变灰，否则连同其后空白隐藏；标题字号按行无条件施加。
  * - 列表符号、任务框、引用 `>` 始终隐藏（lineStructure）：行首前缀整段换成列表符号或复选框 widget，
  *   没有符号的前缀（引用 `>`、续行缩进）直接隐藏；缩进层数与引用竖线由行装饰施加。
- * - 块级样式（标题字号、引用、列表缩进、段间空行）只看语法，不随显形变化，避免行高跳动。
+ * - 块级样式（标题字号、引用、列表缩进、段间空行）只看语法，不随显形变化，避免行高跳动；
+ *   例外是光标所在的空行：按输入第一个字符后会成为的正文行排版（blockSpacing.ts 的 caretGapLayout），否则回车后光标先画在矮行里。
  */
 
 export type InlineWidgetSpec =
@@ -46,6 +47,8 @@ export type InlineSpec =
 export interface InlineSpecOptions {
   /** 脚注编号（按标签原文查）；不给或查不到时上标显示标签原文 */
   footnoteNumber?: (label: string) => number | undefined;
+  /** 光标（空选区）所在位置：落在块间空行上时，该行按输入第一个字符后会成为的正文行排版（blockSpacing.ts 的 caretGapLayout） */
+  caret?: readonly number[];
 }
 
 const SPAN_CLASS: Record<string, string> = {
@@ -133,6 +136,8 @@ export function buildInlineSpecs(doc: Text, tree: Tree, range: Range, reveal: re
     out.push({ kind: 'widget', from, to, widget });
     return true;
   };
+  /** 光标（空选区）所在的行号 */
+  const caretLines = new Set((options.caret ?? []).map(p => doc.lineAt(p).number));
   /** 引用与列表项覆盖的可见行，遍历结束后逐行求前缀 */
   const nestedLines = new Set<number>();
   /** 已配对过行内 HTML 的父节点 */
@@ -374,21 +379,31 @@ export function buildInlineSpecs(doc: Text, tree: Tree, range: Range, reveal: re
       style += `;background-position:${p.quoteLevels.map(l => `calc(${l} * var(--td-indent-step) + var(--td-quote-bar-left)) 0`).join(',')}`;
     }
     lineCls(at, `cm-td-nest${p.quoteLevels.length ? ' cm-td-quote' : ''}${p.taskDone ? ' cm-td-task-done' : ''}`, style);
-    if (!p.marker && isGapLine(tree, line, p.end)) lineCls(at, GAP_LINE);
+    // 光标所在的空行（引用里回车新起的 `> ` 行等）：输入后就是一行正文，不压成段距
+    if (!p.marker && !caretLines.has(line.number) && isGapLine(tree, line, p.end)) lineCls(at, GAP_LINE);
   }
   // 顶层的块间空行：同一段连续空行共用一个高度（按前后两块的外边距算，见 blockSpacing.ts）
+  // 光标落在其中的一段空行按 caretGapLayout 拆成「上段空行 | 光标行 | 下段空行」
   const isTopGap = (l: Line) => !prefixEnds.has(l.from) && isGapLine(tree, l, l.from);
-  let run: { last: number; style: string | undefined } | null = null;
+  const gapStyle = (h: string | null) => (h ? `--td-gap-h:${h}` : undefined);
+  let run: { last: number; style: string | undefined; caret: number; layout: CaretGap | null } | null = null;
   for (let l = doc.lineAt(range.from); ; l = doc.line(l.number + 1)) {
     if (isTopGap(l)) {
       if (!run || l.number > run.last) {
         let first = l.number, last = l.number;
         while (first > 1 && isTopGap(doc.line(first - 1))) first--;
         while (last < doc.lines && isTopGap(doc.line(last + 1))) last++;
-        const h = gapLineHeight(doc, tree, first, last);
-        run = { last, style: h ? `--td-gap-h:${h}` : undefined };
+        let caret = 0;
+        for (const n of caretLines) if (n >= first && n <= last && (!caret || n < caret)) caret = n;
+        run = caret
+          ? { last, style: undefined, caret, layout: caretGapLayout(doc, tree, first, last, caret) }
+          : { last, style: gapStyle(gapLineHeight(doc, tree, first, last)), caret: 0, layout: null };
       }
-      lineCls(l.from, GAP_LINE, run.style);
+      const lay = run.layout;
+      if (l.number === run.caret) {
+        const pad = lay ? [lay.paddingTop && `padding-top:${lay.paddingTop}`, lay.paddingBottom && `padding-bottom:${lay.paddingBottom}`].filter(Boolean).join(';') : '';
+        if (pad) lineCls(l.from, null, pad);
+      } else lineCls(l.from, GAP_LINE, run.caret && lay ? gapStyle(l.number < run.caret ? lay.above : lay.below) : run.style);
     }
     if (l.to >= range.to || l.number >= doc.lines) break;
   }

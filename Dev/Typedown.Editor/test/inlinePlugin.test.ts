@@ -78,6 +78,20 @@ describe('行内 HTML', () => {
   });
 });
 
+describe('块间空行与光标', () => {
+  it('光标所在的空行按正文行排版，光标离开后恢复段距；有选区时不展开', () => {
+    const ed = mount('# a\n\nb', 4);
+    const line2 = () => ed.view.contentDOM.querySelectorAll('.cm-line')[1] as HTMLElement;
+    expect(line2().classList.contains('cm-td-gap')).toBe(false);
+    expect(line2().style.paddingTop).toBe('max(var(--td-m-h), var(--td-m-p))');
+    ed.view.dispatch({ selection: { anchor: 0 } });
+    expect(line2().classList.contains('cm-td-gap')).toBe(true);
+    ed.view.dispatch({ selection: { anchor: 0, head: 4 } });
+    expect(line2().classList.contains('cm-td-gap')).toBe(true);
+    ed.view.destroy();
+  });
+});
+
 describe('块间空行与组字', () => {
   it('空行带段距类名；组字在它上面开始时去掉该行的段距类名，行的其余类名保留', () => {
     const ed = mount('> a\n>\n> b', 0);
