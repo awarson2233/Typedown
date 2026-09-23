@@ -3,7 +3,7 @@ using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Navigation;
 using System.ComponentModel;
 using Typedown.Core.Enums;
-using Typedown.Presentation.ViewModels;
+using Typedown.Core.ViewModels;
 using Typedown.WinUI.Utilities;
 
 namespace Typedown.WinUI.Pages.SettingPages

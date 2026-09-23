@@ -5,7 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using Microsoft.Windows.AppLifecycle;
-using Typedown.Presentation.Interfaces;
+using Typedown.Core.Interfaces;
 using Windows.ApplicationModel.Activation;
 using Windows.Storage;
 

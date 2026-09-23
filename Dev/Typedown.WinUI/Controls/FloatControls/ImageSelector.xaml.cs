@@ -8,10 +8,9 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Controls.Primitives;
 using Typedown.Core.Utilities;
-using Typedown.Presentation.Interfaces;
-using Typedown.Presentation.Services;
-using Typedown.Presentation.Utilities;
-using Typedown.Presentation.ViewModels;
+using Typedown.Core.Interfaces;
+using Typedown.Core.Services;
+using Typedown.Core.ViewModels;
 using Windows.Foundation;
 
 namespace Typedown.WinUI.Controls

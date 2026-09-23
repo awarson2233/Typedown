@@ -3,7 +3,7 @@ using System.Reactive.Linq;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Data;
-using Typedown.Presentation.ViewModels;
+using Typedown.Core.ViewModels;
 using Windows.Storage.Pickers;
 using WinRT.Interop;
 

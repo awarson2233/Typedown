@@ -3,7 +3,7 @@ using Typedown.Core.Utilities;
 using Key = Typedown.Core.Models.KeyboardKey;
 using Mod = Typedown.Core.Models.KeyboardModifiers;
 
-namespace Typedown.Presentation.ViewModels
+namespace Typedown.Core.ViewModels
 {
     public partial class SettingsViewModel
     {

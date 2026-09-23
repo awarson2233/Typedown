@@ -1,7 +1,7 @@
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
-using Typedown.Presentation.ViewModels;
-using Typedown.Presentation.Utilities;
+using Typedown.Core.ViewModels;
+using Typedown.Core.Utilities;
 using Typedown.WinUI.Utilities;
 
 namespace Typedown.WinUI.Controls;

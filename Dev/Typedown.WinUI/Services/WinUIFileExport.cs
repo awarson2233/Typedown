@@ -6,7 +6,6 @@ using Typedown.Core.Interfaces;
 using Typedown.Core.Models;
 using Typedown.Core.Services;
 using Typedown.Core.Utilities;
-using Typedown.Presentation.Interfaces;
 
 namespace Typedown.WinUI.Services
 {

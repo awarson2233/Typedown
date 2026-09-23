@@ -4,7 +4,7 @@ using System.Linq;
 using System.Reflection;
 using Typedown.Core.Utilities;
 
-namespace Typedown.Presentation.Utilities
+namespace Typedown.Core.Utilities
 {
     public static class Locale
     {

@@ -9,9 +9,7 @@ using Typedown.Core.Enums;
 using Typedown.Core.Interfaces;
 using Typedown.Core.Models;
 using Typedown.Core.Utilities;
-using Typedown.Presentation.Interfaces;
-using Typedown.Presentation.Utilities;
-using Typedown.Presentation.ViewModels;
+using Typedown.Core.ViewModels;
 using Typedown.WinUI.Controls;
 
 namespace Typedown.WinUI.Pages.SettingPages

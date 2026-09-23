@@ -1,7 +1,7 @@
 using System;
 using System.Threading.Tasks;
 
-namespace Typedown.Presentation.Interfaces
+namespace Typedown.Core.Interfaces
 {
     public sealed class UiDispatcherUnavailableException : InvalidOperationException
     {

@@ -1,5 +1,5 @@
 using Microsoft.UI.Xaml.Markup;
-using PresentationLocale = Typedown.Presentation.Utilities.Locale;
+using CoreLocale = Typedown.Core.Utilities.Locale;
 
 namespace Typedown.WinUI.Pages.SidePanePages
 {
@@ -8,11 +8,11 @@ namespace Typedown.WinUI.Pages.SidePanePages
     {
         public string Key { get; set; } = string.Empty;
 
-        public PresentationLocale.ResourceSource Source { get; set; }
+        public CoreLocale.ResourceSource Source { get; set; }
 
         protected override object ProvideValue()
         {
-            return PresentationLocale.GetString(Key, Source);
+            return CoreLocale.GetString(Key, Source);
         }
     }
 }

@@ -1,7 +1,7 @@
 using System.Reactive.Subjects;
 using Microsoft.UI.Xaml;
 using Typedown.Core.Models;
-using Typedown.Presentation.Interfaces;
+using Typedown.Core.Interfaces;
 
 namespace Typedown.WinUI.Services
 {

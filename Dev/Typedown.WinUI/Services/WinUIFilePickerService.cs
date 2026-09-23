@@ -1,7 +1,7 @@
 using System;
 using System.Linq;
 using System.Threading.Tasks;
-using Typedown.Presentation.Interfaces;
+using Typedown.Core.Interfaces;
 using Windows.Storage.Pickers;
 using WinRT.Interop;
 

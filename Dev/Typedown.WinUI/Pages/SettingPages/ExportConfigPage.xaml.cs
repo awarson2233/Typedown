@@ -6,12 +6,11 @@ using System.Threading.Tasks;
 using Typedown.WinUI.Pages.SettingPages.ExportConfigPageParts;
 using Typedown.Core.Enums;
 using Typedown.Core.Interfaces;
-using Typedown.Presentation.Interfaces;
 using Typedown.Core.Models;
 using Typedown.Core.Utilities;
 using Typedown.WinUI.Controls;
-using Typedown.Presentation.ViewModels;
-using PresentationLocale = Typedown.Presentation.Utilities.Locale;
+using Typedown.Core.ViewModels;
+using CoreLocale = Typedown.Core.Utilities.Locale;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Navigation;
@@ -66,9 +65,9 @@ namespace Typedown.WinUI.Pages.SettingPages
             {
                 await this.GetService<IDialogService>().ShowAsync(new DialogRequest
                 {
-                    Title = PresentationLocale.GetString("Error"),
+                    Title = CoreLocale.GetString("Error"),
                     Content = ex.Message,
-                    CloseButtonText = PresentationLocale.GetString("Ok"),
+                    CloseButtonText = CoreLocale.GetString("Ok"),
                     DefaultButton = DialogDefaultButton.Close
                 });
                 ExportConfig = null;

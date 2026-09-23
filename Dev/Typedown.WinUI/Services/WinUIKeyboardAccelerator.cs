@@ -7,7 +7,7 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Input;
 using Typedown.Core.Models;
 using Typedown.Core.Utilities;
-using Typedown.Presentation.Interfaces;
+using Typedown.Core.Interfaces;
 using Windows.System;
 using CoreVirtualKeyStates = Windows.UI.Core.CoreVirtualKeyStates;
 using KeyEventArgs = Typedown.Core.Models.KeyEventArgs;

@@ -5,16 +5,15 @@ using System.Reactive.Linq;
 using Microsoft.Extensions.DependencyInjection;
 using Typedown.Core.Models;
 using Typedown.Core.Utilities;
-using Typedown.Presentation.Interfaces;
-using Typedown.Presentation.Models;
-using Typedown.Presentation.ViewModels;
+using Typedown.Core.Interfaces;
+using Typedown.Core.ViewModels;
 using Windows.ApplicationModel.DataTransfer;
 using Windows.Storage;
 using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Navigation;
 using Muxc = Microsoft.UI.Xaml.Controls;
-using PresentationLocale = Typedown.Presentation.Utilities.Locale;
+using CoreLocale = Typedown.Core.Utilities.Locale;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Typedown.WinUI.Utilities;
@@ -330,7 +329,7 @@ namespace Typedown.WinUI.Pages.SidePanePages
             }
             catch (Exception ex)
             {
-                await ShowErrorAsync(PresentationLocale.GetDialogString("CreateDocErrorTitle"), ex.Message);
+                await ShowErrorAsync(CoreLocale.GetDialogString("CreateDocErrorTitle"), ex.Message);
             }
         }
 
@@ -380,7 +379,7 @@ namespace Typedown.WinUI.Pages.SidePanePages
             }
             catch (Exception ex)
             {
-                await ShowErrorAsync(PresentationLocale.GetDialogString("CreateFolderErrorTitle"), ex.Message);
+                await ShowErrorAsync(CoreLocale.GetDialogString("CreateFolderErrorTitle"), ex.Message);
             }
         }
 
@@ -418,7 +417,7 @@ namespace Typedown.WinUI.Pages.SidePanePages
             }
             catch (Exception ex)
             {
-                await ShowErrorAsync(PresentationLocale.GetString("Error"), ex.Message);
+                await ShowErrorAsync(CoreLocale.GetString("Error"), ex.Message);
             }
         }
 
@@ -688,7 +687,7 @@ namespace Typedown.WinUI.Pages.SidePanePages
             }
             catch (Exception ex)
             {
-                await page.ShowErrorAsync(PresentationLocale.GetString("Error"), ex.Message);
+                await page.ShowErrorAsync(CoreLocale.GetString("Error"), ex.Message);
             }
         }
 
@@ -707,7 +706,7 @@ namespace Typedown.WinUI.Pages.SidePanePages
                 XamlRoot = XamlRoot,
                 Title = title,
                 Content = message,
-                CloseButtonText = PresentationLocale.GetDialogString("Ok")
+                CloseButtonText = CoreLocale.GetDialogString("Ok")
             };
             await dialog.ShowAsync();
         }

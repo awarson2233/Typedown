@@ -10,9 +10,9 @@ using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Typedown.Core.Utilities;
-using Typedown.Presentation.ViewModels;
+using Typedown.Core.ViewModels;
 
-namespace Typedown.Presentation.Models
+namespace Typedown.Core.Models
 {
     public partial class ExplorerItem : INotifyPropertyChanged, IDisposable
     {

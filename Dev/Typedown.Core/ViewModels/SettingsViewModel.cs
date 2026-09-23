@@ -11,10 +11,9 @@ using System.Runtime.CompilerServices;
 using Typedown.Core;
 using Typedown.Core.Enums;
 using Typedown.Core.Utilities;
-using Typedown.Presentation.Interfaces;
-using Typedown.Presentation.Utilities;
+using Typedown.Core.Interfaces;
 
-namespace Typedown.Presentation.ViewModels
+namespace Typedown.Core.ViewModels
 {
     public sealed partial class SettingsViewModel : INotifyPropertyChanged, IDisposable
     {

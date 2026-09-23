@@ -1,7 +1,7 @@
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
-using Typedown.Presentation.Interfaces;
-using Typedown.Presentation.Utilities;
+using Typedown.Core.Interfaces;
+using Typedown.Core.Utilities;
 
 namespace Typedown.WinUI.Services
 {

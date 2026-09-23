@@ -2,7 +2,6 @@ using System;
 using System.Reactive.Linq;
 using Typedown.Core.Models;
 using Typedown.Core.Utilities;
-using Typedown.Presentation.Utilities;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 

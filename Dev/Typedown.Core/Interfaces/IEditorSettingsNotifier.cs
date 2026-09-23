@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 
-namespace Typedown.Presentation.Interfaces
+namespace Typedown.Core.Interfaces
 {
     public interface IEditorSettingsNotifier
     {

@@ -6,10 +6,9 @@ using Newtonsoft.Json.Linq;
 using Typedown.Core.Models;
 using Typedown.Core.Models.RuntimeModels;
 using Typedown.Core.Utilities;
-using Typedown.Presentation.Interfaces;
-using Typedown.Presentation.Services;
-using Typedown.Presentation.Utilities;
-using Typedown.Presentation.ViewModels;
+using Typedown.Core.Interfaces;
+using Typedown.Core.Services;
+using Typedown.Core.ViewModels;
 
 namespace Typedown.WinUI.Controls;
 

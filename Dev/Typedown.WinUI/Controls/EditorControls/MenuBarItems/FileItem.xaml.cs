@@ -5,8 +5,8 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
-using Typedown.Presentation.Interfaces;
-using Typedown.Presentation.ViewModels;
+using Typedown.Core.Interfaces;
+using Typedown.Core.ViewModels;
 using Typedown.WinUI.Services;
 
 namespace Typedown.WinUI.Controls;

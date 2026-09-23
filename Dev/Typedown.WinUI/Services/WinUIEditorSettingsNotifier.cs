@@ -1,5 +1,5 @@
 using System.Collections.Generic;
-using Typedown.Presentation.Interfaces;
+using Typedown.Core.Interfaces;
 
 namespace Typedown.WinUI.Services
 {

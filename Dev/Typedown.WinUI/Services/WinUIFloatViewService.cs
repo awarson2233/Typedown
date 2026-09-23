@@ -1,7 +1,7 @@
 using Newtonsoft.Json.Linq;
-using Typedown.Presentation.Interfaces;
-using Typedown.Presentation.Utilities;
-using Typedown.Presentation.ViewModels;
+using Typedown.Core.Interfaces;
+using Typedown.Core.Utilities;
+using Typedown.Core.ViewModels;
 using Typedown.WinUI.Controls;
 using Windows.Foundation;
 using Microsoft.Extensions.DependencyInjection;

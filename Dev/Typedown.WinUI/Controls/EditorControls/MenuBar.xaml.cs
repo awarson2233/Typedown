@@ -2,7 +2,7 @@ namespace Typedown.WinUI.Controls;
 
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
-using Typedown.Presentation.ViewModels;
+using Typedown.Core.ViewModels;
 using Typedown.WinUI.Utilities;
 
 public sealed partial class MenuBar : UserControl

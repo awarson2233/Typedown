@@ -1,7 +1,7 @@
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Navigation;
-using Typedown.Presentation.ViewModels;
+using Typedown.Core.ViewModels;
 using Windows.Globalization.NumberFormatting;
 
 namespace Typedown.WinUI.Pages.SettingPages

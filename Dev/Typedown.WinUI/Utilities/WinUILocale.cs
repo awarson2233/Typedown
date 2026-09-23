@@ -5,21 +5,21 @@ using System.Xml.Linq;
 using Typedown.Core;
 using Typedown.Core.Utilities;
 using Windows.ApplicationModel.Resources.Core;
-using PresentationLocale = Typedown.Presentation.Utilities.Locale;
+using CoreLocale = Typedown.Core.Utilities.Locale;
 
 namespace Typedown.WinUI.Utilities;
 
 internal static class WinUILocale
 {
-    private static readonly PresentationLocale.ResourceSource[] OrderedSources =
+    private static readonly CoreLocale.ResourceSource[] OrderedSources =
     [
-        PresentationLocale.ResourceSource.CommonResources,
-        PresentationLocale.ResourceSource.DialogResources,
-        PresentationLocale.ResourceSource.SettingsResources,
-        PresentationLocale.ResourceSource.Resources
+        CoreLocale.ResourceSource.CommonResources,
+        CoreLocale.ResourceSource.DialogResources,
+        CoreLocale.ResourceSource.SettingsResources,
+        CoreLocale.ResourceSource.Resources
     ];
 
-    private static readonly IReadOnlyDictionary<PresentationLocale.ResourceSource, ResourceMap> ResourceMaps = CreateResourceMaps();
+    private static readonly IReadOnlyDictionary<CoreLocale.ResourceSource, ResourceMap> ResourceMaps = CreateResourceMaps();
 
     private const string DefaultLanguageKey = "default";
 
@@ -29,8 +29,8 @@ internal static class WinUILocale
 
     public static void Initialize()
     {
-        PresentationLocale.StringResolver = GetString;
-        LocaleAttribute.StringResolver = key => PresentationLocale.GetString(key);
+        CoreLocale.StringResolver = GetString;
+        LocaleAttribute.StringResolver = key => CoreLocale.GetString(key);
     }
 
     public static void ApplyPersistedLanguageOverride()
@@ -59,7 +59,7 @@ internal static class WinUILocale
             return;
         }
 
-        if (!PresentationLocale.SupportedLangs.ContainsKey(language))
+        if (!CoreLocale.SupportedLangs.ContainsKey(language))
         {
             return;
         }
@@ -122,9 +122,9 @@ internal static class WinUILocale
         return DefaultLanguageKey;
     }
 
-    private static IReadOnlyDictionary<PresentationLocale.ResourceSource, ResourceMap> CreateResourceMaps()
+    private static IReadOnlyDictionary<CoreLocale.ResourceSource, ResourceMap> CreateResourceMaps()
     {
-        var result = new Dictionary<PresentationLocale.ResourceSource, ResourceMap>();
+        var result = new Dictionary<CoreLocale.ResourceSource, ResourceMap>();
 
         foreach (var source in OrderedSources)
         {
@@ -138,7 +138,7 @@ internal static class WinUILocale
         return result;
     }
 
-    private static ResourceMap? TryGetResourceMap(PresentationLocale.ResourceSource source)
+    private static ResourceMap? TryGetResourceMap(CoreLocale.ResourceSource source)
     {
         if (!Config.IsPackaged)
         {
@@ -164,14 +164,14 @@ internal static class WinUILocale
         return null;
     }
 
-    private static IEnumerable<string> GetResourceMapSubtrees(PresentationLocale.ResourceSource source)
+    private static IEnumerable<string> GetResourceMapSubtrees(CoreLocale.ResourceSource source)
     {
         yield return $"Typedown.WinUI/{source}";
         yield return $"Typedown/{source}";
         yield return $"{source}";
     }
 
-    private static string GetString(string key, PresentationLocale.ResourceSource source)
+    private static string GetString(string key, CoreLocale.ResourceSource source)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(key);
 
@@ -229,7 +229,7 @@ internal static class WinUILocale
         }
     }
 
-    private static string? GetReswString(string key, PresentationLocale.ResourceSource source)
+    private static string? GetReswString(string key, CoreLocale.ResourceSource source)
     {
         foreach (var culture in GetCultureFallbacks())
         {
@@ -249,9 +249,9 @@ internal static class WinUILocale
         return null;
     }
 
-    private static IEnumerable<PresentationLocale.ResourceSource> GetResourceSources(PresentationLocale.ResourceSource source)
+    private static IEnumerable<CoreLocale.ResourceSource> GetResourceSources(CoreLocale.ResourceSource source)
     {
-        if (source != PresentationLocale.ResourceSource.All)
+        if (source != CoreLocale.ResourceSource.All)
         {
             yield return source;
             yield break;
@@ -304,7 +304,7 @@ internal static class WinUILocale
         }
     }
 
-    private static IReadOnlyDictionary<string, string> LoadResw(string culture, PresentationLocale.ResourceSource source)
+    private static IReadOnlyDictionary<string, string> LoadResw(string culture, CoreLocale.ResourceSource source)
     {
         var path = Path.Combine(AppContext.BaseDirectory, "Resources", "Strings", culture, $"{source}.resw");
         if (!File.Exists(path))

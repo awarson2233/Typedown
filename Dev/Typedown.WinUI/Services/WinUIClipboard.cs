@@ -3,7 +3,7 @@ using System.Collections.Specialized;
 using System.IO;
 using System.Threading.Tasks;
 using Typedown.Core.Utilities;
-using Typedown.Presentation.Interfaces;
+using Typedown.Core.Interfaces;
 using Windows.ApplicationModel.DataTransfer;
 using Windows.Graphics.Imaging;
 using Windows.Storage;

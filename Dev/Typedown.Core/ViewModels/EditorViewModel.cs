@@ -14,11 +14,9 @@ using Typedown.Core.Models;
 using Typedown.Core.Models.RuntimeModels;
 using Typedown.Core.Services;
 using Typedown.Core.Utilities;
-using Typedown.Presentation.Interfaces;
-using Typedown.Presentation.Services;
-using Typedown.Presentation.Utilities;
+using Typedown.Core.Interfaces;
 
-namespace Typedown.Presentation.ViewModels
+namespace Typedown.Core.ViewModels
 {
     public sealed partial class EditorViewModel : INotifyPropertyChanged, IDisposable
     {

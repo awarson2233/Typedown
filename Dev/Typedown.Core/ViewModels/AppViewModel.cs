@@ -7,10 +7,9 @@ using System.Linq;
 using System.Reactive;
 using System.Reactive.Disposables;
 using Typedown.Core.Utilities;
-using Typedown.Presentation.Interfaces;
-using Typedown.Presentation.Utilities;
+using Typedown.Core.Interfaces;
 
-namespace Typedown.Presentation.ViewModels
+namespace Typedown.Core.ViewModels
 {
     public sealed partial class AppViewModel : INotifyPropertyChanged, IDisposable
     {

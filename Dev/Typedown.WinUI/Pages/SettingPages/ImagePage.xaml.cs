@@ -10,9 +10,8 @@ using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Navigation;
 using Typedown.Core.Enums;
 using Typedown.Core.Utilities;
-using Typedown.Presentation.Services;
-using Typedown.Presentation.Utilities;
-using Typedown.Presentation.ViewModels;
+using Typedown.Core.Services;
+using Typedown.Core.ViewModels;
 using Typedown.WinUI.Controls;
 
 namespace Typedown.WinUI.Pages.SettingPages

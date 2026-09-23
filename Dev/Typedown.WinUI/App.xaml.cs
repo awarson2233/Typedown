@@ -10,9 +10,7 @@ using Typedown.Core;
 using Typedown.Core.Enums;
 using Typedown.Core.Interfaces;
 using Typedown.Core.Utilities;
-using Typedown.Presentation.ViewModels;
-using Typedown.Presentation;
-using Typedown.Presentation.Interfaces;
+using Typedown.Core.ViewModels;
 using Typedown.WinUI.Controls;
 using Typedown.WinUI.Services;
 using Typedown.WinUI.Utilities;
@@ -160,7 +158,6 @@ namespace Typedown.WinUI
                         .AddSingleton<ITableDialogService, WinUITableDialogService>()
                         .AddSingleton<IWindowService, WinUIWindowService>()
                         .AddTypedownCore()
-                        .AddTypedownPresentation()
                         .BuildServiceProvider();
                 }
             }

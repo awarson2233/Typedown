@@ -1,4 +1,4 @@
-namespace Typedown.Presentation.Interfaces
+namespace Typedown.Core.Interfaces
 {
     public interface IEditorCommandSink
     {

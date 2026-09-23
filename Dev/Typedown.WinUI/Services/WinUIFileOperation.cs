@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using System.Collections.Specialized;
 using Typedown.Core.Utilities;
-using Typedown.Presentation.Interfaces;
+using Typedown.Core.Interfaces;
 using Windows.ApplicationModel.DataTransfer;
 using Windows.Storage;
 

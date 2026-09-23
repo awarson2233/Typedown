@@ -3,7 +3,6 @@ using System.Threading.Tasks;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Typedown.Core.Utilities;
-using Typedown.Presentation.Utilities;
 
 namespace Typedown.WinUI.Controls
 {

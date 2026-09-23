@@ -1,6 +1,6 @@
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Navigation;
-using Typedown.Presentation.ViewModels;
+using Typedown.Core.ViewModels;
 
 namespace Typedown.WinUI.Pages.SettingPages
 {

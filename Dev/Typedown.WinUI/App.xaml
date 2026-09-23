@@ -26,7 +26,7 @@
                 <ResourceDictionary Source="ms-appx:///Pages/SettingPages/SettingPageStyles.xaml" />
                 <!-- Other merged dictionaries here -->
             </ResourceDictionary.MergedDictionaries>
-            <!-- The WinUI shell stays neutral; product UI state lives in Typedown.Presentation. -->
+            <!-- The WinUI shell stays neutral; product UI state lives in Typedown.Core. -->
             <SolidColorBrush x:Key="PrimaryBrush" Color="#24535B" />
             <SolidColorBrush x:Key="WhiteBrush" Color="White" />
             <SolidColorBrush x:Key="BlackBrush" Color="Black" />

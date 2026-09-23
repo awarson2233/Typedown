@@ -7,11 +7,10 @@ using System.Text;
 using System.Threading.Tasks;
 using Typedown.Core.Enums;
 using Typedown.Core.Utilities;
-using Typedown.Presentation.Interfaces;
-using Typedown.Presentation.Utilities;
-using Typedown.Presentation.ViewModels;
+using Typedown.Core.Interfaces;
+using Typedown.Core.ViewModels;
 
-namespace Typedown.Presentation.Services
+namespace Typedown.Core.Services
 {
     public class ImageAction
     {

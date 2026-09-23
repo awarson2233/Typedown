@@ -1,6 +1,6 @@
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Markup;
-using PresentationLocale = Typedown.Presentation.Utilities.Locale;
+using CoreLocale = Typedown.Core.Utilities.Locale;
 
 namespace Typedown.WinUI.Controls
 {
@@ -9,11 +9,11 @@ namespace Typedown.WinUI.Controls
     {
         public string Key { get; set; } = string.Empty;
 
-        public PresentationLocale.ResourceSource Source { get; set; }
+        public CoreLocale.ResourceSource Source { get; set; }
 
         protected override object ProvideValue(IXamlServiceProvider serviceProvider)
         {
-            return PresentationLocale.GetString(Key, Source);
+            return CoreLocale.GetString(Key, Source);
         }
     }
 }

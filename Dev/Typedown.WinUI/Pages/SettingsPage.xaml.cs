@@ -6,7 +6,7 @@ using Typedown.WinUI.Pages.SettingPages;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Media.Animation;
 using Microsoft.UI.Xaml.Navigation;
-using Typedown.Presentation.ViewModels;
+using Typedown.Core.ViewModels;
 
 namespace Typedown.WinUI.Pages
 {

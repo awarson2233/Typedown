@@ -9,9 +9,9 @@ using Typedown.Core.Enums;
 using Typedown.Core.Models;
 using Typedown.Core.Services;
 using Typedown.Core.Utilities;
-using Typedown.Presentation.ViewModels;
+using Typedown.Core.ViewModels;
 
-namespace Typedown.Presentation.Services
+namespace Typedown.Core.Services
 {
     public class ImageUpload
     {
@@ -120,8 +120,8 @@ namespace Typedown.Presentation.Services
             return await config.LoadUploadConfig().Upload(serviceProvider, filePath);
         }
 
-        [UnconditionalSuppressMessage("Trimming", "IL2026", Justification = "Image-upload config persistence uses EF Core by design and is isolated to this Presentation service.")]
-        [UnconditionalSuppressMessage("AOT", "IL3050", Justification = "Image-upload config persistence uses EF Core by design and is isolated to this Presentation service.")]
+        [UnconditionalSuppressMessage("Trimming", "IL2026", Justification = "Image-upload config persistence uses EF Core by design and is isolated to this service.")]
+        [UnconditionalSuppressMessage("AOT", "IL3050", Justification = "Image-upload config persistence uses EF Core by design and is isolated to this service.")]
         private static Task<AppDbContext> CreateDbContextAsync()
         {
             return AppDbContext.Create();

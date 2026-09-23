@@ -9,7 +9,7 @@
     xmlns:utils="using:Typedown.WinUI.Controls.SettingControls"
     xmlns:enums="using:Typedown.Core.Enums"
     xmlns:toolkit="using:CommunityToolkit.WinUI.Controls"
-    xmlns:viewmodels="using:Typedown.Presentation.ViewModels"
+    xmlns:viewmodels="using:Typedown.Core.ViewModels"
     xmlns:u="using:Typedown.WinUI.Controls"
     d:DataContext="{d:DesignInstance Type=viewmodels:AppViewModel}"
     Unloaded="OnUnloaded"

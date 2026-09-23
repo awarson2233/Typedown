@@ -6,9 +6,9 @@ using System.Reactive.Linq;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Controls.Primitives;
-using Typedown.Presentation.Interfaces;
+using Typedown.Core.Interfaces;
 using Typedown.Core.Models;
-using Typedown.Presentation.ViewModels;
+using Typedown.Core.ViewModels;
 using Windows.Foundation;
 
 namespace Typedown.WinUI.Controls

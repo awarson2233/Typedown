@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
-namespace Typedown.Presentation.Interfaces
+namespace Typedown.Core.Interfaces
 {
     public interface IFilePickerService
     {

@@ -3,7 +3,7 @@ using System.Threading.Tasks;
 using Typedown.Core.Enums;
 using Typedown.Core.Models;
 
-namespace Typedown.Presentation.Interfaces
+namespace Typedown.Core.Interfaces
 {
     public interface IFileExport
     {

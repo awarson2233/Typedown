@@ -2,7 +2,7 @@ using System;
 using System.Threading.Tasks;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
-using Typedown.Presentation.Interfaces;
+using Typedown.Core.Interfaces;
 
 namespace Typedown.WinUI.Services
 {

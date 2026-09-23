@@ -1,5 +1,5 @@
 using System;
-using Typedown.Presentation.Interfaces;
+using Typedown.Core.Interfaces;
 using Typedown.WinUI.Controls;
 
 namespace Typedown.WinUI.Services

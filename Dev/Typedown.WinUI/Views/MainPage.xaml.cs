@@ -8,7 +8,7 @@ using System.Reactive.Disposables;
 using System.Reactive.Linq;
 using Typedown.Core;
 using Typedown.Core.Utilities;
-using Typedown.Presentation.ViewModels;
+using Typedown.Core.ViewModels;
 using Typedown.WinUI.Utilities;
 
 namespace Typedown.WinUI.Views

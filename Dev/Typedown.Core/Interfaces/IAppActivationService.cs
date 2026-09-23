@@ -1,6 +1,6 @@
 using System;
 
-namespace Typedown.Presentation.Interfaces
+namespace Typedown.Core.Interfaces
 {
     public enum AppActivationKind
     {

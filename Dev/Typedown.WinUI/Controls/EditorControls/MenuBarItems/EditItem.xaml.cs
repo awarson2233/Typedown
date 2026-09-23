@@ -1,5 +1,5 @@
 using Microsoft.UI.Xaml;
-using Typedown.Presentation.ViewModels;
+using Typedown.Core.ViewModels;
 
 namespace Typedown.WinUI.Controls;
 

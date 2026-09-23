@@ -1,7 +1,7 @@
 using System;
 using Typedown.Core.Models;
 
-namespace Typedown.Presentation.Interfaces
+namespace Typedown.Core.Interfaces
 {
     public interface IKeyboardAccelerator
     {

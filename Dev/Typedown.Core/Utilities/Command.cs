@@ -5,7 +5,7 @@ using System.Reactive.Linq;
 using System.Reactive.Subjects;
 using System.Windows.Input;
 
-namespace Typedown.Presentation.Utilities
+namespace Typedown.Core.Utilities
 {
     public class Command<T> : ICommand, INotifyPropertyChanged
     {

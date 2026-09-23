@@ -1,5 +1,5 @@
 using System.Collections.Generic;
-using PresentationLocale = Typedown.Presentation.Utilities.Locale;
+using CoreLocale = Typedown.Core.Utilities.Locale;
 
 namespace Typedown.WinUI.Controls.SettingControls
 {
@@ -14,22 +14,22 @@ namespace Typedown.WinUI.Controls.SettingControls
             Resources
         }
 
-        public static IReadOnlyDictionary<string, string> SupportedLangs => PresentationLocale.SupportedLangs;
+        public static IReadOnlyDictionary<string, string> SupportedLangs => CoreLocale.SupportedLangs;
 
-        public static IReadOnlyDictionary<string, string> LangsOptions => PresentationLocale.LangsOptions;
+        public static IReadOnlyDictionary<string, string> LangsOptions => CoreLocale.LangsOptions;
 
-        public static IReadOnlyList<string> LangOptionKeys => PresentationLocale.LangOptionKeys;
+        public static IReadOnlyList<string> LangOptionKeys => CoreLocale.LangOptionKeys;
 
-        public static string GetLangOptionDisplayName(string key) => PresentationLocale.GetLangOptionDisplayName(key);
+        public static string GetLangOptionDisplayName(string key) => CoreLocale.GetLangOptionDisplayName(key);
 
         public static string GetString(string key, ResourceSource source = ResourceSource.All)
         {
-            return PresentationLocale.GetString(key, (PresentationLocale.ResourceSource)source);
+            return CoreLocale.GetString(key, (CoreLocale.ResourceSource)source);
         }
 
         public static string GetDialogString(string key)
         {
-            return PresentationLocale.GetDialogString(key);
+            return CoreLocale.GetDialogString(key);
         }
     }
 }

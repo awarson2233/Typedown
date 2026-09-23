@@ -11,8 +11,7 @@ using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Navigation;
 using Typedown.Core.Models;
 using Typedown.Core.Utilities;
-using Typedown.Presentation.Utilities;
-using Typedown.Presentation.ViewModels;
+using Typedown.Core.ViewModels;
 using Typedown.WinUI.Controls;
 
 namespace Typedown.WinUI.Pages.SettingPages

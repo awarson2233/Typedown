@@ -2,7 +2,6 @@ using Microsoft.Web.WebView2.Core;
 using Typedown.Core.Enums;
 using Typedown.Core.Interfaces;
 using Typedown.Core.Models;
-using Typedown.Presentation.Interfaces;
 using Windows.Foundation;
 
 namespace Typedown.WinUI.Services

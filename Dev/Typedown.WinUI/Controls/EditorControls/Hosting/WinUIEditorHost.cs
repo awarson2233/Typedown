@@ -14,8 +14,8 @@ using Microsoft.Web.WebView2.Core;
 using Typedown.Core.Models;
 using Typedown.Core.Services;
 using Typedown.Core.Utilities;
-using Typedown.Presentation.Interfaces;
-using Typedown.Presentation.ViewModels;
+using Typedown.Core.Interfaces;
+using Typedown.Core.ViewModels;
 using Typedown.Services;
 using Typedown.WinUI.Services;
 using Typedown.WinUI.Utilities;
@@ -27,7 +27,7 @@ namespace Typedown.WinUI.Controls
     /// <summary>
     /// WebView2 编辑器宿主。职责边界与 1.2.19 的 <c>Typedown.Controls.MarkdownEditor</c> 对齐：
     /// 只负责 WebView2 生命周期、报文收发、主题与输入，不持有正文状态、不做文件 IO、不对消息名做白名单。
-    /// 协议解析统一由 <see cref="EditorBridge"/> 承担，文档状态由 Presentation 层的 ViewModel 独占。
+    /// 协议解析统一由 <see cref="EditorBridge"/> 承担，文档状态由 Core 的 ViewModel 独占。
     /// </summary>
     public sealed class WinUIEditorHost : UserControl, IDisposable
     {
