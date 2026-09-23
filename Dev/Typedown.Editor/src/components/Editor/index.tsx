@@ -6,7 +6,6 @@ import React, { Suspense, useCallback, useEffect, useRef, useState } from "react
 import { remote } from "services/remote";
 import transport from "services/transport";
 import './index.scss'
-import ExportHtml from "services/exportHtml";
 import { htmlToMarkdown } from "services/importHtml";
 import { DEFAULT_TURNDOWN_CONFIG } from "components/Muya/lib/config";
 import { getHtmlToc, getTOC } from "services/common";
@@ -54,6 +53,7 @@ const Editor: React.FC = () => {
     useEffect(() => transport.addListener<IExportArgs>('Export', async ({ type, context, basePath, title, options }) => {
         const generateOption = { printOptimization: false, title, toc: getHtmlToc(getTOC(markdownRef.current ?? '').toc), ...options }
         const baseUrl = basePath ? `file:///${basePath.replaceAll('\\', '/')}/` : undefined
+        const { default: ExportHtml } = await import(/* webpackChunkName: "export" */ "services/exportHtml")
         const html = await new ExportHtml(markdownRef.current, { ...optionsRef.current, baseUrl }).generate(generateOption)
         if (type == 'print') {
             remote.printHTML({ html, context })
