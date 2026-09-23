@@ -4,7 +4,7 @@
 //
 // 前提：
 //   新页面：Dev/Typedown.Editor 的 bench 产物（dist-bench/index.html）；默认先执行一次 `yarn build:bench`（--no-build 跳过）。
-//   旧页面：旧编辑器的生产产物（CRA 构建的 static/js/main.*.js），默认取主工作树的 Dev/Typedown.WinUI/Resources/Statics，
+//   旧页面：旧编辑器的生产产物（CRA 构建的 static/js/main.*.js），默认取检出 work/p0-host-prep 的参考工作树（没有时取主工作树）的 Dev/Typedown.WinUI/Resources/Statics，
 //           也可用 --old=<目录> 指定。旧页面以 file:// 加上宿主旧的启动参数加载，chrome.webview 由桩应答旧协议的 invoke。
 // 用法：node Tools/style-parity/run.mjs [选项]
 //   --matrix=full|quick  full（默认）：全部文档 × 视口 1280/900 × 明暗 × 默认字号行高，再加 1280 亮色下的 14/1.4 与 20/2.0；

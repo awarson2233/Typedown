@@ -39,11 +39,20 @@ export function mainWorktree() {
   return r.status === 0 ? dirname(r.stdout.trim()) : repo;
 }
 
+/** 旧编辑器的参考工作区：检出 work/p0-host-prep（最后一个带 Muya 的提交）的工作树；没有时退回主工作树 */
+export function muyaWorktree() {
+  const r = spawnSync('git', ['worktree', 'list', '--porcelain'], { cwd: repo, encoding: 'utf8' });
+  if (r.status !== 0) return mainWorktree();
+  const entry = r.stdout.split(/\r?\n\r?\n/).find(e => /^branch refs\/heads\/work\/p0-host-prep$/m.test(e));
+  const path = entry?.match(/^worktree (.+)$/m)?.[1];
+  return path ? resolve(path) : mainWorktree();
+}
+
 export async function loadCorpus() {
   const { SHOWCASE_DOC, BLOCKS_DOC, IME_DOC } = await import(pathToFileURL(join(editorDir, 'src/dev/sampleDocs.ts')).href);
   const corpus = new Map([['showcase', SHOWCASE_DOC], ['blocks', BLOCKS_DOC], ['ime', IME_DOC]]);
   for (const f of readdirSync(join(repo, 'docs')).filter(f => f.endsWith('.md')).sort()) corpus.set(`docs/${f}`, readFileSync(join(repo, 'docs', f), 'utf8'));
-  const legacyReadme = join(mainWorktree(), 'Dev/Typedown.Editor/README.md');
+  const legacyReadme = join(muyaWorktree(), 'Dev/Typedown.Editor/README.md');
   if (existsSync(legacyReadme)) corpus.set('legacy-readme', readFileSync(legacyReadme, 'utf8'));
   return corpus;
 }
@@ -68,7 +77,7 @@ export function writeFixture(dir) {
 
 /** 旧编辑器产物目录：CRA 构建（static/js/main.*.js）；找不到时返回 null */
 export function findOldStatics(dir) {
-  const d = resolve(dir ?? join(mainWorktree(), 'Dev/Typedown.WinUI/Resources/Statics'));
+  const d = resolve(dir ?? join(muyaWorktree(), 'Dev/Typedown.WinUI/Resources/Statics'));
   const js = join(d, 'static/js');
   return existsSync(js) && readdirSync(js).some(f => /^main\..*\.js$/.test(f)) ? d : null;
 }
