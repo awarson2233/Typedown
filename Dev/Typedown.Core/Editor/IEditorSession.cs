@@ -49,9 +49,12 @@ namespace Typedown.Core.Editor
         Faulted,
     }
 
-    /// <summary>正文镜像在某一时刻的快照。</summary>
-    public sealed record EditorDocument(string Text)
+    /// <summary>
+    /// 正文镜像在某一时刻的快照。<paramref name="Version"/> 单调递增，每次装载与每批改动都会变化；
+    /// 保存点按它记录，两份快照版本相同即正文相同。
+    /// </summary>
+    public sealed record EditorDocument(string Text, long Version)
     {
-        public static EditorDocument Empty { get; } = new(string.Empty);
+        public static EditorDocument Empty { get; } = new(string.Empty, 0);
     }
 }
