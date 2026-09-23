@@ -13,9 +13,12 @@ import { getHtmlToc, getTOC } from "services/common";
 const CodeMirror = React.lazy(() => import(/* webpackChunkName: "codemirror" */ "components/CodeMirror"));
 
 const Editor: React.FC = () => {
-    const [markdown, setMarkdown] = useState<string>();
+    // 正文与光标只放在 ref 里：每次按键都会变，放进 state 会让外壳与编辑器包装组件整棵重渲染。
+    // 只有从宿主装载新正文（GetSettings、LoadFile、SetMarkdown、ImportFile）时递增 markdownVersion，
+    // 让当前编辑器组件把 ref 里的正文与光标应用进去。
     const markdownRef = useRef<string>();
-    const [cursor, setCursor] = useState<any>();
+    const cursorRef = useRef<any>();
+    const [markdownVersion, setMarkdownVersion] = useState(0);
     const [options, setOptions] = useState<any>();
     const optionsRef = useRef<any>();
     const [searchOpen, setSearchOpen] = useState(0);
@@ -25,30 +28,37 @@ const Editor: React.FC = () => {
 
     const OnFileLoaded = useCallback(() => setTimeout(() => transport.postMessage('FileLoaded', { text: markdownRef.current }), 100), [])
 
+    const loadMarkdown = useCallback((text: string) => {
+        markdownRef.current = text
+        setMarkdownVersion(version => version + 1)
+    }, [])
+
+    // 编辑器回报的正文变更：与已知正文不同才上报宿主（装载时编辑器回显的同一份正文不算变更）。
+    const onMarkdownChange = useCallback((text: string) => {
+        if (markdownRef.current != text) {
+            markdownRef.current = text
+            transport.postMessage('MarkdownChange', { text })
+        }
+    }, [])
+
+    const onCursorChange = useCallback((cursor: any) => {
+        cursorRef.current = cursor
+        transport.postMessage('CursorChange', { cursor })
+    }, [])
+
     useEffect(() => {
         remote.getSettings().then(({ markdown, basePath, ...opt }: any) => {
             window.basePath = basePath
-            setOptions(opt)
-            setMarkdown(markdown)
             markdownRef.current = markdown
+            setOptions(opt)
+            loadMarkdown(markdown)
             OnFileLoaded();
         })
-    }, [OnFileLoaded]);
+    }, [OnFileLoaded, loadMarkdown]);
 
     useEffect(() => {
         optionsRef.current = options
     }, [options])
-
-    useEffect(() => {
-        if (markdown != undefined && markdownRef.current != markdown) {
-            transport.postMessage('MarkdownChange', { text: markdown });
-            markdownRef.current = markdown
-        }
-    }, [markdown])
-
-    useEffect(() => {
-        transport.postMessage('CursorChange', { cursor })
-    }, [cursor])
 
     useEffect(() => transport.addListener<IExportArgs>('Export', async ({ type, context, basePath, title, options }) => {
         const generateOption = { printOptimization: false, title, toc: getHtmlToc(getTOC(markdownRef.current ?? '').toc), ...options }
@@ -63,23 +73,26 @@ const Editor: React.FC = () => {
     }), []);
 
     useEffect(() => transport.addListener<{ type: string, text: string }>('ImportFile', ({ text }) => {
-        setMarkdown(htmlToMarkdown(text, [], DEFAULT_TURNDOWN_CONFIG))
-    }), [options]);
+        const markdown = htmlToMarkdown(text, [], DEFAULT_TURNDOWN_CONFIG)
+        if (markdownRef.current != markdown) {
+            transport.postMessage('MarkdownChange', { text: markdown })
+            loadMarkdown(markdown)
+        }
+    }), [loadMarkdown]);
 
     useEffect(() => transport.addListener<{ text: string, basePath: string }>('LoadFile', ({ text, basePath }) => {
         window.basePath = basePath
-        setCursor(undefined)
-        setMarkdown(text)
-        markdownRef.current = text
+        cursorRef.current = undefined
+        loadMarkdown(text)
         OnFileLoaded();
-    }), [OnFileLoaded]);
+    }), [OnFileLoaded, loadMarkdown]);
 
     useEffect(() => transport.addListener<{ text: string, cursor: string, basePath: string }>('SetMarkdown', ({ text, cursor, basePath }) => {
         window.basePath = basePath
-        setCursor(cursor)
-        setTimeout(() => setMarkdown(text))
+        cursorRef.current = cursor
         markdownRef.current = text
-    }), []);
+        setTimeout(() => loadMarkdown(text))
+    }), [loadMarkdown]);
 
     useEffect(() => transport.addListener<Record<string, unknown>>('SettingsChanged', (newOptions) => {
         for (const name in newOptions) {
@@ -103,13 +116,14 @@ const Editor: React.FC = () => {
             <Suspense fallback={<></>}>
                 <CodeMirror
                     options={options}
-                    cursor={cursor}
-                    markdown={markdown ?? ''}
+                    cursor={cursorRef.current}
+                    markdown={markdownRef.current ?? ''}
+                    markdownVersion={markdownVersion}
                     searchOpen={searchOpen}
                     searchArg={searchArg}
                     scrollTopRef={codeMirrorScrollRef}
-                    onMarkdownChange={setMarkdown}
-                    onCursorChange={setCursor}
+                    onMarkdownChange={onMarkdownChange}
+                    onCursorChange={onCursorChange}
                     onSearchArgChange={setSearchArg}
                 />
             </Suspense>
@@ -118,13 +132,14 @@ const Editor: React.FC = () => {
         return (
             <MuyaEditor
                 options={options}
-                cursor={cursor}
-                markdown={markdown ?? ''}
+                cursor={cursorRef.current}
+                markdown={markdownRef.current ?? ''}
+                markdownVersion={markdownVersion}
                 searchOpen={searchOpen}
                 searchArg={searchArg}
                 scrollTopRef={muyaScrollTopRef}
-                onMarkdownChange={setMarkdown}
-                onCursorChange={setCursor}
+                onMarkdownChange={onMarkdownChange}
+                onCursorChange={onCursorChange}
                 onSearchArgChange={setSearchArg}
             />
         )

@@ -15,6 +15,8 @@ import 'components/Muya/themes/default.css'
 
 interface IMuyaEditor {
     markdown: string
+    // 宿主装载新正文时递增；同一份正文再次装载（如撤销回到上次渲染时的内容）也要重新应用
+    markdownVersion: number
     cursor: any
     options: any
     searchOpen: number
@@ -118,7 +120,7 @@ const MuyaEditor: React.FC<IMuyaEditor> = (props) => {
                 search(searchArgRef.current)
             }, 100);
         }
-    }, [editor, props.markdown, props.scrollTopRef, scrollToCursorIfInvisible, scrollToElementIfInvisible, search])
+    }, [editor, props.markdown, props.markdownVersion, props.scrollTopRef, scrollToCursorIfInvisible, scrollToElementIfInvisible, search])
 
     useEffect(() => {
         search(props.searchArg)
