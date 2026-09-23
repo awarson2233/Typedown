@@ -3,7 +3,7 @@ using Microsoft.UI.Xaml.Data;
 
 namespace Typedown.WinUI.Controls;
 
-public sealed class BoolToVisibilityConverter : IValueConverter
+public sealed partial class BoolToVisibilityConverter : IValueConverter
 {
     public bool IsReverse { get; set; }
 
@@ -21,7 +21,7 @@ public sealed class BoolToVisibilityConverter : IValueConverter
     }
 }
 
-public sealed class BoolToObjectConverter : IValueConverter
+public sealed partial class BoolToObjectConverter : IValueConverter
 {
     public object? TrueValue { get; set; }
     public object? FalseValue { get; set; }
@@ -31,7 +31,7 @@ public sealed class BoolToObjectConverter : IValueConverter
     public object ConvertBack(object value, Type targetType, object parameter, string language) => throw new NotSupportedException();
 }
 
-public sealed class GridLengthToDoubleConverter : IValueConverter
+public sealed partial class GridLengthToDoubleConverter : IValueConverter
 {
     public object Convert(object value, Type targetType, object parameter, string language) => value is GridLength length ? length.Value : 0d;
 

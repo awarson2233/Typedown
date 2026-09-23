@@ -575,7 +575,7 @@ namespace Typedown.WinUI
 
         internal WinUIPlatformServices PlatformServices => platformServices ?? throw new InvalidOperationException("Platform services are not initialized.");
 
-        private sealed record MainPageNavigationContext(
+        internal sealed record MainPageNavigationContext(
             WinUIPlatformServices PlatformServices,
             IServiceProvider UiServices);
 

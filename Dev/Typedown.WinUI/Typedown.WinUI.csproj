@@ -30,6 +30,8 @@
         <EnableTrimAnalyzer>true</EnableTrimAnalyzer>
         <EnableAotAnalyzer>true</EnableAotAnalyzer>
         <CsWinRTAotWarningLevel>1</CsWinRTAotWarningLevel>
+        <!-- CsWinRT emits the AOT-safe vtables for generic WinRT collections only with unsafe code enabled (CsWinRT1030). -->
+        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 
         <!-- App Options -->
         <UseRidGraph>true</UseRidGraph>
