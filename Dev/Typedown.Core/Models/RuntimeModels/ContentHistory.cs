@@ -4,6 +4,7 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Timers;
+using Timer = System.Timers.Timer;
 
 namespace Typedown.Core.Models
 {

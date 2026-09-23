@@ -31,7 +31,6 @@ function Read-RequiredFile {
 
 $solution = Join-Path $RepoRoot "Typedown.sln"
 $coreProject = Join-Path $RepoRoot "Dev\Typedown.Core\Typedown.Core.csproj"
-$presentationProject = Join-Path $RepoRoot "Dev\Typedown.Presentation\Typedown.Presentation.csproj"
 $winuiProject = Join-Path $RepoRoot "Dev\Typedown.WinUI\Typedown.WinUI.csproj"
 
 Write-Host "Build matrix inspection"
@@ -50,7 +49,7 @@ else {
 
 Write-Host ""
 Write-Host "Project RuntimeIdentifier / platform declarations:"
-foreach ($project in @($coreProject, $presentationProject, $winuiProject)) {
+foreach ($project in @($coreProject, $winuiProject)) {
     Write-Host "  $($project.Substring($RepoRoot.Length + 1))"
     $lines = Read-RequiredFile $project
     $matches = $lines | Where-Object {

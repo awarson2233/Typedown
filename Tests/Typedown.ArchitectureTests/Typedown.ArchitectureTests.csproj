@@ -16,6 +16,5 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\Dev\Typedown.Core\Typedown.Core.csproj" />
-    <ProjectReference Include="..\..\Dev\Typedown.Presentation\Typedown.Presentation.csproj" />
   </ItemGroup>
 </Project>
