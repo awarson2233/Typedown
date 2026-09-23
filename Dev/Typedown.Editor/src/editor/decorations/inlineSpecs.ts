@@ -1,32 +1,50 @@
-import type { Text } from '@codemirror/state';
+import type { Line, Text } from '@codemirror/state';
 import type { SyntaxNode, Tree } from '@lezer/common';
+import { emojiFor } from '../../shared/emoji';
+import { RENDERED_TAGS, htmlAttr, pairHtmlTags, type HtmlTag } from './inlineHtml';
+import { linePrefix, type MarkerSpec } from './lineStructure';
 
 /**
  * 行内显形的决策层：给定语法树、文档、要覆盖的区间与「显形位置」（选区端点），
  * 产出与视图无关的纯数据描述；ViewPlugin 只负责把它们换成 Decoration。
  *
  * 规则（webview-wysiwyg-engine.md 第 1、4 节；wysiwyg-engine-survey.md 第 1、6.2 节）：
- * - 行内 span（强调、删除线、高亮、行内代码、链接、行内公式、转义）：任一显形位置落在 [from, to]（含两端）
- *   则标记变灰（`cm-td-syntax`），否则隐藏（replace，并登记 atomicRanges）。
+ * - 行内 span（强调、删除线、高亮、行内代码、链接、行内公式、转义、emoji、脚注引用、行内 HTML）：
+ *   任一显形位置落在 [from, to]（含两端）则露出标记并变灰（`cm-td-syntax`），否则隐藏（replace，并登记 atomicRanges）
+ *   或换成渲染结果的 widget（公式、emoji、脚注上标、图片、`<br>`）。
+ * - 图片：渲染态整段换成图片 widget；显形态保留源码，图片 widget 挂在源码之后（图保留）。
+ * - 行内公式显形时源码下方浮出渲染预览（与旧编辑器的弹出预览相同）。
  * - ATX 标题按 Vditor IR：显形位置在标题所在行内时 `#` 变灰，否则连同其后空白隐藏；标题字号按行无条件施加。
- * - 列表符号、任务框、引用 `>` 始终隐藏：列表符号换成圆点或编号 widget，任务项换成复选框 widget，
- *   引用改为按行的竖线装饰。
- * - 块级样式（标题字号、引用、代码块）只看语法，不随显形变化，避免行高跳动。
+ * - 列表符号、任务框、引用 `>` 始终隐藏（lineStructure）：行首前缀整段换成列表符号或复选框 widget，
+ *   没有符号的前缀（引用 `>`、续行缩进）直接隐藏；缩进层数与引用竖线由行装饰施加。
+ * - 块级样式（标题字号、引用、列表缩进、段间空行）只看语法，不随显形变化，避免行高跳动。
  */
 
 export type InlineWidgetSpec =
-  | { type: 'bullet'; depth: number }
-  | { type: 'ordered'; text: string }
-  | { type: 'task'; checked: boolean }
+  | MarkerSpec
   | { type: 'inline-math'; src: string }
-  // W2 的最小接线（让图片先显示出来）：合并时以 W1 的实现为准
-  | { type: 'image'; src: string; alt: string; title: string | null };
+  /** 图片 widget（widgets/imageWidget.ts）：src 为源码原文，相对路径由页面内部解析 */
+  | { type: 'image'; src: string; alt: string; title: string | null }
+  | { type: 'emoji'; char: string }
+  /** 脚注引用上标：有编号时显示编号，否则显示标签原文 */
+  | { type: 'footnote-ref'; label: string; number: number | null }
+  | { type: 'html-break' };
 
 export type InlineSpec =
   | { kind: 'mark'; from: number; to: number; cls: string }
   | { kind: 'hide'; from: number; to: number }
+  /** 替换区间的 widget，登记为原子范围 */
   | { kind: 'widget'; from: number; to: number; widget: InlineWidgetSpec }
-  | { kind: 'line'; at: number; cls: string; quoteDepth: number };
+  /** 不替换文字、插在某个位置的 widget（显形态图片、公式预览） */
+  | { kind: 'point'; at: number; side: -1 | 1; widget: InlineWidgetSpec }
+  /** 行内 HTML 的内容区：包进真实元素（tag 为白名单里的小写标签名，attrs 为属性原文，消毒在视图层做） */
+  | { kind: 'element'; from: number; to: number; tag: string; attrs: string }
+  | { kind: 'line'; at: number; cls: string; style: string };
+
+export interface InlineSpecOptions {
+  /** 脚注编号（按标签原文查）；不给或查不到时上标显示标签原文 */
+  footnoteNumber?: (label: string) => number | undefined;
+}
 
 const SPAN_CLASS: Record<string, string> = {
   Emphasis: 'cm-td-em',
@@ -42,10 +60,17 @@ const SPAN_MARK: Record<string, string> = {
   Highlight: 'HighlightMark',
   InlineCode: 'CodeMark',
 };
-/** 在父节点处统一处理、遍历到时直接跳过的标记节点 */
-const HANDLED_BY_PARENT = new Set(['EmphasisMark', 'StrikethroughMark', 'HighlightMark', 'CodeMark', 'LinkMark', 'LinkTitle', 'LinkLabel', 'TaskMarker', 'HeaderMark']);
+/** 在父节点处统一处理、遍历到时直接跳过的节点（行首前缀由 lineStructure 按行处理） */
+const HANDLED_BY_PARENT = new Set([
+  'EmphasisMark', 'StrikethroughMark', 'HighlightMark', 'CodeMark', 'LinkMark', 'LinkTitle', 'LinkLabel', 'HeaderMark',
+  'QuoteMark', 'ListMark', 'TaskMarker', 'FootnoteReferenceMark', 'FootnoteLabel',
+]);
+/** 空行落在这些块里时是块的内容，不是块间距 */
+const BLOCK_CONTENT = new Set(['FencedCode', 'CodeBlock', 'BlockMath', 'HTMLBlock', 'CommentBlock', 'ProcessingInstructionBlock', 'Frontmatter', 'Table']);
 
 export const SYNTAX = 'cm-td-syntax';
+/** 块间空行（段距）：旧编辑器里段落之间是 0.5em 的外边距，这里把空行压成同样的高度 */
+export const GAP_LINE = 'cm-td-gap';
 
 export interface Range { from: number; to: number }
 
@@ -62,15 +87,40 @@ function children(node: SyntaxNode, name?: string): SyntaxNode[] {
   return out;
 }
 
-export function buildInlineSpecs(doc: Text, tree: Tree, range: Range, reveal: readonly number[]): InlineSpec[] {
+/** 链接或图片目标里的标题去掉两端的引号或括号 */
+const unquote = (s: string) => (s.length >= 2 ? s.slice(1, -1) : s);
+
+const HEADING = /^(ATX|Setext)Heading\d$/;
+
+/**
+ * 标题行之前隔一个空行就是另一个标题：旧编辑器里两个标题的外边距折叠成一个 1rem，
+ * 这里上一个标题的下内边距加空行已经够 1rem，本行不再补上内边距。
+ */
+function followsHeading(doc: Text, tree: Tree, line: Line): boolean {
+  if (line.number < 3) return false;
+  const blank = doc.line(line.number - 1);
+  if (!/^[ \t]*$/.test(blank.text)) return false;
+  const prev = doc.line(line.number - 2);
+  for (let n: SyntaxNode | null = tree.resolveInner(prev.to, -1); n; n = n.parent) if (HEADING.test(n.name)) return true;
+  return false;
+}
+
+/** 块间空行：整行空白、不在代码类块里、行首没有要画的列表符号 */
+function isGapLine(tree: Tree, line: Line, contentFrom: number): boolean {
+  if (!/^[ \t]*$/.test(line.text.slice(contentFrom - line.from))) return false;
+  for (let n: SyntaxNode | null = tree.resolveInner(contentFrom, 1); n; n = n.parent) if (BLOCK_CONTENT.has(n.name)) return false;
+  return true;
+}
+
+export function buildInlineSpecs(doc: Text, tree: Tree, range: Range, reveal: readonly number[], options: InlineSpecOptions = {}): InlineSpec[] {
   const out: InlineSpec[] = [];
-  const lines = new Map<number, { cls: Set<string>; quote: number }>();
-  const lineCls = (pos: number, cls: string | null, quoteDepth = 0) => {
+  const lines = new Map<number, { cls: Set<string>; style: string }>();
+  const lineCls = (pos: number, cls: string | null, style?: string) => {
     const at = doc.lineAt(pos).from;
     let e = lines.get(at);
-    if (!e) lines.set(at, (e = { cls: new Set(), quote: 0 }));
-    if (cls) e.cls.add(cls);
-    if (quoteDepth > e.quote) e.quote = quoteDepth;
+    if (!e) lines.set(at, (e = { cls: new Set(), style: '' }));
+    if (cls) for (const c of cls.split(' ')) e.cls.add(c);
+    if (style) e.style = style;
   };
   /** 对节点覆盖、且落在可见区间内的每一行调用 f */
   const eachLine = (from: number, to: number, f: (lineFrom: number, first: boolean, last: boolean) => void) => {
@@ -90,9 +140,40 @@ export function buildInlineSpecs(doc: Text, tree: Tree, range: Range, reveal: re
     if (crossesLine(from, to)) mark(from, to, SYNTAX);
     else out.push({ kind: 'hide', from, to });
   };
-  const spaceAfter = (pos: number) => (pos < doc.length && isSpace(doc.sliceString(pos, pos + 1)) ? 1 : 0);
-  let quoteDepth = 0;
-  const quoteStack: number[] = [];
+  /** 渲染态换成 widget；跨行时只能显示源码 */
+  const replace = (from: number, to: number, widget: InlineWidgetSpec) => {
+    if (crossesLine(from, to)) return false;
+    out.push({ kind: 'widget', from, to, widget });
+    return true;
+  };
+  /** 引用与列表项覆盖的可见行，遍历结束后逐行求前缀 */
+  const nestedLines = new Set<number>();
+  /** 已配对过行内 HTML 的父节点 */
+  const htmlParents = new Set<string>();
+
+  const htmlTags = (parent: SyntaxNode) => {
+    const key = `::`;
+    if (htmlParents.has(key)) return;
+    htmlParents.add(key);
+    const { pairs, single } = pairHtmlTags(doc, parent);
+    for (const { open, close } of pairs) {
+      if (!RENDERED_TAGS.has(open.name)) { mark(open.from, open.to, 'cm-td-html-tag'); mark(close.from, close.to, 'cm-td-html-tag'); continue; }
+      if (close.from > open.to) out.push({ kind: 'element', from: open.to, to: close.from, tag: open.name, attrs: open.attrs });
+      if (revealedBy(reveal, open.from, close.to)) { mark(open.from, open.to, 'cm-td-html-tag'); mark(close.from, close.to, 'cm-td-html-tag'); }
+      else { hide(open.from, open.to); hide(close.from, close.to); }
+    }
+    for (const t of single) singleTag(t);
+  };
+  const singleTag = (t: HtmlTag) => {
+    const shown = revealedBy(reveal, t.from, t.to);
+    if (t.name === 'img' && t.kind === 'void') {
+      const widget: InlineWidgetSpec = { type: 'image', src: htmlAttr(t.attrs, 'src') ?? '', alt: htmlAttr(t.attrs, 'alt') ?? '', title: htmlAttr(t.attrs, 'title') };
+      if (shown || !replace(t.from, t.to, widget)) { mark(t.from, t.to, 'cm-td-html-tag'); out.push({ kind: 'point', at: t.to, side: 1, widget }); }
+      return;
+    }
+    if (t.name === 'br' && t.kind === 'void' && !shown && replace(t.from, t.to, { type: 'html-break' })) return;
+    mark(t.from, t.to, 'cm-td-html-tag');
+  };
 
   tree.iterate({
     from: range.from,
@@ -101,7 +182,6 @@ export function buildInlineSpecs(doc: Text, tree: Tree, range: Range, reveal: re
       const name = ref.name;
       if (ref.type.isTop || name === 'Body') return true;
       if (HANDLED_BY_PARENT.has(name)) return false;
-      while (quoteStack.length && quoteStack[quoteStack.length - 1] <= ref.from) { quoteStack.pop(); quoteDepth--; }
 
       switch (name) {
         case 'Frontmatter':
@@ -133,38 +213,14 @@ export function buildInlineSpecs(doc: Text, tree: Tree, range: Range, reveal: re
           eachLine(ref.from, ref.to, at => lineCls(at, 'cm-td-html'));
           return false;
         case 'Blockquote':
-          quoteDepth++;
-          quoteStack.push(ref.to);
-          eachLine(ref.from, ref.to, at => lineCls(at, 'cm-td-quote', quoteDepth));
+        case 'ListItem':
+          eachLine(ref.from, ref.to, at => nestedLines.add(at));
           return true;
-        case 'QuoteMark':
-          hide(ref.from, ref.to + spaceAfter(ref.to));
-          return false;
-        case 'ListMark': {
-          const item = ref.node.parent;
-          const list = item?.parent;
-          const task = item?.getChild('Task');
-          const marker = task?.getChild('TaskMarker');
-          if (marker && marker.from - ref.to <= 4 && !crossesLine(ref.from, marker.to)) {
-            const checked = /x/i.test(doc.sliceString(marker.from, marker.to));
-            out.push({ kind: 'widget', from: ref.from, to: marker.to + spaceAfter(marker.to), widget: { type: 'task', checked } });
-            return false;
-          }
-          const end = ref.to + spaceAfter(ref.to);
-          if (list?.name === 'OrderedList') {
-            out.push({ kind: 'widget', from: ref.from, to: end, widget: { type: 'ordered', text: doc.sliceString(ref.from, ref.to) } });
-          } else {
-            let depth = 0;
-            for (let p = list; p; p = p.parent) if (p.name === 'BulletList' || p.name === 'OrderedList') depth++;
-            out.push({ kind: 'widget', from: ref.from, to: end, widget: { type: 'bullet', depth } });
-          }
-          return false;
-        }
         case 'ATXHeading1': case 'ATXHeading2': case 'ATXHeading3':
         case 'ATXHeading4': case 'ATXHeading5': case 'ATXHeading6': {
           const level = name.charCodeAt(10) - 48;
           const line = doc.lineAt(ref.from);
-          lineCls(line.from, `cm-td-h cm-td-h${level}`);
+          lineCls(line.from, `cm-td-h cm-td-h${level}${followsHeading(doc, tree, line) ? ' cm-td-h-follow' : ''}`);
           const shown = revealedBy(reveal, line.from, line.to);
           const marks = children(ref.node, 'HeaderMark');
           marks.forEach((m, i) => {
@@ -184,9 +240,9 @@ export function buildInlineSpecs(doc: Text, tree: Tree, range: Range, reveal: re
         case 'SetextHeading1': case 'SetextHeading2': {
           const level = name.endsWith('1') ? 1 : 2;
           const underline = ref.node.getChild('HeaderMark');
-          eachLine(ref.from, ref.to, at => {
+          eachLine(ref.from, ref.to, (at, first) => {
             if (underline && at === doc.lineAt(underline.from).from) lineCls(at, 'cm-td-setext-underline');
-            else lineCls(at, `cm-td-h cm-td-h${level}`);
+            else lineCls(at, `cm-td-h cm-td-h${level}${first && followsHeading(doc, tree, doc.lineAt(at)) ? ' cm-td-h-follow' : ''}`);
           });
           if (underline) mark(underline.from, underline.to, SYNTAX);
           return true;
@@ -199,9 +255,12 @@ export function buildInlineSpecs(doc: Text, tree: Tree, range: Range, reveal: re
           return false;
         }
         case 'Emphasis': case 'StrongEmphasis': case 'Strikethrough': case 'Highlight': case 'InlineCode': {
-          mark(ref.from, ref.to, SPAN_CLASS[name]);
+          const marks = children(ref.node, SPAN_MARK[name]);
+          // 行内代码的底色只包内容，反引号留在框外（旧编辑器的 `<code>` 不含反引号）
+          if (name === 'InlineCode' && marks.length >= 2) mark(marks[0].to, marks[marks.length - 1].from, SPAN_CLASS[name]);
+          else mark(ref.from, ref.to, SPAN_CLASS[name]);
           const shown = revealedBy(reveal, ref.from, ref.to);
-          for (const m of children(ref.node, SPAN_MARK[name])) {
+          for (const m of marks) {
             if (shown) mark(m.from, m.to, SYNTAX); else hide(m.from, m.to);
           }
           return name !== 'InlineCode';
@@ -215,7 +274,7 @@ export function buildInlineSpecs(doc: Text, tree: Tree, range: Range, reveal: re
           if (shown) {
             for (const c of children(node)) {
               if (c.name === 'LinkMark' || c.name === 'LinkTitle' || c.name === 'LinkLabel') mark(c.from, c.to, SYNTAX);
-              else if (c.name === 'URL') mark(c.from, c.to, `${SYNTAX} cm-td-url`);
+              else if (c.name === 'URL') mark(c.from, c.to, 'cm-td-url');
             }
           } else {
             hide(marks[0].from, marks[0].to);
@@ -231,34 +290,68 @@ export function buildInlineSpecs(doc: Text, tree: Tree, range: Range, reveal: re
           return false;
         }
         case 'Image': {
-          // W2 的最小接线：合并时以 W1 的实现为准（显形规则归 W1，W2 只提供 widgets/imageWidget.ts 的 ImageWidget）。
-          // 光标不在时整段换成图片；光标在 [from, to] 内时源码变灰显示，图片接在源码后面。引用式图片 ![alt][ref] 仍按源码显示。
           const node = ref.node;
           const marks = children(node, 'LinkMark');
           const url = node.getChild('URL');
-          if (marks.length < 3 || node.getChild('LinkLabel') || crossesLine(ref.from, ref.to)) { mark(ref.from, ref.to, 'cm-td-image-src'); return false; }
-          const titleNode = node.getChild('LinkTitle');
+          // 引用式图片（`![alt][ref]`）要先找到定义才知道地址，暂按源码显示
+          if (marks.length < 2 || !url) { mark(ref.from, ref.to, 'cm-td-image-src'); return false; }
+          const title = node.getChild('LinkTitle');
           const widget: InlineWidgetSpec = {
             type: 'image',
-            src: url ? doc.sliceString(url.from, url.to) : '',
+            src: doc.sliceString(url.from, url.to),
             alt: doc.sliceString(marks[0].to, marks[1].from),
-            title: titleNode ? doc.sliceString(titleNode.from + 1, titleNode.to - 1) : null,
+            title: title ? unquote(doc.sliceString(title.from, title.to)) : null,
           };
-          if (revealedBy(reveal, ref.from, ref.to)) {
-            mark(ref.from, ref.to, `${SYNTAX} cm-td-image-src`);
-            out.push({ kind: 'widget', from: ref.to, to: ref.to, widget });
-          } else out.push({ kind: 'widget', from: ref.from, to: ref.to, widget });
+          if (!revealedBy(reveal, ref.from, ref.to) && replace(ref.from, ref.to, widget)) return false;
+          for (const c of children(node)) {
+            if (c.name === 'LinkMark' || c.name === 'LinkTitle') mark(c.from, c.to, SYNTAX);
+            else if (c.name === 'URL') mark(c.from, c.to, 'cm-td-image-src');
+          }
+          mark(marks[0].to, marks[1].from, 'cm-td-image-alt');
+          out.push({ kind: 'point', at: ref.to, side: 1, widget });
           return false;
         }
         case 'InlineMath': {
           const marks = children(ref.node, 'InlineMathMark');
           if (marks.length < 2) return false;
+          const src = doc.sliceString(marks[0].to, marks[1].from);
           if (revealedBy(reveal, ref.from, ref.to) || crossesLine(ref.from, ref.to)) {
             mark(ref.from, ref.to, 'cm-td-math-inline-src');
             for (const m of marks) mark(m.from, m.to, SYNTAX);
+            if (src.trim()) out.push({ kind: 'point', at: ref.from, side: -1, widget: { type: 'inline-math', src } });
           } else {
-            out.push({ kind: 'widget', from: ref.from, to: ref.to, widget: { type: 'inline-math', src: doc.sliceString(marks[0].to, marks[1].from) } });
+            out.push({ kind: 'widget', from: ref.from, to: ref.to, widget: { type: 'inline-math', src } });
           }
+          return false;
+        }
+        case 'Emoji': {
+          const char = emojiFor(doc.sliceString(ref.from + 1, ref.to - 1));
+          if (!char) return false;
+          if (revealedBy(reveal, ref.from, ref.to)) {
+            mark(ref.from, ref.from + 1, SYNTAX);
+            mark(ref.from + 1, ref.to - 1, 'cm-td-emoji-name');
+            mark(ref.to - 1, ref.to, SYNTAX);
+          } else {
+            replace(ref.from, ref.to, { type: 'emoji', char });
+          }
+          return false;
+        }
+        case 'FootnoteReference': {
+          const labelNode = ref.node.getChild('FootnoteLabel');
+          const label = labelNode ? doc.sliceString(labelNode.from, labelNode.to) : doc.sliceString(ref.from + 2, ref.to - 1);
+          if (revealedBy(reveal, ref.from, ref.to) || !replace(ref.from, ref.to, { type: 'footnote-ref', label, number: options.footnoteNumber?.(label) ?? null })) {
+            mark(ref.from, ref.to, 'cm-td-footnote-ref-src');
+            for (const m of children(ref.node, 'FootnoteReferenceMark')) mark(m.from, m.to, SYNTAX);
+          }
+          return false;
+        }
+        case 'Comment':
+          if (revealedBy(reveal, ref.from, ref.to)) mark(ref.from, ref.to, 'cm-td-html-tag');
+          else hide(ref.from, ref.to);
+          return false;
+        case 'HTMLTag': {
+          const parent = ref.node.parent;
+          if (parent) htmlTags(parent);
           return false;
         }
         case 'Escape':
@@ -276,8 +369,33 @@ export function buildInlineSpecs(doc: Text, tree: Tree, range: Range, reveal: re
     },
   });
 
+  // 引用、列表的行首前缀：列表符号 widget 或整段隐藏；缩进层数、引用竖线、已完成任务按行施加
+  const prefixEnds = new Map<number, number>();
+  for (const at of nestedLines) {
+    const line = doc.lineAt(at);
+    const p = linePrefix(tree, doc, line);
+    if (!p) continue;
+    prefixEnds.set(at, p.end);
+    if (p.end > line.from) {
+      if (p.marker) out.push({ kind: 'widget', from: line.from, to: p.end, widget: p.marker });
+      else hide(line.from, p.end);
+    }
+    let style = `--td-indent:${p.indent}`;
+    if (p.quoteLevels.length) {
+      style += `;background-image:${p.quoteLevels.map(() => 'var(--td-quote-bar)').join(',')}`;
+      style += `;background-position:${p.quoteLevels.map(l => `calc(${l} * var(--td-indent-step) + var(--td-quote-bar-left)) 0`).join(',')}`;
+    }
+    lineCls(at, `cm-td-nest${p.quoteLevels.length ? ' cm-td-quote' : ''}${p.taskDone ? ' cm-td-task-done' : ''}`, style);
+    if (!p.marker && isGapLine(tree, line, p.end)) lineCls(at, GAP_LINE);
+  }
+  // 顶层的块间空行
+  for (let l = doc.lineAt(range.from); ; l = doc.line(l.number + 1)) {
+    if (!prefixEnds.has(l.from) && isGapLine(tree, l, l.from)) lineCls(l.from, GAP_LINE);
+    if (l.to >= range.to || l.number >= doc.lines) break;
+  }
+
   for (const [at, e] of lines) {
-    out.push({ kind: 'line', at, cls: [...e.cls].join(' '), quoteDepth: e.quote });
+    out.push({ kind: 'line', at, cls: [...e.cls].join(' '), style: e.style });
   }
   return out;
 }

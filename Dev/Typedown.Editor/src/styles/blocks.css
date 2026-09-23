@@ -4,7 +4,9 @@
  * figure[data-role=…]、pre.ag-fence-code、.ag-code-content 改写到这里的行装饰类与 widget 类上。
  * 颜色一律引用旧主题文件（public/theme/editor/{light,dark}.theme.css）的变量名，由 styles/theme.css 提供。
  *
- * CM6 的行不能用 margin（高度测量按 border box），旧样式里块与块之间的 margin 在新引擎里由块前后的空行承担；
+ * CM6 的行与块级 widget 不能用 margin（高度测量按 border box）。块与块之间已有 0.5em 的空行（typography.css 的 --td-gap），
+ * 旧样式外边距 M 大于它的块，上下各用 M − 0.5em 的透明边框补齐（background-clip: padding-box，悬停底色不盖到边框上）：
+ * Muya 的 figure（公式、mermaid、HTML、表格、脚注）外边距是 1.4em，代码块 pre 的 7.2px 小于空行，不补。
  * 一个代码块的「框」由首行（语言行或收起的开围栏）、内容行、收起的闭围栏三段拼成，边框分段画。
  */
 
@@ -12,6 +14,8 @@
   /* 旧 prism 主题里 pre / code 的字体与字号（default.css 的 90%） */
   --td-code-font: "Fira Code", "Fira Mono", Menlo, Consolas, "DejaVu Sans Mono", monospace;
   --td-block-accent: var(--themeColor, var(--td-accent, #0078d4));
+  /* figure 的 1.4em 外边距减去块间空行 */
+  --td-figure-gap: max(0px, calc(var(--td-font-size, 16px) * 1.4 - var(--td-gap, 8px)));
 }
 
 /* ── 围栏式块的框：代码块、front matter、编辑中的公式块与 mermaid ───────────────────────── */
@@ -99,7 +103,12 @@ div.cm-td-fence.cm-td-fence-math {
   border: 0;
   border-radius: 0;
   background: var(--selectionColor);
+  background-clip: padding-box;
+  box-sizing: content-box;
 }
+/* 编辑态保留 figure 的外边距，进出编辑态时下文不跳 */
+div.cm-td-fence.cm-td-fence-math.cm-td-fence-head { border-top: var(--td-figure-gap) solid transparent; }
+div.cm-td-fence.cm-td-fence-math.cm-td-fence-foot { border-bottom: var(--td-figure-gap) solid transparent; }
 div.cm-td-fence.cm-td-fence-math.cm-td-fence-active::before {
   content: '$$';
   position: absolute;
@@ -122,8 +131,11 @@ div.cm-td-fence.cm-td-fence-math.cm-td-fence-foot.cm-td-fence-active::before { t
   overflow-y: hidden;
   cursor: default;
   border-radius: 3px;
+  border-top: var(--td-figure-gap) solid transparent;
+  border-bottom: var(--td-figure-gap) solid transparent;
+  background-clip: padding-box;
 }
-.cm-td-block:not(.cm-td-preview):hover { background: var(--selectionColor); }
+.cm-td-block:not(.cm-td-preview):hover { background-color: var(--selectionColor); }
 .cm-td-block .katex-display { margin: 0; }
 .cm-td-mermaid svg { max-width: 100%; height: auto; }
 
@@ -189,6 +201,32 @@ div.cm-td-fence.cm-td-fence-math.cm-td-fence-foot.cm-td-fence-active::before { t
 .cm-td-toc-empty { color: var(--editorColor50); font-style: italic; }
 .cm-editor .cm-content .cm-line.cm-td-toc-src { color: var(--editorColor50); }
 
+/* ── 表格（figure[data-role="TABLE"] > table，default.css 的 table 规则） ─────────────────────── */
+
+.cm-td-table-wrap {
+  overflow-x: auto;
+  overflow-y: hidden;
+  border-top: var(--td-figure-gap) solid transparent;
+  border-bottom: var(--td-figure-gap) solid transparent;
+}
+.cm-td-table {
+  margin: 0.5em 0;
+  padding: 0;
+  border-collapse: collapse;
+  border-spacing: 0;
+  word-break: initial;
+}
+.cm-td-table th, .cm-td-table td {
+  margin: 0;
+  padding: 6px 13px;
+  text-align: left;
+  border: 1px solid var(--tableBorderColor);
+  min-width: 3em;
+}
+.cm-td-table th { font-weight: bold; }
+.cm-td-cell { display: inline-block; min-width: 1em; white-space: pre-wrap; outline: none; cursor: text; }
+.cm-td-cell[data-missing] { opacity: 0.5; }
+
 /* ── 脚注定义区（figure[data-role="FOOTNOTE"]） ──────────────────────────────────────────── */
 
 .cm-editor .cm-content .cm-line.cm-td-footnote {
@@ -200,9 +238,9 @@ div.cm-td-fence.cm-td-fence-math.cm-td-fence-foot.cm-td-fence-active::before { t
   padding: 0 2em 0 1em !important;
 }
 /* 首行上方留出标签的位置（Muya 的 1.2em 内边距 + 段落上边距） */
-.cm-editor .cm-content .cm-line.cm-td-footnote-first { padding-top: 1.7em !important; border-radius: 4px 4px 0 0; }
-.cm-editor .cm-content .cm-line.cm-td-footnote-last { padding-bottom: 0.55em !important; border-radius: 0 0 4px 4px; }
-.cm-editor .cm-content .cm-line.cm-td-footnote-first.cm-td-footnote-last { border-radius: 4px; }
+.cm-editor .cm-content .cm-line.cm-td-footnote { background-clip: padding-box; }
+.cm-editor .cm-content .cm-line.cm-td-footnote-first { padding-top: 1.7em !important; border-top: var(--td-figure-gap) solid transparent; }
+.cm-editor .cm-content .cm-line.cm-td-footnote-last { padding-bottom: 0.55em !important; border-bottom: var(--td-figure-gap) solid transparent; }
 .cm-td-footnote-label {
   position: absolute;
   top: 0.2em;

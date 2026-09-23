@@ -1,4 +1,6 @@
-import '../styles/editor.css';
+import '../styles/theme.css';
+import '../styles/typography.css';
+import '../styles/inline.css';
 import './dev.css';
 import '../styles/prism.css';
 import '../styles/blocks.css';

@@ -4,13 +4,13 @@ import { defaultKeymap, history, historyKeymap, indentWithTab } from '@codemirro
 import { syntaxHighlighting } from '@codemirror/language';
 import { markdownSupport, type SyntaxOptions } from './syntax';
 import { codeLanguages } from './syntax/codeLanguages';
-import { inlineRevealExtension } from './decorations/inlinePlugin';
+import { footnoteNumberSource, inlineRevealExtension } from './decorations/inlinePlugin';
 import { revealState } from './decorations/revealState';
 import { blockField } from './widgets/blockField';
 import { outlineField } from './state/outline';
-import { codeHighlightStyle } from './highlight';
 import { blockComponents } from './blocks';
-import { footnoteField } from './state/footnotes';
+import { prismHighlighter } from './blocks/codeHighlight';
+import { footnoteField, footnoteNumbers } from './state/footnotes';
 import { documentLocation, type DocumentLocation } from './state/documentLocation';
 
 export interface EditorOptions {
@@ -65,10 +65,11 @@ export function createEditor(opts: EditorOptions): TypedownEditor {
     outlineField,
     // 脚注编号：同样只扫源文本，行内引用的上标与脚注定义区共用
     footnoteField,
+    footnoteNumberSource.of(footnoteNumbers),
     mode.of(sourceMode ? [] : typoraLayer),
     // 全局 syntaxHighlighting 的 highlightTree 从文首逐个兄弟节点走到视口（markdown 的 Document 很扁平），
     // 1 MB 文档中部每键约 5 ms；不做嵌套代码解析时正文里只有 markdown 标记可高亮，显形装饰已覆盖，所以只在嵌套模式下开
-    opts.nestedCode ? syntaxHighlighting(codeHighlightStyle) : [],
+    opts.nestedCode ? syntaxHighlighting(prismHighlighter) : [],
     keymap.of([...historyKeymap, indentWithTab, ...defaultKeymap]),
     EditorView.contentAttributes.of({ autocorrect: 'off', autocapitalize: 'off' }),
     spell.of(spellAttrs(spellcheck)),

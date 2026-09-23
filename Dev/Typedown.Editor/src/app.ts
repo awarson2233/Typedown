@@ -8,6 +8,7 @@ import { StateReporters } from './bridge/reporters';
 import { PROTOCOL_VERSION, type DocLoadPayload, type EditorInitState, type EditorTheme, type KeyChord } from './bridge/protocol';
 import { createEditor, type EditorOptions, type TypedownEditor } from './editor/createEditor';
 import { headingIds, outlineField } from './editor/state/outline';
+import { openLinkHandler } from './editor/decorations/inlinePlugin';
 import { parsedLength } from './editor/state/parseProgress';
 import { blockField } from './editor/widgets/blockField';
 import { FaultReporter } from './host/fault';
@@ -112,6 +113,8 @@ export function startEditorApp(opts: AppOptions): EditorApp {
       docSync.extension,
       EditorView.updateListener.of(u => reporters.onUpdate(u)),
       EditorView.exceptionSink.of(e => { console.error(e); fault.report(e, false); }),
+      // Ctrl+单击链接交给宿主打开（view.openLink）
+      openLinkHandler.of(uri => channel.emit('view.openLink', { uri })),
       opts.extensions ?? [],
     ],
   });

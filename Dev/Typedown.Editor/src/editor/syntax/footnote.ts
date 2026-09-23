@@ -13,11 +13,11 @@ const LABEL = /^\[\^([^\s\]^[]+)\]:/;
 
 /**
  * 脚注 label 的规范化（CommonMark 的 link label 匹配规则）：去掉首尾空白、连续空白合并为一个空格、大小写折叠。
- * 大小写折叠用先转小写再转大写近似 Unicode case fold（与 markdown-it 相同，ẞ/ß 这类也能对上）。
+ * 大小写折叠用「小写 → 大写 → 小写」近似 Unicode case fold（与 commonmark.js 的 normalizeReference 相同，ẞ、ß、ss 能对上）。
  * 编号表（state/footnotes.ts）以它的结果为键；行内上标查编号前先调用它。
  */
 export function normalizeFootnoteLabel(label: string): string {
-  return label.trim().replace(/\s+/g, ' ').toLowerCase().toUpperCase();
+  return label.trim().replace(/\s+/g, ' ').toLowerCase().toUpperCase().toLowerCase();
 }
 
 /** 行内 `[^label]`；`]` 后紧跟 `:` 的不算（那是行首定义的写法，由叶块解析器处理） */

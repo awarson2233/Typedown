@@ -147,8 +147,54 @@ console.log('不可见');
 [^note]: 第二个脚注。
 `;
 
+/** 样式对照文档：正文排版与行内元素各出现一次，用来与旧编辑器并排截图（块组件另有对照） */
+export const SHOWCASE_DOC = `# 样式对照 Showcase
+
+这是一段普通正文，包含**粗体**、*斜体*、~~删除线~~、\`行内代码\`、==高亮==、[链接](https://example.com)与行内公式 $E=mc^2$。English text with **bold**, *italic* and \`code\`. 这一段故意写得长一些，好让它在版心里折行，看行高与段距是否一致。
+
+第二段紧跟在空行之后。
+
+## 二级标题
+
+正文段落。
+
+### 三级标题
+
+#### 四级标题
+
+##### 五级标题
+
+###### 六级标题
+
+- 无序列表项一
+- 无序列表项二
+  - 嵌套项
+    - 第三层
+- 很长的列表项会折行，折行后的文字应当与列表项的文字左端对齐，而不是回到列表符号的下方，这里再多写几个字凑够一行。
+
+1. 有序列表一
+2. 有序列表二
+3. 有序列表三
+
+- [ ] 未完成任务
+- [x] 已完成任务
+  - 已完成任务的子项
+
+> 引用第一行
+> 引用第二行
+>
+> > 嵌套引用
+
+---
+
+行内 HTML：<u>下划线</u>、<kbd>Ctrl</kbd>+<kbd>C</kbd>、<span style="color:#d33">红字</span>、H<sub>2</sub>O。emoji：:smile: :rocket:。自动链接 <https://example.com> 与 https://example.org。
+
+最后一段。
+`;
+
 export function sampleDoc(name: string): string {
   switch (name) {
+    case 'showcase': return SHOWCASE_DOC;
     case 'small': return range(8, false);
     case 'mid': return range(250, false);
     case 'rich': return range(100, true);

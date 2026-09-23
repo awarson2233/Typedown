@@ -2,7 +2,7 @@ import type { ViewViewportPayload } from '../bridge/protocol';
 
 /**
  * 视口上报与宿主滚动（docs/editor-protocol.md 第 8 节；做法照搬旧页面 services/scrollbar.ts）。
- * XAML 滚动条是唯一的滚动条：CM6 不设固定高度、以窗口为滚动容器，页面隐藏原生滚动条（styles/editor.css 的 .td-host）。
+ * XAML 滚动条是唯一的滚动条：CM6 不设固定高度、以窗口为滚动容器，页面隐藏原生滚动条（styles/typography.css 的 html.td-host）。
  * 尺寸、滚动、宿主请求可能在同一帧里接连触发，合并到下一帧读布局稳定后的尺寸；与上次相同则不发，宿主 refreshViewport 后必发。
  */
 

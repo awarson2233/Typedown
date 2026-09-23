@@ -59,9 +59,9 @@ export class ImageWidget extends WidgetType {
     wrap.addEventListener('mousedown', e => {
       if (e.button !== 0) return;
       e.preventDefault();
-      const at = imageAltEnd(view.state, view.posAtDOM(wrap));
-      if (at === null) return;
-      view.dispatch({ selection: { anchor: at }, userEvent: 'select.pointer' });
+      // 行内 HTML 的 <img>（W1 的 inlineHtml 同样用这个 widget）没有 alt 的 `]`，光标放到 widget 所在位置
+      const pos = view.posAtDOM(wrap);
+      view.dispatch({ selection: { anchor: imageAltEnd(view.state, pos) ?? pos }, userEvent: 'select.pointer' });
       view.focus();
     });
     const resolved = resolveImageSource(this.spec.src, view.state.facet(documentLocation).basePath);
