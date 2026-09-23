@@ -15,7 +15,8 @@ export function cachedHeight(key: string): number | undefined {
 export function rememberHeight(key: string, h: number) {
   if (h > 0) {
     if (heights.size > 5000) heights.clear();
-    heights.set(key, Math.round(h));
+    // 不取整：图表块高多带小数（svg 行框），取整后每块差零点几像素，长文档里累积成可见的滚动跳动
+    heights.set(key, h);
   }
 }
 

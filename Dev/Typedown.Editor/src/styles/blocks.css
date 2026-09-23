@@ -148,6 +148,7 @@ div.cm-td-fence.cm-td-fence-math.cm-td-fence-foot.cm-td-fence-active::before { t
 }
 .cm-td-block:not(.cm-td-preview):hover { background-color: var(--selectionColor); }
 .cm-td-block .katex-display { margin: 0; }
+/* mermaid：SVG 带自身尺寸的 width / height（renderers/mermaid.ts），所有图同一比例；宽于编辑区时等比缩小、不放大，居中靠上面的 text-align */
 .cm-td-mermaid svg { max-width: 100%; height: auto; }
 
 /* 公式、mermaid 编辑时的浮动预览（figure.ag-active.ag-container-block > div.ag-container-preview） */

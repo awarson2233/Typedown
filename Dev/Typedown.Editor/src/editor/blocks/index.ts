@@ -54,7 +54,7 @@ const mermaidThemeSync = ViewPlugin.fromClass(class {
       const src = wrap.tdSrc;
       if (!body || src === undefined || !src.trim()) continue;
       const target = document.createElement('div');
-      renderMermaid(target, src).then(() => { if (wrap.tdSrc === src) body.replaceChildren(...Array.from(target.childNodes)); }, () => undefined);
+      renderMermaid(target, src, this.view.contentDOM).then(() => { if (wrap.tdSrc === src) body.replaceChildren(...Array.from(target.childNodes)); }, () => undefined);
     }
   }
   destroy() { this.observer?.disconnect(); }

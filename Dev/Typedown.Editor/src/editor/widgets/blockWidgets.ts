@@ -94,7 +94,7 @@ export class DiagramWidget extends WidgetType {
     if (hit !== undefined) { body.innerHTML = hit; settled(); return; }
     if (!body.childNodes.length) body.textContent = '…';
     const target = document.createElement('div');
-    renderMermaid(target, this.src).then(() => {
+    renderMermaid(target, this.src, view.contentDOM).then(() => {
       if (wrap.tdSrc !== this.src) return; // 期间源码又变了
       body.replaceChildren(...Array.from(target.childNodes));
       done();
