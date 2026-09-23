@@ -47,8 +47,10 @@ function initLoadLanguage(Prism) {
   const importLanguage = lang => {
     if (!languageLoads.has(lang)) {
       delete Prism.languages[lang]
+      // 按前缀建的上下文会把同名的 .min.js 也收进来，排除掉以免每种语言打两份。
       languageLoads.set(lang, import(
         /* webpackChunkName: "prism/[request]" */
+        /* webpackExclude: /\.min\.js$/ */
         'prismjs/components/prism-' + lang
       ).then(() => {
         loadedLanguages.add(lang)
