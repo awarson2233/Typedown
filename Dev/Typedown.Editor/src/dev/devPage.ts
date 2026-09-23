@@ -3,18 +3,19 @@ import './dev.css';
 import { EditorState } from '@codemirror/state';
 import { EditorView } from '@codemirror/view';
 import { ensureSyntaxTree, syntaxTree } from '@codemirror/language';
-import { createEditor, coreExtensions } from '../editor/createEditor';
+import { coreExtensions } from '../editor/createEditor';
 import { markdownSupport, type SyntaxOptions } from '../editor/syntax';
 import { codeLanguages } from '../editor/syntax/codeLanguages';
 import { parsedLength } from '../editor/state/parseProgress';
 import { blockField, blockFieldStats } from '../editor/widgets/blockField';
 import { outlineField, scanOutline } from '../editor/state/outline';
-import { applyTheme } from '../host/theme';
+import { startEditorApp } from '../app';
+import { FakeHost } from '../bridge/channel';
 import { sampleDoc } from './sampleDocs';
 
 /**
- * 不依赖宿主的测试页：直接载入示例文档，供手测（输入法、显形）与 Tools/perf-probe 的无头测量。
- * 探针接口挂在 window.__probe / window.__td 上。
+ * 不依赖宿主的测试页：经假宿主载入示例文档，供手测（输入法、显形）与 Tools/perf-probe 的无头测量。
+ * 探针接口挂在 window.__probe / window.__td / window.__host 上。
  */
 
 interface Probe {
@@ -52,8 +53,6 @@ docSelect.addEventListener('change', () => { params.set('doc', docSelect.value);
 
 const dark = document.getElementById('dev-dark') as HTMLInputElement;
 dark.checked = params.get('theme') === 'dark';
-applyTheme(dark.checked ? 'dark' : 'light');
-dark.addEventListener('change', () => applyTheme(dark.checked ? 'dark' : 'light'));
 
 const original = sampleDoc(docName);
 function fmOption(v: string | null): 'native' | 'yaml' | false { return v === 'yaml' ? 'yaml' : v === '0' ? false : 'native'; }
@@ -72,23 +71,38 @@ const timing = EditorView.updateListener.of(u => {
   }));
 });
 
+// 与宿主相同的启动路径（app.ts），只是传输换成假宿主：ready 后由假宿主发 doc.load 装入示例文档，
+// 所以探针测到的按键开销包含桥接层（正文同步、选区 / 大纲 / 历史上报、快捷键捕获）。宿主发出的报文记在 __host.received。
+const host = new FakeHost();
+const THEMES = {
+  light: { isDark: false, accent: { r: 9, g: 105, b: 218, a: 1 }, background: { r: 255, g: 255, b: 255, a: 1 } },
+  dark: { isDark: true, accent: { r: 74, g: 163, b: 255, a: 1 }, background: { r: 30, g: 30, b: 30, a: 1 } },
+};
+host.onMessage(m => {
+  if (m.k !== 'evt') return;
+  if (m.t === 'lifecycle.ready') {
+    P.t.ready = performance.now();
+    host.command('doc.load', { version: 1, text: original, basePath: '' });
+    P.t.constructed = performance.now();
+    requestAnimationFrame(() => requestAnimationFrame(() => { P.t.painted = performance.now(); showStatus(); }));
+  } else if (m.t === 'doc.rendered') P.t.rendered = performance.now();
+});
 P.t.start = performance.now();
-const editor = createEditor({
-  doc: original,
+const app = startEditorApp({
   parent: document.getElementById('root')!,
-  sourceMode: params.get('source') === '1',
-  frontmatter: fmOption(params.get('fm')),
-  nestedCode: params.get('nested') === '1',
+  transport: host,
+  init: { settings: { sourceCode: params.get('source') === '1' }, theme: dark.checked ? THEMES.dark : THEMES.light, keymap: [] },
+  editor: { frontmatter: fmOption(params.get('fm')), nestedCode: params.get('nested') === '1' },
   extensions: [timing],
 });
+const editor = app.editor;
 const view = editor.view;
-P.t.constructed = performance.now();
 view.contentDOM.addEventListener('beforeinput', () => { inputAt = performance.now(); txStart = inputAt; }, true);
-requestAnimationFrame(() => requestAnimationFrame(() => { P.t.painted = performance.now(); showStatus(); }));
+dark.addEventListener('change', () => host.command('view.theme', { theme: dark.checked ? THEMES.dark : THEMES.light }));
 
 const source = document.getElementById('dev-source') as HTMLInputElement;
 source.checked = params.get('source') === '1';
-source.addEventListener('change', () => editor.setSourceMode(source.checked));
+source.addEventListener('change', () => host.command('view.settings', { changes: { sourceCode: source.checked } }));
 
 document.getElementById('dev-verify')!.addEventListener('click', () => {
   const now = view.state.doc.toString();
@@ -180,6 +194,8 @@ function countBlocks(): number {
 }
 
 (window as unknown as Record<string, unknown>).__view = view;
+(window as unknown as Record<string, unknown>).__host = host;
+(window as unknown as Record<string, unknown>).__app = app;
 (window as unknown as Record<string, unknown>).__td = {
   editor, original, docName,
   parsedLength: () => parsedLength(view.state),

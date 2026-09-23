@@ -41,9 +41,13 @@
 }
 
 html, body { margin: 0; background: var(--td-bg); color: var(--td-fg); }
-#root { max-width: 860px; margin: 0 auto; padding: 0 24px; }
+/* 宿主里 XAML 滚动条是唯一的滚动条：CM6 以窗口为滚动容器，原生滚动条隐藏（host/viewport.ts） */
+html.td-host { scrollbar-width: none; }
+html.td-host::-webkit-scrollbar { display: none; }
+/* 版心宽度、字号、行高由宿主设置写入（host/theme.ts 的 SettingsApplier） */
+#root { max-width: var(--td-area-width, 860px); margin: 0 auto; padding: 0 24px; }
 
-.cm-editor { font-family: var(--td-font); font-size: 16px; line-height: 1.7; background: transparent; color: var(--td-fg); }
+.cm-editor { font-family: var(--td-font); font-size: var(--td-font-size, 16px); line-height: var(--td-line-height, 1.7); background: transparent; color: var(--td-fg); }
 .cm-editor.cm-focused { outline: none; }
 .cm-editor .cm-content { padding: 24px 0 40vh; caret-color: var(--td-fg); }
 .cm-editor .cm-line { padding: 0; }
