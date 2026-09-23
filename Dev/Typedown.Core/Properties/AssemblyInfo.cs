@@ -27,3 +27,4 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyVersion("1.2.18.0")]
 [assembly: AssemblyFileVersion("1.2.18.0")]
 [assembly: ComVisible(false)]
+[assembly: InternalsVisibleTo("Typedown.CoreTests")]
