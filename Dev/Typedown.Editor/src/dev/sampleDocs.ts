@@ -3,6 +3,7 @@
  * 使用的 doc-small / mid / rich / large 逐字节相同，便于同口径对照：
  * small = 第 0–7 节；mid = 第 0–249 节；rich = 第 0–99 节且每 5 节带一张 mermaid 与一个公式块；
  * large = 第 0–1299 节重复两遍（约 1 MB）。large-rich 是 rich 重复到约 1 MB，用来测带块组件的大文档。
+ * large-list 是列表密集的约 1 MB 文档（listSection 重复），标记句 `lazy dog <i> times.` 落在列表项里，按键测量打在列表行上。
  */
 
 export function section(i: number, rich: boolean): string {
@@ -11,6 +12,30 @@ export function section(i: number, rich: boolean): string {
     s += `\`\`\`mermaid\nflowchart TD\n  A${i}[开始] --> B${i}{判断}\n  B${i} -->|是| C${i}[结束]\n  B${i} -->|否| A${i}\n\`\`\`\n\n$$\n\\int_0^{${i}} x^2\\,dx = \\frac{${i}^3}{3}\n$$\n\n`;
   }
   return s;
+}
+
+/** 列表密集的一节：无序 / 有序 / 任务 / 三层嵌套 / 引用里的列表，几乎每行都是列表项 */
+export function listSection(i: number): string {
+  return `## 列表 第 ${i} 节
+
+- 列表项 The quick brown fox jumps over the lazy dog ${i} times.
+- 列表项二 **加粗** 与 \`行内代码\`
+  - 嵌套项 nested ${i}
+    - 三层 deep
+  - 嵌套项二
+- [ ] 任务 task ${i}
+- [x] 已完成 done
+
+1. 有序一 first
+2. 有序二 second
+   1. 嵌套有序 ${i}
+   2. 嵌套有序二
+3. 有序三 third
+
+> - 引用里的列表 ${i}
+> - 第二项
+
+`;
 }
 
 const range = (n: number, rich: boolean) => {
@@ -212,6 +237,7 @@ export function sampleDoc(name: string): string {
     case 'rich': return range(100, true);
     case 'large': { const half = range(1300, false); return half + half; }
     case 'large-rich': { const r = range(100, true); return r.repeat(25); }
+    case 'large-list': { let s = ''; for (let i = 0; s.length < 1_000_000; i++) s += listSection(i); return s; }
     case 'ime': return IME_DOC;
     case 'blocks': return BLOCKS_DOC;
     default: return range(8, false);

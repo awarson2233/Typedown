@@ -1,21 +1,21 @@
 // Typedown 新编辑引擎（Dev/Typedown.Editor）的无头性能与保真探针。
 //
 // 前提：在 Dev/Typedown.Editor 下先执行 `yarn build:bench`，产物在 dist-bench/（含 dev.html）。
+// 装载方式与宿主一致：无头 Edge 带宿主的 WebView2 启动参数（Config.WebView2Args），页面走 https://typedown.editor/，
+// 由 CDP 的 Fetch 拦截映射到产物目录（等同 SetVirtualHostNameToFolderMapping），入口 dev.html?doc=<名称>。
 // 用法：node Tools/perf-probe/run.mjs <mode> [选项]
 //   mode = perf      每个文档起独立的无头 Edge，测首帧、段落末尾连续 6 键的按键到两帧 rAF、
 //                    Lezer 全量解析、块组件全量补扫、堆；large 系列另测文档中部的按键
 //          coverage  打开后静置，按时间点记录默认后台解析覆盖到的长度与块组件数
 //          fidelity  载入后立即取回 ≡ 原文；段落末尾输入 6 个字符后 ≡ 原文在该处插入
 //          smoke     载入各文档，收集页面错误与块组件数，保存截图
-//          filemode  用 file:// 打开 dev.html：分别不带参数与带宿主的 WebView2 启动参数，看 ESM 模块能否加载
 //          inp       G1 口径：真实按键（Input.dispatchKeyEvent），Event Timing 的交互时长（按键到下一次绘制），
 //                    顶部 / 中部 / 末尾各 --keys 键；同时录 devtools.timeline 追踪取未取整的值与输入延迟 / 处理 / 呈现拆分；
 //                    每轮开测前记整机 CPU 占用，超过 --idle（默认 15%）先等
 //          patchcheck  解析补丁的视图级核对：滚到未解析区、Ctrl+End、大段粘贴、撤销，每步核对块组件 ≡ 全量扫描、视口里没露出 `**`
-//          hostpage  宿主加载方式的核对：用 CDP 的 Fetch 拦截把 https://typedown.editor/* 映射到生产产物目录
-//                    （等同 SetVirtualHostNameToFolderMapping），不带 --disable-web-security；注入 chrome.webview 桩与 __typedownInit，
+//          hostpage  宿主页面的核对：https://typedown.editor/ 映射到生产产物目录（index.html），注入 chrome.webview 桩与 __typedownInit，
 //                    走一遍 ready → doc.load → rendered → 编辑 → flush，并看懒块（KaTeX、mermaid）能否加载
-//   --docs=small,mid,rich,large,large-rich   --runs=3   --port=9360   --out=<目录>（默认系统临时目录）
+//   --docs=small,mid,rich,large,large-rich,large-list   --runs=3   --port=9360   --out=<目录>（默认系统临时目录）
 //   --dist=<目录>   换一份 bench 产物（默认 Dev/Typedown.Editor/dist-bench），做补丁前后对照   --keys=20   --idle=15
 //   --query=nested=1&fm=yaml   附加到 dev.html 的参数（nested=1 开 parseMixed 嵌套代码语言，fm=yaml 用 lang-yaml 的 front matter）
 //   --statics=<目录>   hostpage 用的生产产物（默认 Dev/Typedown.WinUI/Resources/Statics，先 `yarn build`）
@@ -24,7 +24,7 @@ import { mkdirSync, appendFileSync, writeFileSync, readFileSync } from 'node:fs'
 import { spawnSync } from 'node:child_process';
 import { join, dirname, resolve } from 'node:path';
 import { tmpdir } from 'node:os';
-import { fileURLToPath, pathToFileURL } from 'node:url';
+import { fileURLToPath } from 'node:url';
 import { launch, sleep } from './cdp.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -39,15 +39,40 @@ const out = args.out ?? join(tmpdir(), 'td-perf-probe');
 mkdirSync(out, { recursive: true });
 const outFile = join(out, `${mode}-${new Date().toISOString().replace(/[:.]/g, '-')}.jsonl`);
 // 与 Dev/Typedown.Core/Config.cs 的 WebView2Args 相同
-const HOST_FLAGS = ['--disable-web-security', '--allow-file-access-from-files'];
+const HOST_FLAGS = ['--flag-switches-begin', '--enable-features=msOverlayScrollbarWinStyle', '--flag-switches-end'];
+const EDITOR_ORIGIN = 'https://typedown.editor';
 const query = args.query ? '&' + args.query : '';
-const pageUrl = doc => pathToFileURL(join(dist, 'dev.html')).href + `?doc=${doc}${query}`;
+const pageUrl = doc => `${EDITOR_ORIGIN}/dev.html?doc=${doc}${query}`;
 const MARKER = 'lazy dog 0 times.';
 
-async function open(doc, flags = HOST_FLAGS) {
-  const b = await launch(port++, flags);
+const MIME = { '.html': 'text/html', '.js': 'text/javascript', '.mjs': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.map': 'application/json',
+  '.svg': 'image/svg+xml', '.png': 'image/png', '.woff2': 'font/woff2', '.woff': 'font/woff', '.ttf': 'font/ttf' };
+
+/**
+ * 把 https://typedown.editor/* 映射到 root 目录（CDP 的 Fetch 拦截，等同宿主的 SetVirtualHostNameToFolderMapping）。
+ * 每个请求的路径与是否命中记进 requests（给 hostpage 核对缺失的文件）。
+ */
+async function serveEditorHost(b, root, requests = []) {
+  await b.send('Fetch.enable', { patterns: [{ urlPattern: `${EDITOR_ORIGIN}/*`, requestStage: 'Request' }] });
+  b.on(async m => {
+    if (m.method !== 'Fetch.requestPaused') return;
+    const { requestId, request } = m.params;
+    const path = decodeURIComponent(new URL(request.url).pathname).replace(/^\/+/, '') || 'index.html';
+    let body = null;
+    try { body = readFileSync(join(root, path)); } catch { }
+    requests.push({ path, ok: !!body });
+    if (!body) { await b.send('Fetch.fulfillRequest', { requestId, responseCode: 404, responseHeaders: [], body: '' }); return; }
+    const ext = path.slice(path.lastIndexOf('.'));
+    await b.send('Fetch.fulfillRequest', { requestId, responseCode: 200, responseHeaders: [{ name: 'Content-Type', value: MIME[ext] ?? 'application/octet-stream' }], body: body.toString('base64') });
+  });
+  return requests;
+}
+
+async function open(doc) {
+  const b = await launch(port++, HOST_FLAGS);
   await b.send('Page.enable');
   await b.send('Performance.enable');
+  await serveEditorHost(b, dist);
   const navAt = Date.now();
   await b.send('Page.navigate', { url: pageUrl(doc) });
   let t;
@@ -177,30 +202,13 @@ async function smoke(doc) {
   try {
     await sleep(3000);
     R.blocks = await b.evalJs('__td.countBlocks()');
-    R.widgets = await b.evalJs(`({ table: document.querySelectorAll('.cm-td-table').length, math: document.querySelectorAll('.cm-td-math .katex').length, mermaid: document.querySelectorAll('.cm-td-mermaid svg').length, bullets: document.querySelectorAll('.cm-td-bullet').length, tasks: document.querySelectorAll('.cm-td-task').length, inlineMath: document.querySelectorAll('.cm-td-math-inline .katex').length })`);
+    R.widgets = await b.evalJs(`({ table: document.querySelectorAll('.cm-td-table').length, math: document.querySelectorAll('.cm-td-math .katex').length, mermaid: document.querySelectorAll('.cm-td-mermaid svg').length, markers: document.querySelectorAll('.cm-td-marker-list').length, tasks: document.querySelectorAll('.cm-td-task').length, inlineMath: document.querySelectorAll('.cm-td-math-inline .katex').length })`);
     R.visibleStars = await b.evalJs(`(document.querySelector('.cm-content').innerText.match(/\\*\\*/g) || []).length`);
     R.errors = await b.evalJs('__probe.errors');
     const shot = await b.send('Page.captureScreenshot', { format: 'png' });
     if (shot.result) writeFileSync(join(out, `smoke-${doc}.png`), Buffer.from(shot.result.data, 'base64'));
   } finally { await b.close(); }
   log(R);
-}
-
-async function filemode() {
-  for (const [name, flags] of [['no-flags', []], ['host-flags', HOST_FLAGS]]) {
-    const b = await launch(port++, flags);
-    const R = { mode, variant: name };
-    try {
-      await b.send('Page.enable');
-      await b.send('Page.navigate', { url: pageUrl('ime') });
-      await sleep(5000);
-      R.moduleRan = await b.evalJs('!!(window.__probe && window.__probe.t.painted !== undefined)');
-      // 懒块能否经 import() 从 file:// 加载：ime 文档里有行内公式、公式块与 mermaid
-      R.katexRendered = await b.evalJs(`document.querySelectorAll('.katex').length`);
-      R.mermaidRendered = await b.evalJs(`document.querySelectorAll('.cm-td-mermaid svg').length`);
-    } finally { await b.close(); }
-    log(R);
-  }
 }
 
 /**
@@ -369,16 +377,13 @@ async function patchcheck(doc) {
   log(R);
 }
 
-const MIME = { '.html': 'text/html', '.js': 'text/javascript', '.mjs': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.map': 'application/json',
-  '.svg': 'image/svg+xml', '.png': 'image/png', '.woff2': 'font/woff2', '.woff': 'font/woff', '.ttf': 'font/ttf' };
-
 /**
- * 宿主加载方式：https://typedown.editor/index.html 映射到 Resources/Statics（--statics 可换目录）。
+ * 宿主页面：https://typedown.editor/index.html 映射到 Resources/Statics（--statics 可换目录）。
  * chrome.webview 桩：页面 postMessage 的字符串记进 __wv.out；__wv.send(obj) 以 message 事件（data 是 JSON 字符串）投给页面。
  */
 async function hostpage() {
   const statics = resolve(args.statics ?? resolve(here, '../../Dev/Typedown.WinUI/Resources/Statics'));
-  const b = await launch(port++, []);
+  const b = await launch(port++, HOST_FLAGS);
   const R = { mode, statics, requests: [] };
   try {
     await b.send('Page.enable');
@@ -388,19 +393,7 @@ async function hostpage() {
       if (m.method === 'Runtime.exceptionThrown') consoleErrors.push(m.params.exceptionDetails?.exception?.description ?? m.params.exceptionDetails?.text);
       if (m.method === 'Runtime.consoleAPICalled' && ['error', 'warning'].includes(m.params.type)) consoleErrors.push(`${m.params.type}: ${m.params.args.map(a => a.value ?? a.description).join(' ')}`);
     });
-    await b.send('Fetch.enable', { patterns: [{ urlPattern: 'https://typedown.editor/*', requestStage: 'Request' }] });
-    b.on(async m => {
-      if (m.method !== 'Fetch.requestPaused') return;
-      const { requestId, request } = m.params;
-      const path = decodeURIComponent(new URL(request.url).pathname).replace(/^\/+/, '') || 'index.html';
-      const file = join(statics, path);
-      let body = null;
-      try { body = readFileSync(file); } catch { }
-      R.requests.push({ path, ok: !!body });
-      if (!body) { await b.send('Fetch.fulfillRequest', { requestId, responseCode: 404, responseHeaders: [], body: '' }); return; }
-      const ext = path.slice(path.lastIndexOf('.'));
-      await b.send('Fetch.fulfillRequest', { requestId, responseCode: 200, responseHeaders: [{ name: 'Content-Type', value: MIME[ext] ?? 'application/octet-stream' }], body: body.toString('base64') });
-    });
+    await serveEditorHost(b, statics, R.requests);
     const init = { protocol: 1, settings: { fontSize: 16, lineHeight: 1.6, tabSize: 4, spellcheckEnabled: false, editorAreaWidth: '1200px', sourceCode: false },
       theme: { isDark: false, accent: { r: 0, g: 120, b: 212, a: 1 }, background: { r: 255, g: 255, b: 255, a: 1 } }, keymap: [{ key: 83, modifiers: 1 }], locale: 'zh-CN' };
     await b.send('Page.addScriptToEvaluateOnNewDocument', { source: `
@@ -411,7 +404,7 @@ async function hostpage() {
         window.chrome = window.chrome || {};
         window.chrome.webview = { postMessage: s => { if (typeof s !== 'string') throw new Error('postMessage 只收字符串'); window.__wv.out.push(JSON.parse(s)); }, addEventListener: (t, l) => { if (t === 'message') listeners.push(l); } };
       })();` });
-    await b.send('Page.navigate', { url: 'https://typedown.editor/index.html' });
+    await b.send('Page.navigate', { url: `${EDITOR_ORIGIN}/index.html` });
     const waitFor = async (expr, ms = 20000) => { const t0 = Date.now(); for (;;) { const v = await b.evalJs(expr); if (v || Date.now() - t0 > ms) return v; await sleep(50); } };
     const out = t => `__wv.out.filter(m => m.t === ${JSON.stringify(t)})`;
     R.ready = await waitFor(`${out('lifecycle.ready')}[0]?.p`);
@@ -437,8 +430,7 @@ async function hostpage() {
 }
 
 console.log(`输出：${outFile}`);
-if (mode === 'filemode') await filemode();
-else if (mode === 'hostpage') await hostpage();
+if (mode === 'hostpage') await hostpage();
 else for (const doc of docs) {
   if (mode === 'perf') for (let r = 0; r < runs; r++) await perf(doc, r);
   else if (mode === 'inp') for (let r = 0; r < runs; r++) await inp(doc, r);

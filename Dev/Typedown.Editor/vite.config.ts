@@ -4,12 +4,12 @@ import { resolve } from 'node:path';
 import { readFileSync } from 'node:fs';
 
 // 生产构建只产出宿主加载的 index.html（输出到 WinUI 的 Resources/Statics，已被 gitignore）；
-// bench 模式额外产出不依赖宿主的 dev.html，输出到 dist-bench/，供 Tools/perf-probe 以 file:// 加载测量。
+// bench 模式额外产出不依赖宿主的 dev.html，输出到 dist-bench/，供 Tools/perf-probe 与 Tools/style-parity 无头测量。
 //
 // 页面加载方式：宿主用 SetVirtualHostNameToFolderMapping 把 Resources/Statics 映射成 https://typedown.editor/，
-// 入口 https://typedown.editor/index.html，不再用 file:// 与 --disable-web-security。base 取相对路径 './'：
+// 入口 https://typedown.editor/index.html；两个工具用 CDP 的 Fetch 拦截把同一主机映射到 dist-bench/。base 取相对路径 './'：
 // 入口的 <script>/<link> 与懒块的 import()（Vite 的预加载辅助按 import.meta.url 解析）都相对所在文件，
-// 虚拟主机根目录、http://localhost:3000 与 bench 的 file:// 三种加载方式用同一份产物都成立。
+// 虚拟主机根目录与 http://localhost:3000 两种加载方式用同一份产物都成立。
 const { version } = JSON.parse(readFileSync(resolve(import.meta.dirname, 'package.json'), 'utf8')) as { version: string };
 const CORE_MODULES = /node_modules[\\/](@codemirror[\\/](state|view|language|commands|autocomplete|lang-markdown|lang-yaml|lang-html|lang-css|lang-javascript)|@lezer[\\/](common|lr|highlight|markdown|yaml|html|css|javascript)|style-mod|w3c-keyname|crelt|@marijn)[\\/]/;
 
