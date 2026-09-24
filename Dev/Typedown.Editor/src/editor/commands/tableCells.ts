@@ -88,6 +88,29 @@ export const escapeCell = (text: string) =>
 
 export interface SimpleChange { from: number; to: number; insert: string }
 
+/**
+ * 单元格源码里不能出现的字符的逐处修正：未转义的竖线前补 `\`（前面的反斜杠成对时竖线仍是未转义的，`\\|` 也要补），
+ * 换行换成空格。返回的区间是相对 text 的，互不重叠、按位置排序，可以直接作为一组 changes 使用（光标随之映射）。
+ */
+export function cellSourceFixes(text: string): SimpleChange[] {
+  const out: SimpleChange[] = [];
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (c === '\\') { if (text[i + 1] !== '\n' && text[i + 1] !== '\r') i++; continue; }
+    if (c === '|') out.push({ from: i, to: i, insert: '\\' });
+    else if (c === '\r' && text[i + 1] === '\n') { out.push({ from: i, to: i + 2, insert: ' ' }); i++; }
+    else if (c === '\n' || c === '\r') out.push({ from: i, to: i + 1, insert: ' ' });
+  }
+  return out;
+}
+
+/** 按 cellSourceFixes 修正后的单元格源码 */
+export function toCellSource(text: string): string {
+  let out = '', last = 0;
+  for (const f of cellSourceFixes(text)) { out += text.slice(last, f.from) + f.insert; last = f.to; }
+  return out + text.slice(last);
+}
+
 /** 最小替换：只替换旧源码与新源码之间不同的中段。 */
 export function minimalChange(oldText: string, newText: string, at: number): SimpleChange | null {
   if (oldText === newText) return null;
@@ -106,9 +129,13 @@ export const tableRows = (m: TableModel): TableRow[] => [m.header, ...m.body];
  * 行缺单元格（GFM 允许表体行比表头短）时在行尾补齐竖线再写入。
  */
 export function cellEdit(sliceDoc: (from: number, to: number) => string, model: TableModel, row: number, col: number, text: string): SimpleChange | null {
+  return cellReplace(sliceDoc, model, row, col, escapeCell(text));
+}
+
+/** 同 cellEdit，但 src 已经是单元格源码（竖线已转义、没有换行），原样写入。嵌套视图的单元格文档就是源码，走这里。 */
+export function cellReplace(sliceDoc: (from: number, to: number) => string, model: TableModel, row: number, col: number, src: string): SimpleChange | null {
   const r = tableRows(model)[row];
   if (!r) return null;
-  const src = escapeCell(text);
   const cell = r.cells[col];
   if (cell) return minimalChange(sliceDoc(cell.from, cell.to), src, cell.from);
   // 缺的单元格：在行尾追加。行尾有竖线时写在它后面，没有时先补一个
@@ -121,3 +148,4 @@ export function cellEdit(sliceDoc: (from: number, to: number) => string, model: 
   const at = r.from + trimmedEnd.length;
   return { from: at, to: at, insert };
 }
+

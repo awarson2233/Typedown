@@ -15,6 +15,19 @@ export function section(i: number, rich: boolean): string {
 }
 
 /** 列表密集的一节：无序 / 有序 / 任务 / 三层嵌套 / 引用里的列表，几乎每行都是列表项 */
+/** 50 行 × 10 列、每格带行内格式的表格（单元格渲染与嵌套视图的性能样例） */
+export function bigTable(rows = 50, cols = 10): string {
+  const fmt = [
+    (r: number, c: number) => `**粗${r}.${c}**`, (r: number, c: number) => `\`code_${r}_${c}\``, (r: number, c: number) => `[链接${r}](https://example.com/${c})`,
+    (r: number) => `*斜体* ${r}`, (r: number, c: number) => `$x_${c}^${r}$`, (r: number, c: number) => `~~删${c}~~ ==亮${r}==`,
+    () => ':smile: 文字', (r: number, c: number) => `a \\| b ${r}${c}`, (r: number) => `普通文字 ${r}`, (r: number, c: number) => `**粗** 与 \`码\` ${r}-${c}`,
+  ];
+  const line = (cells: string[]) => `| ${cells.join(' | ')} |`;
+  let s = `# 大表格\n\n前一段。\n\n${line(Array.from({ length: cols }, (_, c) => `列 **${c}**`))}\n${line(Array.from({ length: cols }, (_, c) => (c % 3 === 1 ? ':-:' : '---')))}\n`;
+  for (let r = 0; r < rows; r++) s += line(Array.from({ length: cols }, (_, c) => fmt[(r + c) % fmt.length](r, c))) + '\n';
+  return s + '\n后一段。\n';
+}
+
 export function listSection(i: number): string {
   return `## 列表 第 ${i} 节
 
@@ -240,6 +253,7 @@ export function sampleDoc(name: string): string {
     case 'large-list': { let s = ''; for (let i = 0; s.length < 1_000_000; i++) s += listSection(i); return s; }
     case 'ime': return IME_DOC;
     case 'blocks': return BLOCKS_DOC;
+    case 'table-big': return bigTable();
     default: return range(8, false);
   }
 }

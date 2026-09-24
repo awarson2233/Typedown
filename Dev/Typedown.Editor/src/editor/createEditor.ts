@@ -7,6 +7,7 @@ import { codeLanguages } from './syntax/codeLanguages';
 import { footnoteNumberSource, inlineRevealExtension } from './decorations/inlinePlugin';
 import { revealState } from './decorations/revealState';
 import { blockField } from './widgets/blockField';
+import { tableCellEditing } from './widgets/cellEditor';
 import { outlineField } from './state/outline';
 import { blockComponents } from './blocks';
 import { prismHighlighter } from './blocks/codeHighlight';
@@ -30,7 +31,7 @@ export interface EditorOptions {
 }
 
 /** 显形层（行内显形 + 块组件）。单独导出，单测与源码模式切换共用。 */
-export const typoraLayer: Extension = [revealState, inlineRevealExtension, blockField, blockComponents];
+export const typoraLayer: Extension = [revealState, inlineRevealExtension, blockField, blockComponents, tableCellEditing];
 
 /** 与视图无关、测试可直接用的基础扩展（语法 + 历史）。 */
 export function coreExtensions(): Extension[] {

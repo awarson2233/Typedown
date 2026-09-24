@@ -28,14 +28,14 @@
     "reason": "同上：Muya 原样显示 ==，首个文字节点里多了 ASCII 字符，实际渲染字体多出 Open Sans"
   },
   {
-    "docs": ["docs/README.md", "docs/architecture.md", "docs/build.md", "docs/editor-protocol.md"],
-    "match": "^(dh|dx) table |^style\\.platform table |^inline-only-old \\w+ ",
-    "reason": "表格单元格显示去转义后的源码，不渲染行内格式（webview-wysiwyg-engine.md 里 C1 原型的表格设计）：含反引号、链接、粗体的单元格更宽，折行也不同，放不下时外框出横向滚动条（Muya 直接溢出版心）；这些单元格里的行内元素只有旧版有"
+    "docs": ["docs/editor-protocol.md"],
+    "match": "^(dh|dx) table |^inline\\.h code ",
+    "reason": "表格列宽由浏览器按内容自动分配：这篇的两张表单元格里有大段行内代码，新旧两边分到的列宽差几个像素，个别格子多折或少折一行（格子里的行内代码高度随之不同）；放不下时新引擎的外框出横向滚动条（Muya 直接溢出版心），宽度也不同"
   },
   {
-    "docs": ["docs/editor-protocol.md"],
-    "match": "^inline\\.h code ",
-    "reason": "同上：表格里的行内代码只有旧版有，按文字配对行内代码时，同名的代码片段会配到别处（一处折成两行、另一处没折），高度对不上"
+    "docs": ["docs/build.md"],
+    "match": "^inline-only-(old|new) strong 不定义",
+    "reason": "表格单元格里的 **不定义 `DEBUG`**：两边都渲染成粗体，但 Muya 的粗体文字里带着行内代码的反引号（隐藏元素也计入文字），按文字配对时对不上"
   },
   {
     "docs": ["docs/build.md"],

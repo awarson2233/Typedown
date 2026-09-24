@@ -233,6 +233,9 @@ div.cm-td-fence.cm-td-fence-math.cm-td-fence-foot.cm-td-fence-active::before { t
   border-collapse: collapse;
   border-spacing: 0;
   word-break: initial;
+  /* 正文 .cm-lineWrapping 的 overflow-wrap: anywhere 会把可断点算进最小内容宽度，表格按它排列宽时链接、代码这类长词被挤到折行；
+     Muya 的版心是 break-word（只在放不下时才断，不影响列宽） */
+  overflow-wrap: break-word;
 }
 .cm-td-table th, .cm-td-table td {
   margin: 0;
@@ -258,6 +261,13 @@ div.cm-td-fence.cm-td-fence-math.cm-td-fence-foot.cm-td-fence-active::before { t
 /* 格子内容（.ag-cell-content）：撑满格子，至少 4em 宽 */
 .cm-td-cell { display: inline-block; width: 100%; min-width: 4em; min-height: 10px; white-space: pre-wrap; outline: none; cursor: text; }
 .cm-td-cell[data-missing] { opacity: 0.5; }
+/* 焦点单元格里的嵌套视图（widgets/cellEditor.ts）：排版与静态渲染的单元格相同——字号、行高、字体、对齐、折行都继承格子，
+   去掉 CM6 基础主题与正文 .cm-content 的内边距、最小高度与横向滚动（正文的底部留白是 40vh）。
+   CM6 的基础主题排在文档样式表之后，同权重时它赢，所以选择器多带一层 .cm-td-cell */
+.cm-td-cell > .cm-editor.cm-td-cell-editor { font-size: inherit; line-height: inherit; }
+.cm-td-cell .cm-td-cell-editor .cm-scroller { overflow: visible; font-family: inherit; line-height: inherit; }
+.cm-editor .cm-td-cell .cm-td-cell-editor .cm-content { padding: 0; min-height: 0; word-break: inherit; overflow-wrap: inherit; white-space: pre-wrap; }
+.cm-td-cell .cm-td-cell-editor .cm-content .cm-line { padding: 0; }
 
 /* ── 脚注定义区（figure[data-role="FOOTNOTE"]） ──────────────────────────────────────────── */
 

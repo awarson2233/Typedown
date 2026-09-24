@@ -49,6 +49,11 @@ export interface InlineSpecOptions {
   footnoteNumber?: (label: string) => number | undefined;
   /** 光标（空选区）所在位置：落在块间空行上时，该行按输入第一个字符后会成为的正文行排版（blockSpacing.ts 的 caretGapLayout） */
   caret?: readonly number[];
+  /**
+   * 表格单元格：只产出行内部分，不给块间空行、首块内边距、引用与列表前缀这些块级排版的行装饰；
+   * 行内代码里的 `\|` 按 GFM 是表格一级的转义（先于行内解析去掉反斜杠），反斜杠按转义处理（隐藏，显形时变灰）
+   */
+  tableCell?: boolean;
 }
 
 const SPAN_CLASS: Record<string, string> = {
@@ -245,6 +250,13 @@ export function buildInlineSpecs(doc: Text, tree: Tree, range: Range, reveal: re
           for (const m of marks) {
             if (shown) mark(m.from, m.to, SYNTAX); else hide(m.from, m.to);
           }
+          if (name === 'InlineCode' && options.tableCell && marks.length >= 2) {
+            const body = doc.sliceString(marks[0].to, marks[marks.length - 1].from);
+            for (let i = body.indexOf('\\|'); i >= 0; i = body.indexOf('\\|', i + 2)) {
+              const at = marks[0].to + i;
+              if (shown) mark(at, at + 1, SYNTAX); else hide(at, at + 1);
+            }
+          }
           return name !== 'InlineCode';
         }
         case 'Link': {
@@ -351,6 +363,8 @@ export function buildInlineSpecs(doc: Text, tree: Tree, range: Range, reveal: re
       return true;
     },
   });
+
+  if (options.tableCell) return out;
 
   // 引用、列表的行首前缀：列表符号 widget 或整段隐藏；缩进层数、引用竖线、已完成任务按行施加
   const prefixEnds = new Map<number, number>();

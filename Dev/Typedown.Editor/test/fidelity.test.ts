@@ -4,7 +4,10 @@ import { readdirSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { EditorSelection } from '@codemirror/state';
 import { ensureSyntaxTree } from '@codemirror/language';
+import { undo } from '@codemirror/commands';
 import { createEditor, type TypedownEditor } from '../src/editor/createEditor';
+import { openCell, Leave } from '../src/editor/widgets/cellEditor';
+import type { TableDom } from '../src/editor/widgets/tableCellRender';
 import { sampleDoc, IME_DOC } from '../src/dev/sampleDocs';
 import { allExamples, label } from './spec';
 
@@ -81,6 +84,39 @@ describe('字节保真', { timeout: 120000 }, () => {
       if (ed.getText() !== text) bad.push(`${name}: 删除后未复原`);
       ed.view.destroy();
     });
+    expect(bad).toEqual([]);
+  });
+
+  it('单元格内编辑只改该格字节（每张顶层表格逐格在格末输入再撤销）', () => {
+    const bad: string[] = [];
+    let cells = 0;
+    for (const { name, text } of corpus) {
+      if (!text.includes('|')) continue;
+      const ed = mount(text);
+      const { view } = ed;
+      const wraps = [...view.contentDOM.querySelectorAll<TableDom>('.cm-td-table-wrap')];
+      for (let w = 0; w < wraps.length; w++) {
+        const grid = wraps[w].tdCells ?? [];
+        grid.forEach((line, r) => line.forEach((_span, c) => {
+          // 每次都重新取外框：前一格撤销后表格可能重建
+          const wrap = view.contentDOM.querySelectorAll<TableDom>('.cm-td-table-wrap')[w];
+          const s = wrap && openCell(view, wrap, r, c, Infinity);
+          if (!s) { bad.push(`${name} t${w} r${r}c${c}: 打不开`); return; }
+          const cell = wrap.tdTable!.model;
+          const range = [cell.header, ...cell.body][r].cells[c];
+          if (!range) { s.close(Leave.Stay); return; } // 缺的单元格要补竖线，不在这条性质里
+          const at = view.posAtDOM(wrap) + range.to;
+          s.nested.dispatch({ changes: { from: s.nested.state.doc.length, insert: 'Z' }, userEvent: 'input.type' });
+          cells++;
+          if (ed.getText() !== text.slice(0, at) + 'Z' + text.slice(at)) bad.push(`${name} t${w} r${r}c${c}: 输入`);
+          s.close(Leave.Stay);
+          undo(view);
+          if (ed.getText() !== text) bad.push(`${name} t${w} r${r}c${c}: 撤销后未复原`);
+        }));
+      }
+      ed.view.destroy();
+    }
+    expect(cells).toBeGreaterThan(100);
     expect(bad).toEqual([]);
   });
 

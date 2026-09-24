@@ -22,6 +22,9 @@ export const openLinkHandler = Facet.define<(uri: string) => void, ((uri: string
   combine: v => v[0] ?? null,
 });
 
+/** 只做行内显形、不给块级排版的行装饰（表格单元格的嵌套视图，见 InlineSpecOptions.tableCell）。 */
+export const tableCellReveal = Facet.define<boolean, boolean>({ combine: v => v.some(Boolean) });
+
 const hideDeco = Decoration.replace({});
 const markCache = new Map<string, Decoration>();
 const markDeco = (cls: string) => {
@@ -113,7 +116,7 @@ class InlineReveal {
     if (!ranges.length) return { decorations: Decoration.none, atomic: Decoration.none };
     const numbers = state.facet(footnoteNumberSource)?.(state);
     // 编号表的键是规范化后的标签；上标没有编号时显示标签原文（inlineSpecs 负责）
-    const options: InlineSpecOptions = { caret: this.caret };
+    const options: InlineSpecOptions = { caret: this.caret, tableCell: state.facet(tableCellReveal) };
     if (numbers) options.footnoteNumber = label => numbers.get(normalizeFootnoteLabel(label));
     const specs = buildInlineSpecs(state.doc, syntaxTree(state), { from: ranges[0].from, to: ranges[ranges.length - 1].to }, this.reveal, options);
     const decos: Range<Decoration>[] = [];

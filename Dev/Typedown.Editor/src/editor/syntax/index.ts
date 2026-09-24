@@ -53,6 +53,28 @@ export function markdownSupport(options: SyntaxOptions = {}): LanguageSupport {
   return fm === 'yaml' ? yamlFrontmatter({ content: md }) : md;
 }
 
+let cellParserCache: MarkdownParser | null = null;
+
+/**
+ * 表格单元格的解析器：GFM 表格对每个单元格的内容（去掉两侧空白）调用 parseInline，单元格里没有块级结构。
+ * 这里去掉全部块级解析器，只剩段落：单行的单元格源码解析成「段落 + 行内节点」，行内部分与主文档表格里的解析结果相同
+ * （`# a`、`- a`、`> a` 在单元格里都是普通文字）。非焦点单元格的渲染与焦点单元格的嵌套视图共用它。
+ */
+export function cellParser(): MarkdownParser {
+  if (!cellParserCache) {
+    const base = (commonmarkLanguage.parser as MarkdownParser).configure(markdownExtensions);
+    // blockNames 是解析器的运行时字段（d.ts 未导出），按名字去掉已注册的全部块级解析器，扩展新增的块也一并去掉
+    const names = (base as unknown as { blockNames: readonly string[] }).blockNames;
+    cellParserCache = base.configure({ remove: [...names] });
+  }
+  return cellParserCache;
+}
+
+/** 单元格嵌套视图的语言：cellParser 建的 Language，不带 markdownKeymap（回车、列表续写在单元格里没有意义） */
+export function cellLanguage(): LanguageSupport {
+  return new LanguageSupport(new Language(commonmarkLanguage.data, cellParser(), [], 'markdown'));
+}
+
 /**
  * 遍历 markdown 顶层块（Document 的直接子节点）。front matter 包装层的 Document 与 Body 会被穿过，
  * Frontmatter 节点本身作为一个顶层块交给回调。

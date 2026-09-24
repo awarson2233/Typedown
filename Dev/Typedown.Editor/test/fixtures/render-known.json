@@ -3,12 +3,6 @@
   "groups": [
     {
       "category": "unimplemented",
-      "todo": "B1",
-      "reason": "表格单元格显示去转义后的源码，不渲染行内格式（行内代码、强调等）",
-      "cases": ["gfm #200"]
-    },
-    {
-      "category": "unimplemented",
       "todo": "未排期",
       "reason": "缩进式代码块没有做成块组件：按普通文字行显示（行首缩进可见、行内语法照常渲染），不是代码框",
       "cases": ["commonmark #1", "commonmark #2", "commonmark #3", "commonmark #5", "commonmark #6", "commonmark #7", "commonmark #8", "commonmark #18", "commonmark #36", "commonmark #48", "commonmark #69", "commonmark #85", "commonmark #100", "commonmark #107", "commonmark #110", "commonmark #111", "commonmark #112", "commonmark #114", "commonmark #115", "commonmark #116", "commonmark #117", "commonmark #118", "commonmark #134", "commonmark #183", "commonmark #184", "commonmark #191", "commonmark #211", "commonmark #225", "commonmark #231", "commonmark #236", "commonmark #253", "commonmark #254", "commonmark #257", "commonmark #264", "commonmark #270", "commonmark #271", "commonmark #272", "commonmark #273", "commonmark #274", "commonmark #286", "commonmark #287", "commonmark #288", "commonmark #289", "commonmark #290", "commonmark #309", "commonmark #313", "gfm #1", "gfm #2", "gfm #3", "gfm #5", "gfm #6", "gfm #7", "gfm #8", "gfm #18", "gfm #39", "gfm #55", "gfm #70", "gfm #77", "gfm #80", "gfm #81", "gfm #82", "gfm #84", "gfm #85", "gfm #86", "gfm #87", "gfm #88", "gfm #104", "gfm #152", "gfm #153", "gfm #160", "gfm #180", "gfm #195", "gfm #209", "gfm #214", "gfm #231", "gfm #232", "gfm #235", "gfm #242", "gfm #248", "gfm #249", "gfm #250", "gfm #251", "gfm #252", "gfm #264", "gfm #265", "gfm #266", "gfm #267", "gfm #268", "gfm #289", "gfm #293", "gfm #314", "gfm #332"]
