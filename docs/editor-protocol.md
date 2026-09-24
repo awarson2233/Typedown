@@ -1,6 +1,6 @@
 # 编辑器桥接协议 v1
 
-契约已按第 10 节调整；新引擎页面、Core 侧的编解码与正文镜像、宿主侧 `WebViewEditorSession` 都按本文实现。旧 Muya 页面走的是 [architecture.md](architecture.md) 第 4–5 节的旧协议，Muya 前端已删除，`LegacyMuyaSession` 仍保留但不再注册。
+契约已按第 10 节调整；新引擎页面、Core 侧的编解码与正文镜像、宿主侧 `WebViewEditorSession` 都按本文实现。宿主与页面的整体结构见 [architecture.md](architecture.md) 第 3–5 节。旧 Muya 页面的字符串协议只剩宿主侧代码（[LegacyMuyaSession](/Dev/Typedown.WinUI/Controls/EditorControls/Hosting/LegacyMuyaSession.cs) 与 [Editor/Legacy](/Dev/Typedown.Core/Editor/Legacy/)），Muya 前端已删除，`LegacyMuyaSession` 不再注册。
 
 ## 概念
 
