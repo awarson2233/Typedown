@@ -45,6 +45,8 @@ export default defineConfig(({ mode }) => {
     test: {
       include: ['test/**/*.test.ts'],
       environment: 'node',
+      // 大纲对照全量 Lezer 解析与仓库 docs/、mermaid 首次加载都是重测试；整套并行跑、机器有负载时 5 s 的默认上限会误报超时
+      testTimeout: 30_000,
     },
   };
 });
