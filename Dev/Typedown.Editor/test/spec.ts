@@ -14,6 +14,8 @@ export interface SpecExample {
   /** GFM 扩展用例的标记（table / strikethrough / tasklist / autolink / tagfilter），普通用例为空 */
   extension: string;
   markdown: string;
+  /** 参照渲染器给出的期望 HTML（渲染对照测试用，见 render.test.ts） */
+  html: string;
 }
 
 function extract(text: string, spec: SpecExample['spec']): SpecExample[] {
@@ -21,10 +23,10 @@ function extract(text: string, spec: SpecExample['spec']): SpecExample[] {
   let section = '';
   let n = 0;
   const body = text.replace(/\r\n?/g, '\n').replace(/^<!-- END TESTS -->(.|[\n])*/m, '');
-  const re = /^`{32} example([^\n]*)\n([\s\S]*?)^\.\n[\s\S]*?^`{32}$|^#{1,6} *(.*)$/gm;
+  const re = /^`{32} example([^\n]*)\n([\s\S]*?)^\.\n([\s\S]*?)^`{32}$|^#{1,6} *(.*)$/gm;
   for (let m; (m = re.exec(body));) {
-    if (m[3] !== undefined) { section = m[3]; continue; }
-    out.push({ spec, number: ++n, section, extension: m[1].trim(), markdown: m[2].replace(/→/g, '\t') });
+    if (m[4] !== undefined) { section = m[4]; continue; }
+    out.push({ spec, number: ++n, section, extension: m[1].trim(), markdown: m[2].replace(/→/g, '\t'), html: m[3].replace(/→/g, '\t') });
   }
   return out;
 }
