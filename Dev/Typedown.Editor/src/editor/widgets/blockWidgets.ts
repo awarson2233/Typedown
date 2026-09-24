@@ -260,7 +260,7 @@ export class TocWidget extends WidgetType {
       const ul = document.createElement('ul');
       this.entries.forEach((e, i) => {
         const li = document.createElement('li');
-        li.className = `cm-td-toc-item cm-td-toc-h${e.level}`;
+        li.className = 'cm-td-toc-item';
         li.style.setProperty('--td-toc-indent', String(e.level - top));
         const a = document.createElement('a');
         a.className = 'cm-td-toc-link';

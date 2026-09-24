@@ -259,9 +259,9 @@ describe('块级标记', () => {
     const r = specs('- 第一行\n  续行\n\n  ```\n    code\n  ```', [99]);
     expect(r.hidden).toEqual(['  ', '  ', '  ', '  ']);
   });
-  it('围栏代码：按行施加代码块类名，围栏标记变灰', () => {
+  it('围栏代码：不加行类名（框与行样式归块组件），围栏标记变灰', () => {
     const r = specs('```js\nx\n```', [99]);
-    expect(r.lines).toEqual(['1:cm-td-code cm-td-code-first', '2:cm-td-code', '3:cm-td-code cm-td-code-last']);
+    expect(r.lines).toEqual([]);
     expect(r.gray).toEqual(['```', 'js', '```']);
   });
   it('分隔线：光标在行内显示源码，否则隐藏；行类名不变', () => {

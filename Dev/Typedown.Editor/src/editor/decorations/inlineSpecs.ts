@@ -113,12 +113,11 @@ export function buildInlineSpecs(doc: Text, tree: Tree, range: Range, reveal: re
     if (style) e.style = e.style ? `${e.style};${style}` : style;
   };
   /** 对节点覆盖、且落在可见区间内的每一行调用 f */
-  const eachLine = (from: number, to: number, f: (lineFrom: number, first: boolean, last: boolean) => void) => {
+  const eachLine = (from: number, to: number, f: (lineFrom: number) => void) => {
     const a = Math.max(from, range.from), b = Math.min(to, range.to);
     if (a > b) return;
-    const firstLine = doc.lineAt(from).number, lastLine = doc.lineAt(to).number;
     for (let l = doc.lineAt(a); ; l = doc.line(l.number + 1)) {
-      f(l.from, l.number === firstLine, l.number === lastLine);
+      f(l.from);
       if (l.to >= b || l.number >= doc.lines) break;
     }
   };
@@ -177,7 +176,6 @@ export function buildInlineSpecs(doc: Text, tree: Tree, range: Range, reveal: re
 
       switch (name) {
         case 'Frontmatter':
-          eachLine(ref.from, ref.to, at => lineCls(at, 'cm-td-frontmatter'));
           return false;
         case 'Table': {
           // 顶层表格由块组件 StateField 换成网格；嵌套在列表、引用里的表格暂按源码显示
@@ -186,23 +184,15 @@ export function buildInlineSpecs(doc: Text, tree: Tree, range: Range, reveal: re
           return true;
         }
         case 'BlockMath':
-          eachLine(ref.from, ref.to, at => lineCls(at, 'cm-td-math-src'));
           for (const m of children(ref.node, 'BlockMathMark')) mark(m.from, m.to, SYNTAX);
           return false;
         case 'FencedCode':
-        case 'CodeBlock': {
-          eachLine(ref.from, ref.to, (at, first, last) => {
-            lineCls(at, 'cm-td-code');
-            if (first) lineCls(at, 'cm-td-code-first');
-            if (last) lineCls(at, 'cm-td-code-last');
-          });
+        case 'CodeBlock':
           for (const c of children(ref.node)) if (c.name === 'CodeMark' || c.name === 'CodeInfo') mark(c.from, c.to, SYNTAX);
           return false;
-        }
         case 'HTMLBlock':
         case 'CommentBlock':
         case 'ProcessingInstructionBlock':
-          eachLine(ref.from, ref.to, at => lineCls(at, 'cm-td-html'));
           return false;
         case 'Blockquote':
         case 'ListItem':
