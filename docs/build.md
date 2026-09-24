@@ -45,12 +45,14 @@ flowchart LR
 
 ### 4. 打包与签名
 
-`Debug` / `Release` 用 [Typedown.WinUI.csproj](../Dev/Typedown.WinUI/Typedown.WinUI.csproj) 中 `PackageCertificateThumbprint` 指定的证书签名，该证书必须存在于 `Cert:\CurrentUser\My` 且带私钥，否则 VS 的 `Typedown.WinUI (Package)` 启动配置无法构建。换机或证书丢失时重建并更新指纹：
+项目中打包签名默认关闭（`<AppxPackageSigningEnabled>false</AppxPackageSigningEnabled>`），以支持免证书构建与开源协作。若需要为 MSIX 安装包签名，可在本机自签名并在构建时传入参数：
 
 ```powershell
 $cert = New-SelfSignedCertificate -Type CodeSigningCert -Subject "CN=Typedown WinUI Dev Test" `
     -CertStoreLocation Cert:\CurrentUser\My -KeyExportPolicy Exportable
-$cert.Thumbprint   # 写回 csproj 的 PackageCertificateThumbprint
+# 构建时传入证书指纹并开启签名：
+& $msbuild Dev\Typedown.WinUI\Typedown.WinUI.csproj /p:Configuration=Release /p:Platform=ARM64 `
+    /p:AppxPackageSigningEnabled=true /p:PackageCertificateThumbprint=$cert.Thumbprint
 ```
 
 Subject 必须与 manifest 的 Publisher 保持一致。证书可导出为 pfx 备份。
@@ -82,5 +84,4 @@ dotnet test Tests\Typedown.CoreTests\Typedown.CoreTests.csproj
 
 ### 7. 已知问题
 
-- 生成整个解决方案时，`Tools/TranslationTool` 报 `NETSDK1127`（缺少 Microsoft.NETCore.App 目标包），不影响宿主；直接构建 `Typedown.WinUI.csproj` 即可避开。
 - `AboutPage.xaml` 与 `SettingsPage.xaml` 各有一条 `WMC1506` 绑定警告，属既有问题。

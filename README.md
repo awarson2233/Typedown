@@ -45,7 +45,7 @@ yarn build
 ### 4. Build and run
 Open `Typedown\Typedown.sln` in Visual Studio, right-click the `Typedown.WinUI` project, and select Set as Startup Project. For daily development use `Debug_Local` (unpackaged, unsigned) with `ARM64` or `x64`, then click Run!
 
-The `Debug` and `Release` configurations produce a signed MSIX package and need a local code-signing certificate; see [docs/build.md](docs/build.md).
+The `Debug` and `Release` configurations produce an MSIX package (signing is disabled by default; see [docs/build.md](docs/build.md)).
 
 ![20240319232529_rec_](https://github.com/byxiaozhi/Typedown/assets/31278216/50ef6e56-b177-49b0-b361-83659d25a40e)
 

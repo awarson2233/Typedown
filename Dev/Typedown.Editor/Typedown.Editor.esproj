@@ -25,6 +25,7 @@
     <ProductionBuildCommand></ProductionBuildCommand>
     <!-- config-overrides.js writes the production bundle directly into the WinUI staging directory. -->
     <BuildOutputFolder>$(MSBuildProjectDirectory)\..\Typedown.WinUI\Resources\Statics</BuildOutputFolder>
+    <RestoreProjectStyle>PackageReference</RestoreProjectStyle>
   </PropertyGroup>
 
   <Import Project="Sdk.targets" Sdk="Microsoft.VisualStudio.JavaScript.Sdk" Version="0.5.45-alpha" />
