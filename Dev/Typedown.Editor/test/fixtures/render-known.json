@@ -1,0 +1,138 @@
+{
+  "comment": "渲染对照（test/render.test.ts）已知不通过的用例。category：intentional = Typora 式有意差异；unimplemented = 尚未实现（todo 注明归属）；defect = 待修缺陷（severity 为严重度）。修好的用例必须删掉，白名单只减不增。",
+  "groups": [
+    {
+      "category": "unimplemented",
+      "todo": "B1",
+      "reason": "表格单元格显示去转义后的源码，不渲染行内格式（行内代码、强调等）",
+      "cases": ["gfm #200"]
+    },
+    {
+      "category": "unimplemented",
+      "todo": "未排期",
+      "reason": "缩进式代码块没有做成块组件：按普通文字行显示（行首缩进可见、行内语法照常渲染），不是代码框",
+      "cases": ["commonmark #1", "commonmark #2", "commonmark #3", "commonmark #5", "commonmark #6", "commonmark #7", "commonmark #8", "commonmark #18", "commonmark #36", "commonmark #48", "commonmark #69", "commonmark #85", "commonmark #100", "commonmark #107", "commonmark #110", "commonmark #111", "commonmark #112", "commonmark #114", "commonmark #115", "commonmark #116", "commonmark #117", "commonmark #118", "commonmark #134", "commonmark #183", "commonmark #184", "commonmark #191", "commonmark #211", "commonmark #225", "commonmark #231", "commonmark #236", "commonmark #253", "commonmark #254", "commonmark #257", "commonmark #264", "commonmark #270", "commonmark #271", "commonmark #272", "commonmark #273", "commonmark #274", "commonmark #286", "commonmark #287", "commonmark #288", "commonmark #289", "commonmark #290", "commonmark #309", "commonmark #313", "gfm #1", "gfm #2", "gfm #3", "gfm #5", "gfm #6", "gfm #7", "gfm #8", "gfm #18", "gfm #39", "gfm #55", "gfm #70", "gfm #77", "gfm #80", "gfm #81", "gfm #82", "gfm #84", "gfm #85", "gfm #86", "gfm #87", "gfm #88", "gfm #104", "gfm #152", "gfm #153", "gfm #160", "gfm #180", "gfm #195", "gfm #209", "gfm #214", "gfm #231", "gfm #232", "gfm #235", "gfm #242", "gfm #248", "gfm #249", "gfm #250", "gfm #251", "gfm #252", "gfm #264", "gfm #265", "gfm #266", "gfm #267", "gfm #268", "gfm #289", "gfm #293", "gfm #314", "gfm #332"]
+    },
+    {
+      "category": "unimplemented",
+      "todo": "未排期",
+      "reason": "块组件只处理顶层块：列表、引用里的围栏代码、HTML 块按源码行显示（``` 与标签可见）",
+      "cases": ["commonmark #128", "commonmark #174", "commonmark #175", "commonmark #237", "commonmark #252", "commonmark #263", "commonmark #278", "commonmark #318", "commonmark #321", "commonmark #324", "gfm #98", "gfm #143", "gfm #144", "gfm #215", "gfm #230", "gfm #241", "gfm #256", "gfm #298", "gfm #301", "gfm #304"]
+    },
+    {
+      "category": "unimplemented",
+      "todo": "未排期",
+      "reason": "没有内容行的围栏代码块按源码显示（blockField：收起围栏后无处落光标），不是空代码框",
+      "cases": ["commonmark #126", "commonmark #130", "commonmark #144", "gfm #96", "gfm #100", "gfm #114"]
+    },
+    {
+      "category": "unimplemented",
+      "todo": "零散待办：引用式链接与图片",
+      "reason": "引用式链接（[text][ref]、[ref]）的文字按链接显示，但不解析定义，没有地址（Ctrl+单击无效）",
+      "cases": ["commonmark #23", "commonmark #33", "commonmark #192", "commonmark #193", "commonmark #194", "commonmark #195", "commonmark #196", "commonmark #198", "commonmark #200", "commonmark #202", "commonmark #203", "commonmark #204", "commonmark #205", "commonmark #206", "commonmark #214", "commonmark #215", "commonmark #216", "commonmark #217", "commonmark #218", "commonmark #527", "commonmark #529", "commonmark #530", "commonmark #532", "commonmark #533", "commonmark #534", "commonmark #535", "commonmark #539", "commonmark #540", "commonmark #541", "commonmark #544", "commonmark #549", "commonmark #550", "commonmark #553", "commonmark #554", "commonmark #555", "commonmark #556", "commonmark #557", "commonmark #558", "commonmark #559", "commonmark #560", "commonmark #561", "commonmark #562", "commonmark #564", "commonmark #565", "commonmark #566", "commonmark #567", "commonmark #568", "commonmark #570", "commonmark #593", "gfm #161", "gfm #162", "gfm #163", "gfm #164", "gfm #165", "gfm #167", "gfm #169", "gfm #171", "gfm #172", "gfm #173", "gfm #174", "gfm #175", "gfm #183", "gfm #184", "gfm #185", "gfm #186", "gfm #187", "gfm #319", "gfm #329", "gfm #535", "gfm #537", "gfm #538", "gfm #540", "gfm #541", "gfm #542", "gfm #543", "gfm #547", "gfm #548", "gfm #549", "gfm #552", "gfm #557", "gfm #558", "gfm #561", "gfm #562", "gfm #563", "gfm #564", "gfm #565", "gfm #566", "gfm #567", "gfm #568", "gfm #569", "gfm #570", "gfm #572", "gfm #573", "gfm #574", "gfm #575", "gfm #576", "gfm #578", "gfm #601"]
+    },
+    {
+      "category": "unimplemented",
+      "todo": "零散待办：引用式链接与图片",
+      "reason": "引用式图片（![alt][ref]、![alt]）按源码显示，不渲染图片",
+      "cases": ["commonmark #573", "commonmark #576", "commonmark #577", "commonmark #582", "commonmark #583", "commonmark #584", "commonmark #585", "commonmark #586", "commonmark #587", "commonmark #588", "commonmark #589", "commonmark #591", "gfm #581", "gfm #584", "gfm #585", "gfm #590", "gfm #591", "gfm #592", "gfm #593", "gfm #594", "gfm #595", "gfm #596", "gfm #597", "gfm #599"]
+    },
+    {
+      "category": "defect",
+      "severity": "high",
+      "reason": "方括号文字在没有对应定义、或不构成合法链接时也渲染成链接（方括号隐藏、文字变链接色）：@lezer/markdown 不检查引用定义是否存在，普通文字里的 [1]、[TODO] 都会变样；连带外层真正的链接（[a [b]](url)）因「链接不能套链接」而不渲染",
+      "cases": ["commonmark #41", "commonmark #197", "commonmark #199", "commonmark #201", "commonmark #209", "commonmark #212", "commonmark #213", "commonmark #488", "commonmark #490", "commonmark #491", "commonmark #493", "commonmark #494", "commonmark #497", "commonmark #508", "commonmark #511", "commonmark #512", "commonmark #513", "commonmark #523", "commonmark #528", "commonmark #542", "commonmark #543", "commonmark #545", "commonmark #546", "commonmark #547", "commonmark #548", "commonmark #569", "commonmark #571", "commonmark #590", "gfm #166", "gfm #168", "gfm #170", "gfm #178", "gfm #181", "gfm #182", "gfm #337", "gfm #497", "gfm #499", "gfm #500", "gfm #502", "gfm #503", "gfm #516", "gfm #519", "gfm #520", "gfm #521", "gfm #531", "gfm #536", "gfm #550", "gfm #551", "gfm #553", "gfm #554", "gfm #555", "gfm #556", "gfm #577", "gfm #579", "gfm #598"]
+    },
+    {
+      "category": "defect",
+      "severity": "medium",
+      "reason": "反斜杠硬换行（行尾 \\）的反斜杠在渲染态仍显示（HardBreak 节点没有隐藏）",
+      "cases": ["commonmark #16", "commonmark #634", "commonmark #637", "commonmark #639", "gfm #312", "gfm #654", "gfm #657", "gfm #659"]
+    },
+    {
+      "category": "defect",
+      "severity": "medium",
+      "reason": "HTML 实体与数字字符引用（&copy;、&#42;、&ouml; 等）不解码，渲染态显示源码；链接地址、代码块语言名里的实体同样未解码",
+      "cases": ["commonmark #25", "commonmark #26", "commonmark #27", "commonmark #32", "commonmark #34", "commonmark #37", "commonmark #38", "commonmark #39", "commonmark #40", "commonmark #503", "gfm #321", "gfm #322", "gfm #323", "gfm #328", "gfm #330", "gfm #333", "gfm #334", "gfm #335", "gfm #336", "gfm #511"]
+    },
+    {
+      "category": "defect",
+      "severity": "low",
+      "reason": "链接地址（Ctrl+单击打开的地址）取源码原文，未按 CommonMark 规范化：尖括号、反斜杠转义未去掉，`[a]()` 的空地址成了「没有地址」",
+      "cases": ["commonmark #22", "commonmark #485", "commonmark #486", "commonmark #489", "commonmark #492", "commonmark #495", "commonmark #498", "commonmark #499", "commonmark #500", "gfm #318", "gfm #495", "gfm #496", "gfm #498", "gfm #501", "gfm #504", "gfm #506", "gfm #507", "gfm #508"]
+    },
+    {
+      "category": "defect",
+      "severity": "low",
+      "reason": "代码块语言名取源码原文，反斜杠转义未去掉",
+      "cases": ["commonmark #24", "gfm #320"]
+    },
+    {
+      "category": "defect",
+      "severity": "low",
+      "reason": "开围栏缩进 1–3 格时，内容行没有去掉相应的缩进（规范要求去掉，至多与开围栏的缩进相同）",
+      "cases": ["commonmark #131", "commonmark #132", "commonmark #133", "gfm #101", "gfm #102", "gfm #103"]
+    },
+    {
+      "category": "defect",
+      "severity": "low",
+      "reason": "列表符号：同一行开始多层列表（`1. - 2. foo`）只画最内层的符号；换了符号（- 与 +、. 与 )）另起的列表在渲染上与前一列表连成一个",
+      "cases": ["commonmark #299", "commonmark #301", "commonmark #302", "gfm #277", "gfm #281", "gfm #282"]
+    },
+    {
+      "category": "defect",
+      "severity": "low",
+      "reason": "链接文字只有一张图片（[![alt](src)](url)）时，渲染态没有链接（链接 mark 没有包住图片 widget）",
+      "cases": ["commonmark #517", "commonmark #531", "gfm #525", "gfm #539"]
+    },
+    {
+      "category": "defect",
+      "severity": "low",
+      "reason": "图片 alt 取源码去掉标记字符，嵌套的链接、图片的地址混进了 alt",
+      "cases": ["commonmark #520", "commonmark #574", "commonmark #575", "gfm #528", "gfm #582", "gfm #583"]
+    },
+    {
+      "category": "defect",
+      "severity": "low",
+      "reason": "跨行的标记无法隐藏（CM6 的替换装饰不能跨行）：跨行的链接目标、行内注释退为灰色源码显示",
+      "cases": ["commonmark #510", "commonmark #625", "gfm #518", "gfm #644"]
+    },
+    {
+      "category": "defect",
+      "severity": "low",
+      "reason": "处理指令块（<?php … ?>）既不渲染也不进源码框，按普通段落文字显示（blockField 没有处理 ProcessingInstructionBlock）",
+      "cases": ["commonmark #180", "gfm #149"]
+    },
+    {
+      "category": "defect",
+      "severity": "low",
+      "reason": "@lezer/markdown 的解析与规范不符（参照解析器同样如此，conformance 测不出）：`#` 后跟制表符不算标题、以空行开头的列表项吞掉后面的缩进段落、<textarea> 不算 HTML 块、<!--> 注释的新规则、GFM 裸链接不认 ftp://",
+      "cases": ["commonmark #10", "commonmark #171", "commonmark #280", "commonmark #626", "gfm #10", "gfm #258", "gfm #628", "gfm #645"]
+    },
+    {
+      "category": "intentional",
+      "reason": "编辑器始终启用 GFM 自动链接扩展：规范核心用例（按不带扩展的输出写的）里的裸网址、邮箱被渲染成链接",
+      "cases": ["commonmark #602", "commonmark #608", "commonmark #611", "commonmark #612", "gfm #610", "gfm #616", "gfm #619", "gfm #620"]
+    },
+    {
+      "category": "intentional",
+      "reason": "文首的 ---…--- 按 front matter 解析（conformance.test.ts 已记为有意取舍）",
+      "cases": ["commonmark #96", "commonmark #98", "gfm #66", "gfm #68"]
+    },
+    {
+      "category": "intentional",
+      "reason": "行内 HTML 只把同一段里成对的短语标签（RENDERED_TAGS）与 <br>、<img> 渲染成元素；落单或未知的标签、跨行的标签、行内注释之外的处理指令 / 声明 / CDATA 按灰色源码显示（inlineHtml.ts）",
+      "cases": ["commonmark #187", "commonmark #344", "commonmark #476", "commonmark #477", "commonmark #524", "commonmark #536", "commonmark #613", "commonmark #614", "commonmark #615", "commonmark #616", "commonmark #617", "commonmark #623", "commonmark #627", "commonmark #628", "commonmark #629", "commonmark #630", "commonmark #631", "commonmark #642", "commonmark #643", "gfm #156", "gfm #354", "gfm #485", "gfm #486", "gfm #532", "gfm #544", "gfm #632", "gfm #633", "gfm #634", "gfm #635", "gfm #636", "gfm #642", "gfm #646", "gfm #647", "gfm #648", "gfm #649", "gfm #650", "gfm #652", "gfm #662", "gfm #663"]
+    },
+    {
+      "category": "intentional",
+      "reason": "HTML 块各自独立渲染并经 DOMPurify 消毒：开闭标签分在不同块（中间隔着 markdown 段落）时结构与整页 HTML 不同，未知标签被去掉",
+      "cases": ["commonmark #148", "commonmark #150", "commonmark #152", "commonmark #155", "commonmark #163", "commonmark #167", "commonmark #188", "commonmark #190", "gfm #118", "gfm #120", "gfm #122", "gfm #125", "gfm #133", "gfm #137", "gfm #157", "gfm #159"]
+    },
+    {
+      "category": "intentional",
+      "reason": "编辑器按源码行显示（软换行即换行），跨行的行内代码分成两行显示，规范渲染成一段带空格的代码",
+      "cases": ["commonmark #335", "commonmark #337", "commonmark #640", "commonmark #641", "gfm #345", "gfm #347", "gfm #660", "gfm #661"]
+    }
+  ]
+}
