@@ -107,7 +107,7 @@ public sealed class EditorWireSessionTests
         var context = session.RequestAsync(new ContextAt(1, 2));
 
         session.Detach(channel);
-        await Assert.ThrowsExceptionAsync<OperationCanceledException>(() => context);
+        await Assert.ThrowsExactlyAsync<OperationCanceledException>(() => context);
         Assert.AreEqual(EditorSessionState.Detached, session.State);
 
         session.Post(new LoadDocument("b", "C:/b"));
@@ -230,7 +230,7 @@ public sealed class EditorWireSessionTests
         Assert.IsFalse(context.IsCompleted);
 
         clock.Advance(TimeSpan.FromSeconds(0.1));
-        await Assert.ThrowsExceptionAsync<TimeoutException>(() => context);
+        await Assert.ThrowsExactlyAsync<TimeoutException>(() => context);
     }
 
     [TestMethod]
@@ -242,7 +242,7 @@ public sealed class EditorWireSessionTests
         Assert.IsFalse(export.IsCompleted);
 
         session.Receive(Fail(channel.Sent.Last().Id!.Value, "unknownType"));
-        await Assert.ThrowsExceptionAsync<NotSupportedException>(() => export);
+        await Assert.ThrowsExactlyAsync<NotSupportedException>(() => export);
     }
 
     [TestMethod]
@@ -252,7 +252,7 @@ public sealed class EditorWireSessionTests
         using var cancellation = new CancellationTokenSource();
         var context = session.RequestAsync(new ContextAt(1, 1), cancellation.Token);
         cancellation.Cancel();
-        await Assert.ThrowsExceptionAsync<OperationCanceledException>(() => context);
+        await Assert.ThrowsExactlyAsync<OperationCanceledException>(() => context);
     }
 
     [TestMethod]
@@ -288,7 +288,7 @@ public sealed class EditorWireSessionTests
         session.Receive(Evt("lifecycle.fault", """{"message":"boom","stack":"at x","fatal":true}"""));
         await Task.Yield();
 
-        await Assert.ThrowsExceptionAsync<OperationCanceledException>(() => context);
+        await Assert.ThrowsExactlyAsync<OperationCanceledException>(() => context);
         Assert.AreEqual(EditorSessionState.Faulted, session.State);
         Assert.AreEqual(2, channel.Inits.Count, "init state injected again before the reload");
         Assert.AreEqual(new HistoryChanged(false, false), events.OfType<HistoryChanged>().Last(), "the reloaded page starts without history");
@@ -349,7 +349,7 @@ public sealed class EditorWireSessionTests
         var context = session.RequestAsync(new ContextAt(1, 1));
         session.OnNavigationStarting();
 
-        await Assert.ThrowsExceptionAsync<OperationCanceledException>(() => context);
+        await Assert.ThrowsExactlyAsync<OperationCanceledException>(() => context);
         Assert.AreEqual(EditorSessionState.Loading, session.State);
         session.Post(new SelectAll());
         Assert.AreEqual("selection.contextAt", channel.Sent.Last().T, "commands queue until the next ready");

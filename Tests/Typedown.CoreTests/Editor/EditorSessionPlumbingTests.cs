@@ -107,7 +107,7 @@ public sealed class EditorSessionPlumbingTests
     public void Gate_RejectsNonRetainedCommands()
     {
         var gate = new EditorCommandGate<string>();
-        Assert.ThrowsException<ArgumentException>(() => gate.Submit(new SelectAll()));
+        Assert.ThrowsExactly<ArgumentException>(() => gate.Submit(new SelectAll()));
     }
 
     [TestMethod]

@@ -248,7 +248,7 @@ public sealed class EditorWireContractTests
     [TestMethod]
     public void EncodeCommand_RequiresTheMirrorForLoads()
     {
-        Assert.ThrowsException<ArgumentException>(() => EditorWireCodec.EncodeCommand(new LoadDocument("x", "")));
+        Assert.ThrowsExactly<ArgumentException>(() => EditorWireCodec.EncodeCommand(new LoadDocument("x", "")));
     }
 
     [TestMethod]
@@ -269,7 +269,7 @@ public sealed class EditorWireContractTests
         Assert.AreEqual(new HistoryChanged(false, true), ((WireEvent)inbound).Event);
     }
 
-    [DataTestMethod]
+    [TestMethod]
     [DataRow("", EditorWireError.InvalidPayload, DisplayName = "empty")]
     [DataRow("[1]", EditorWireError.InvalidPayload, DisplayName = "not an object")]
     [DataRow("{\"k\":\"evt\"", EditorWireError.InvalidPayload, DisplayName = "truncated")]
@@ -305,18 +305,18 @@ public sealed class EditorWireContractTests
     public void ReadReply_MapsErrorCodesToExceptions()
     {
         var call = EditorWireCodec.EncodeRequest(7, new FlushDocument());
-        Assert.ThrowsException<NotSupportedException>(() => call.ReadReply(Failure(7, "unknownType")));
-        Assert.ThrowsException<OperationCanceledException>(() => call.ReadReply(Failure(7, "canceled")));
-        var failed = Assert.ThrowsException<EditorRequestFailedException>(() => call.ReadReply(Failure(7, "failed")));
+        Assert.ThrowsExactly<NotSupportedException>(() => call.ReadReply(Failure(7, "unknownType")));
+        Assert.ThrowsExactly<OperationCanceledException>(() => call.ReadReply(Failure(7, "canceled")));
+        var failed = Assert.ThrowsExactly<EditorRequestFailedException>(() => call.ReadReply(Failure(7, "failed")));
         Assert.AreEqual(EditorWireError.Failed, failed.Code);
         Assert.AreEqual("boom", failed.Message);
-        var unknownCode = Assert.ThrowsException<EditorRequestFailedException>(() => call.ReadReply(Failure(7, "exploded")));
+        var unknownCode = Assert.ThrowsExactly<EditorRequestFailedException>(() => call.ReadReply(Failure(7, "exploded")));
         Assert.AreEqual(EditorWireError.Failed, unknownCode.Code);
 
         var nullReply = (EditorWireReply)EditorWireCodec.Decode("""{"k":"res","id":7,"ok":true,"p":null}""");
-        Assert.AreEqual(EditorWireError.InvalidPayload, Assert.ThrowsException<EditorRequestFailedException>(() => call.ReadReply(nullReply)).Code);
+        Assert.AreEqual(EditorWireError.InvalidPayload, Assert.ThrowsExactly<EditorRequestFailedException>(() => call.ReadReply(nullReply)).Code);
         var badReply = (EditorWireReply)EditorWireCodec.Decode("""{"k":"res","id":7,"ok":true,"p":{"version":"x"}}""");
-        Assert.AreEqual(EditorWireError.InvalidPayload, Assert.ThrowsException<EditorRequestFailedException>(() => call.ReadReply(badReply)).Code);
+        Assert.AreEqual(EditorWireError.InvalidPayload, Assert.ThrowsExactly<EditorRequestFailedException>(() => call.ReadReply(badReply)).Code);
 
         var contextAt = EditorWireCodec.EncodeRequest(8, new ContextAt(0, 0));
         Assert.IsNull(contextAt.ReadReply((EditorWireReply)EditorWireCodec.Decode("""{"k":"res","id":8,"ok":true,"p":null}""")));

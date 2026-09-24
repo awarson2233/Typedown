@@ -35,7 +35,7 @@ public sealed class LocalImageRequestTests
         Assert.AreEqual(LocalImageRequestKind.MethodNotAllowed, LocalImageRequest.Parse("POST", "https://typedown.image/C/a.png").Kind);
     }
 
-    [DataTestMethod]
+    [TestMethod]
     [DataRow("https://typedown.image/C/a/../b.png")]            // 相对段
     [DataRow("https://typedown.image/C/a/%2E%2E/b.png")]        // 编码的相对段
     [DataRow("https://typedown.image/C/./b.png")]

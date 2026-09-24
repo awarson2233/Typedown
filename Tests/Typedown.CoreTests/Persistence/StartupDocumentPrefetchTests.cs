@@ -108,7 +108,7 @@ public class StartupDocumentPrefetchTests
             snapshot = await StartupFileSnapshot.ReadAsync(path, autoBackup);
 
         Assert.IsTrue(snapshot.Exists);
-        Assert.ThrowsException<IOException>(() => snapshot.GetText());
+        Assert.ThrowsExactly<IOException>(() => snapshot.GetText());
     }
 
     [TestMethod]

@@ -50,8 +50,8 @@ public sealed class TextFileCodecTests
         return [name, bytes, new TextFileFormat(expectedEncoding, bom, expectedLineEnding)];
     }
 
-    [DataTestMethod]
-    [DynamicData(nameof(UnchangedFiles), DynamicDataSourceType.Method)]
+    [TestMethod]
+    [DynamicData(nameof(UnchangedFiles))]
     public async Task OpenThenSaveWithoutEditing_KeepsTheBytes(string name, byte[] original, TextFileFormat expectedFormat)
     {
         var path = Path.Combine(tempDirectory, name + ".md");

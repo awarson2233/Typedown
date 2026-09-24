@@ -50,7 +50,7 @@ public sealed class DocumentMirrorTests
         Assert.AreEqual("xabc", mirror.Document.Text);
     }
 
-    [DataTestMethod]
+    [TestMethod]
     [DataRow(1, 0, 0, DisplayName = "version gap")]
     [DataRow(0, 4, 4, DisplayName = "past the end")]
     [DataRow(0, 2, 1, DisplayName = "inverted range")]

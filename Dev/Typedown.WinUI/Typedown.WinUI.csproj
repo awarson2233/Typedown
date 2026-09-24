@@ -97,9 +97,9 @@
         <PackageReference Include="CommunityToolkit.WinUI.Controls.SettingsControls" Version="8.2.251219" />
         <ProjectReference Include="..\Typedown.Core\Typedown.Core.csproj" />
         <PackageReference Include="CommunityToolkit.WinUI.Controls.Sizers" Version="8.2.251219" />
-        <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="9.0.8" />
-        <PackageReference Include="Microsoft.WindowsAppSDK" Version="2.0.1" />
-        <PackageReference Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.26100.7705" />
+        <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.12" />
+        <PackageReference Include="Microsoft.WindowsAppSDK" Version="2.5.1" />
+        <PackageReference Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.28000.2705" />
 
         <Manifest Include="$(ApplicationManifest)" />
         <GlobalAnalyzerConfigFiles Include="..\TrimAnalysis.globalconfig" />
@@ -123,22 +123,16 @@
         <HasPackageAndPublishMenu>true</HasPackageAndPublishMenu>
     </PropertyGroup>
 
-    <Target Name="RefreshTypedownEditorStaticBundleContent"
-            DependsOnTargets="ResolveProjectReferences"
-            AfterTargets="ResolveProjectReferences"
-            BeforeTargets="AssignTargetPaths;GetCopyToOutputDirectoryItems;GetPackagingOutputs">
+    <Target Name="RefreshTypedownEditorStaticBundleContent" DependsOnTargets="ResolveProjectReferences" AfterTargets="ResolveProjectReferences" BeforeTargets="AssignTargetPaths;GetCopyToOutputDirectoryItems;GetPackagingOutputs">
         <Error Condition="('$(Configuration)' == 'Release' Or '$(Configuration)' == 'Debug_Local') And !Exists('$(MSBuildProjectDirectory)\$(TypedownEditorStaticBundleStagingPath)\index.html')" Text="Typedown.Editor static bundle is missing. Run yarn build in Dev\Typedown.Editor before building Typedown.WinUI." />
         <ItemGroup>
             <!-- Remove by evaluated identity so files deleted by the frontend build are not retained as stale Content. -->
-            <Content Remove="%(Content.Identity)"
-                     Condition="$([System.String]::Copy('%(Content.Identity)').StartsWith('$(TypedownEditorStaticBundleStagingPath)\'))" />
+            <Content Remove="%(Content.Identity)" Condition="$([System.String]::Copy('%(Content.Identity)').StartsWith('$(TypedownEditorStaticBundleStagingPath)\'))" />
             <Content Include="$(TypedownEditorStaticBundleStagingPath)\**\*" CopyToOutputDirectory="Always" CopyToPublishDirectory="Always" Condition="Exists('$(MSBuildProjectDirectory)\$(TypedownEditorStaticBundleStagingPath)\index.html')" />
         </ItemGroup>
     </Target>
 
-    <Target Name="CleanTypedownEditorStaticBundleOutput"
-            BeforeTargets="_CopyOutOfDateSourceItemsToOutputDirectoryAlways"
-            Condition="'$(OutDir)' != '' and Exists('$(OutDir)$(TypedownEditorStaticBundleStagingPath)')">
+    <Target Name="CleanTypedownEditorStaticBundleOutput" BeforeTargets="_CopyOutOfDateSourceItemsToOutputDirectoryAlways" Condition="'$(OutDir)' != '' and Exists('$(OutDir)$(TypedownEditorStaticBundleStagingPath)')">
         <!-- Limit cleanup to the generated editor bundle under WinUI OutDir. -->
         <RemoveDir Directories="$(OutDir)$(TypedownEditorStaticBundleStagingPath)" />
     </Target>
