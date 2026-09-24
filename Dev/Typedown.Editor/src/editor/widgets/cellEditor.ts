@@ -7,6 +7,7 @@ import { revealState } from '../decorations/revealState';
 import { documentLocation } from '../state/documentLocation';
 import { cellReplace, cellSourceFixes, minimalChange, tableRows } from '../commands/tableCells';
 import { ACTIVE_CELL_CLASS, TABLE_WRAP_CLASS, cellElement, renderCell, type TableDom } from './tableCellRender';
+import { selectTable } from './tableSelection';
 
 /**
  * 焦点单元格的嵌套视图（webview-wysiwyg-engine.md 第 6 节「单元格渲染」）。
@@ -257,7 +258,6 @@ export class CellSession {
     this.reload(loc, undoRedo);
   }
 
-
   /** 按表格模型重新载入该格源码（外部变化） */
   private reload(loc: CellLocation, followSelection: boolean) {
     const text = this.text;
@@ -338,6 +338,14 @@ export class CellSession {
     if (i < 0 || i >= rows * cols) return false;
     openCell(this.main, loc.wrap, Math.floor(i / cols), i % cols, anchor);
     return true;
+  }
+
+  /** 结束格内编辑，整表选中（焦点交给主视图） */
+  selectWholeTable() {
+    // 先结束会话（最后一次提交可能改变表格长度），再按会话里跟随主文档映射过的范围选中
+    this.close(Leave.Stay, true);
+    this.main.focus();
+    selectTable(this.main, { from: this.tableFrom, to: this.tableTo }, true);
   }
 
   /** 移到同一列的上一行或下一行 */
@@ -421,6 +429,13 @@ function cellKeymap(s: CellSession): KeyBinding[] {
     // Tab 跳格：光标放在格末（C1 的行为）；首尾格再按不出表格
     { key: 'Tab', run: () => { s.moveBy(1, Infinity); return true; }, shift: () => { s.moveBy(-1, Infinity); return true; } },
     { key: 'Escape', run: () => leave(Leave.TableEnd) },
+    // Ctrl+A：先选格内内容（默认的全选），已全选时再按选中整表
+    { key: 'Mod-a', run: view => {
+      const sel = view.state.selection.main;
+      if (sel.from !== 0 || sel.to !== view.state.doc.length) return false;
+      s.selectWholeTable();
+      return true;
+    } },
     // 单元格里不能换行
     { key: 'Enter', run: () => true, shift: () => true },
     { key: 'Mod-Enter', run: () => true },

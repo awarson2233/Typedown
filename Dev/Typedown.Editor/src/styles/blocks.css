@@ -268,6 +268,15 @@ div.cm-td-fence.cm-td-fence-math.cm-td-fence-foot.cm-td-fence-active::before { t
 .cm-td-cell .cm-td-cell-editor .cm-scroller { overflow: visible; font-family: inherit; line-height: inherit; }
 .cm-editor .cm-td-cell .cm-td-cell-editor .cm-content { padding: 0; min-height: 0; word-break: inherit; overflow-wrap: inherit; white-space: pre-wrap; }
 .cm-td-cell .cm-td-cell-editor .cm-content .cm-line { padding: 0; }
+/* 块选择（widgets/tableSelection.ts；Muya default.css 的 table .ag-cell-selected 与 .ag-cell-border-*）：选中格的框线伪元素铺一层淡底色，
+   矩形四边的框线换成强调色。整张表格被主选区覆盖，浏览器画的原生选区底色去掉，只看格子的样式 */
+.cm-td-table .cm-td-cell-selected::before { background: var(--editorColor04); z-index: 1; }
+.cm-td-table .cm-td-cell-border-top::before { border-top-color: var(--themeColor); }
+.cm-td-table .cm-td-cell-border-right::before { border-right-color: var(--themeColor); }
+.cm-td-table .cm-td-cell-border-bottom::before { border-bottom-color: var(--themeColor); }
+.cm-td-table .cm-td-cell-border-left::before { border-left-color: var(--themeColor); }
+.cm-td-table-wrap.cm-td-table-selected ::selection,
+.cm-td-table-wrap.cm-td-table-selected::selection { background: transparent; }
 
 /* ── 脚注定义区（figure[data-role="FOOTNOTE"]） ──────────────────────────────────────────── */
 

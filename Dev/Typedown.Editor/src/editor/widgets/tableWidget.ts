@@ -3,6 +3,7 @@ import { parseTable, tableRows, type CellRange, type TableModel } from '../comma
 import { cachedHeight, heightKey, measureInto } from './heightCache';
 import { ACTIVE_CELL_CLASS, CELL_CLASS, TABLE_WRAP_CLASS, cellAddress, offsetAtPoint, renderCell, renderedSource, type TableDom } from './tableCellRender';
 import { cellSession, openCell, tableDomDestroyed } from './cellEditor';
+import { trackCellDrag } from './tableSelection';
 
 /**
  * 表格网格 widget（webview-wysiwyg-engine.md 第 6 节）：
@@ -108,12 +109,13 @@ function attachCellHandlers(wrap: TableDom, view: EditorView) {
     const cellEl = (e.target as HTMLElement).closest?.('th, td');
     const span = cellEl?.querySelector<HTMLElement>(`.${CELL_CLASS}`);
     if (!span || !wrap.contains(span)) return;
-    // 已经是焦点单元格：交给嵌套视图
-    if (cellSession(view)?.host === span) return;
+    const cell = cellAddress(span);
+    // 已经是焦点单元格：格内的按下交给嵌套视图，这里只跟踪是否拖到别的格子（矩形多选）
+    if (cellSession(view)?.host === span) { trackCellDrag(view, wrap, cell, null); return; }
     e.preventDefault();
     e.stopPropagation();
-    const { row, col } = cellAddress(span);
-    const offset = offsetAtPoint(span, e.clientX, e.clientY);
-    openCell(view, wrap, row, col, offset ?? Infinity);
+    const offset = offsetAtPoint(span, e.clientX, e.clientY) ?? Infinity;
+    const s = openCell(view, wrap, cell.row, cell.col, offset);
+    trackCellDrag(view, wrap, cell, s ? s.nested.state.selection.main.head : null);
   }, true);
 }
